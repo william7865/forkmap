@@ -1,4 +1,4 @@
-name: Claude Audit
+name: Audit
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   audit:
-    name: Generate audit for latest commit
+    name: Lint · Types · Security report
     runs-on: ubuntu-latest
 
     steps:
@@ -21,19 +21,20 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          cache: npm
 
-      - name: Install Anthropic SDK
-        run: npm install --no-save @anthropic-ai/sdk
+      - name: Install dependencies
+        run: npm install
+        env:
+          HUSKY: 0
 
       - name: Run audit script
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: node scripts/claude-audit.mjs
 
       - name: Commit audit file
         run: |
-          git config user.name  "claude-audit[bot]"
-          git config user.email "claude-audit[bot]@users.noreply.github.com"
+          git config user.name  "audit-bot"
+          git config user.email "audit-bot@users.noreply.github.com"
           git add audits/
           git diff --cached --quiet || git commit -m "audit: $(git log -1 --format='%s' HEAD~1 2>/dev/null || echo 'latest commit') [skip ci]"
           git push
