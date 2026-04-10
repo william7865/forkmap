@@ -1,17 +1,29 @@
 name: Claude Autofix
 
 on:
-  # Trigger when someone mentions @claude in an issue or PR comment
+  # ── Interactive: @claude mentions in issues / PR comments ──────────────────
   issue_comment:
     types: [created]
 
-  # Trigger when a PR is opened or updated
+  # ── Automatic: every PR → Claude reviews + fixes ───────────────────────────
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened]
 
-  # Trigger when an issue is labeled "auto-fix"
+  # ── Label trigger: add "auto-fix" to any issue ─────────────────────────────
   issues:
     types: [labeled]
+
+  # ── Manual trigger from GitHub Actions UI ──────────────────────────────────
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "What should Claude do? (e.g. 'Fix all TypeScript errors', 'Add missing error handling')"
+        required: false
+        default: "Review the entire codebase, fix bugs, TypeScript errors, and code quality issues. Run npm run lint and npm run type-check to verify. Commit each fix separately."
+
+  # ── Scheduled: full scan every Monday at 8h00 UTC ──────────────────────────
+  schedule:
+    - cron: "0 8 * * 1"
 
 permissions:
   contents: write
@@ -19,26 +31,59 @@ permissions:
   pull-requests: write
 
 jobs:
-  claude:
-    # Only run on @claude mentions, "auto-fix" labels, or new PRs
-    if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'issues' && github.event.label.name == 'auto-fix') ||
-      github.event_name == 'pull_request'
+  # ── Interactive / label / manual / scheduled ────────────────────────────────
+  claude-agent:
     name: Claude Code Agent
     runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'issues' && github.event.label.name == 'auto-fix')
 
     steps:
       - uses: anthropics/claude-code-action@beta
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          # Optional: limit what Claude can do (comma-separated tool names to allow)
-          # allowed_tools: "Edit,Read,Bash(npm run lint),Bash(npm run type-check),Bash(npm run test:run)"
-          # Optional: give Claude extra context about the project
+          # On manual/scheduled runs, inject the task prompt directly
+          prompt: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.task || github.event_name == 'schedule' && 'Do a full health check of this codebase: find and fix TypeScript errors, lint warnings, runtime bugs, security issues, and missing error handling. Run npm run lint && npm run type-check after each change. Commit each fix with a clear message.' || '' }}
+          allowed_tools: "Bash,Edit,Read,Write,Glob,Grep"
           custom_instructions: |
-            This is a Next.js 15 + TypeScript + Tailwind + Supabase restaurant map app.
-            Stack: App Router, Leaflet (always dynamic import ssr:false), Zod validation, in-memory cache.
-            Auth: no middleware auth — client-side useAuthGuard, server-side requireUser() via Bearer token.
-            Run `npm run lint && npm run type-check` to validate any fix before committing.
-            Never hardcode display text — use the useLanguage hook and lib/i18n/translations.ts.
-            Never commit secrets or API keys.
+            This is a Next.js 15 + TypeScript strict + Tailwind + Supabase + Leaflet restaurant map app.
+            Key rules:
+            - Leaflet MapView MUST always use dynamic(() => import(...), { ssr: false })
+            - Never hardcode display text — use useLanguage hook + lib/i18n/translations.ts
+            - Auth: no middleware — client guards via useAuthGuard, server via requireUser() Bearer token
+            - Run `npm run lint && npm run type-check` to validate every fix
+            - Never commit .env files or API keys
+            - Prefer editing existing files over creating new ones
+            - Keep changes minimal and focused
+
+  # ── PR review + auto-fix ────────────────────────────────────────────────────
+  claude-pr-fix:
+    name: Claude PR Review & Fix
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Review the changes in this pull request.
+
+            1. Run `npm run lint` and `npm run type-check` and fix every error.
+            2. Check the diff for bugs, type errors, missing null checks, and security issues.
+            3. If you find issues, fix them directly and commit with descriptive messages.
+            4. If everything looks good, leave a brief comment saying so.
+
+            Be precise and minimal — only touch what's broken.
+          allowed_tools: "Bash,Edit,Read,Write,Glob,Grep"
+          custom_instructions: |
+            This is a Next.js 15 + TypeScript strict + Tailwind + Supabase + Leaflet restaurant map app.
+            Key rules:
+            - Leaflet MapView MUST always use dynamic(() => import(...), { ssr: false })
+            - Never hardcode display text — use useLanguage hook + lib/i18n/translations.ts
+            - Auth: no middleware — client guards via useAuthGuard, server via requireUser() Bearer token
+            - Run `npm run lint && npm run type-check` to validate every fix
+            - Never commit .env files or API keys
