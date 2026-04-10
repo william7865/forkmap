@@ -1,0 +1,44 @@
+name: Claude Autofix
+
+on:
+  # Trigger when someone mentions @claude in an issue or PR comment
+  issue_comment:
+    types: [created]
+
+  # Trigger when a PR is opened or updated
+  pull_request:
+    types: [opened, synchronize]
+
+  # Trigger when an issue is labeled "auto-fix"
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  claude:
+    # Only run on @claude mentions, "auto-fix" labels, or new PRs
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'issues' && github.event.label.name == 'auto-fix') ||
+      github.event_name == 'pull_request'
+    name: Claude Code Agent
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Optional: limit what Claude can do (comma-separated tool names to allow)
+          # allowed_tools: "Edit,Read,Bash(npm run lint),Bash(npm run type-check),Bash(npm run test:run)"
+          # Optional: give Claude extra context about the project
+          custom_instructions: |
+            This is a Next.js 15 + TypeScript + Tailwind + Supabase restaurant map app.
+            Stack: App Router, Leaflet (always dynamic import ssr:false), Zod validation, in-memory cache.
+            Auth: no middleware auth — client-side useAuthGuard, server-side requireUser() via Bearer token.
+            Run `npm run lint && npm run type-check` to validate any fix before committing.
+            Never hardcode display text — use the useLanguage hook and lib/i18n/translations.ts.
+            Never commit secrets or API keys.
