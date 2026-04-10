@@ -10,10 +10,6 @@ on:
   issues:
     types: [labeled]
 
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-
   workflow_dispatch:
     inputs:
       task:
@@ -31,37 +27,6 @@ permissions:
   id-token: write   # required by claude-code-action to authenticate
 
 jobs:
-  # ── CI failed → Claude auto-fixes ───────────────────────────
-  claude-fix-ci:
-    name: Claude Fix CI Failure
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure'
-
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.event.workflow_run.head_branch }}
-
-      - uses: anthropics/claude-code-action@beta
-        with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          direct_prompt: |
-            The CI pipeline just failed on branch "${{ github.event.workflow_run.head_branch }}".
-            CI run: ${{ github.event.workflow_run.html_url }}
-
-            1. Run `npm install` (with HUSKY=0) then `npm run lint`, `npm run type-check`, `npm run test:run` to reproduce the errors.
-            2. Fix every error you find.
-            3. Commit each fix with a clear message like "fix: <what was broken>".
-            4. Do not change functionality — only fix what is broken.
-          allowed_tools: "Bash,Edit,Read,Write,Glob,Grep"
-          custom_instructions: |
-            Next.js 15 + TypeScript strict + Tailwind + Supabase + Leaflet app.
-            - Run npm install (not npm ci) with HUSKY=0 env var
-            - Leaflet MapView MUST use dynamic(() => import(...), { ssr: false })
-            - Never hardcode display text — use useLanguage + lib/i18n/translations.ts
-            - Never commit .env files or API keys
-
   # ── Interactive / label / manual / scheduled ────────────────
   claude-agent:
     name: Claude Code Agent
