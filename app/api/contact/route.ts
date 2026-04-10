@@ -96,11 +96,13 @@ export async function POST(req: NextRequest) {
     }
   } else {
     // ── Dev fallback — log to console ────────────────────────
+    /* eslint-disable no-console */
     console.log("\n📧 [CONTACT FORM SUBMISSION - no RESEND_API_KEY set]");
     console.log(`From: ${name} <${email}>`);
     console.log(`Topic: ${topic}`);
     console.log(`Message:\n${message}`);
     console.log("──────────────────────────────────────────\n");
+    /* eslint-enable no-console */
     // Return success in dev so the UI flow can be tested
   }
 

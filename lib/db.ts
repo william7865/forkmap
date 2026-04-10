@@ -98,7 +98,7 @@ export interface VisitRow {
   personal_rating?: number;  // 1–5
   mood?:           string;
   note?:           string;
-  snapshot?:       Record<string, unknown>;
+  snapshot?:       PlaceCard;
   created_at:      string;
   updated_at:      string;
 }
@@ -222,7 +222,7 @@ export async function getVisitStats(userId: string): Promise<VisitStats> {
   // Cuisine breakdown
   const cuisineMap: Record<string, { count: number; spent: number }> = {};
   for (const v of visits) {
-    const snap = v.snapshot as any;
+    const snap = v.snapshot;
     const c = snap?.cuisine ?? snap?.fsq?.categories?.[0]?.name ?? "Autre";
     if (!cuisineMap[c]) cuisineMap[c] = { count: 0, spent: 0 };
     cuisineMap[c].count++;

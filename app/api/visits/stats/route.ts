@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   try {
     const stats = await getVisitStats(userId);
     return NextResponse.json({ data: stats });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "Failed to compute stats" }, { status: 500 });
   }
 }

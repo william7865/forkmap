@@ -59,8 +59,8 @@ export async function POST(req: NextRequest) {
       // 2. Opening hours parse (instant)
       const oh = place.opening_hours ?? tags["opening_hours"];
       if (oh && osmEnriched.open_now === undefined) {
-        const parsed = isOpenNow(oh);
-        if (parsed !== null) osmEnriched.open_now = parsed;
+        const openNow = isOpenNow(oh);
+        if (openNow !== null) osmEnriched.open_now = openNow;
       }
       const todayHours = oh ? getTodayHours(oh) : null;
       if (todayHours) osmEnriched.today_hours = todayHours;
