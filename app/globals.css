@@ -1,0 +1,326 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400;1,9..144,600&family=Geist:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════════════
+   FORKMAP — Design System 3.0 "Carte Blanche"
+   Brandbook canonique · Vert Forêt · Fraunces + Geist
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Polices ── */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body:    'Geist', system-ui, -apple-system, sans-serif;
+
+  /* ── Brand — Vert Forêt (brandbook canonical) ── */
+  --forest:        #1a4a35;
+  --forest-mid:    #2d7a55;
+  --forest-bright: #3da672;
+  --forest-pale:   #e6f4ee;
+
+  /* ── Surfaces — Papier (brandbook canonical) ── */
+  --white:     #ffffff;
+  --off-white: #f9f8f6;
+  --cream:     #f3f1ec;
+  --bone:      #e8e5df;
+  --stone:     #cbc7bf;
+
+  /* ── Texte — Encre (brandbook canonical) ── */
+  --ink:    #0e0e0d;
+  --ink-80: #2a2a28;
+  --ink-60: #5a5954;
+  --ink-40: #908e88;
+  --ink-20: #cac8c3;
+  --ink-10: #e4e3df;
+
+  /* ── Sémantique (brandbook canonical) ── */
+  --green:      #16a34a;
+  --amber:      #c47c2b;
+  --amber-pale: #fdf3e3;
+  --coral:      #d94f3d;
+  --coral-pale: #fdecea;
+  --sky:        #2459a8;
+  --sky-pale:   #e8f0fb;
+
+  /* ── Borders ── */
+  --b1: rgba(14,14,13,0.06);
+  --b2: rgba(14,14,13,0.10);
+  --b3: rgba(14,14,13,0.18);
+
+  /* ── Shadows ── */
+  --s0: none;
+  --s1: 0 1px 3px rgba(14,14,13,0.06), 0 1px 2px rgba(14,14,13,0.04);
+  --s2: 0 3px 12px rgba(14,14,13,0.08), 0 1px 4px rgba(14,14,13,0.05);
+  --s3: 0 8px 28px rgba(14,14,13,0.10), 0 2px 8px rgba(14,14,13,0.06);
+  --s4: 0 20px 60px rgba(14,14,13,0.13), 0 6px 16px rgba(14,14,13,0.07);
+  --s-forest: 0 4px 20px rgba(29,74,53,0.22);
+  --s-focus:  0 0 0 3px rgba(45,122,85,0.28);
+
+  /* ── Motion ── */
+  --ease-spring:  cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:  cubic-bezier(0.4, 0, 0.2, 1);
+  --t1: 100ms;
+  --t2: 180ms;
+  --t3: 280ms;
+  --t4: 420ms;
+
+  /* ── Radius ── */
+  --r-xs:  3px;
+  --r-sm:  6px;
+  --r-md:  10px;
+  --r-lg:  14px;
+  --r-xl:  20px;
+  --r-2xl: 28px;
+  --r-pill: 999px;
+
+  /* ── Legacy aliases — compatibilité HeartButton, ErrorBoundary, etc. ── */
+  --accent:       var(--amber);
+  --accent-light: var(--amber-pale);
+  --accent-text:  var(--amber);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%; width: 100%;
+  background: var(--white);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.005em;
+}
+
+*:focus-visible {
+  outline: none;
+  box-shadow: var(--s-focus);
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+}
+
+/* ── Leaflet ── */
+.leaflet-container {
+  background: #eef1ec !important;
+  font-family: var(--font-body) !important;
+  cursor: default !important;
+}
+.leaflet-control-zoom {
+  border: none !important;
+  border-radius: var(--r-lg) !important;
+  box-shadow: var(--s3) !important;
+  overflow: hidden;
+  margin-right: 16px !important;
+  margin-bottom: 16px !important;
+}
+.leaflet-control-zoom a {
+  background: var(--white) !important;
+  color: var(--ink-60) !important;
+  border-bottom: 1px solid var(--b1) !important;
+  width: 38px !important; height: 38px !important;
+  line-height: 38px !important; font-size: 18px !important;
+  font-weight: 300 !important;
+  transition: background var(--t1) ease !important;
+}
+.leaflet-control-zoom a:hover {
+  background: var(--cream) !important;
+  color: var(--forest-mid) !important;
+}
+.leaflet-tooltip {
+  background: var(--white) !important;
+  border: 1px solid var(--b2) !important;
+  color: var(--ink) !important;
+  font-family: var(--font-body) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  padding: 5px 10px !important;
+  border-radius: var(--r-sm) !important;
+  box-shadow: var(--s2) !important;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.leaflet-tooltip::before { display: none !important; }
+.leaflet-attribution-flag { display: none !important; }
+.leaflet-control-attribution {
+  background: rgba(255,255,255,0.88) !important;
+  color: var(--ink-20) !important;
+  font-size: 9px !important;
+  backdrop-filter: blur(8px);
+  border-radius: var(--r-sm) 0 0 0 !important;
+  padding: 3px 8px !important;
+  border: none !important;
+}
+.leaflet-control-attribution a { color: var(--ink-20) !important; text-decoration: none; }
+.leaflet-control-attribution a:hover { color: var(--ink-40) !important; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bone); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-20); }
+
+/* ── Skeleton ── */
+.skeleton {
+  background: linear-gradient(90deg, var(--bone) 0%, var(--cream) 40%, var(--bone) 80%);
+  background-size: 300% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: var(--r-sm);
+}
+
+/* ── Animations ── */
+@keyframes shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes markerPop {
+  0%  { transform: translateY(6px) scale(0.7); opacity: 0; }
+  60% { transform: translateY(-2px) scale(1.05); }
+  100%{ transform: translateY(0)  scale(1); opacity: 1; }
+}
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.8; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+@keyframes heartBeat {
+  0%  { transform: scale(1); }
+  15% { transform: scale(1.35); }
+  30% { transform: scale(0.9); }
+  45% { transform: scale(1.2); }
+  60% { transform: scale(1); }
+}
+@keyframes heartUnbeat {
+  0%  { transform: scale(1); }
+  40% { transform: scale(0.75); }
+  70% { transform: scale(1.05); }
+  100%{ transform: scale(1); }
+}
+@keyframes heartParticle {
+  0%   { transform: translate(0,0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes toastOut {
+  from { opacity: 1; transform: translateY(0) scale(1); max-height: 60px; }
+  to   { opacity: 0; transform: translateY(-8px) scale(0.96); max-height: 0; }
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes enrichSweep {
+  0%   { left: -50%; }
+  100% { left: 100%; }
+}
+
+.anim-fade-up    { animation: fadeUp var(--t3) var(--ease-out) both; }
+.anim-slide-right{ animation: slideInRight var(--t3) var(--ease-out) both; }
+.anim-scale-in   { animation: scaleIn var(--t4) var(--ease-spring) both; }
+
+/* ── Input ── */
+.input-field {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  border: 1.5px solid var(--b2);
+  background: var(--off-white);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 400;
+  font-family: var(--font-body);
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+.input-field:focus {
+  border-color: var(--forest-mid);
+  background: var(--white);
+  box-shadow: var(--s-focus);
+}
+.input-field::placeholder { color: var(--ink-20); }
+
+/* ── Buttons ── */
+.btn-primary {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 11px 16px;
+  border-radius: var(--r-md); border: none; cursor: pointer;
+  font-size: 13px; font-weight: 600; font-family: var(--font-body);
+  background: var(--forest-mid); color: white;
+  box-shadow: var(--s-forest);
+  transition: background 120ms ease, transform 80ms ease, box-shadow 120ms ease;
+  letter-spacing: -0.01em;
+}
+.btn-primary:hover  { background: var(--forest); }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-secondary {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 10px 16px;
+  border-radius: var(--r-md); cursor: pointer;
+  font-size: 13px; font-weight: 500; font-family: var(--font-body);
+  background: var(--white); color: var(--ink-80);
+  border: 1.5px solid var(--b2);
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.btn-secondary:hover { background: var(--cream); border-color: var(--b3); }
+
+/* ── Eyebrow / label typography (brandbook) ── */
+.eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--forest-mid);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.eyebrow::before {
+  content: '';
+  display: block;
+  width: 20px;
+  height: 1.5px;
+  background: var(--forest-mid);
+}
+
+/* ── Mobile safe areas ── */
+@supports (padding: max(0px)) {
+  .safe-bottom { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .safe-top    { padding-top: max(0px, env(safe-area-inset-top)); }
+}
+
+@media (max-width: 767px) {
+  html, body { overscroll-behavior-x: none; }
+}
