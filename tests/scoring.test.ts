@@ -52,7 +52,9 @@ describe('computeScore', () => {
   })
 
   it('is higher for a verified place with a good rating', () => {
-    const good = makePlace({ fsq: { fsq_id: 'a', rating: 9, verified: true, total_ratings: 400, photos: [], categories: [] } })
+    const good = makePlace({
+      fsq: { fsq_id: 'a', rating: 9, verified: true, total_ratings: 400, photos: [], categories: [] },
+    })
     const plain = makePlace()
     expect(computeScore(good)).toBeGreaterThan(computeScore(plain))
   })
@@ -66,20 +68,40 @@ describe('computeScore', () => {
 
 // ---------- applyFilters ----------
 
-describe('applyFilters', () => {
-  const places = [
-    makePlace({ osm_id: 'a', name: 'Chez Pierre', cuisine: 'french', fsq: { fsq_id: 'x', rating: 8, price: 2, total_ratings: 100, verified: false, photos: [], categories: [] }, distance: 300 }),
-    makePlace({ osm_id: 'b', name: 'Sushi Yuki', cuisine: 'japanese', fsq: { fsq_id: 'y', rating: 6, price: 3, total_ratings: 50, verified: false, photos: [], categories: [] }, distance: 800 }),
-    makePlace({ osm_id: 'c', name: 'La Pizza', cuisine: 'italian', open_now: true, distance: 150 }),
-  ]
+const places: PlaceCard[] = [
+  makePlace({
+    osm_id: 'a',
+    name: 'Chez Pierre',
+    cuisine: 'french',
+    distance: 300,
+    fsq: { fsq_id: 'x', rating: 8, price: 2, total_ratings: 100, verified: false, photos: [], categories: [] },
+  }),
+  makePlace({
+    osm_id: 'b',
+    name: 'Sushi Yuki',
+    cuisine: 'japanese',
+    distance: 800,
+    fsq: { fsq_id: 'y', rating: 6, price: 3, total_ratings: 50, verified: false, photos: [], categories: [] },
+  }),
+  makePlace({
+    osm_id: 'c',
+    name: 'La Pizza',
+    cuisine: 'italian',
+    open_now: true,
+    distance: 150,
+  }),
+]
 
+describe('applyFilters', () => {
   it('returns all places with default filters', () => {
     expect(applyFilters(places, defaultFilters)).toHaveLength(3)
   })
 
   it('filters by minRating', () => {
     const result = applyFilters(places, { ...defaultFilters, minRating: 7 })
-    expect(result.every((p) => (p.fsq?.rating ?? Infinity) >= 7 || p.fsq == null)).toBe(true)
+    result.forEach((p) => {
+      if (p.fsq?.rating != null) expect(p.fsq.rating).toBeGreaterThanOrEqual(7)
+    })
   })
 
   it('filters by maxPrice', () => {
@@ -100,7 +122,9 @@ describe('applyFilters', () => {
 
   it('filters by maxDistance', () => {
     const result = applyFilters(places, { ...defaultFilters, maxDistance: 400 })
-    expect(result.some((p) => p.distance != null && p.distance > 400)).toBe(false)
+    result.forEach((p) => {
+      if (p.distance != null) expect(p.distance).toBeLessThanOrEqual(400)
+    })
   })
 
   it('sorts by distance ascending', () => {
@@ -120,19 +144,21 @@ describe('applyFilters', () => {
 
 describe('extractCuisines', () => {
   it('extracts unique cuisines, sorted', () => {
-    const places = [
+    const input = [
       makePlace({ cuisine: 'french' }),
       makePlace({ cuisine: 'japanese' }),
       makePlace({ cuisine: 'french' }),
     ]
-    expect(extractCuisines(places)).toEqual(['french', 'japanese'])
+    expect(extractCuisines(input)).toEqual(['french', 'japanese'])
   })
 
   it('includes FSQ category names', () => {
-    const places = [
-      makePlace({ fsq: { fsq_id: 'x', rating: 7, verified: false, photos: [], categories: [{ id: 1, name: 'Bistro' }], total_ratings: 10 } }),
+    const input = [
+      makePlace({
+        fsq: { fsq_id: 'x', categories: [{ id: 1, name: 'Bistro' }] },
+      }),
     ]
-    expect(extractCuisines(places)).toContain('Bistro')
+    expect(extractCuisines(input)).toContain('Bistro')
   })
 
   it('returns empty array for empty input', () => {
