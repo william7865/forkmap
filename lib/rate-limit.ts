@@ -42,7 +42,7 @@ setInterval(() => {
 export function rateLimit(
   req: NextRequest,
   options: Options
-): NextResponse<never> | null {
+): NextResponse<{ error: string }> | null {
   const { limit, windowMs, message = "Too many requests. Please try again later." } = options;
 
   // Identify the caller: prefer Vercel's forwarded IP, fall back to x-forwarded-for
