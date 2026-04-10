@@ -1,0 +1,41 @@
+name: Claude Audit
+
+on:
+  push:
+    branches: [master]
+
+# Allow the workflow to commit the audit file back to the repo
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    name: Generate audit for latest commit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2          # need HEAD~1 for the diff
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Anthropic SDK
+        run: npm install --no-save @anthropic-ai/sdk
+
+      - name: Run audit script
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node scripts/claude-audit.mjs
+
+      - name: Commit audit file
+        run: |
+          git config user.name  "claude-audit[bot]"
+          git config user.email "claude-audit[bot]@users.noreply.github.com"
+          git add audits/
+          # Only commit if there is something new
+          git diff --cached --quiet || git commit -m "audit: $(git log -1 --format='%s' HEAD~1 2>/dev/null || echo 'latest commit') [skip ci]"
+          git push
