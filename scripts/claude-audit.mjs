@@ -1,121 +1,120 @@
 #!/usr/bin/env node
 // scripts/claude-audit.mjs
-// Generates a structured audit file for the latest commit using Claude.
-// Run via GitHub Actions after each push.
+// Generates a static audit report using ESLint, TypeScript, and npm audit.
+// No API key required — runs entirely with local tools.
 
-import Anthropic from '@anthropic-ai/sdk'
 import { execSync } from 'child_process'
 import { writeFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
 
-if (!process.env.ANTHROPIC_API_KEY) {
-  console.warn('ANTHROPIC_API_KEY is not set — skipping audit.')
-  process.exit(0)
-}
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
 // ── Git context ──────────────────────────────────────────────────────────────
 
 function git(cmd) {
+  try { return execSync(cmd, { encoding: 'utf8' }).trim() } catch { return '' }
+}
+
+function run(cmd) {
   try {
-    return execSync(cmd, { encoding: 'utf8' }).trim()
-  } catch {
-    return ''
+    return { output: execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim(), ok: true }
+  } catch (e) {
+    return { output: (e.stdout ?? '') + (e.stderr ?? ''), ok: false }
   }
 }
 
-const sha       = git('git rev-parse HEAD')
-const shortSha  = sha.slice(0, 7)
-const author    = git('git log -1 --format="%an"')
-const message   = git('git log -1 --format="%s"')
-const dateStr   = git('git log -1 --format="%ci"')
-const stat      = git('git diff HEAD~1 HEAD --stat')
-const diff      = git('git diff HEAD~1 HEAD -- "*.ts" "*.tsx" "*.js"')
+const sha      = git('git rev-parse HEAD')
+const shortSha = sha.slice(0, 7)
+const author   = git('git log -1 --format="%an"')
+const message  = git('git log -1 --format="%s"')
+const dateStr  = git('git log -1 --format="%ci"')
+const stat     = git('git diff HEAD~1 HEAD --stat')
 
-if (!diff && !stat) {
-  console.log('No code changes detected — skipping audit.')
-  process.exit(0)
+// ── Run checks ───────────────────────────────────────────────────────────────
+
+console.log('Running lint…')
+const lint = run('npm run lint 2>&1')
+
+console.log('Running type-check…')
+const types = run('npm run type-check 2>&1')
+
+console.log('Running npm audit…')
+const audit = run('npm audit --audit-level=info 2>&1')
+
+// ── Parse summaries ──────────────────────────────────────────────────────────
+
+function lintSummary(output) {
+  const match = output.match(/(\d+) problems? \((\d+) errors?, (\d+) warnings?\)/)
+  if (!match) return output.includes('0 problems') ? '✅ No problems' : '✅ Clean'
+  const [, , errors, warnings] = match
+  const icon = errors === '0' ? '✅' : '❌'
+  return `${icon} ${errors} error(s), ${warnings} warning(s)`
 }
 
-// ── Claude analysis ──────────────────────────────────────────────────────────
-
-const prompt = `You are a senior code reviewer. Analyze this Git commit and produce a concise audit report in Markdown.
-
-## Commit metadata
-- SHA: ${shortSha}
-- Author: ${author}
-- Message: ${message}
-- Date: ${dateStr}
-
-## Files changed (stat)
-\`\`\`
-${stat || '(no stat)'}
-\`\`\`
-
-## Diff (TypeScript / JavaScript only)
-\`\`\`diff
-${diff.slice(0, 12000) || '(no diff)'}
-\`\`\`
-
-Produce a Markdown audit with these sections (omit sections with nothing to report):
-
-### Summary
-One sentence describing what this commit does.
-
-### Bugs / Risks
-List concrete bugs or regressions introduced. If none, write "None detected."
-
-### Security
-List any security issues (injections, exposed secrets, missing auth). If none, write "None detected."
-
-### Code Quality
-List specific improvements (naming, complexity, duplication). Be precise (file:line when possible).
-
-### Missing Tests
-List functions or branches added with no corresponding tests.
-
-### Score
-Rate this commit X/10 with a one-line justification.
-
-Be direct and specific. Skip generic advice.`
-
-console.log('Calling Claude API…')
-
-let analysis = ''
-try {
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1500,
-    messages: [{ role: 'user', content: prompt }],
-  })
-  analysis = response.content[0].type === 'text' ? response.content[0].text : ''
-} catch (err) {
-  console.warn('Claude API call failed — skipping audit.', err?.message ?? err)
-  process.exit(0)
+function typesSummary(output, ok) {
+  if (ok) return '✅ No errors'
+  const lines = output.split('\n').filter(l => l.includes('error TS'))
+  return `❌ ${lines.length} error(s)`
 }
 
-// ── Write audit file ─────────────────────────────────────────────────────────
+function auditSummary(output, ok) {
+  if (ok) return '✅ No vulnerabilities'
+  const match = output.match(/(\d+) vulnerabilit/)
+  return match ? `⚠️ ${match[1]} vulnerabilit(ies) found` : '⚠️ Issues found'
+}
+
+// ── Build report ─────────────────────────────────────────────────────────────
 
 const now     = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16)
 const outDir  = join(process.cwd(), 'audits')
 const outFile = join(outDir, `${now}-${shortSha}.md`)
 
-const content = `---
+const report = `---
 sha: ${sha}
 author: ${author}
 date: ${dateStr}
 message: "${message.replace(/"/g, "'")}"
 ---
 
-# Audit — ${now.replace('T', ' ').replace(/-/g, ':')} · \`${shortSha}\`
+# Audit — ${now.replace('T', ' ').replace(/-/g, (m, i) => i < 10 ? '-' : ':')} · \`${shortSha}\`
 
 > **${message}** — ${author}
 
-${analysis}
+## Files changed
+
+\`\`\`
+${stat || '(no changes)'}
+\`\`\`
+
+## ESLint — ${lintSummary(lint.output)}
+
+<details><summary>Full output</summary>
+
+\`\`\`
+${lint.output.slice(0, 4000) || '(none)'}
+\`\`\`
+
+</details>
+
+## TypeScript — ${typesSummary(types.output, types.ok)}
+
+<details><summary>Full output</summary>
+
+\`\`\`
+${types.output.slice(0, 4000) || '(none)'}
+\`\`\`
+
+</details>
+
+## Security (npm audit) — ${auditSummary(audit.output, audit.ok)}
+
+<details><summary>Full output</summary>
+
+\`\`\`
+${audit.output.slice(0, 4000) || '(none)'}
+\`\`\`
+
+</details>
 `
 
 mkdirSync(outDir, { recursive: true })
-writeFileSync(outFile, content, 'utf8')
-
+writeFileSync(outFile, report, 'utf8')
 console.log(`Audit written → ${outFile}`)
