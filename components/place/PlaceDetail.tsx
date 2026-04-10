@@ -187,32 +187,45 @@ export default function PlaceDetail({
   routeResult, routeLoading, routeMode="foot",
   hasUserLocation, onTransportChange
 }: Props) {
+  interface VisitRow {
+    id: string; visited_at: string; amount_spent?: number;
+    people_count: number; personal_rating?: number; mood?: string; note?: string;
+  }
+
+  const MOOD_EMOJI: Record<string, string> = {
+    solo: "🧍", couple: "👫", friends: "👯", family: "👨‍👩‍👧", work: "💼",
+  };
+
   const [showShare, setShowShare] = useState(false);
   const [showNote,  setShowNote]  = useState(false);
   const [showVisit, setShowVisit] = useState(false);
   const [visitCount, setVisitCount] = useState<number | null>(null);
+  const [visits, setVisits] = useState<VisitRow[]>([]);
+  const [selectedVisit, setSelectedVisit] = useState<VisitRow | null>(null);
   const [note,      setNote]      = useState(() => typeof window !== "undefined" ? getNote(place.osm_id) : "");
   // Update note when place changes
   useEffect(() => { setNote(getNote(place.osm_id)); }, [place.osm_id]);
 
-  // Fetch visit count for this place
-  useEffect(() => {
-    (async () => {
-      try {
-        const { getSupabaseBrowserClient } = await import("@/lib/hooks/useAuth");
-        const sb = getSupabaseBrowserClient();
-        const { data: { session } } = await sb.auth.getSession();
-        if (!session?.access_token) return;
-        const res = await fetch(`/api/visits?osm_id=${encodeURIComponent(place.osm_id)}`, {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setVisitCount((data.data ?? []).length);
-        }
-      } catch {}
-    })();
-  }, [place.osm_id]);
+  const fetchVisits = async () => {
+    try {
+      const { getSupabaseBrowserClient } = await import("@/lib/hooks/useAuth");
+      const sb = getSupabaseBrowserClient();
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session?.access_token) return;
+      const res = await fetch(`/api/visits?osm_id=${encodeURIComponent(place.osm_id)}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const rows: VisitRow[] = data.data ?? [];
+        setVisits(rows);
+        setVisitCount(rows.length);
+      }
+    } catch {}
+  };
+
+  // Fetch visits for this place
+  useEffect(() => { fetchVisits(); }, [place.osm_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cuisine = place.cuisine ?? place.fsq?.categories?.[0]?.name;
   const currentMode = MODES.find(m => m.id === routeMode) ?? MODES[0];
@@ -275,7 +288,7 @@ export default function PlaceDetail({
 
             {/* Logger visite */}
             <button
-              onClick={() => setShowVisit(true)}
+              onClick={() => { setSelectedVisit(null); setShowVisit(true); }}
               aria-label="Logger une visite"
               title="Logger une visite"
               style={{
@@ -648,6 +661,50 @@ export default function PlaceDetail({
           </button>
         )}
 
+        {/* ── Mes visites ── */}
+        {visits.length > 0 && (
+          <div>
+            <Label>
+              <span style={{ display:"flex", alignItems:"center", gap:4 }}>
+                <IcoVisit /> Mes visites ({visits.length})
+              </span>
+            </Label>
+            <div style={{ display:"flex", flexDirection:"column", maxHeight: visits.length > 3 ? 130 : undefined, overflowY: visits.length > 3 ? "auto" : undefined }}>
+              {visits.map(v => (
+                <div key={v.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"6px 0", borderBottom:"1px solid var(--ink-10)" }}>
+                  <span style={{ fontSize:12, color:"var(--ink-80)", flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                    📅 {new Date(v.visited_at).toLocaleDateString("fr-FR", { day:"numeric", month:"short", year:"numeric" })}
+                    {v.personal_rating != null && (
+                      <span style={{ marginLeft:8, color:"#f59e0b" }}>{"★".repeat(v.personal_rating)}</span>
+                    )}
+                    {v.mood && MOOD_EMOJI[v.mood] && (
+                      <span style={{ marginLeft:6 }}>{MOOD_EMOJI[v.mood]}</span>
+                    )}
+                    {v.amount_spent != null && (
+                      <span style={{ marginLeft:6, color:"var(--ink-60)" }}>{v.amount_spent}€</span>
+                    )}
+                  </span>
+                  <button
+                    aria-label="Modifier cette visite"
+                    onClick={() => { setSelectedVisit(v); setShowVisit(true); }}
+                    style={{
+                      width:26, height:26, borderRadius:"var(--r-sm)",
+                      background:"var(--off-white)", border:"1px solid var(--ink-10)",
+                      color:"var(--ink-60)", cursor:"pointer",
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      flexShrink:0, transition:"all 120ms ease",
+                    }}
+                    onMouseEnter={e=>{ e.currentTarget.style.background="var(--amber-pale)"; e.currentTarget.style.borderColor="rgba(196,124,43,0.35)"; e.currentTarget.style.color="var(--amber)"; }}
+                    onMouseLeave={e=>{ e.currentTarget.style.background="var(--off-white)"; e.currentTarget.style.borderColor="var(--ink-10)"; e.currentTarget.style.color="var(--ink-60)"; }}
+                  >
+                    <IcoPen />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* ── Restaurants similaires ── */}
         {nearbyPlaces.length > 0 && (
           <div>
@@ -720,10 +777,9 @@ export default function PlaceDetail({
       {showVisit && (
         <VisitModal
           place={place}
-          onClose={() => setShowVisit(false)}
-          onSaved={() => {
-            setVisitCount(v => (v ?? 0) + 1);
-          }}
+          existingVisit={selectedVisit}
+          onClose={() => { setShowVisit(false); setSelectedVisit(null); }}
+          onSaved={() => { fetchVisits(); }}
         />
       )}
 
