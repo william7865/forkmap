@@ -7,8 +7,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthGuard } from "@/lib/hooks/useAuthGuard";
 import { getSupabaseBrowserClient } from "@/lib/hooks/useAuth";
-import type { FavoriteRow } from "@/types";
+import type { FavoriteRow, PlaceCard } from "@/types";
 import { PageHeader, GlobalFooter } from "@/components/ui/PageLayout";
+import VisitModal from "@/components/place/VisitModal";
 
 async function getAuthHeaders(): Promise<Record<string,string>> {
   try {
@@ -26,6 +27,7 @@ const IcoShield   = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="
 const IcoTrash    = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>;
 const IcoHeart    = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="var(--forest-mid)" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>;
 const IcoArrow    = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>;
+const IcoPencil   = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
 const IcoGoogle   = () => <svg width="14" height="14" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>;
 
 interface VisitStats {
@@ -35,6 +37,19 @@ interface VisitStats {
   visits_by_month: { month:string; count:number; spent:number }[];
   mood_breakdown: { mood:string; count:number }[];
   cuisine_breakdown: { cuisine:string; count:number; spent:number }[];
+}
+
+interface VisitRow {
+  id: string;
+  osm_id: string;
+  name: string;
+  visited_at: string;
+  amount_spent?: number;
+  people_count: number;
+  personal_rating?: number;
+  mood?: string;
+  note?: string;
+  snapshot?: Record<string, unknown>;
 }
 
 const CUISINE_COLORS = ["#1a4a35","#2d7a55","#c47c2b","#1d65c8","#d94f3d","#7c3aed","#0891b2","#065f46"];
@@ -195,8 +210,16 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
   const [favLoading, setFavLoading] = useState(true);
   const [stats, setStats] = useState<VisitStats|null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [visits, setVisits] = useState<VisitRow[]>([]);
+  const [visitsLoading, setVisitsLoading] = useState(true);
+  const [editingVisit, setEditingVisit] = useState<{ visit: VisitRow; place: PlaceCard } | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+
+  const fetchVisits = async () => {
+    const h = await getAuthHeaders();
+    try { const r = await fetch("/api/visits", { headers: h }); if (r.ok) { const d = await r.json(); setVisits(d.data ?? []); } } catch {} finally { setVisitsLoading(false); }
+  };
 
   useEffect(()=>{
     (async()=>{
@@ -204,6 +227,8 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
       try{ const r=await fetch("/api/favorites",{headers:h}); if(r.ok){const d=await r.json();setFavorites(d.data??[]);} }catch{}finally{setFavLoading(false);}
       try{ const r=await fetch("/api/visits/stats",{headers:h}); if(r.ok){const d=await r.json();setStats(d.data);} }catch{}finally{setStatsLoading(false);}
     })();
+    fetchVisits();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
   if (auth.loading) return <Spinner />;
@@ -219,6 +244,9 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
   const recentFavs  = [...favorites].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).slice(0,3);
 
   const hasStats = !statsLoading && stats && stats.total_visits > 0;
+
+  const MOOD_EMOJIS: Record<string, string> = { solo: "🧍", couple: "👫", friends: "👯", family: "👨‍👩‍👧", work: "💼" };
+  const sortedVisits = [...visits].sort((a, b) => new Date(b.visited_at).getTime() - new Date(a.visited_at).getTime());
 
   return (
     <div style={{ minHeight:"100vh",background:"var(--off-white)",color:"var(--ink)",fontFamily:"var(--font-body)",display:"flex",flexDirection:"column" }}>
@@ -335,6 +363,65 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
           </Card>
         )}
 
+        {/* Mes visites */}
+        <Card style={{ animation:"fadeUp 280ms var(--ease-out) 110ms both" }}>
+          <CardHeader label="Mes visites" sub={!visitsLoading ? `${sortedVisits.length} visite${sortedVisits.length !== 1 ? "s" : ""}` : undefined} />
+          {visitsLoading ? (
+            <div style={{ padding:"24px 20px", textAlign:"center" as const }}>
+              <div style={{ width:24,height:24,border:"2px solid var(--bone)",borderTop:"2px solid var(--forest-mid)",borderRadius:"50%",animation:"spin 0.7s linear infinite",margin:"0 auto" }}/>
+            </div>
+          ) : sortedVisits.length === 0 ? (
+            <div style={{ padding:"28px 20px", textAlign:"center" as const }}>
+              <div style={{ fontSize:32, marginBottom:10 }}>🍽</div>
+              <p style={{ margin:0, fontSize:13, color:"var(--ink-40)" }}>Aucune visite enregistrée</p>
+            </div>
+          ) : (
+            <div>
+              {sortedVisits.map((visit, i) => {
+                const dateStr = new Date(visit.visited_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+                const moodEmoji = visit.mood ? MOOD_EMOJIS[visit.mood] : null;
+                const notePreview = visit.note && visit.note.length > 60 ? visit.note.slice(0, 60) + "…" : visit.note;
+                return (
+                  <div key={visit.id} style={{ display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderBottom:i < sortedVisits.length - 1 ? "1px solid var(--ink-10)" : "none",transition:"background 100ms" }}
+                    onMouseEnter={e=>(e.currentTarget.style.background="var(--off-white)")}
+                    onMouseLeave={e=>(e.currentTarget.style.background="transparent")}
+                  >
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <p style={{ margin:"0 0 3px", fontSize:13, fontWeight:700, fontFamily:"var(--font-display)", color:"var(--ink)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" as const }}>{visit.name}</p>
+                      <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" as const }}>
+                        <span style={{ fontSize:11, color:"var(--ink-60)" }}>{dateStr}</span>
+                        {visit.personal_rating && visit.personal_rating > 0 && (
+                          <span style={{ display:"flex", gap:1 }}>
+                            {[1,2,3,4,5].map(s => (
+                              <span key={s} style={{ fontSize:11, color: s <= (visit.personal_rating ?? 0) ? "#f59e0b" : "var(--ink-20)" }}>★</span>
+                            ))}
+                          </span>
+                        )}
+                        {moodEmoji && <span style={{ fontSize:11 }}>{moodEmoji}</span>}
+                        {visit.amount_spent != null && <span style={{ fontSize:11, fontWeight:600, color:"var(--ink-60)" }}>{visit.amount_spent}€</span>}
+                        {visit.people_count > 1 && <span style={{ fontSize:11, color:"var(--ink-40)" }}>{visit.people_count} pers.</span>}
+                      </div>
+                      {notePreview && <p style={{ margin:"3px 0 0", fontSize:11, color:"var(--ink-60)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" as const }}>{notePreview}</p>}
+                    </div>
+                    <button
+                      onClick={() => {
+                        const place = (visit.snapshot ?? { osm_id: visit.osm_id, name: visit.name, lat: 0, lon: 0 }) as unknown as PlaceCard;
+                        setEditingVisit({ visit, place });
+                      }}
+                      style={{ width:30, height:30, borderRadius:"var(--r-sm)", border:"1px solid var(--ink-10)", background:"var(--off-white)", color:"var(--ink-60)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all 120ms" }}
+                      onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="var(--bone)"}}
+                      onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background="var(--off-white)"}}
+                      title="Modifier la visite"
+                    >
+                      <IcoPencil />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+
         {/* Récents favoris */}
         {!favLoading && recentFavs.length > 0 && (
           <Card style={{ animation:"fadeUp 280ms var(--ease-out) 120ms both" }}>
@@ -384,6 +471,14 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
         </Card>
       </div>
 
+      {editingVisit && (
+        <VisitModal
+          place={editingVisit.place}
+          existingVisit={editingVisit.visit}
+          onClose={() => setEditingVisit(null)}
+          onSaved={() => { setEditingVisit(null); fetchVisits(); }}
+        />
+      )}
       {showDeleteModal && <DeleteModal email={user.email??""} onConfirm={async()=>{ setShowDeleteModal(false); await auth.signOut(); router.replace("/"); }} onCancel={()=>setShowDeleteModal(false)} />}
       <GlobalFooter />
       <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}} @keyframes spin{to{transform:rotate(360deg)}}`}</style>
