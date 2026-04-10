@@ -8,6 +8,11 @@ import { execSync } from 'child_process'
 import { writeFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
 
+if (!process.env.ANTHROPIC_API_KEY) {
+  console.warn('ANTHROPIC_API_KEY is not set — skipping audit.')
+  process.exit(0)
+}
+
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 // ── Git context ──────────────────────────────────────────────────────────────
