@@ -73,8 +73,8 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
       amount_spent:    amount ? parseFloat(amount) : null,
       people_count:    people,
       personal_rating: rating || null,
-      mood:            mood || null,
-      note:            note || null,
+      mood:            mood || undefined,
+      note:            note || undefined,
       snapshot:        place,
     };
     try {
