@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   try {
     const visits = await getVisits(userId);
     return NextResponse.json({ data: visits });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "Failed to load visits" }, { status: 500 });
   }
 }
@@ -52,9 +52,9 @@ export async function POST(req: NextRequest) {
       ...parsed.data,
       amount_spent: parsed.data.amount_spent ?? undefined,
       personal_rating: parsed.data.personal_rating ?? undefined,
-    } as any);
+    } as Parameters<typeof addVisit>[1]);
     return NextResponse.json({ data: visit }, { status: 201 });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "Failed to save visit" }, { status: 500 });
   }
 }
