@@ -106,7 +106,7 @@ export default function SettingsPage() {
       // Get the current session token to authenticate the request
       const sb = getSupabaseBrowserClient();
       const { data: { session } } = await sb.auth.getSession();
-      const authHeader = session?.access_token
+      const authHeader: HeadersInit = session?.access_token
         ? { "Authorization": `Bearer ${session.access_token}` }
         : {};
 
