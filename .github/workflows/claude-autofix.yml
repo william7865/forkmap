@@ -28,6 +28,7 @@ permissions:
   contents: write
   issues: write
   pull-requests: write
+  id-token: write   # required by claude-code-action to authenticate
 
 jobs:
   # ── CI failed → Claude auto-fixes ───────────────────────────
@@ -44,7 +45,8 @@ jobs:
       - uses: anthropics/claude-code-action@beta
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          prompt: |
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          direct_prompt: |
             The CI pipeline just failed on branch "${{ github.event.workflow_run.head_branch }}".
             CI run: ${{ github.event.workflow_run.html_url }}
 
@@ -74,7 +76,8 @@ jobs:
       - uses: anthropics/claude-code-action@beta
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          prompt: "${{ github.event.inputs.task || 'Full health check: find and fix TypeScript errors, lint warnings, runtime bugs, and security issues. Run npm install && npm run lint && npm run type-check after each change. Commit each fix with a clear message.' }}"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          direct_prompt: "${{ github.event.inputs.task || 'Full health check: find and fix TypeScript errors, lint warnings, runtime bugs, and security issues. Run npm install && npm run lint && npm run type-check after each change. Commit each fix with a clear message.' }}"
           allowed_tools: "Bash,Edit,Read,Write,Glob,Grep"
           custom_instructions: |
             Next.js 15 + TypeScript strict + Tailwind + Supabase + Leaflet app.
@@ -94,7 +97,8 @@ jobs:
       - uses: anthropics/claude-code-action@beta
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          prompt: |
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          direct_prompt: |
             Review the changes in this pull request.
             1. Run `npm install` (HUSKY=0) then `npm run lint` and `npm run type-check` and fix every error.
             2. Check the diff for bugs, type errors, missing null checks, security issues.
