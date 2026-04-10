@@ -13,13 +13,18 @@ on:
   issues:
     types: [labeled]
 
+  # ── Auto-trigger when CI fails → Claude fixes the code ─────────────────────
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
   # ── Manual trigger from GitHub Actions UI ──────────────────────────────────
   workflow_dispatch:
     inputs:
       task:
-        description: "What should Claude do? (e.g. 'Fix all TypeScript errors', 'Add missing error handling')"
+        description: "What should Claude do?"
         required: false
-        default: "Review the entire codebase, fix bugs, TypeScript errors, and code quality issues. Run npm run lint and npm run type-check to verify. Commit each fix separately."
+        default: "Review the entire codebase, fix bugs, TypeScript errors, and code quality issues. Run npm run lint && npm run type-check to verify. Commit each fix separately."
 
   # ── Scheduled: full scan every Monday at 8h00 UTC ──────────────────────────
   schedule:
@@ -31,6 +36,36 @@ permissions:
   pull-requests: write
 
 jobs:
+  # ── CI failed → Claude auto-fixes on master ─────────────────────────────────
+  claude-fix-ci:
+    name: Claude Fix CI Failure
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+
+      - uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            The CI pipeline just failed on branch "${{ github.event.workflow_run.head_branch }}".
+            CI run: ${{ github.event.workflow_run.html_url }}
+
+            1. Run `npm ci` (with HUSKY=0) then `npm run lint`, `npm run type-check`, `npm run test:run` to reproduce the errors.
+            2. Fix every error you find.
+            3. Commit each fix with a clear message like "fix: <what was broken>".
+            4. Do not change functionality — only fix what is broken.
+          allowed_tools: "Bash,Edit,Read,Write,Glob,Grep"
+          custom_instructions: |
+            Next.js 15 + TypeScript strict + Tailwind + Supabase + Leaflet app.
+            - Run commands with HUSKY=0 env var to skip git hooks
+            - Leaflet MapView MUST use dynamic(() => import(...), { ssr: false })
+            - Never hardcode display text — use useLanguage + lib/i18n/translations.ts
+            - Never commit .env files or API keys
+
   # ── Interactive / label / manual / scheduled ────────────────────────────────
   claude-agent:
     name: Claude Code Agent
@@ -45,19 +80,15 @@ jobs:
       - uses: anthropics/claude-code-action@beta
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          # On manual/scheduled runs, inject the task prompt directly
-          prompt: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.task || github.event_name == 'schedule' && 'Do a full health check of this codebase: find and fix TypeScript errors, lint warnings, runtime bugs, security issues, and missing error handling. Run npm run lint && npm run type-check after each change. Commit each fix with a clear message.' || '' }}
+          prompt: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.task || github.event_name == 'schedule' && 'Full health check: find and fix TypeScript errors, lint warnings, runtime bugs, security issues, missing error handling. Run npm run lint && npm run type-check after each change. Commit each fix.' || '' }}
           allowed_tools: "Bash,Edit,Read,Write,Glob,Grep"
           custom_instructions: |
-            This is a Next.js 15 + TypeScript strict + Tailwind + Supabase + Leaflet restaurant map app.
-            Key rules:
-            - Leaflet MapView MUST always use dynamic(() => import(...), { ssr: false })
-            - Never hardcode display text — use useLanguage hook + lib/i18n/translations.ts
-            - Auth: no middleware — client guards via useAuthGuard, server via requireUser() Bearer token
-            - Run `npm run lint && npm run type-check` to validate every fix
+            Next.js 15 + TypeScript strict + Tailwind + Supabase + Leaflet app.
+            - Run commands with HUSKY=0 env var to skip git hooks
+            - Leaflet MapView MUST use dynamic(() => import(...), { ssr: false })
+            - Never hardcode display text — use useLanguage + lib/i18n/translations.ts
             - Never commit .env files or API keys
             - Prefer editing existing files over creating new ones
-            - Keep changes minimal and focused
 
   # ── PR review + auto-fix ────────────────────────────────────────────────────
   claude-pr-fix:
@@ -71,19 +102,15 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             Review the changes in this pull request.
-
-            1. Run `npm run lint` and `npm run type-check` and fix every error.
-            2. Check the diff for bugs, type errors, missing null checks, and security issues.
-            3. If you find issues, fix them directly and commit with descriptive messages.
+            1. Run `npm run lint` and `npm run type-check` (with HUSKY=0) and fix every error.
+            2. Check the diff for bugs, type errors, missing null checks, security issues.
+            3. Fix issues directly and commit with descriptive messages.
             4. If everything looks good, leave a brief comment saying so.
-
-            Be precise and minimal — only touch what's broken.
+            Be precise and minimal — only touch what is broken.
           allowed_tools: "Bash,Edit,Read,Write,Glob,Grep"
           custom_instructions: |
-            This is a Next.js 15 + TypeScript strict + Tailwind + Supabase + Leaflet restaurant map app.
-            Key rules:
-            - Leaflet MapView MUST always use dynamic(() => import(...), { ssr: false })
-            - Never hardcode display text — use useLanguage hook + lib/i18n/translations.ts
-            - Auth: no middleware — client guards via useAuthGuard, server via requireUser() Bearer token
-            - Run `npm run lint && npm run type-check` to validate every fix
+            Next.js 15 + TypeScript strict + Tailwind + Supabase + Leaflet app.
+            - Run commands with HUSKY=0 env var to skip git hooks
+            - Leaflet MapView MUST use dynamic(() => import(...), { ssr: false })
+            - Never hardcode display text — use useLanguage + lib/i18n/translations.ts
             - Never commit .env files or API keys
