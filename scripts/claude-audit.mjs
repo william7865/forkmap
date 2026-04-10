@@ -82,13 +82,18 @@ Be direct and specific. Skip generic advice.`
 
 console.log('Calling Claude API…')
 
-const response = await client.messages.create({
-  model: 'claude-sonnet-4-6',
-  max_tokens: 1500,
-  messages: [{ role: 'user', content: prompt }],
-})
-
-const analysis = response.content[0].type === 'text' ? response.content[0].text : ''
+let analysis = ''
+try {
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1500,
+    messages: [{ role: 'user', content: prompt }],
+  })
+  analysis = response.content[0].type === 'text' ? response.content[0].text : ''
+} catch (err) {
+  console.warn('Claude API call failed — skipping audit.', err?.message ?? err)
+  process.exit(0)
+}
 
 // ── Write audit file ─────────────────────────────────────────────────────────
 
