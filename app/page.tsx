@@ -7,6 +7,7 @@
 
 import { useState, useCallback, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import type { PlaceCard, FilterState } from "@/types";
 import { useRestaurants } from "@/lib/hooks/useRestaurants";
 import { useRouteCache, type TransportMode } from "@/lib/hooks/useRouteCache";
@@ -307,7 +308,7 @@ export default function HomePage() {
       }}>
 
         {/* Logo */}
-        <a href="/" style={{ display:"flex",alignItems:"center",gap:9,textDecoration:"none",flexShrink:0 }}>
+        <Link href="/" style={{ display:"flex",alignItems:"center",gap:9,textDecoration:"none",flexShrink:0 }}>
           <div style={{ width:30,height:30,borderRadius:8,background:"var(--ink)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M9 4v8c0 2.5 1 4 3 4.5V21M15 4v5c0 1-.7 1.5-1.5 1.5S12 10 12 9V4M15 9.5c0 2 1.5 3 3 3V21"
@@ -317,7 +318,7 @@ export default function HomePage() {
           <span style={{ fontFamily:"var(--font-display)",fontWeight:400,fontSize:20,letterSpacing:"-0.04em",color:"var(--ink)",lineHeight:1 }}>
             fork<em style={{ fontStyle:"italic",color:"var(--forest-mid)" }}>map</em>
           </span>
-        </a>
+        </Link>
 
         {/* Séparateur */}
         <div style={{ width:1,height:22,background:"var(--ink-10)",flexShrink:0,margin:"0 2px" }}/>

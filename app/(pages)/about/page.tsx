@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { InfoPage } from "@/components/ui/PageLayout";
 
 export const metadata: Metadata = {
@@ -26,7 +27,7 @@ export default function AboutPage() {
         <p style={{ margin: 0, fontSize: 16, color: "var(--ink-80)", lineHeight: 1.75, maxWidth: 580 }}>
           Forkmap is a restaurant discovery app built on open data. It combines the depth
           of OpenStreetMap with Foursquare ratings to give you a real, unbiased view of
-          what's around you — with smart routing, filters, and a map that puts you in control.
+          what&apos;s around you — with smart routing, filters, and a map that puts you in control.
         </p>
       </div>
 
@@ -57,7 +58,7 @@ export default function AboutPage() {
       {/* Data sources */}
       <Section title="Data sources">
         <p style={{ fontSize: 14, color: "var(--ink-80)", lineHeight: 1.75, marginBottom: 20 }}>
-          Forkmap is built on a stack of trusted open-data providers. We don't own or create restaurant data — we aggregate, enrich, and display it.
+          Forkmap is built on a stack of trusted open-data providers. We don&apos;t own or create restaurant data — we aggregate, enrich, and display it.
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {[
@@ -132,7 +133,7 @@ export default function AboutPage() {
           </h3>
           <p style={{ margin: 0, fontSize: 13, color: "var(--ink-60)" }}>Open the map and start discovering restaurants around you.</p>
         </div>
-        <a href="/" style={{
+        <Link href="/" style={{
           padding: "11px 24px", borderRadius: 12,
           background: "var(--forest-mid)", color: "white",
           textDecoration: "none", fontSize: 13, fontWeight: 600,
@@ -141,7 +142,7 @@ export default function AboutPage() {
           transition: "background 120ms",
         }}>
           Open the map →
-        </a>
+        </Link>
       </div>
     </InfoPage>
   );

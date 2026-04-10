@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { InfoPage } from "@/components/ui/PageLayout";
 
 type Status = "idle" | "sending" | "success" | "error";
@@ -72,7 +73,7 @@ export default function ContactPage() {
             Message sent!
           </h1>
           <p style={{ margin: "0 0 28px", fontSize: 14, color: "var(--ink-60)", lineHeight: 1.7 }}>
-            Thanks for reaching out, {name.split(" ")[0]}. We'll get back to you<br />
+            Thanks for reaching out, {name.split(" ")[0]}. We&apos;ll get back to you<br />
             at <strong style={{ color: "var(--ink-80)" }}>{email}</strong> within a few days.
           </p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
@@ -83,13 +84,13 @@ export default function ContactPage() {
             }}>
               Send another
             </button>
-            <a href="/" style={{
+            <Link href="/" style={{
               padding: "10px 20px", borderRadius: 10,
               background: "var(--forest-mid)", color: "white",
               fontSize: 13, fontWeight: 600, textDecoration: "none",
             }}>
               Back to map
-            </a>
+            </Link>
           </div>
         </div>
       </InfoPage>

@@ -95,7 +95,7 @@ export default function AttributionPage() {
       }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a56c4" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
         <p style={{ margin: 0, fontSize: 13, color: "#1a4a9e", lineHeight: 1.65 }}>
-          <strong>OpenStreetMap attribution is legally required</strong> under the Open Database Licence (ODbL). Any application using OpenStreetMap data must credit "© OpenStreetMap contributors" in a visible location.
+          <strong>OpenStreetMap attribution is legally required</strong> under the Open Database Licence (ODbL). Any application using OpenStreetMap data must credit &quot;© OpenStreetMap contributors&quot; in a visible location.
         </p>
       </div>
 

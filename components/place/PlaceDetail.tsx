@@ -528,7 +528,7 @@ export default function PlaceDetail({
             <Label><span style={{ display:"flex",alignItems:"center",gap:4 }}><IcoClock />Horaires</span></Label>
             <p style={{ margin:0,fontSize:13,color:"var(--ink-80)" }}>
               {place.osm_enriched?.today_hours
-                ? <>Aujourd'hui : <strong>{place.osm_enriched.today_hours}</strong></>
+                ? <>Aujourd&apos;hui : <strong>{place.osm_enriched.today_hours}</strong></>
                 : place.fsq?.hours?.display}
             </p>
           </div>

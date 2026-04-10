@@ -463,7 +463,7 @@ export default function FavoritesPage() {
             <div style={{ textAlign:"center",padding:"64px 0 40px",animation:"fadeUp 300ms var(--ease-out) both" }}>
               <div style={{ width:72,height:72,borderRadius:24,background:"var(--cream)",border:"1px solid var(--bone)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px",fontSize:32 }}>🍽</div>
               <h2 style={{ margin:"0 0 8px",fontFamily:"var(--font-display)",fontSize:22,fontWeight:400,letterSpacing:"-0.03em" }}>Aucun lieu sauvegardé</h2>
-              <p style={{ margin:"0 0 28px",color:"var(--ink-40)",fontSize:13,lineHeight:1.7 }}>Appuyez sur le ♡ d'un restaurant sur la carte<br/>pour le sauvegarder ici.</p>
+              <p style={{ margin:"0 0 28px",color:"var(--ink-40)",fontSize:13,lineHeight:1.7 }}>Appuyez sur le ♡ d&apos;un restaurant sur la carte<br/>pour le sauvegarder ici.</p>
               <Link href="/" style={{ display:"inline-flex",alignItems:"center",gap:6,padding:"11px 24px",borderRadius:"var(--r-md)",background:"var(--forest-mid)",color:"white",textDecoration:"none",fontSize:13,fontWeight:600,boxShadow:"var(--s-forest)" }}>
                 Explorer les restaurants →
               </Link>
