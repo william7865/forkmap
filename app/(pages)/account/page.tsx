@@ -327,7 +327,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
             <div style={{ padding:"32px 24px",textAlign:"center" as const }}>
               <div style={{ fontSize:40,marginBottom:16 }}>📊</div>
               <h3 style={{ margin:"0 0 8px",fontFamily:"var(--font-display)",fontSize:18,fontWeight:400,letterSpacing:"-0.02em" }}>Vos statistiques apparaîtront ici</h3>
-              <p style={{ margin:"0 0 20px",fontSize:13,color:"var(--ink-60)",lineHeight:1.65 }}>Commencez à logger vos visites en cliquant sur le bouton ✓ dans la fiche d'un restaurant.</p>
+              <p style={{ margin:"0 0 20px",fontSize:13,color:"var(--ink-60)",lineHeight:1.65 }}>Commencez à logger vos visites en cliquant sur le bouton ✓ dans la fiche d&apos;un restaurant.</p>
               <Link href="/" style={{ display:"inline-flex",alignItems:"center",gap:6,padding:"11px 22px",borderRadius:"var(--r-md)",background:"var(--forest-mid)",color:"white",textDecoration:"none",fontSize:13,fontWeight:600,boxShadow:"var(--s-forest)" }}>
                 Explorer les restaurants →
               </Link>

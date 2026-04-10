@@ -228,7 +228,7 @@ export default function HelpPage() {
       }}>
         <div>
           <p style={{ margin: "0 0 3px", fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>Still stuck?</p>
-          <p style={{ margin: 0, fontSize: 12, color: "var(--ink-60)" }}>Send us a message and we'll help you out.</p>
+          <p style={{ margin: 0, fontSize: 12, color: "var(--ink-60)" }}>Send us a message and we&apos;ll help you out.</p>
         </div>
         <a href="/contact" style={{
           padding: "9px 18px", borderRadius: 10,
