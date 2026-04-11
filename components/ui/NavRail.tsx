@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth, getSupabaseBrowserClient } from "@/lib/hooks/useAuth";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 
 const NAV = [
   { href: "/",           icon: "🗺", label: "Carte"   },
@@ -21,7 +21,7 @@ export default function NavRail() {
   const auth      = useAuth();
   const [popover, setPopover] = useState(false);
   const avatarRef = useRef<HTMLDivElement>(null);
-  const sb        = getSupabaseBrowserClient();
+  const sb        = useMemo(() => getSupabaseBrowserClient(), []);
 
   useEffect(() => {
     if (!popover) return;
@@ -33,7 +33,8 @@ export default function NavRail() {
   }, [popover]);
 
   const initials = auth.user?.user_metadata?.full_name
-    ?.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()
+    ?.trim()
+    ?.split(" ").filter(Boolean).map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()
     ?? auth.user?.email?.[0].toUpperCase()
     ?? "?";
 
@@ -62,7 +63,7 @@ export default function NavRail() {
 
       {/* Primary nav items */}
       {NAV.map(item => {
-        const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+        const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href + "/"));
         return (
           <Link key={item.href} href={item.href} title={item.label} style={{ textDecoration: "none", marginBottom: 4 }}>
             <div style={{
@@ -72,7 +73,7 @@ export default function NavRail() {
               alignItems: "center", justifyContent: "center", gap: 1,
               transition: "background 120ms",
             }}>
-              <span style={{ fontSize: 14, lineHeight: 1 }}>{item.icon}</span>
+              <span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1 }}>{item.icon}</span>
               {active && <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.04em", color: "var(--forest-mid)", fontFamily: "var(--font-body)" }}>{item.label}</span>}
             </div>
           </Link>
@@ -91,7 +92,7 @@ export default function NavRail() {
           alignItems: "center", justifyContent: "center", gap: 1,
           transition: "background 120ms",
         }}>
-          <span style={{ fontSize: 14, lineHeight: 1 }}>⚙️</span>
+          <span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1 }}>⚙️</span>
           {pathname === "/settings" && (
             <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.04em", color: "var(--forest-mid)", fontFamily: "var(--font-body)" }}>Réglages</span>
           )}
@@ -100,7 +101,7 @@ export default function NavRail() {
 
       {/* Avatar / popover */}
       <div ref={avatarRef} style={{ position: "relative" }}>
-        <button onClick={() => setPopover(v => !v)} style={{
+        <button aria-label="Mon compte" aria-expanded={popover} onClick={() => setPopover(v => !v)} style={{
           width: 30, height: 30, borderRadius: "50%",
           background: auth.user ? "var(--forest-mid)" : "var(--ink-20)",
           border: "none", cursor: "pointer",
@@ -129,7 +130,7 @@ export default function NavRail() {
             ))}
             {auth.user && (
               <>
-                <button onClick={async () => { await sb.auth.signOut(); setPopover(false); }} style={{
+                <button onClick={async () => { try { await sb.auth.signOut(); } catch { /* ignore network errors on sign-out */ } finally { setPopover(false); } }} style={{
                   display: "block", width: "100%", padding: "7px 14px", textAlign: "left",
                   fontSize: 13, color: "var(--coral)", background: "none", border: "none",
                   cursor: "pointer", fontFamily: "var(--font-body)",
