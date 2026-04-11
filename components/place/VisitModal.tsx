@@ -3,9 +3,10 @@
 // Modal to log / edit a restaurant visit
 // ============================================================
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { getSupabaseBrowserClient } from "@/lib/hooks/useAuth";
 import type { PlaceCard } from "@/types";
+import { friendlyError } from "@/lib/api-errors";
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   try {
@@ -45,8 +46,25 @@ const IcoStar  = ({ filled }: { filled: boolean }) => (
 const IcoCheck = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
 const IcoTrash = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>;
 
+function useSwipeDismiss(onClose: () => void) {
+  const startY = React.useRef<number | null>(null);
+  return {
+    onTouchStart: (e: React.TouchEvent) => {
+      startY.current = e.touches[0].clientY;
+    },
+    onTouchMove: (e: React.TouchEvent) => {
+      if (startY.current === null) return;
+      if (e.touches[0].clientY - startY.current > 80) {
+        startY.current = null;
+        onClose();
+      }
+    },
+  };
+}
+
 export default function VisitModal({ place, existingVisit, onClose, onSaved }: Props) {
   const isEdit = !!existingVisit;
+  const swipeProps = useSwipeDismiss(onClose);
 
   const [date,    setDate]    = useState(existingVisit?.visited_at ?? new Date().toISOString().slice(0,10));
   const [amount,  setAmount]  = useState(existingVisit?.amount_spent?.toString() ?? "");
@@ -89,17 +107,32 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
             headers: { "Content-Type":"application/json", ...headers },
             body: JSON.stringify(body),
           });
-      if (!res.ok) { const d = await res.json(); setError(d.error ?? "Erreur"); setSaving(false); return; }
+      if (!res.ok) { const d = await res.json(); setError(friendlyError(d.error)); setSaving(false); return; }
       setSaved(true);
       setTimeout(() => { onSaved(); onClose(); }, 700);
-    } catch { setError("Erreur réseau"); setSaving(false); }
+    } catch (err) { setError(friendlyError(err)); setSaving(false); }
   };
 
   const handleDelete = async () => {
     if (!existingVisit) return;
-    const headers = await getAuthHeaders();
-    await fetch(`/api/visits/${existingVisit.id}`, { method: "DELETE", headers });
-    onSaved(); onClose();
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/visits/${existingVisit.id}`, {
+        method: "DELETE",
+        headers: await getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setError(friendlyError(d.error ?? d));
+        return;
+      }
+      onSaved?.();
+      onClose();
+    } catch (err) {
+      setError(friendlyError(err));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -115,7 +148,7 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
         fontFamily:"var(--font-body)",
       }}>
         {/* Handle */}
-        <div style={{ width:36,height:4,borderRadius:2,background:"var(--bone)",margin:"8px auto 16px" }}/>
+        <div {...swipeProps} style={{ width:36,height:4,borderRadius:2,background:"var(--bone)",margin:"8px auto 16px" }}/>
 
         {/* Header */}
         <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:20 }}>

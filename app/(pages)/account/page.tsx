@@ -215,6 +215,9 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
   const [editingVisit, setEditingVisit] = useState<{ visit: VisitRow; place: PlaceCard } | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [activeTab, setActiveTab] = useState<"stats" | "visites">("stats");
+  const [visitSort, setVisitSort] = useState<"date" | "rating" | "amount">("date");
+  const [visitSearch, setVisitSearch] = useState("");
 
   const fetchVisits = async () => {
     const h = await getAuthHeaders();
@@ -246,7 +249,24 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
   const hasStats = !statsLoading && stats && stats.total_visits > 0;
 
   const MOOD_EMOJIS: Record<string, string> = { solo: "🧍", couple: "👫", friends: "👯", family: "👨‍👩‍👧", work: "💼" };
-  const sortedVisits = [...visits].sort((a, b) => new Date(b.visited_at).getTime() - new Date(a.visited_at).getTime());
+
+  const totalVisites = visits.length;
+  const avgSpend = visits.filter(v => v.amount_spent).length > 0
+    ? Math.round(visits.filter(v => v.amount_spent).reduce((s, v) => s + (v.amount_spent ?? 0), 0) / visits.filter(v => v.amount_spent).length)
+    : null;
+  const topRestaurant = (() => {
+    const freq = new Map<string, number>();
+    visits.forEach(v => freq.set(v.name, (freq.get(v.name) ?? 0) + 1));
+    return [...freq.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  })();
+
+  const sortedVisits = [...visits]
+    .filter(v => !visitSearch || v.name.toLowerCase().includes(visitSearch.toLowerCase()))
+    .sort((a, b) => {
+      if (visitSort === "rating") return (b.personal_rating ?? 0) - (a.personal_rating ?? 0);
+      if (visitSort === "amount") return (b.amount_spent ?? 0) - (a.amount_spent ?? 0);
+      return new Date(b.visited_at).getTime() - new Date(a.visited_at).getTime();
+    });
 
   return (
     <div style={{ minHeight:"100vh",background:"var(--off-white)",color:"var(--ink)",fontFamily:"var(--font-body)",display:"flex",flexDirection:"column" }}>
@@ -297,130 +317,201 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
           </div>
         </Card>
 
+        {/* Key stats pills */}
+        {totalVisites > 0 && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+            <div style={{ padding: "6px 12px", borderRadius: "var(--r-pill)", background: "var(--forest-pale)", color: "var(--forest)", fontSize: 12, fontWeight: 700, fontFamily: "var(--font-body)" }}>
+              {totalVisites} visite{totalVisites > 1 ? "s" : ""}
+            </div>
+            {avgSpend && (
+              <div style={{ padding: "6px 12px", borderRadius: "var(--r-pill)", background: "var(--forest-pale)", color: "var(--forest)", fontSize: 12, fontWeight: 700, fontFamily: "var(--font-body)" }}>
+                {avgSpend}€ moy.
+              </div>
+            )}
+            {topRestaurant && (
+              <div style={{ padding: "6px 12px", borderRadius: "var(--r-pill)", background: "var(--forest-pale)", color: "var(--forest)", fontSize: 12, fontWeight: 700, fontFamily: "var(--font-body)" }}>
+                🏆 {topRestaurant}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab switcher */}
+        <div style={{ display: "flex", gap: 2, background: "var(--off-white)", borderRadius: "var(--r-md)", padding: 3, marginBottom: 20 }}>
+          {(["stats", "visites"] as const).map(t => (
+            <button key={t} onClick={() => setActiveTab(t)} style={{
+              flex: 1, padding: "8px 16px",
+              borderRadius: "var(--r-sm)", fontSize: 13, fontWeight: 600,
+              background: activeTab === t ? "var(--white)" : "transparent",
+              border: activeTab === t ? "1px solid var(--ink-10)" : "1px solid transparent",
+              color: activeTab === t ? "var(--ink)" : "var(--ink-40)",
+              cursor: "pointer", fontFamily: "var(--font-body)",
+              boxShadow: activeTab === t ? "var(--s1)" : "none",
+              transition: "all 120ms",
+            }}>
+              {t === "stats" ? "Statistiques" : "Mes visites"}
+            </button>
+          ))}
+        </div>
+
         {/* Graphique mensuel */}
-        {!statsLoading && stats && stats.visits_by_month.length > 1 && (
+        {activeTab === "stats" && !statsLoading && stats && stats.visits_by_month.length > 1 && (
           <Card style={{ animation:"fadeUp 280ms var(--ease-out) 40ms both" }}>
             <CardHeader label="Activité" sub={`${stats.total_visits} visite${stats.total_visits>1?"s":""} · moy. ${stats.avg_spent_per_meal.toFixed(0)}€/repas`} />
             <div style={{ padding:"16px 20px" }}><MonthlyChart data={stats.visits_by_month} /></div>
           </Card>
         )}
 
-        {/* Top restaurants — visites */}
-        {hasStats && stats!.top_restaurants.length > 0 && (
-          <Card style={{ animation:"fadeUp 280ms var(--ease-out) 60ms both" }}>
-            <CardHeader label="Restaurants les plus visités" />
-            <div style={{ padding:"16px 20px" }}>
-              <BarChart
-                data={stats!.top_restaurants.slice(0,7).map(r=>({ label:r.name, value:r.count, sublabel:r.total_spent>0?`${r.total_spent.toFixed(0)}€`:undefined }))}
-                color="var(--forest-mid)" valueSuffix=" fois"
-              />
-            </div>
-          </Card>
-        )}
+        {/* Stats tab content */}
+        {activeTab === "stats" && (
+          <>
+            {/* Top restaurants — visites */}
+            {hasStats && stats!.top_restaurants.length > 0 && (
+              <Card style={{ animation:"fadeUp 280ms var(--ease-out) 60ms both" }}>
+                <CardHeader label="Restaurants les plus visités" />
+                <div style={{ padding:"16px 20px" }}>
+                  <BarChart
+                    data={stats!.top_restaurants.slice(0,7).map(r=>({ label:r.name, value:r.count, sublabel:r.total_spent>0?`${r.total_spent.toFixed(0)}€`:undefined }))}
+                    color="var(--forest-mid)" valueSuffix=" fois"
+                  />
+                </div>
+              </Card>
+            )}
 
-        {/* Dépenses par restaurant */}
-        {hasStats && stats!.top_restaurants.filter(r=>r.total_spent>0).length > 0 && (
-          <Card style={{ animation:"fadeUp 280ms var(--ease-out) 80ms both" }}>
-            <CardHeader label="Dépenses par restaurant" sub={`Moy. ${stats!.avg_spent_per_meal.toFixed(0)}€/repas`} />
-            <div style={{ padding:"16px 20px" }}>
-              <BarChart
-                data={stats!.top_restaurants.filter(r=>r.total_spent>0).slice(0,7).map(r=>({ label:r.name, value:Math.round(r.total_spent), sublabel:r.avg_rating>0?`⭐ ${r.avg_rating.toFixed(1)}`:undefined }))}
-                color="var(--coral)" valueSuffix="€"
-              />
-            </div>
-          </Card>
-        )}
+            {/* Dépenses par restaurant */}
+            {hasStats && stats!.top_restaurants.filter(r=>r.total_spent>0).length > 0 && (
+              <Card style={{ animation:"fadeUp 280ms var(--ease-out) 80ms both" }}>
+                <CardHeader label="Dépenses par restaurant" sub={`Moy. ${stats!.avg_spent_per_meal.toFixed(0)}€/repas`} />
+                <div style={{ padding:"16px 20px" }}>
+                  <BarChart
+                    data={stats!.top_restaurants.filter(r=>r.total_spent>0).slice(0,7).map(r=>({ label:r.name, value:Math.round(r.total_spent), sublabel:r.avg_rating>0?`⭐ ${r.avg_rating.toFixed(1)}`:undefined }))}
+                    color="var(--coral)" valueSuffix="€"
+                  />
+                </div>
+              </Card>
+            )}
 
-        {/* Cuisine + Mood */}
-        {hasStats && (
-          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,animation:"fadeUp 280ms var(--ease-out) 100ms both" }}>
-            <Card>
-              <CardHeader label="Cuisines" />
-              <div style={{ padding:"14px 16px" }}>
-                <DonutChart data={stats!.cuisine_breakdown.map(c=>({ label:c.cuisine, value:c.count }))} colors={CUISINE_COLORS} />
-              </div>
-            </Card>
-            <Card>
-              <CardHeader label="Avec qui" />
-              <div style={{ padding:"14px 16px" }}>
-                <DonutChart data={stats!.mood_breakdown.map(m=>({ label:MOOD_LABELS[m.mood]??m.mood, value:m.count }))} colors={["#1a4a35","#c47c2b","#1d65c8","#d94f3d","#7c3aed"]} />
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {/* Invite à logger si aucune visite */}
-        {!statsLoading && (!stats || stats.total_visits === 0) && (
-          <Card style={{ animation:"fadeUp 280ms var(--ease-out) 60ms both" }}>
-            <div style={{ padding:"32px 24px",textAlign:"center" as const }}>
-              <div style={{ fontSize:40,marginBottom:16 }}>📊</div>
-              <h3 style={{ margin:"0 0 8px",fontFamily:"var(--font-display)",fontSize:18,fontWeight:400,letterSpacing:"-0.02em" }}>Vos statistiques apparaîtront ici</h3>
-              <p style={{ margin:"0 0 20px",fontSize:13,color:"var(--ink-60)",lineHeight:1.65 }}>Commencez à logger vos visites en cliquant sur le bouton ✓ dans la fiche d&apos;un restaurant.</p>
-              <Link href="/" style={{ display:"inline-flex",alignItems:"center",gap:6,padding:"11px 22px",borderRadius:"var(--r-md)",background:"var(--forest-mid)",color:"white",textDecoration:"none",fontSize:13,fontWeight:600,boxShadow:"var(--s-forest)" }}>
-                Explorer les restaurants →
-              </Link>
-            </div>
-          </Card>
-        )}
-
-        {/* Mes visites */}
-        <Card style={{ animation:"fadeUp 280ms var(--ease-out) 110ms both" }}>
-          <CardHeader label="Mes visites" sub={!visitsLoading ? `${sortedVisits.length} visite${sortedVisits.length !== 1 ? "s" : ""}` : undefined} />
-          {visitsLoading ? (
-            <div style={{ padding:"24px 20px", textAlign:"center" as const }}>
-              <div style={{ width:24,height:24,border:"2px solid var(--bone)",borderTop:"2px solid var(--forest-mid)",borderRadius:"50%",animation:"spin 0.7s linear infinite",margin:"0 auto" }}/>
-            </div>
-          ) : sortedVisits.length === 0 ? (
-            <div style={{ padding:"28px 20px", textAlign:"center" as const }}>
-              <div style={{ fontSize:32, marginBottom:10 }}>🍽</div>
-              <p style={{ margin:0, fontSize:13, color:"var(--ink-40)" }}>Aucune visite enregistrée</p>
-            </div>
-          ) : (
-            <div>
-              {sortedVisits.map((visit, i) => {
-                const dateStr = new Date(visit.visited_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
-                const moodEmoji = visit.mood ? MOOD_EMOJIS[visit.mood] : null;
-                const notePreview = visit.note && visit.note.length > 60 ? visit.note.slice(0, 60) + "…" : visit.note;
-                return (
-                  <div key={visit.id} style={{ display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderBottom:i < sortedVisits.length - 1 ? "1px solid var(--ink-10)" : "none",transition:"background 100ms" }}
-                    onMouseEnter={e=>(e.currentTarget.style.background="var(--off-white)")}
-                    onMouseLeave={e=>(e.currentTarget.style.background="transparent")}
-                  >
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <p style={{ margin:"0 0 3px", fontSize:13, fontWeight:700, fontFamily:"var(--font-display)", color:"var(--ink)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" as const }}>{visit.name}</p>
-                      <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" as const }}>
-                        <span style={{ fontSize:11, color:"var(--ink-60)" }}>{dateStr}</span>
-                        {visit.personal_rating && visit.personal_rating > 0 && (
-                          <span style={{ display:"flex", gap:1 }}>
-                            {[1,2,3,4,5].map(s => (
-                              <span key={s} style={{ fontSize:11, color: s <= (visit.personal_rating ?? 0) ? "#f59e0b" : "var(--ink-20)" }}>★</span>
-                            ))}
-                          </span>
-                        )}
-                        {moodEmoji && <span style={{ fontSize:11 }}>{moodEmoji}</span>}
-                        {visit.amount_spent != null && <span style={{ fontSize:11, fontWeight:600, color:"var(--ink-60)" }}>{visit.amount_spent}€</span>}
-                        {visit.people_count > 1 && <span style={{ fontSize:11, color:"var(--ink-40)" }}>{visit.people_count} pers.</span>}
-                      </div>
-                      {notePreview && <p style={{ margin:"3px 0 0", fontSize:11, color:"var(--ink-60)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" as const }}>{notePreview}</p>}
-                    </div>
-                    <button
-                      onClick={() => {
-                        const place = (visit.snapshot ?? { osm_id: visit.osm_id, name: visit.name, lat: 0, lon: 0 }) as unknown as PlaceCard;
-                        setEditingVisit({ visit, place });
-                      }}
-                      style={{ width:30, height:30, borderRadius:"var(--r-sm)", border:"1px solid var(--ink-10)", background:"var(--off-white)", color:"var(--ink-60)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all 120ms" }}
-                      onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="var(--bone)"}}
-                      onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background="var(--off-white)"}}
-                      title="Modifier la visite"
-                    >
-                      <IcoPencil />
-                    </button>
+            {/* Cuisine + Mood */}
+            {hasStats && (
+              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,animation:"fadeUp 280ms var(--ease-out) 100ms both" }}>
+                <Card>
+                  <CardHeader label="Cuisines" />
+                  <div style={{ padding:"14px 16px" }}>
+                    <DonutChart data={stats!.cuisine_breakdown.map(c=>({ label:c.cuisine, value:c.count }))} colors={CUISINE_COLORS} />
                   </div>
-                );
-              })}
+                </Card>
+                <Card>
+                  <CardHeader label="Avec qui" />
+                  <div style={{ padding:"14px 16px" }}>
+                    <DonutChart data={stats!.mood_breakdown.map(m=>({ label:MOOD_LABELS[m.mood]??m.mood, value:m.count }))} colors={["#1a4a35","#c47c2b","#1d65c8","#d94f3d","#7c3aed"]} />
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {/* Invite à logger si aucune visite */}
+            {!statsLoading && (!stats || stats.total_visits === 0) && (
+              <Card style={{ animation:"fadeUp 280ms var(--ease-out) 60ms both" }}>
+                <div style={{ padding:"32px 24px",textAlign:"center" as const }}>
+                  <div style={{ fontSize:40,marginBottom:16 }}>📊</div>
+                  <h3 style={{ margin:"0 0 8px",fontFamily:"var(--font-display)",fontSize:18,fontWeight:400,letterSpacing:"-0.02em" }}>Vos statistiques apparaîtront ici</h3>
+                  <p style={{ margin:"0 0 20px",fontSize:13,color:"var(--ink-60)",lineHeight:1.65 }}>Commencez à logger vos visites en cliquant sur le bouton ✓ dans la fiche d&apos;un restaurant.</p>
+                  <Link href="/" style={{ display:"inline-flex",alignItems:"center",gap:6,padding:"11px 22px",borderRadius:"var(--r-md)",background:"var(--forest-mid)",color:"white",textDecoration:"none",fontSize:13,fontWeight:600,boxShadow:"var(--s-forest)" }}>
+                    Explorer les restaurants →
+                  </Link>
+                </div>
+              </Card>
+            )}
+          </>
+        )}
+
+        {/* Visites tab content */}
+        {activeTab === "visites" && (
+          <>
+            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+              <input
+                value={visitSearch}
+                onChange={e => setVisitSearch(e.target.value)}
+                placeholder="Rechercher…"
+                style={{
+                  flex: 1, padding: "7px 10px", borderRadius: "var(--r-md)",
+                  border: "1px solid var(--ink-10)", fontSize: 12,
+                  fontFamily: "var(--font-body)", outline: "none",
+                }}
+              />
+              <select
+                value={visitSort}
+                onChange={e => setVisitSort(e.target.value as typeof visitSort)}
+                style={{
+                  padding: "7px 10px", borderRadius: "var(--r-md)",
+                  border: "1px solid var(--ink-10)", fontSize: 12,
+                  fontFamily: "var(--font-body)", background: "var(--off-white)", cursor: "pointer",
+                }}
+              >
+                <option value="date">Date</option>
+                <option value="rating">Note</option>
+                <option value="amount">Montant</option>
+              </select>
             </div>
-          )}
-        </Card>
+            <Card style={{ animation:"fadeUp 280ms var(--ease-out) 110ms both" }}>
+              <CardHeader label="Mes visites" sub={!visitsLoading ? `${sortedVisits.length} visite${sortedVisits.length !== 1 ? "s" : ""}` : undefined} />
+              {visitsLoading ? (
+                <div style={{ padding:"24px 20px", textAlign:"center" as const }}>
+                  <div style={{ width:24,height:24,border:"2px solid var(--bone)",borderTop:"2px solid var(--forest-mid)",borderRadius:"50%",animation:"spin 0.7s linear infinite",margin:"0 auto" }}/>
+                </div>
+              ) : sortedVisits.length === 0 ? (
+                <div style={{ padding:"28px 20px", textAlign:"center" as const }}>
+                  <div style={{ fontSize:32, marginBottom:10 }}>🍽</div>
+                  <p style={{ margin:0, fontSize:13, color:"var(--ink-40)" }}>Aucune visite enregistrée</p>
+                </div>
+              ) : (
+                <div>
+                  {sortedVisits.map((visit, i) => {
+                    const dateStr = new Date(visit.visited_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+                    const moodEmoji = visit.mood ? MOOD_EMOJIS[visit.mood] : null;
+                    const notePreview = visit.note && visit.note.length > 60 ? visit.note.slice(0, 60) + "…" : visit.note;
+                    return (
+                      <div key={visit.id} style={{ display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderBottom:i < sortedVisits.length - 1 ? "1px solid var(--ink-10)" : "none",transition:"background 100ms" }}
+                        onMouseEnter={e=>(e.currentTarget.style.background="var(--off-white)")}
+                        onMouseLeave={e=>(e.currentTarget.style.background="transparent")}
+                      >
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <p style={{ margin:"0 0 3px", fontSize:13, fontWeight:700, fontFamily:"var(--font-display)", color:"var(--ink)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" as const }}>{visit.name}</p>
+                          <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" as const }}>
+                            <span style={{ fontSize:11, color:"var(--ink-60)" }}>{dateStr}</span>
+                            {visit.personal_rating && visit.personal_rating > 0 && (
+                              <span style={{ display:"flex", gap:1 }}>
+                                {[1,2,3,4,5].map(s => (
+                                  <span key={s} style={{ fontSize:11, color: s <= (visit.personal_rating ?? 0) ? "#f59e0b" : "var(--ink-20)" }}>★</span>
+                                ))}
+                              </span>
+                            )}
+                            {moodEmoji && <span style={{ fontSize:11 }}>{moodEmoji}</span>}
+                            {visit.amount_spent != null && <span style={{ fontSize:11, fontWeight:600, color:"var(--ink-60)" }}>{visit.amount_spent}€</span>}
+                            {visit.people_count > 1 && <span style={{ fontSize:11, color:"var(--ink-40)" }}>{visit.people_count} pers.</span>}
+                          </div>
+                          {notePreview && <p style={{ margin:"3px 0 0", fontSize:11, color:"var(--ink-60)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" as const }}>{notePreview}</p>}
+                        </div>
+                        <button
+                          onClick={() => {
+                            const place = (visit.snapshot ?? { osm_id: visit.osm_id, name: visit.name, lat: 0, lon: 0 }) as unknown as PlaceCard;
+                            setEditingVisit({ visit, place });
+                          }}
+                          style={{ width:30, height:30, borderRadius:"var(--r-sm)", border:"1px solid var(--ink-10)", background:"var(--off-white)", color:"var(--ink-60)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all 120ms" }}
+                          onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="var(--bone)"}}
+                          onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background="var(--off-white)"}}
+                          title="Modifier la visite"
+                        >
+                          <IcoPencil />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+          </>
+        )}
 
         {/* Récents favoris */}
         {!favLoading && recentFavs.length > 0 && (

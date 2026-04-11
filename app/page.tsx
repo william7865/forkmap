@@ -7,7 +7,6 @@
 
 import { useState, useCallback, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import type { PlaceCard, FilterState } from "@/types";
 import { useRestaurants } from "@/lib/hooks/useRestaurants";
 import { useRouteCache, type TransportMode } from "@/lib/hooks/useRouteCache";
@@ -20,10 +19,10 @@ import SuggestionsPanel from "@/components/place/SuggestionsPanel";
 import LanguagePicker from "@/components/ui/LanguagePicker";
 import { useLanguage } from "@/lib/i18n/useLanguage";
 import PlaceList from "@/components/place/PlaceList";
+import PlaceCardSkeleton from "@/components/place/PlaceCardSkeleton";
 import PlaceDetail from "@/components/place/PlaceDetail";
 import StartPanel from "@/components/location/StartPanel";
 import ToastStack from "@/components/ui/ToastStack";
-import AuthButton from "@/components/ui/AuthButton";
 import AuthModal from "@/components/ui/AuthModal";
 import BottomSheet from "@/components/ui/BottomSheet";
 import { ErrorBoundary } from "@/components/states/ErrorBoundary";
@@ -127,6 +126,15 @@ export default function HomePage() {
   const [locateError,      setLocateError]      = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sharePlace,      setSharePlace]      = useState<PlaceCard|null>(null);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      return JSON.parse(localStorage.getItem("forkmap_recent_searches") ?? "[]");
+    } catch {
+      return [];
+    }
+  });
 
   const currentBboxRef = useRef<string>("");
   const mapRef         = useRef<MapViewHandle>(null);
@@ -142,6 +150,20 @@ export default function HomePage() {
     applyClientFilters(f);
   }, [applyClientFilters]);
 
+  const handleCuisineFilter = useCallback((cuisine: string) => {
+    setFilters(prev => ({ ...prev, cuisine }));
+    applyClientFilters({ ...filters, cuisine });
+  }, [filters, applyClientFilters]);
+
+  const saveSearch = useCallback((q: string) => {
+    if (!q.trim()) return;
+    setRecentSearches(prev => {
+      const next = [q, ...prev.filter(s => s !== q)].slice(0, 5);
+      localStorage.setItem("forkmap_recent_searches", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   // ── Name filter ───────────────────────────────────────────
   const visiblePlaces = useMemo(() =>
     nameQuery.trim()
@@ -152,6 +174,15 @@ export default function HomePage() {
       : filteredPlaces,
     [filteredPlaces, nameQuery]
   );
+
+  // ── Top cuisines for quick filter chips ──────────────────
+  const topCuisines = useMemo(() => {
+    const cuisineMap = new Map<string, number>();
+    visiblePlaces.forEach(p => {
+      if (p.cuisine) cuisineMap.set(p.cuisine, (cuisineMap.get(p.cuisine) ?? 0) + 1);
+    });
+    return [...cuisineMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([c]) => c);
+  }, [visiblePlaces]);
 
   // ── Location ──────────────────────────────────────────────
   const handleLocationChange = useCallback((lat: number, lon: number, label: string) => {
@@ -284,9 +315,14 @@ export default function HomePage() {
       toast.error("Impossible de mettre à jour les favoris.");
       return;
     }
-    toast[isCurrentlyFav ? "info" : "success"](
-      isCurrentlyFav ? `"${place.name}" retiré des favoris` : `"${place.name}" sauvegardé ✓`
-    );
+    if (isCurrentlyFav) {
+      toast.info(`"${place.name}" retiré des favoris`);
+    } else {
+      toast.success("❤️ Ajouté aux favoris", 5000, {
+        label: "Annuler",
+        onClick: () => toggleFavorite(place),
+      });
+    }
   }, [toggleFavorite, favoriteIds, toast]);
 
   return (
@@ -307,22 +343,6 @@ export default function HomePage() {
         zIndex:1000, position:"relative",
       }}>
 
-        {/* Logo */}
-        <Link href="/" style={{ display:"flex",alignItems:"center",gap:9,textDecoration:"none",flexShrink:0 }}>
-          <div style={{ width:30,height:30,borderRadius:8,background:"var(--ink)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M9 4v8c0 2.5 1 4 3 4.5V21M15 4v5c0 1-.7 1.5-1.5 1.5S12 10 12 9V4M15 9.5c0 2 1.5 3 3 3V21"
-                stroke="white" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </div>
-          <span style={{ fontFamily:"var(--font-display)",fontWeight:400,fontSize:20,letterSpacing:"-0.04em",color:"var(--ink)",lineHeight:1 }}>
-            fork<em style={{ fontStyle:"italic",color:"var(--forest-mid)" }}>map</em>
-          </span>
-        </Link>
-
-        {/* Séparateur */}
-        <div style={{ width:1,height:22,background:"var(--ink-10)",flexShrink:0,margin:"0 2px" }}/>
-
         {/* Search — filtre résultats visibles */}
         <div style={{ flex:1, maxWidth:420, position:"relative" }}>
           <span style={{ position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",color:"var(--ink-40)",pointerEvents:"none",display:"flex" }}>
@@ -340,13 +360,92 @@ export default function HomePage() {
               fontSize:13, fontWeight:400, outline:"none", fontFamily:"inherit",
               transition:"all 120ms ease",
             }}
-            onFocus={e=>{ e.currentTarget.style.borderColor="var(--forest-mid)"; e.currentTarget.style.background="white"; e.currentTarget.style.boxShadow="var(--s-focus)"; }}
-            onBlur={e=>{ e.currentTarget.style.borderColor="var(--ink-10)"; e.currentTarget.style.background="var(--off-white)"; e.currentTarget.style.boxShadow="none"; }}
+            onFocus={e=>{ e.currentTarget.style.borderColor="var(--forest-mid)"; e.currentTarget.style.background="white"; e.currentTarget.style.boxShadow="var(--s-focus)"; setSearchFocused(true); }}
+            onBlur={e=>{ e.currentTarget.style.borderColor="var(--ink-10)"; e.currentTarget.style.background="var(--off-white)"; e.currentTarget.style.boxShadow="none"; setTimeout(() => setSearchFocused(false), 150); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && nameQuery.trim()) {
+                saveSearch(nameQuery.trim());
+                setSearchFocused(false);
+              }
+            }}
           />
           {nameQuery && (
             <button onClick={()=>setNameQuery("")} style={{ position:"absolute",right:9,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"var(--ink-40)",display:"flex",padding:2 }}>
               <IcoX />
             </button>
+          )}
+          {searchFocused && (nameQuery.length > 0 || recentSearches.length > 0) && (
+            <div style={{
+              position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4,
+              background: "var(--white)", border: "1px solid var(--ink-10)",
+              borderRadius: "var(--r-md)", boxShadow: "var(--s2)", zIndex: 500,
+              overflow: "hidden",
+            }}>
+              {/* Suggestions from places */}
+              {nameQuery.length > 1 && places
+                .filter(p =>
+                  p.name.toLowerCase().includes(nameQuery.toLowerCase()) ||
+                  (p.cuisine ?? "").toLowerCase().includes(nameQuery.toLowerCase())
+                )
+                .slice(0, 5)
+                .map(p => (
+                  <button
+                    key={p.osm_id}
+                    onMouseDown={() => {
+                      setNameQuery(p.name);
+                      saveSearch(p.name);
+                      setSearchFocused(false);
+                    }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      width: "100%", padding: "9px 12px",
+                      background: "none", border: "none", cursor: "pointer",
+                      textAlign: "left", fontFamily: "var(--font-body)",
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "var(--off-white)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                  >
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{p.name}</span>
+                    {p.cuisine && (
+                      <span style={{ fontSize: 11, color: "var(--ink-40)" }}>{p.cuisine}</span>
+                    )}
+                  </button>
+                ))
+              }
+
+              {/* Recent searches */}
+              {nameQuery.length === 0 && recentSearches.length > 0 && (
+                <>
+                  <div style={{
+                    padding: "6px 12px 2px",
+                    fontSize: 10, fontWeight: 700, color: "var(--ink-40)", letterSpacing: "0.08em",
+                  }}>RÉCENTS</div>
+                  {recentSearches.map(s => (
+                    <div key={s} style={{ display: "flex", alignItems: "center", padding: "8px 12px", gap: 8 }}>
+                      <button
+                        onMouseDown={() => { setNameQuery(s); setSearchFocused(false); }}
+                        style={{
+                          flex: 1, background: "none", border: "none", cursor: "pointer",
+                          textAlign: "left", fontSize: 13, color: "var(--ink-80)",
+                          fontFamily: "var(--font-body)",
+                        }}
+                      >🕐 {s}</button>
+                      <button
+                        onMouseDown={() => setRecentSearches(prev => {
+                          const n = prev.filter(r => r !== s);
+                          localStorage.setItem("forkmap_recent_searches", JSON.stringify(n));
+                          return n;
+                        })}
+                        style={{
+                          background: "none", border: "none", cursor: "pointer",
+                          color: "var(--ink-40)", fontSize: 16, padding: 0,
+                        }}
+                      >×</button>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
           )}
         </div>
 
@@ -400,7 +499,6 @@ export default function HomePage() {
           {tr("favorites")}
         </a>
 
-        <AuthButton auth={auth} onOpenModal={() => setShowAuthModal(true)} />
         <LanguagePicker />
 
         <EnrichBar active={enriching} />
@@ -483,24 +581,55 @@ export default function HomePage() {
                   {pinDropActive ? tr("clicking") : tr("departure_point")}
                 </button>
               </div>
+
+              {/* Quick filter chips */}
+              {(() => {
+                type ChipDef = { id: string; label: string; active: boolean; onToggle: () => void };
+                const chips: ChipDef[] = [
+                  {
+                    id: "open", label: "Ouvert maintenant",
+                    active: !!filters.openNow,
+                    onToggle: () => setFilters(f => ({ ...f, openNow: !f.openNow })),
+                  },
+                  {
+                    id: "rating4", label: "⭐ 4+",
+                    active: (filters.minRating ?? 0) >= 8,
+                    onToggle: () => setFilters(f => ({ ...f, minRating: (f.minRating ?? 0) >= 8 ? 0 : 8 })),
+                  },
+                  ...topCuisines.map(c => ({
+                    id: `cuisine-${c}`, label: c,
+                    active: filters.cuisine === c,
+                    onToggle: () => setFilters(f => ({ ...f, cuisine: f.cuisine === c ? "" : c })),
+                  })),
+                ];
+
+                return (
+                  <div style={{
+                    display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4,
+                    scrollbarWidth: "none", marginBottom: 4, marginTop: 8,
+                  }}>
+                    {chips.map(chip => (
+                      <button key={chip.id} onClick={chip.onToggle} aria-pressed={chip.active} style={{
+                        flexShrink: 0, padding: "4px 10px",
+                        borderRadius: "var(--r-pill)",
+                        fontSize: 11, fontWeight: 600, cursor: "pointer",
+                        border: `1px solid ${chip.active ? "var(--forest-mid)" : "var(--ink-10)"}`,
+                        background: chip.active ? "var(--forest-mid)" : "var(--off-white)",
+                        color: chip.active ? "white" : "var(--ink-60)",
+                        fontFamily: "var(--font-body)",
+                        transition: "all 120ms",
+                        whiteSpace: "nowrap",
+                      }}>{chip.label}</button>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Skeletons */}
-            {loading && filteredPlaces.length === 0 && (
-              <div style={{ padding:"12px 12px 0", flexShrink:0 }}>
-                {[1,2].map(i=>(
-                  <div key={i} style={{ borderRadius:"var(--r-xl)",overflow:"hidden",marginBottom:12,border:"1px solid var(--ink-10)" }}>
-                    <div className="skeleton" style={{ height:148,width:"100%" }}/>
-                    <div style={{ padding:"14px 16px 0" }}>
-                      <div className="skeleton" style={{ height:16,width:"65%",borderRadius:6,marginBottom:8 }}/>
-                      <div className="skeleton" style={{ height:10,width:"40%",borderRadius:5 }}/>
-                    </div>
-                    <div style={{ padding:"10px 16px 14px",marginTop:12,borderTop:"1px solid var(--ink-10)",display:"flex",justifyContent:"space-between" }}>
-                      <div className="skeleton" style={{ height:10,width:40,borderRadius:5 }}/>
-                      <div className="skeleton" style={{ width:30,height:30,borderRadius:"var(--r-sm)" }}/>
-                    </div>
-                  </div>
-                ))}
+            {loading && places.length === 0 && (
+              <div style={{ padding: "0 8px" }}>
+                {[1,2,3,4].map(i => <PlaceCardSkeleton key={i} />)}
               </div>
             )}
 
@@ -650,6 +779,7 @@ export default function HomePage() {
                 routeMode={routeMode}
                 hasUserLocation={!!userLocation}
                 onTransportChange={handleTransportChange}
+                onCuisineFilter={handleCuisineFilter}
               />
             </div>
           )}
@@ -701,6 +831,7 @@ export default function HomePage() {
             routeMode={routeMode}
             hasUserLocation={!!userLocation}
             onTransportChange={handleTransportChange}
+            onCuisineFilter={handleCuisineFilter}
           />
         </div>
       )}

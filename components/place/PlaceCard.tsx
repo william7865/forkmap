@@ -60,6 +60,14 @@ function getCuisineGradient(cuisine?: string, isFav?: boolean): string {
   return "linear-gradient(135deg,#1a2e1a 0%,#2d4a2d 60%,#3d6e3d 100%)";
 }
 
+// ── Walk time ────────────────────────────────────────────
+function formatWalkTime(metres?: number): string {
+  if (metres == null) return "";
+  const mins = Math.round(metres / 80);
+  if (mins < 1) return "À côté";
+  return `${mins} min à pied`;
+}
+
 // ── Price label ──────────────────────────────────────────
 function priceLabel(price?: number): string {
   if (price == null) return "";
@@ -123,11 +131,6 @@ const PlaceCard = memo(function PlaceCard({
 
   const gradient = getCuisineGradient(cuisine, isFav);
 
-  // Formatted distance
-  const distLabel = place.distance == null ? null
-    : place.distance < 1000
-    ? `${Math.round(place.distance)} m`
-    : `${(place.distance / 1000).toFixed(1)} km`;
 
   return (
     <div
@@ -242,6 +245,18 @@ const PlaceCard = memo(function PlaceCard({
           )}
         </div>
 
+        {/* Visited badge — top-right */}
+        {(place.visitCount ?? 0) > 0 && (
+          <div style={{
+            position: "absolute", top: 8, right: 8,
+            background: "var(--forest-pale)", color: "var(--forest-mid)",
+            fontSize: 9, fontWeight: 700, letterSpacing: "0.06em",
+            padding: "3px 7px", borderRadius: "var(--r-pill)",
+            border: "1px solid var(--forest-mid)",
+            fontFamily: "var(--font-body)",
+          }}>✓ Visité</div>
+        )}
+
         {/* Selected indicator */}
         {isSelected && (
           <div style={{
@@ -317,7 +332,9 @@ const PlaceCard = memo(function PlaceCard({
           fontFamily: "var(--font-body)",
         }}>
           <IcoPin />
-          {distLabel ?? "—"}
+          {place.distance != null ? (
+            <span>{formatWalkTime(place.distance)}</span>
+          ) : "—"}
         </span>
 
         {/* Share button — apparaît au survol */}
@@ -335,6 +352,7 @@ const PlaceCard = memo(function PlaceCard({
               fontFamily:"var(--font-body)",
               transition:"all 120ms ease",
               animation:"fadeIn 120ms ease both",
+              minWidth: 44, minHeight: 44,
             }}
             onMouseEnter={e=>{ e.currentTarget.style.background="var(--sky-pale)"; e.currentTarget.style.borderColor="rgba(36,89,168,0.3)"; e.currentTarget.style.color="var(--sky)"; }}
             onMouseLeave={e=>{ e.currentTarget.style.background="var(--off-white)"; e.currentTarget.style.borderColor="var(--ink-10)"; e.currentTarget.style.color="var(--ink-40)"; }}
@@ -350,6 +368,7 @@ const PlaceCard = memo(function PlaceCard({
           aria-label={isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
           style={{
             width: 30, height: 30,
+            minWidth: 44, minHeight: 44,
             borderRadius: "var(--r-sm)",
             border: `1px solid ${isFav ? "rgba(45,122,85,0.30)" : "var(--ink-10)"}`,
             background: isFav ? "var(--forest-pale)" : "var(--off-white)",

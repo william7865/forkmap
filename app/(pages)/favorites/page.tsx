@@ -460,12 +460,36 @@ export default function FavoritesPage() {
 
           {/* Empty */}
           {!loading && !favorites.length && (
-            <div style={{ textAlign:"center",padding:"64px 0 40px",animation:"fadeUp 300ms var(--ease-out) both" }}>
-              <div style={{ width:72,height:72,borderRadius:24,background:"var(--cream)",border:"1px solid var(--bone)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px",fontSize:32 }}>🍽</div>
-              <h2 style={{ margin:"0 0 8px",fontFamily:"var(--font-display)",fontSize:22,fontWeight:400,letterSpacing:"-0.03em" }}>Aucun lieu sauvegardé</h2>
-              <p style={{ margin:"0 0 28px",color:"var(--ink-40)",fontSize:13,lineHeight:1.7 }}>Appuyez sur le ♡ d&apos;un restaurant sur la carte<br/>pour le sauvegarder ici.</p>
-              <Link href="/" style={{ display:"inline-flex",alignItems:"center",gap:6,padding:"11px 24px",borderRadius:"var(--r-md)",background:"var(--forest-mid)",color:"white",textDecoration:"none",fontSize:13,fontWeight:600,boxShadow:"var(--s-forest)" }}>
-                Explorer les restaurants →
+            <div style={{
+              display: "flex", flexDirection: "column", alignItems: "center",
+              justifyContent: "center", padding: "80px 24px", textAlign: "center",
+              animation: "fadeUp 300ms var(--ease-out) both",
+            }}>
+              {/* SVG map pin with heart */}
+              <svg width="72" height="72" viewBox="0 0 72 72" fill="none" style={{ marginBottom: 20 }}>
+                <circle cx="36" cy="36" r="36" fill="var(--forest-pale)" />
+                <path d="M36 18C28.268 18 22 24.268 22 32c0 10 14 24 14 24s14-14 14-24c0-7.732-6.268-14-14-14z" fill="var(--forest-mid)" opacity="0.2"/>
+                <path d="M36 20C29.373 20 24 25.373 24 32c0 9.5 12 22 12 22s12-12.5 12-22c0-6.627-5.373-12-12-12z" fill="var(--forest-mid)"/>
+                <path d="M33 30.5c0-1.657 1.343-3 3-3s3 1.343 3 3c0 .88-.38 1.67-.984 2.22L36 35l-2.016-2.28A2.99 2.99 0 0 1 33 30.5z" fill="white"/>
+              </svg>
+              <h2 style={{
+                margin: "0 0 8px",
+                fontFamily: "var(--font-display)",
+                fontSize: 22, fontWeight: 400, letterSpacing: "-0.03em",
+              }}>Aucun favori pour l&apos;instant</h2>
+              <p style={{
+                margin: "0 0 28px", color: "var(--ink-40)", fontSize: 13, lineHeight: 1.7,
+              }}>
+                Appuyez sur ♡ sur n&apos;importe quel restaurant<br/>pour le sauvegarder ici.
+              </p>
+              <Link href="/" style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "11px 24px", borderRadius: "var(--r-md)",
+                background: "var(--forest-mid)", color: "white",
+                textDecoration: "none", fontSize: 13, fontWeight: 600,
+                boxShadow: "var(--s-forest)",
+              }}>
+                Explorer la carte →
               </Link>
             </div>
           )}
