@@ -465,6 +465,55 @@ export default function HomePage() {
                   {pinDropActive ? tr("clicking") : tr("departure_point")}
                 </button>
               </div>
+
+              {/* Quick filter chips */}
+              {(() => {
+                const cuisineMap = new Map<string, number>();
+                visiblePlaces.forEach(p => {
+                  if (p.cuisine) cuisineMap.set(p.cuisine, (cuisineMap.get(p.cuisine) ?? 0) + 1);
+                });
+                const topCuisines = [...cuisineMap.entries()].sort((a,b) => b[1]-a[1]).slice(0,3).map(([c]) => c);
+
+                type ChipDef = { id: string; label: string; active: boolean; onToggle: () => void };
+                const chips: ChipDef[] = [
+                  {
+                    id: "open", label: "Ouvert",
+                    active: !!filters.openNow,
+                    onToggle: () => setFilters(f => ({ ...f, openNow: !f.openNow })),
+                  },
+                  {
+                    id: "rating4", label: "⭐ 4+",
+                    active: (filters.minRating ?? 0) >= 4,
+                    onToggle: () => setFilters(f => ({ ...f, minRating: (f.minRating ?? 0) >= 4 ? 0 : 4 })),
+                  },
+                  ...topCuisines.map(c => ({
+                    id: `cuisine-${c}`, label: c,
+                    active: filters.cuisine === c,
+                    onToggle: () => setFilters(f => ({ ...f, cuisine: f.cuisine === c ? "" : c })),
+                  })),
+                ];
+
+                return (
+                  <div style={{
+                    display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4,
+                    scrollbarWidth: "none", marginBottom: 4, marginTop: 8,
+                  }}>
+                    {chips.map(chip => (
+                      <button key={chip.id} onClick={chip.onToggle} style={{
+                        flexShrink: 0, padding: "4px 10px",
+                        borderRadius: "var(--r-pill)",
+                        fontSize: 11, fontWeight: 600, cursor: "pointer",
+                        border: `1px solid ${chip.active ? "var(--forest-mid)" : "var(--ink-10)"}`,
+                        background: chip.active ? "var(--forest-mid)" : "var(--off-white)",
+                        color: chip.active ? "white" : "var(--ink-60)",
+                        fontFamily: "var(--font-body)",
+                        transition: "all 120ms",
+                        whiteSpace: "nowrap",
+                      }}>{chip.label}</button>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Skeletons */}
