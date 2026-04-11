@@ -67,6 +67,17 @@ export default function ToastStack({ toasts, onDismiss }: Props) {
           >
             <span style={{ color: s.color, display: "flex", flexShrink: 0 }}>{s.icon}</span>
             <span style={{ flex: 1 }}>{toast.message}</span>
+            {toast.action && (
+              <button
+                onClick={(e) => { e.stopPropagation(); toast.action!.onClick(); onDismiss(toast.id); }}
+                style={{
+                  marginLeft: 10, padding: "2px 8px",
+                  background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.3)",
+                  borderRadius: 6, color: "inherit", fontSize: 11, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "var(--font-body)",
+                }}
+              >{toast.action.label}</button>
+            )}
           </div>
         );
       })}

@@ -292,9 +292,14 @@ export default function HomePage() {
       toast.error("Impossible de mettre à jour les favoris.");
       return;
     }
-    toast[isCurrentlyFav ? "info" : "success"](
-      isCurrentlyFav ? `"${place.name}" retiré des favoris` : `"${place.name}" sauvegardé ✓`
-    );
+    if (isCurrentlyFav) {
+      toast.info(`"${place.name}" retiré des favoris`);
+    } else {
+      toast.success("❤️ Ajouté aux favoris", 5000, {
+        label: "Annuler",
+        onClick: () => toggleFavorite(place),
+      });
+    }
   }, [toggleFavorite, favoriteIds, toast]);
 
   return (
