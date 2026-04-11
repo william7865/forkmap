@@ -27,7 +27,7 @@ export default function BottomNav() {
     <>
       <nav style={{
         position: "fixed", bottom: 0, left: 0, right: 0,
-        height: 56, background: "var(--white)",
+        minHeight: 56, background: "var(--white)",
         borderTop: "1px solid var(--ink-10)",
         display: "flex", zIndex: 200,
         paddingBottom: "env(safe-area-inset-bottom)",
@@ -43,7 +43,7 @@ export default function BottomNav() {
               {active && (
                 <div style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--forest-mid)", marginBottom: 2 }} />
               )}
-              <span aria-hidden="true" style={{ fontSize: 18 }}>{tab.icon}</span>
+              <span aria-hidden="true" style={{ fontSize: 18, opacity: active ? 1 : 0.55 }}>{tab.icon}</span>
               <span style={{
                 fontSize: 10, fontWeight: 600,
                 color: active ? "var(--forest-mid)" : "var(--ink-40)",
