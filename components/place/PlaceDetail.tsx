@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ShareModal from "@/components/place/ShareModal";
 import VisitModal from "@/components/place/VisitModal";
 import NoteModal, { getNote } from "@/components/place/NoteModal";
@@ -20,6 +20,7 @@ interface Props {
   routeMode?: TransportMode;
   hasUserLocation?: boolean;
   onTransportChange?: (mode: TransportMode) => void;
+  onCuisineFilter?: (cuisine: string) => void;
 }
 
 // ── SVG Icons ─────────────────────────────────────────────
@@ -74,79 +75,63 @@ function buildPhotoUrl(photo: FoursquarePhoto, width = 600): string {
 }
 
 function PhotoGallery({ photos }: { photos: FoursquarePhoto[] }) {
-  const [idx, setIdx]       = useState(0);
-  const [loaded, setLoaded] = useState(false);
-  const [error,  setError]  = useState(false);
+  const [activePhoto, setActivePhoto] = useState(0);
+  const galleryRef = useRef<HTMLDivElement>(null);
 
   // Reset when photos change (new place selected)
-  useEffect(() => { setIdx(0); setLoaded(false); setError(false); }, [photos]);
+  useEffect(() => { setActivePhoto(0); if (galleryRef.current) galleryRef.current.scrollLeft = 0; }, [photos]);
 
   if (!photos.length) return null;
 
-  const photo = photos[idx];
-  const url   = buildPhotoUrl(photo, 600);
-  const total = photos.length;
+  const handleGalleryScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const idx = Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth);
+    setActivePhoto(idx);
+  };
 
-  const prev = (e: React.MouseEvent) => { e.stopPropagation(); setIdx(i => (i - 1 + total) % total); setLoaded(false); setError(false); };
-  const next = (e: React.MouseEvent) => { e.stopPropagation(); setIdx(i => (i + 1) % total); setLoaded(false); setError(false); };
+  const urls = photos.map(p => buildPhotoUrl(p, 600));
 
   return (
-    <div style={{ position:"relative", width:"100%", aspectRatio:"16/9", background:"var(--cream)", overflow:"hidden", flexShrink:0 }}>
-      {/* Placeholder shimmer while loading */}
-      {!loaded && !error && (
-        <div style={{ position:"absolute", inset:0, background:"linear-gradient(90deg,var(--cream) 0%,var(--off-white) 40%,var(--cream) 80%)", backgroundSize:"300% 100%", animation:"shimmer 1.4s ease-in-out infinite" }}/>
-      )}
-      {/* Error state */}
-      {error && (
-        <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:6 }}>
-          <span style={{ fontSize:24 }}>🍽</span>
-          <span style={{ fontSize:10, color:"var(--ink-40)", fontWeight:600 }}>No photo available</span>
+    <div style={{ position: "relative", flexShrink: 0 }}>
+      {/* Horizontal scrollable strip */}
+      <div
+        ref={galleryRef}
+        onScroll={handleGalleryScroll}
+        style={{
+          display: "flex", overflowX: "auto", scrollSnapType: "x mandatory",
+          scrollbarWidth: "none", gap: 0,
+        }}
+      >
+        {urls.map((url, i) => (
+          <div key={i} style={{
+            flexShrink: 0, width: "100%", height: 200,
+            scrollSnapAlign: "start", position: "relative",
+          }}>
+            <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          </div>
+        ))}
+      </div>
+      {/* Dot indicators */}
+      {photos.length > 1 && (
+        <div style={{
+          position: "absolute", bottom: 6, left: 0, right: 0,
+          display: "flex", justifyContent: "center", gap: 4,
+        }}>
+          {photos.slice(0, 5).map((_, i) => (
+            <div key={i} style={{
+              width: 5, height: 5, borderRadius: "50%",
+              background: i === activePhoto ? "white" : "rgba(255,255,255,0.45)",
+              transition: "background 150ms",
+            }} />
+          ))}
+          {photos.length > 5 && (
+            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.6)", alignSelf: "center" }}>
+              +{photos.length - 5}
+            </span>
+          )}
         </div>
       )}
-      {/* Photo */}
-      {!error && (
-        <img
-          key={url}
-          src={url}
-          alt={`Photo ${idx + 1}`}
-          onLoad={() => setLoaded(true)}
-          onError={() => { setLoaded(true); setError(true); }}
-          style={{
-            position:"absolute", inset:0, width:"100%", height:"100%",
-            objectFit:"cover",
-            opacity: loaded ? 1 : 0,
-            transition:"opacity 300ms ease",
-          }}
-        />
-      )}
-      {/* Navigation arrows — only if > 1 photo */}
-      {total > 1 && !error && (
-        <>
-          <button onClick={prev} aria-label="Previous photo" style={{ position:"absolute", left:8, top:"50%", transform:"translateY(-50%)", width:28, height:28, borderRadius:"50%", background:"rgba(28,25,23,0.55)", border:"none", color:"white", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", backdropFilter:"blur(4px)", transition:"background 120ms" }}
-            onMouseEnter={e => (e.currentTarget.style.background = "rgba(28,25,23,0.8)")}
-            onMouseLeave={e => (e.currentTarget.style.background = "rgba(28,25,23,0.55)")}>
-            <IcoChevLeft />
-          </button>
-          <button onClick={next} aria-label="Next photo" style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)", width:28, height:28, borderRadius:"50%", background:"rgba(28,25,23,0.55)", border:"none", color:"white", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", backdropFilter:"blur(4px)", transition:"background 120ms" }}
-            onMouseEnter={e => (e.currentTarget.style.background = "rgba(28,25,23,0.8)")}
-            onMouseLeave={e => (e.currentTarget.style.background = "rgba(28,25,23,0.55)")}>
-            <IcoChevRight />
-          </button>
-          {/* Dot indicators */}
-          <div style={{ position:"absolute", bottom:8, left:"50%", transform:"translateX(-50%)", display:"flex", gap:4 }}>
-            {photos.slice(0, 5).map((_, i) => (
-              <button key={i} onClick={e => { e.stopPropagation(); setIdx(i); setLoaded(false); setError(false); }}
-                aria-label={`Photo ${i + 1}`}
-                style={{ width: i === idx ? 14 : 6, height:6, borderRadius:3, background: i === idx ? "white" : "rgba(255,255,255,0.45)", border:"none", cursor:"pointer", padding:0, transition:"all 200ms ease" }}/>
-            ))}
-            {total > 5 && (
-              <span style={{ fontSize:9, color:"rgba(255,255,255,0.7)", fontWeight:700, lineHeight:"6px" }}>+{total - 5}</span>
-            )}
-          </div>
-        </>
-      )}
       {/* Attribution */}
-      <div style={{ position:"absolute", bottom:4, right:8, fontSize:9, color:"rgba(255,255,255,0.55)", fontWeight:500 }}>
+      <div style={{ position: "absolute", bottom: 4, right: 8, fontSize: 9, color: "rgba(255,255,255,0.55)", fontWeight: 500 }}>
         📷 Foursquare
       </div>
     </div>
@@ -185,7 +170,7 @@ function Divider() {
 export default function PlaceDetail({
   place, onClose, onToggleFavorite, onSelectPlace, nearbyPlaces = [],
   routeResult, routeLoading, routeMode="foot",
-  hasUserLocation, onTransportChange
+  hasUserLocation, onTransportChange, onCuisineFilter,
 }: Props) {
   interface VisitRow {
     id: string; visited_at: string; amount_spent?: number;
@@ -196,6 +181,7 @@ export default function PlaceDetail({
     solo: "🧍", couple: "👫", friends: "👯", family: "👨‍👩‍👧", work: "💼",
   };
 
+  const [transportMode, setTransportMode] = useState<"walk" | "bike" | "drive">("walk");
   const [showShare, setShowShare] = useState(false);
   const [showNote,  setShowNote]  = useState(false);
   const [showVisit, setShowVisit] = useState(false);
@@ -258,9 +244,22 @@ export default function PlaceDetail({
               {place.name}
             </h2>
             {cuisine && (
-              <span style={{ fontSize:11, fontWeight:600, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--forest-mid)" }}>
-                {cuisine}
-              </span>
+              onCuisineFilter ? (
+                <button
+                  onClick={() => onCuisineFilter(cuisine)}
+                  style={{
+                    cursor: "pointer", background: "none",
+                    border: "1px solid var(--ink-10)",
+                    borderRadius: "var(--r-pill)", padding: "3px 8px",
+                    fontSize: 11, color: "var(--ink-60)",
+                    fontFamily: "var(--font-body)",
+                  }}
+                >{cuisine}</button>
+              ) : (
+                <span style={{ fontSize:11, fontWeight:600, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--forest-mid)" }}>
+                  {cuisine}
+                </span>
+              )
             )}
           </div>
 
@@ -767,6 +766,45 @@ export default function PlaceDetail({
           View on OpenStreetMap
         </a>
       </div>
+
+      {/* Sticky bottom CTA */}
+      <div style={{
+        position: "sticky", bottom: 0,
+        background: "var(--white)", borderTop: "1px solid var(--ink-10)",
+        padding: "12px 16px",
+      }}>
+        {/* Transport mode tabs */}
+        <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+          {(["walk", "bike", "drive"] as const).map(mode => (
+            <button key={mode} onClick={() => setTransportMode(mode)} style={{
+              flex: 1, padding: "6px 0",
+              borderRadius: "var(--r-sm)", fontSize: 11, fontWeight: 600,
+              border: `1px solid ${transportMode === mode ? "var(--forest-mid)" : "var(--ink-10)"}`,
+              background: transportMode === mode ? "var(--forest-pale)" : "transparent",
+              color: transportMode === mode ? "var(--forest-mid)" : "var(--ink-60)",
+              cursor: "pointer", fontFamily: "var(--font-body)",
+            }}>
+              {mode === "walk" ? "🚶 Marche" : mode === "bike" ? "🚲 Vélo" : "🚗 Voiture"}
+            </button>
+          ))}
+        </div>
+        <a
+          href={`https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}&travelmode=${transportMode === "walk" ? "walking" : transportMode === "bike" ? "bicycling" : "driving"}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "block", width: "100%", padding: "12px",
+            background: "var(--forest-mid)", color: "white",
+            border: "none", borderRadius: "var(--r-md)",
+            fontSize: 14, fontWeight: 700, cursor: "pointer",
+            fontFamily: "var(--font-body)", boxShadow: "var(--s-forest)",
+            textAlign: "center", textDecoration: "none",
+          }}
+        >
+          Itinéraire →
+        </a>
+      </div>
+
       {/* Note modal */}
       {showNote && <NoteModal place={place} onClose={() => setShowNote(false)} onSaved={n => setNote(n)} />}
 
