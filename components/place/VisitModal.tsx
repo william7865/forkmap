@@ -98,9 +98,24 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
 
   const handleDelete = async () => {
     if (!existingVisit) return;
-    const headers = await getAuthHeaders();
-    await fetch(`/api/visits/${existingVisit.id}`, { method: "DELETE", headers });
-    onSaved(); onClose();
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/visits/${existingVisit.id}`, {
+        method: "DELETE",
+        headers: await getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setError(friendlyError(d.error ?? d));
+        return;
+      }
+      onSaved?.();
+      onClose();
+    } catch (err) {
+      setError(friendlyError(err));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
