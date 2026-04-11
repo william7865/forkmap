@@ -245,11 +245,11 @@ const PlaceCard = memo(function PlaceCard({
           )}
         </div>
 
-        {/* Visited badge — top-left */}
+        {/* Visited badge — top-right */}
         {(place as { visitCount?: number }).visitCount != null &&
          (place as { visitCount?: number }).visitCount! > 0 && (
           <div style={{
-            position: "absolute", top: 8, left: 8,
+            position: "absolute", top: 8, right: 8,
             background: "var(--forest-pale)", color: "var(--forest-mid)",
             fontSize: 9, fontWeight: 700, letterSpacing: "0.06em",
             padding: "3px 7px", borderRadius: "var(--r-pill)",

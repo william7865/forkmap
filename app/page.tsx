@@ -477,7 +477,7 @@ export default function HomePage() {
                 type ChipDef = { id: string; label: string; active: boolean; onToggle: () => void };
                 const chips: ChipDef[] = [
                   {
-                    id: "open", label: "Ouvert",
+                    id: "open", label: "Ouvert maintenant",
                     active: !!filters.openNow,
                     onToggle: () => setFilters(f => ({ ...f, openNow: !f.openNow })),
                   },
