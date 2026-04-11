@@ -20,7 +20,7 @@ export default function NavRail() {
   const pathname  = usePathname();
   const auth      = useAuth();
   const [popover, setPopover] = useState(false);
-  const avatarRef = useRef<HTMLButtonElement>(null);
+  const avatarRef = useRef<HTMLDivElement>(null);
   const sb        = getSupabaseBrowserClient();
 
   useEffect(() => {
@@ -87,16 +87,20 @@ export default function NavRail() {
         <div style={{
           width: 36, height: 36, borderRadius: 9,
           background: pathname === "/settings" ? "var(--forest-pale)" : "transparent",
-          display: "flex", alignItems: "center", justifyContent: "center",
+          display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", gap: 1,
           transition: "background 120ms",
         }}>
           <span style={{ fontSize: 14, lineHeight: 1 }}>⚙️</span>
+          {pathname === "/settings" && (
+            <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.04em", color: "var(--forest-mid)", fontFamily: "var(--font-body)" }}>Réglages</span>
+          )}
         </div>
       </Link>
 
       {/* Avatar / popover */}
-      <div style={{ position: "relative" }}>
-        <button ref={avatarRef} onClick={() => setPopover(v => !v)} style={{
+      <div ref={avatarRef} style={{ position: "relative" }}>
+        <button onClick={() => setPopover(v => !v)} style={{
           width: 30, height: 30, borderRadius: "50%",
           background: auth.user ? "var(--forest-mid)" : "var(--ink-20)",
           border: "none", cursor: "pointer",
