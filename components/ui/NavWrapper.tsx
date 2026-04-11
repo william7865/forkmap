@@ -14,8 +14,8 @@ export default function NavWrapper() {
         <BottomNav />
       </div>
       <style>{`
-        @media (min-width: 769px) { .nav-rail-wrap { display: block !important; } }
-        @media (max-width: 768px) { .bottom-nav-wrap { display: block !important; } }
+        @media (min-width: 768px) { .nav-rail-wrap { display: block !important; } }
+        @media (max-width: 767px) { .bottom-nav-wrap { display: block !important; } }
       `}</style>
     </>
   );

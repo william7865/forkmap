@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useAuth, getSupabaseBrowserClient } from "@/lib/hooks/useAuth";
 
 const TABS = [
@@ -21,7 +21,16 @@ export default function BottomNav() {
   const pathname = usePathname();
   const auth = useAuth();
   const [sheet, setSheet] = useState(false);
-  const sb = useMemo(() => getSupabaseBrowserClient(), []);
+  const sb = getSupabaseBrowserClient();
+
+  useEffect(() => {
+    if (!sheet) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSheet(false);
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [sheet]);
 
   return (
     <>
@@ -35,7 +44,7 @@ export default function BottomNav() {
         {TABS.map(tab => {
           const active = pathname === tab.href || (tab.href !== "/" && pathname.startsWith(tab.href + "/"));
           return (
-            <Link key={tab.href} href={tab.href} style={{
+            <Link key={tab.href} href={tab.href} aria-current={active ? "page" : undefined} style={{
               flex: 1, display: "flex", flexDirection: "column",
               alignItems: "center", justifyContent: "center", gap: 2,
               textDecoration: "none", minHeight: 44,
@@ -73,11 +82,17 @@ export default function BottomNav() {
       {sheet && (
         <div style={{ position: "fixed", inset: 0, zIndex: 500 }} onClick={() => setSheet(false)}>
           <div style={{ position: "absolute", inset: 0, background: "rgba(14,14,13,0.4)" }} />
-          <div onClick={e => e.stopPropagation()} style={{
-            position: "absolute", bottom: 0, left: 0, right: 0,
-            background: "var(--white)", borderRadius: "20px 20px 0 0",
-            padding: "8px 0 32px",
-          }}>
+          <div
+            onClick={e => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Plus d'options"
+            style={{
+              position: "absolute", bottom: 0, left: 0, right: 0,
+              background: "var(--white)", borderRadius: "20px 20px 0 0",
+              padding: "8px 0 32px",
+            }}
+          >
             <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--bone)", margin: "8px auto 16px" }} />
             {MORE_LINKS.map(l => (
               <Link key={l.href} href={l.href} onClick={() => setSheet(false)} style={{
