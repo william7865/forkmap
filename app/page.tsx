@@ -126,6 +126,15 @@ export default function HomePage() {
   const [locateError,      setLocateError]      = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sharePlace,      setSharePlace]      = useState<PlaceCard|null>(null);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      return JSON.parse(localStorage.getItem("forkmap_recent_searches") ?? "[]");
+    } catch {
+      return [];
+    }
+  });
 
   const currentBboxRef = useRef<string>("");
   const mapRef         = useRef<MapViewHandle>(null);
@@ -145,6 +154,15 @@ export default function HomePage() {
     setFilters(prev => ({ ...prev, cuisine }));
     applyClientFilters({ ...filters, cuisine });
   }, [filters, applyClientFilters]);
+
+  const saveSearch = useCallback((q: string) => {
+    if (!q.trim()) return;
+    setRecentSearches(prev => {
+      const next = [q, ...prev.filter(s => s !== q)].slice(0, 5);
+      localStorage.setItem("forkmap_recent_searches", JSON.stringify(next));
+      return next;
+    });
+  }, []);
 
   // ── Name filter ───────────────────────────────────────────
   const visiblePlaces = useMemo(() =>
@@ -342,13 +360,92 @@ export default function HomePage() {
               fontSize:13, fontWeight:400, outline:"none", fontFamily:"inherit",
               transition:"all 120ms ease",
             }}
-            onFocus={e=>{ e.currentTarget.style.borderColor="var(--forest-mid)"; e.currentTarget.style.background="white"; e.currentTarget.style.boxShadow="var(--s-focus)"; }}
-            onBlur={e=>{ e.currentTarget.style.borderColor="var(--ink-10)"; e.currentTarget.style.background="var(--off-white)"; e.currentTarget.style.boxShadow="none"; }}
+            onFocus={e=>{ e.currentTarget.style.borderColor="var(--forest-mid)"; e.currentTarget.style.background="white"; e.currentTarget.style.boxShadow="var(--s-focus)"; setSearchFocused(true); }}
+            onBlur={e=>{ e.currentTarget.style.borderColor="var(--ink-10)"; e.currentTarget.style.background="var(--off-white)"; e.currentTarget.style.boxShadow="none"; setTimeout(() => setSearchFocused(false), 150); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && nameQuery.trim()) {
+                saveSearch(nameQuery.trim());
+                setSearchFocused(false);
+              }
+            }}
           />
           {nameQuery && (
             <button onClick={()=>setNameQuery("")} style={{ position:"absolute",right:9,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"var(--ink-40)",display:"flex",padding:2 }}>
               <IcoX />
             </button>
+          )}
+          {searchFocused && (nameQuery.length > 0 || recentSearches.length > 0) && (
+            <div style={{
+              position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4,
+              background: "var(--white)", border: "1px solid var(--ink-10)",
+              borderRadius: "var(--r-md)", boxShadow: "var(--s2)", zIndex: 500,
+              overflow: "hidden",
+            }}>
+              {/* Suggestions from places */}
+              {nameQuery.length > 1 && places
+                .filter(p =>
+                  p.name.toLowerCase().includes(nameQuery.toLowerCase()) ||
+                  (p.cuisine ?? "").toLowerCase().includes(nameQuery.toLowerCase())
+                )
+                .slice(0, 5)
+                .map(p => (
+                  <button
+                    key={p.osm_id}
+                    onMouseDown={() => {
+                      setNameQuery(p.name);
+                      saveSearch(p.name);
+                      setSearchFocused(false);
+                    }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      width: "100%", padding: "9px 12px",
+                      background: "none", border: "none", cursor: "pointer",
+                      textAlign: "left", fontFamily: "var(--font-body)",
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "var(--off-white)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                  >
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{p.name}</span>
+                    {p.cuisine && (
+                      <span style={{ fontSize: 11, color: "var(--ink-40)" }}>{p.cuisine}</span>
+                    )}
+                  </button>
+                ))
+              }
+
+              {/* Recent searches */}
+              {nameQuery.length === 0 && recentSearches.length > 0 && (
+                <>
+                  <div style={{
+                    padding: "6px 12px 2px",
+                    fontSize: 10, fontWeight: 700, color: "var(--ink-40)", letterSpacing: "0.08em",
+                  }}>RÉCENTS</div>
+                  {recentSearches.map(s => (
+                    <div key={s} style={{ display: "flex", alignItems: "center", padding: "8px 12px", gap: 8 }}>
+                      <button
+                        onMouseDown={() => { setNameQuery(s); setSearchFocused(false); }}
+                        style={{
+                          flex: 1, background: "none", border: "none", cursor: "pointer",
+                          textAlign: "left", fontSize: 13, color: "var(--ink-80)",
+                          fontFamily: "var(--font-body)",
+                        }}
+                      >🕐 {s}</button>
+                      <button
+                        onMouseDown={() => setRecentSearches(prev => {
+                          const n = prev.filter(r => r !== s);
+                          localStorage.setItem("forkmap_recent_searches", JSON.stringify(n));
+                          return n;
+                        })}
+                        style={{
+                          background: "none", border: "none", cursor: "pointer",
+                          color: "var(--ink-40)", fontSize: 16, padding: 0,
+                        }}
+                      >×</button>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
           )}
         </div>
 
