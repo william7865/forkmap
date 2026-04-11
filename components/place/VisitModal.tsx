@@ -6,6 +6,7 @@
 import { useState, useEffect } from "react";
 import { getSupabaseBrowserClient } from "@/lib/hooks/useAuth";
 import type { PlaceCard } from "@/types";
+import { friendlyError } from "@/lib/api-errors";
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   try {
@@ -89,10 +90,10 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
             headers: { "Content-Type":"application/json", ...headers },
             body: JSON.stringify(body),
           });
-      if (!res.ok) { const d = await res.json(); setError(d.error ?? "Erreur"); setSaving(false); return; }
+      if (!res.ok) { const d = await res.json(); setError(friendlyError(d.error)); setSaving(false); return; }
       setSaved(true);
       setTimeout(() => { onSaved(); onClose(); }, 700);
-    } catch { setError("Erreur réseau"); setSaving(false); }
+    } catch (err) { setError(friendlyError(err)); setSaving(false); }
   };
 
   const handleDelete = async () => {
