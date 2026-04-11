@@ -326,8 +326,7 @@ export default function HomePage() {
   }, [toggleFavorite, favoriteIds, toast]);
 
   return (
-    <div style={{
-      position:"fixed", inset:0,
+    <div className="page-shell" style={{
       display:"flex", flexDirection:"column",
       background:"var(--off-white)",
       fontFamily:"var(--font-body)",

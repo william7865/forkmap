@@ -334,3 +334,15 @@ h1, h2, h3 {
 @media (max-width: 767px) {
   html, body { overscroll-behavior-x: none; }
 }
+
+/* ── Map page shell — accounts for NavRail (desktop) and BottomNav (mobile) ── */
+.page-shell {
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+}
+@media (min-width: 768px) {
+  .page-shell { left: 52px; }
+}
+@media (max-width: 767px) {
+  .page-shell { bottom: 56px; }
+}
