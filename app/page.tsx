@@ -141,6 +141,11 @@ export default function HomePage() {
     applyClientFilters(f);
   }, [applyClientFilters]);
 
+  const handleCuisineFilter = useCallback((cuisine: string) => {
+    setFilters(prev => ({ ...prev, cuisine }));
+    applyClientFilters({ ...filters, cuisine });
+  }, [filters, applyClientFilters]);
+
   // ── Name filter ───────────────────────────────────────────
   const visiblePlaces = useMemo(() =>
     nameQuery.trim()
@@ -677,6 +682,7 @@ export default function HomePage() {
                 routeMode={routeMode}
                 hasUserLocation={!!userLocation}
                 onTransportChange={handleTransportChange}
+                onCuisineFilter={handleCuisineFilter}
               />
             </div>
           )}
@@ -728,6 +734,7 @@ export default function HomePage() {
             routeMode={routeMode}
             hasUserLocation={!!userLocation}
             onTransportChange={handleTransportChange}
+            onCuisineFilter={handleCuisineFilter}
           />
         </div>
       )}
