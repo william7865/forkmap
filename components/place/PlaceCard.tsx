@@ -62,7 +62,7 @@ function getCuisineGradient(cuisine?: string, isFav?: boolean): string {
 
 // ── Walk time ────────────────────────────────────────────
 function formatWalkTime(metres?: number): string {
-  if (!metres) return "";
+  if (metres == null) return "";
   const mins = Math.round(metres / 80);
   if (mins < 1) return "À côté";
   return `${mins} min à pied`;
@@ -246,8 +246,7 @@ const PlaceCard = memo(function PlaceCard({
         </div>
 
         {/* Visited badge — top-right */}
-        {(place as { visitCount?: number }).visitCount != null &&
-         (place as { visitCount?: number }).visitCount! > 0 && (
+        {(place.visitCount ?? 0) > 0 && (
           <div style={{
             position: "absolute", top: 8, right: 8,
             background: "var(--forest-pale)", color: "var(--forest-mid)",

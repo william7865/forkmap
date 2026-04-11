@@ -119,6 +119,8 @@ export interface PlaceCard extends PlaceBase {
   score?: number;
   /** Is saved in user favorites */
   is_favorite?: boolean;
+  /** Number of times the user has visited this place */
+  visitCount?: number;
 }
 
 /** DB row: favorites table */

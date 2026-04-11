@@ -176,6 +176,16 @@ h1, h2, h3 {
   border-radius: var(--r-sm);
 }
 
+/* ── Skeleton shimmer bar (used by PlaceCardSkeleton) ── */
+@keyframes shimmer-slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.shimmer-bar {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%);
+  animation: shimmer-slide 1.4s ease-in-out infinite;
+}
+
 /* ── Animations ── */
 @keyframes shimmer {
   0%   { background-position: 100% 0; }

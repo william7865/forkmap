@@ -1,6 +1,6 @@
 export default function PlaceCardSkeleton() {
   return (
-    <div style={{
+    <div role="status" aria-label="Chargement..." style={{
       height: 262, borderRadius: 16, overflow: "hidden",
       background: "var(--off-white)", border: "1px solid var(--ink-10)",
       marginBottom: 8, position: "relative",
@@ -21,16 +21,6 @@ export default function PlaceCardSkeleton() {
           <div className="shimmer-bar" style={{ position: "absolute", inset: 0 }} />
         </div>
       </div>
-      <style>{`
-        @keyframes shimmer {
-          0%   { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-        .shimmer-bar {
-          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%);
-          animation: shimmer 1.4s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   );
 }

@@ -152,6 +152,15 @@ export default function HomePage() {
     [filteredPlaces, nameQuery]
   );
 
+  // ── Top cuisines for quick filter chips ──────────────────
+  const topCuisines = useMemo(() => {
+    const cuisineMap = new Map<string, number>();
+    visiblePlaces.forEach(p => {
+      if (p.cuisine) cuisineMap.set(p.cuisine, (cuisineMap.get(p.cuisine) ?? 0) + 1);
+    });
+    return [...cuisineMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([c]) => c);
+  }, [visiblePlaces]);
+
   // ── Location ──────────────────────────────────────────────
   const handleLocationChange = useCallback((lat: number, lon: number, label: string) => {
     setUserLocation([lat, lon]);
@@ -468,12 +477,6 @@ export default function HomePage() {
 
               {/* Quick filter chips */}
               {(() => {
-                const cuisineMap = new Map<string, number>();
-                visiblePlaces.forEach(p => {
-                  if (p.cuisine) cuisineMap.set(p.cuisine, (cuisineMap.get(p.cuisine) ?? 0) + 1);
-                });
-                const topCuisines = [...cuisineMap.entries()].sort((a,b) => b[1]-a[1]).slice(0,3).map(([c]) => c);
-
                 type ChipDef = { id: string; label: string; active: boolean; onToggle: () => void };
                 const chips: ChipDef[] = [
                   {
@@ -483,8 +486,8 @@ export default function HomePage() {
                   },
                   {
                     id: "rating4", label: "⭐ 4+",
-                    active: (filters.minRating ?? 0) >= 4,
-                    onToggle: () => setFilters(f => ({ ...f, minRating: (f.minRating ?? 0) >= 4 ? 0 : 4 })),
+                    active: (filters.minRating ?? 0) >= 8,
+                    onToggle: () => setFilters(f => ({ ...f, minRating: (f.minRating ?? 0) >= 8 ? 0 : 8 })),
                   },
                   ...topCuisines.map(c => ({
                     id: `cuisine-${c}`, label: c,
@@ -499,7 +502,7 @@ export default function HomePage() {
                     scrollbarWidth: "none", marginBottom: 4, marginTop: 8,
                   }}>
                     {chips.map(chip => (
-                      <button key={chip.id} onClick={chip.onToggle} style={{
+                      <button key={chip.id} onClick={chip.onToggle} aria-pressed={chip.active} style={{
                         flexShrink: 0, padding: "4px 10px",
                         borderRadius: "var(--r-pill)",
                         fontSize: 11, fontWeight: 600, cursor: "pointer",
