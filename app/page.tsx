@@ -19,6 +19,7 @@ import SuggestionsPanel from "@/components/place/SuggestionsPanel";
 import LanguagePicker from "@/components/ui/LanguagePicker";
 import { useLanguage } from "@/lib/i18n/useLanguage";
 import PlaceList from "@/components/place/PlaceList";
+import PlaceCardSkeleton from "@/components/place/PlaceCardSkeleton";
 import PlaceDetail from "@/components/place/PlaceDetail";
 import StartPanel from "@/components/location/StartPanel";
 import ToastStack from "@/components/ui/ToastStack";
@@ -467,21 +468,9 @@ export default function HomePage() {
             </div>
 
             {/* Skeletons */}
-            {loading && filteredPlaces.length === 0 && (
-              <div style={{ padding:"12px 12px 0", flexShrink:0 }}>
-                {[1,2].map(i=>(
-                  <div key={i} style={{ borderRadius:"var(--r-xl)",overflow:"hidden",marginBottom:12,border:"1px solid var(--ink-10)" }}>
-                    <div className="skeleton" style={{ height:148,width:"100%" }}/>
-                    <div style={{ padding:"14px 16px 0" }}>
-                      <div className="skeleton" style={{ height:16,width:"65%",borderRadius:6,marginBottom:8 }}/>
-                      <div className="skeleton" style={{ height:10,width:"40%",borderRadius:5 }}/>
-                    </div>
-                    <div style={{ padding:"10px 16px 14px",marginTop:12,borderTop:"1px solid var(--ink-10)",display:"flex",justifyContent:"space-between" }}>
-                      <div className="skeleton" style={{ height:10,width:40,borderRadius:5 }}/>
-                      <div className="skeleton" style={{ width:30,height:30,borderRadius:"var(--r-sm)" }}/>
-                    </div>
-                  </div>
-                ))}
+            {loading && places.length === 0 && (
+              <div style={{ padding: "0 8px" }}>
+                {[1,2,3,4].map(i => <PlaceCardSkeleton key={i} />)}
               </div>
             )}
 
