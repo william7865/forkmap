@@ -3,7 +3,7 @@
 // Modal to log / edit a restaurant visit
 // ============================================================
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { getSupabaseBrowserClient } from "@/lib/hooks/useAuth";
 import type { PlaceCard } from "@/types";
 import { friendlyError } from "@/lib/api-errors";
@@ -46,8 +46,25 @@ const IcoStar  = ({ filled }: { filled: boolean }) => (
 const IcoCheck = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
 const IcoTrash = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>;
 
+function useSwipeDismiss(onClose: () => void) {
+  const startY = React.useRef<number | null>(null);
+  return {
+    onTouchStart: (e: React.TouchEvent) => {
+      startY.current = e.touches[0].clientY;
+    },
+    onTouchMove: (e: React.TouchEvent) => {
+      if (startY.current === null) return;
+      if (e.touches[0].clientY - startY.current > 80) {
+        startY.current = null;
+        onClose();
+      }
+    },
+  };
+}
+
 export default function VisitModal({ place, existingVisit, onClose, onSaved }: Props) {
   const isEdit = !!existingVisit;
+  const swipeProps = useSwipeDismiss(onClose);
 
   const [date,    setDate]    = useState(existingVisit?.visited_at ?? new Date().toISOString().slice(0,10));
   const [amount,  setAmount]  = useState(existingVisit?.amount_spent?.toString() ?? "");
@@ -131,7 +148,7 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
         fontFamily:"var(--font-body)",
       }}>
         {/* Handle */}
-        <div style={{ width:36,height:4,borderRadius:2,background:"var(--bone)",margin:"8px auto 16px" }}/>
+        <div {...swipeProps} style={{ width:36,height:4,borderRadius:2,background:"var(--bone)",margin:"8px auto 16px" }}/>
 
         {/* Header */}
         <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:20 }}>

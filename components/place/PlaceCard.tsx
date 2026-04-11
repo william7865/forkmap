@@ -352,6 +352,7 @@ const PlaceCard = memo(function PlaceCard({
               fontFamily:"var(--font-body)",
               transition:"all 120ms ease",
               animation:"fadeIn 120ms ease both",
+              minWidth: 44, minHeight: 44,
             }}
             onMouseEnter={e=>{ e.currentTarget.style.background="var(--sky-pale)"; e.currentTarget.style.borderColor="rgba(36,89,168,0.3)"; e.currentTarget.style.color="var(--sky)"; }}
             onMouseLeave={e=>{ e.currentTarget.style.background="var(--off-white)"; e.currentTarget.style.borderColor="var(--ink-10)"; e.currentTarget.style.color="var(--ink-40)"; }}
@@ -367,6 +368,7 @@ const PlaceCard = memo(function PlaceCard({
           aria-label={isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
           style={{
             width: 30, height: 30,
+            minWidth: 44, minHeight: 44,
             borderRadius: "var(--r-sm)",
             border: `1px solid ${isFav ? "rgba(45,122,85,0.30)" : "var(--ink-10)"}`,
             background: isFav ? "var(--forest-pale)" : "var(--off-white)",
