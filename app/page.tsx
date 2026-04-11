@@ -7,7 +7,6 @@
 
 import { useState, useCallback, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import type { PlaceCard, FilterState } from "@/types";
 import { useRestaurants } from "@/lib/hooks/useRestaurants";
 import { useRouteCache, type TransportMode } from "@/lib/hooks/useRouteCache";
@@ -23,7 +22,6 @@ import PlaceList from "@/components/place/PlaceList";
 import PlaceDetail from "@/components/place/PlaceDetail";
 import StartPanel from "@/components/location/StartPanel";
 import ToastStack from "@/components/ui/ToastStack";
-import AuthButton from "@/components/ui/AuthButton";
 import AuthModal from "@/components/ui/AuthModal";
 import BottomSheet from "@/components/ui/BottomSheet";
 import { ErrorBoundary } from "@/components/states/ErrorBoundary";
@@ -307,22 +305,6 @@ export default function HomePage() {
         zIndex:1000, position:"relative",
       }}>
 
-        {/* Logo */}
-        <Link href="/" style={{ display:"flex",alignItems:"center",gap:9,textDecoration:"none",flexShrink:0 }}>
-          <div style={{ width:30,height:30,borderRadius:8,background:"var(--ink)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M9 4v8c0 2.5 1 4 3 4.5V21M15 4v5c0 1-.7 1.5-1.5 1.5S12 10 12 9V4M15 9.5c0 2 1.5 3 3 3V21"
-                stroke="white" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </div>
-          <span style={{ fontFamily:"var(--font-display)",fontWeight:400,fontSize:20,letterSpacing:"-0.04em",color:"var(--ink)",lineHeight:1 }}>
-            fork<em style={{ fontStyle:"italic",color:"var(--forest-mid)" }}>map</em>
-          </span>
-        </Link>
-
-        {/* Séparateur */}
-        <div style={{ width:1,height:22,background:"var(--ink-10)",flexShrink:0,margin:"0 2px" }}/>
-
         {/* Search — filtre résultats visibles */}
         <div style={{ flex:1, maxWidth:420, position:"relative" }}>
           <span style={{ position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",color:"var(--ink-40)",pointerEvents:"none",display:"flex" }}>
@@ -400,7 +382,6 @@ export default function HomePage() {
           {tr("favorites")}
         </a>
 
-        <AuthButton auth={auth} onOpenModal={() => setShowAuthModal(true)} />
         <LanguagePicker />
 
         <EnrichBar active={enriching} />
