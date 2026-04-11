@@ -215,6 +215,9 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
   const [editingVisit, setEditingVisit] = useState<{ visit: VisitRow; place: PlaceCard } | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [activeTab, setActiveTab] = useState<"stats" | "visites">("stats");
+  const [visitSort, setVisitSort] = useState<"date" | "rating" | "amount">("date");
+  const [visitSearch, setVisitSearch] = useState("");
 
   const fetchVisits = async () => {
     const h = await getAuthHeaders();
@@ -247,8 +250,6 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
 
   const MOOD_EMOJIS: Record<string, string> = { solo: "🧍", couple: "👫", friends: "👯", family: "👨‍👩‍👧", work: "💼" };
 
-  const [activeTab, setActiveTab] = useState<"stats" | "visites">("stats");
-
   const totalVisites = visits.length;
   const avgSpend = visits.filter(v => v.amount_spent).length > 0
     ? Math.round(visits.filter(v => v.amount_spent).reduce((s, v) => s + (v.amount_spent ?? 0), 0) / visits.filter(v => v.amount_spent).length)
@@ -258,9 +259,6 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
     visits.forEach(v => freq.set(v.name, (freq.get(v.name) ?? 0) + 1));
     return [...freq.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
   })();
-
-  const [visitSort, setVisitSort] = useState<"date" | "rating" | "amount">("date");
-  const [visitSearch, setVisitSearch] = useState("");
 
   const sortedVisits = [...visits]
     .filter(v => !visitSearch || v.name.toLowerCase().includes(visitSearch.toLowerCase()))
