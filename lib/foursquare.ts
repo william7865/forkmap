@@ -37,6 +37,7 @@ async function fsqGet<T>(path: string, params: Record<string, string> = {}): Pro
 
   const res = await fetch(url.toString(), {
     headers: fsqHeaders(),
+    signal: AbortSignal.timeout(10_000),
     next: { revalidate: 3600 }, // Next.js fetch cache 1h
   });
 

@@ -35,6 +35,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ vi
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ visitId: string }> }) {
+  try {
+    const limited = rateLimit(req, { limit: 30, windowMs: 60_000 });
+    if (limited) return limited;
+  } catch {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
   const auth = await requireUser(req);
   if (auth.error) return auth.error;
   try {

@@ -220,6 +220,7 @@ export default function PlaceDetail({
 
   return (
     <div
+      role="dialog" aria-modal="true" aria-labelledby="place-detail-title"
       className="anim-slide-up"
       style={{
         width:"100%", height:"100%",
@@ -242,13 +243,14 @@ export default function PlaceDetail({
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:10, marginBottom:10 }}>
           <div style={{ flex:1, minWidth:0 }}>
             {/* Name — Fraunces display brandbook */}
-            <h2 style={{ margin:"0 0 4px", fontFamily:"var(--font-display)", fontSize:22, fontWeight:400, letterSpacing:"-0.03em", lineHeight:1.15, color:"var(--ink)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+            <h2 id="place-detail-title" style={{ margin:"0 0 4px", fontFamily:"var(--font-display)", fontSize:22, fontWeight:400, letterSpacing:"-0.03em", lineHeight:1.15, color:"var(--ink)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
               {place.name}
             </h2>
             {cuisine && (
               onCuisineFilter ? (
                 <button
                   onClick={() => onCuisineFilter(cuisine)}
+                  aria-label={`Filtrer par cuisine : ${cuisine}`}
                   style={{
                     cursor: "pointer", background: "none",
                     border: "1px solid var(--ink-10)",
@@ -339,7 +341,7 @@ export default function PlaceDetail({
               <HeartButton isFavorite={!!place.is_favorite} size={16} onClick={() => onToggleFavorite(place)} />
             </div>
             {/* Close */}
-            <button onClick={onClose} aria-label="Close" style={{ width:34,height:34,minWidth:44,minHeight:44,borderRadius:"var(--r-sm)",border:"1px solid var(--ink-10)",background:"var(--off-white)",color:"var(--ink-60)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"background 150ms ease" }}>
+            <button onClick={onClose} aria-label="Fermer" style={{ width:34,height:34,minWidth:44,minHeight:44,borderRadius:"var(--r-sm)",border:"1px solid var(--ink-10)",background:"var(--off-white)",color:"var(--ink-60)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"background 150ms ease" }}>
               <IcoX />
             </button>
           </div>
@@ -441,7 +443,10 @@ export default function PlaceDetail({
               {/* Transport mode tabs */}
               <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", background:"rgba(28,25,23,0.03)" }}>
                 {MODES.map(m => (
-                  <button key={m.id} onClick={() => onTransportChange?.(m.id)} style={{
+                  <button key={m.id} onClick={() => onTransportChange?.(m.id)}
+                    aria-pressed={routeMode===m.id}
+                    aria-label={m.label}
+                    style={{
                     padding:"11px 4px 9px",
                     border:"none", cursor:"pointer",
                     background: routeMode===m.id ? "var(--white)" : "transparent",
@@ -451,7 +456,7 @@ export default function PlaceDetail({
                     transition:"all 120ms ease",
                     fontFamily:"inherit",
                   }}>
-                    {m.icon}
+                    <span aria-hidden="true">{m.icon}</span>
                     <span style={{ fontSize:9.5, fontWeight:700, letterSpacing:"0.05em", textTransform:"uppercase" }}>{m.label}</span>
                   </button>
                 ))}
@@ -572,10 +577,10 @@ export default function PlaceDetail({
             <div style={{ display:"flex",flexWrap:"wrap",gap:6 }}>
               {pills.map(p => (
                 <span key={p.label} style={{ display:"inline-flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:"var(--r-pill)",fontSize:11,fontWeight:600,background:p.bg,color:p.color,border:"none" }}>
-                  <span>{p.emoji}</span> {p.label}
+                  <span aria-hidden="true">{p.emoji}</span> {p.label}
                 </span>
               ))}
-              {e.capacity && <span style={{ display:"inline-flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:"var(--r-pill)",fontSize:11,fontWeight:600,background:"var(--cream)",color:"var(--ink-60)" }}>🪑 {e.capacity} couverts</span>}
+              {e.capacity && <span style={{ display:"inline-flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:"var(--r-pill)",fontSize:11,fontWeight:600,background:"var(--cream)",color:"var(--ink-60)" }}><span aria-hidden="true">🪑</span> {e.capacity} couverts</span>}
             </div>
           );
         })()}

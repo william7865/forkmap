@@ -66,7 +66,7 @@ export default function NavRail() {
       {NAV.map(item => {
         const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href + "/"));
         return (
-          <Link key={item.href} href={item.href} title={item.label} style={{ textDecoration: "none", marginBottom: 4 }}>
+          <Link key={item.href} href={item.href} title={item.label} aria-current={active ? "page" : undefined} style={{ textDecoration: "none", marginBottom: 4 }}>
             <div style={{
               width: 36, height: 36, borderRadius: 9,
               background: active ? "var(--forest-pale)" : "transparent",
@@ -76,7 +76,7 @@ export default function NavRail() {
               transition: "background 120ms",
             }}>
               <span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1 }}>{item.icon}</span>
-              {active && <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.04em", color: "var(--forest-mid)", fontFamily: "var(--font-body)" }}>{item.label}</span>}
+              {active && <span aria-hidden="true" style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.04em", color: "var(--forest-mid)", fontFamily: "var(--font-body)" }}>{item.label}</span>}
             </div>
           </Link>
         );
@@ -86,7 +86,7 @@ export default function NavRail() {
       <div style={{ flex: 1 }} />
 
       {/* Settings item */}
-      <Link href="/settings" title="Paramètres" style={{ textDecoration: "none", marginBottom: 8 }}>
+      <Link href="/settings" title="Paramètres" aria-current={pathname === "/settings" ? "page" : undefined} style={{ textDecoration: "none", marginBottom: 8 }}>
         <div style={{
           width: 36, height: 36, borderRadius: 9,
           background: pathname === "/settings" ? "var(--forest-pale)" : "transparent",
@@ -96,7 +96,7 @@ export default function NavRail() {
         }}>
           <span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1 }}>⚙️</span>
           {pathname === "/settings" && (
-            <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.04em", color: "var(--forest-mid)", fontFamily: "var(--font-body)" }}>Réglages</span>
+            <span aria-hidden="true" style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.04em", color: "var(--forest-mid)", fontFamily: "var(--font-body)" }}>Réglages</span>
           )}
         </div>
       </Link>
@@ -104,7 +104,7 @@ export default function NavRail() {
       {/* Avatar / popover */}
       <div ref={avatarRef} style={{ position: "relative" }}>
         <button aria-label="Mon compte" aria-expanded={popover} onClick={() => setPopover(v => !v)} style={{
-          width: 30, height: 30, borderRadius: "50%",
+          width: 30, height: 30, minWidth: 44, minHeight: 44, borderRadius: "50%",
           background: auth.user ? "var(--forest-mid)" : "var(--ink-20)",
           border: "none", cursor: "pointer",
           color: "white", fontSize: 11, fontWeight: 700,

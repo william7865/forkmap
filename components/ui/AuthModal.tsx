@@ -72,7 +72,7 @@ function Divider() {
   return (
     <div style={{ display:"flex",alignItems:"center",gap:10,margin:"4px 0" }}>
       <div style={{ flex:1,height:1,background:"var(--b2)" }}/>
-      <span style={{ fontSize:11,fontWeight:600,color:"var(--ink-60)",letterSpacing:"0.04em" }}>OR</span>
+      <span style={{ fontSize:11,fontWeight:600,color:"var(--ink-60)",letterSpacing:"0.04em" }}>OU</span>
       <div style={{ flex:1,height:1,background:"var(--b2)" }}/>
     </div>
   );
@@ -105,7 +105,7 @@ export default function AuthModal({ onClose, auth, onSuccess, onError }: Props) 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setFieldErr(null);
-    if (!email.trim()) { setFieldErr("Please enter your email address."); return; }
+    if (!email.trim()) { setFieldErr("Veuillez saisir votre adresse e-mail."); return; }
     setBusy(true);
     const err = await auth.resetPassword(email);
     setBusy(false);
@@ -119,8 +119,8 @@ export default function AuthModal({ onClose, auth, onSuccess, onError }: Props) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFieldErr(null);
-    if (!email.trim() || !password.trim()) { setFieldErr("Email and password are required."); return; }
-    if (password.length < 6) { setFieldErr("Password must be at least 6 characters."); return; }
+    if (!email.trim() || !password.trim()) { setFieldErr("L'adresse e-mail et le mot de passe sont requis."); return; }
+    if (password.length < 6) { setFieldErr("Le mot de passe doit contenir au moins 6 caractères."); return; }
 
     setBusy(true);
     let err: string | null = null;
@@ -130,7 +130,7 @@ export default function AuthModal({ onClose, auth, onSuccess, onError }: Props) 
     } else {
       err = await auth.signUpWithEmail(email, password, name);
       if (!err) {
-        onSuccess?.("Account created! Check your email to confirm.");
+        onSuccess?.("Compte créé ! Vérifiez votre e-mail pour confirmer.");
         onClose();
         setBusy(false);
         return;
@@ -141,7 +141,7 @@ export default function AuthModal({ onClose, auth, onSuccess, onError }: Props) 
       setFieldErr(err);
       onError?.(err);
     } else {
-      onSuccess?.(mode === "signin" ? "Welcome back!" : "Account created!");
+      onSuccess?.(mode === "signin" ? "Bienvenue !" : "Compte créé !");
       onClose();
     }
     setBusy(false);
@@ -183,14 +183,14 @@ export default function AuthModal({ onClose, auth, onSuccess, onError }: Props) 
         <div style={{ padding: "20px 24px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 20, fontWeight: 300, fontFamily: "var(--font-display)", letterSpacing: "-0.04em", color: "var(--ink)" }}>
-              {mode === "signin" ? "Welcome back" : mode === "signup" ? "Create account" : "Reset password"}
+              {mode === "signin" ? "Bienvenue" : mode === "signup" ? "Créer un compte" : "Réinitialiser le mot de passe"}
             </h2>
             <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--ink-60)" }}>
               {mode === "signin"
-                ? "Sign in to sync your favourites"
+                ? "Connectez-vous pour synchroniser vos favoris"
                 : mode === "signup"
-                ? "Save your favourite spots forever"
-                : "We'll send you a reset link"}
+                ? "Sauvegardez vos adresses préférées"
+                : "Nous vous enverrons un lien de réinitialisation"}
             </p>
           </div>
           <button onClick={onClose} aria-label="Close" style={{ background:"none",border:"none",cursor:"pointer",color:"var(--ink-60)",padding:4,display:"flex",marginTop:2 }}>
@@ -207,15 +207,15 @@ export default function AuthModal({ onClose, auth, onSuccess, onError }: Props) 
               {resetSent ? (
                 <div style={{ padding: "20px 16px", borderRadius: 12, background: "rgba(27,127,79,0.06)", border: "1px solid rgba(27,127,79,0.18)", textAlign: "center" }}>
                   <div style={{ fontSize: 28, marginBottom: 8 }}>📬</div>
-                  <p style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#1b7f4f" }}>Check your inbox</p>
+                  <p style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#1b7f4f" }}>Vérifiez votre boîte mail</p>
                   <p style={{ margin: 0, fontSize: 12, color: "var(--ink-60)", lineHeight: 1.6 }}>
-                    We sent a reset link to <strong>{email}</strong>.<br/>
-                    It may take a minute to arrive.
+                    Nous avons envoyé un lien à <strong>{email}</strong>.<br/>
+                    Cela peut prendre une minute.
                   </p>
                 </div>
               ) : (
                 <>
-                  <InputRow icon={<IcoMail />} type="email" placeholder="Email address" value={email} onChange={setEmail} />
+                  <InputRow icon={<IcoMail />} type="email" placeholder="Adresse e-mail" value={email} onChange={setEmail} />
                   {fieldErr && (
                     <p style={{ margin: 0, fontSize: 12, color: "var(--coral)", fontWeight: 600, padding: "6px 10px", background: "var(--coral-pale)", borderRadius: "var(--r-sm)", border: "1px solid rgba(197,48,48,0.2)" }}>
                       {fieldErr}
@@ -224,7 +224,7 @@ export default function AuthModal({ onClose, auth, onSuccess, onError }: Props) 
                   <button type="submit" className="btn-primary" disabled={busy} style={{ marginTop: 4 }}>
                     {busy
                       ? <span style={{ width:14,height:14,border:"2px solid rgba(255,255,255,0.4)",borderTop:"2px solid white",borderRadius:"50%",animation:"spin 0.7s linear infinite",display:"inline-block" }}/>
-                      : "Send reset link"
+                      : "Envoyer le lien"
                     }
                   </button>
                 </>
@@ -232,7 +232,7 @@ export default function AuthModal({ onClose, auth, onSuccess, onError }: Props) 
               <p style={{ margin: 0, textAlign: "center", fontSize: 12, color: "var(--ink-60)" }}>
                 <button type="button" onClick={() => switchMode("signin")}
                   style={{ background:"none",border:"none",cursor:"pointer",color:"var(--forest-mid)",fontWeight:700,fontSize:"inherit",padding:0 }}>
-                  ← Back to sign in
+                  ← Retour à la connexion
                 </button>
               </p>
             </>
@@ -244,22 +244,22 @@ export default function AuthModal({ onClose, auth, onSuccess, onError }: Props) 
               {/* Google */}
               <button type="button" className="btn-secondary" onClick={handleGoogle} disabled={busy}>
                 <IcoGoogle />
-                Continue with Google
+                Continuer avec Google
               </button>
 
               <Divider />
 
               {/* Name (signup only) */}
               {mode === "signup" && (
-                <InputRow icon={<IcoUser />} type="text" placeholder="Full name (optional)" value={name} onChange={setName} />
+                <InputRow icon={<IcoUser />} type="text" placeholder="Nom complet (optionnel)" value={name} onChange={setName} />
               )}
 
-              <InputRow icon={<IcoMail />} type="email" placeholder="Email address" value={email} onChange={setEmail} />
+              <InputRow icon={<IcoMail />} type="email" placeholder="Adresse e-mail" value={email} onChange={setEmail} />
 
               <InputRow
                 icon={<IcoLock />}
                 type={showPw ? "text" : "password"}
-                placeholder="Password"
+                placeholder="Mot de passe"
                 value={password}
                 onChange={setPassword}
                 right={
@@ -274,7 +274,7 @@ export default function AuthModal({ onClose, auth, onSuccess, onError }: Props) 
                 <div style={{ textAlign: "right", marginTop: -4 }}>
                   <button type="button" onClick={() => switchMode("forgot")}
                     style={{ background:"none",border:"none",cursor:"pointer",color:"var(--ink-60)",fontWeight:600,fontSize:11,padding:0 }}>
-                    Forgot password?
+                    Mot de passe oublié ?
                   </button>
                 </div>
               )}
@@ -290,16 +290,16 @@ export default function AuthModal({ onClose, auth, onSuccess, onError }: Props) 
               <button type="submit" className="btn-primary" disabled={busy} style={{ marginTop: 4 }}>
                 {busy
                   ? <span style={{ width:14,height:14,border:"2px solid rgba(255,255,255,0.4)",borderTop:"2px solid white",borderRadius:"50%",animation:"spin 0.7s linear infinite",display:"inline-block" }}/>
-                  : mode === "signin" ? "Sign in" : "Create account"
+                  : mode === "signin" ? "Se connecter" : "Créer un compte"
                 }
               </button>
 
               {/* Switch mode */}
               <p style={{ margin: 0, textAlign: "center", fontSize: 12, color: "var(--ink-60)" }}>
-                {mode === "signin" ? "No account yet? " : "Already have an account? "}
+                {mode === "signin" ? "Pas encore de compte ? " : "Déjà un compte ? "}
                 <button type="button" onClick={() => switchMode(mode === "signin" ? "signup" : "signin")}
                   style={{ background:"none",border:"none",cursor:"pointer",color:"var(--forest-mid)",fontWeight:700,fontSize:"inherit",padding:0 }}>
-                  {mode === "signin" ? "Create one" : "Sign in"}
+                  {mode === "signin" ? "S'inscrire" : "Se connecter"}
                 </button>
               </p>
             </>

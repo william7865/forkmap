@@ -3,7 +3,7 @@
 // Modal to log / edit a restaurant visit
 // ============================================================
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { getSupabaseBrowserClient } from "@/lib/hooks/useAuth";
 import type { PlaceCard } from "@/types";
 import { friendlyError } from "@/lib/api-errors";
@@ -65,6 +65,39 @@ function useSwipeDismiss(onClose: () => void) {
 export default function VisitModal({ place, existingVisit, onClose, onSaved }: Props) {
   const isEdit = !!existingVisit;
   const swipeProps = useSwipeDismiss(onClose);
+  const firstFocusRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Escape key handler
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  // Focus first focusable element on open
+  useEffect(() => { firstFocusRef.current?.focus(); }, []);
+
+  // Focus trap
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const focusable = panel.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const first = focusable[0];
+      const last  = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last?.focus(); }
+      } else {
+        if (document.activeElement === last)  { e.preventDefault(); first?.focus(); }
+      }
+    };
+    panel.addEventListener("keydown", handler);
+    return () => panel.removeEventListener("keydown", handler);
+  }, []);
 
   const [date,    setDate]    = useState(existingVisit?.visited_at ?? new Date().toISOString().slice(0,10));
   const [amount,  setAmount]  = useState(existingVisit?.amount_spent?.toString() ?? "");
@@ -139,7 +172,10 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
     <div style={{ position:"fixed",inset:0,zIndex:9200,display:"flex",alignItems:"flex-end",justifyContent:"center" }} onClick={onClose}>
       <div style={{ position:"absolute",inset:0,background:"rgba(14,14,13,0.5)",backdropFilter:"blur(8px)" }}/>
 
-      <div onClick={e=>e.stopPropagation()} style={{
+      <div
+        ref={panelRef}
+        role="dialog" aria-modal="true" aria-labelledby="visit-modal-title"
+        onClick={e=>e.stopPropagation()} style={{
         position:"relative",background:"var(--white)",
         borderRadius:"24px 24px 0 0", width:"100%", maxWidth:520,
         padding:"8px 20px 40px", maxHeight:"92vh", overflowY:"auto",
@@ -153,7 +189,7 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
         {/* Header */}
         <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:20 }}>
           <div style={{ flex:1,minWidth:0 }}>
-            <p style={{ margin:"0 0 2px",fontFamily:"var(--font-display)",fontSize:16,fontWeight:400,letterSpacing:"-0.02em",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
+            <p id="visit-modal-title" style={{ margin:"0 0 2px",fontFamily:"var(--font-display)",fontSize:16,fontWeight:400,letterSpacing:"-0.02em",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
               {isEdit ? "Modifier la visite" : "Logger une visite"}
             </p>
             <p style={{ margin:0,fontSize:11,color:"var(--ink-40)",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
@@ -161,7 +197,7 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
               {place.cuisine && <span style={{ marginLeft:6,color:"var(--forest-mid)" }}>{place.cuisine}</span>}
             </p>
           </div>
-          <button onClick={onClose} style={{ width:30,height:30,borderRadius:"50%",border:"1px solid var(--ink-10)",background:"var(--off-white)",color:"var(--ink-60)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+          <button ref={firstFocusRef} onClick={onClose} aria-label="Fermer" style={{ width:30,height:30,borderRadius:"50%",border:"1px solid var(--ink-10)",background:"var(--off-white)",color:"var(--ink-60)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
             <IcoX />
           </button>
         </div>
@@ -170,17 +206,17 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
 
           {/* Date */}
           <div>
-            <label style={labelStyle}>📅 Date de la visite</label>
-            <input type="date" value={date} onChange={e=>setDate(e.target.value)} max={new Date().toISOString().slice(0,10)}
+            <label htmlFor="visit-date" style={labelStyle}><span aria-hidden="true">📅</span> Date de la visite</label>
+            <input id="visit-date" type="date" value={date} onChange={e=>setDate(e.target.value)} max={new Date().toISOString().slice(0,10)}
               style={inputStyle} />
           </div>
 
           {/* Dépense + personnes */}
           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
             <div>
-              <label style={labelStyle}>💶 Montant total (€)</label>
+              <label htmlFor="visit-amount" style={labelStyle}><span aria-hidden="true">💶</span> Montant total (€)</label>
               <div style={{ position:"relative" }}>
-                <input type="number" value={amount} onChange={e=>setAmount(e.target.value)}
+                <input id="visit-amount" type="number" value={amount} onChange={e=>setAmount(e.target.value)}
                   placeholder="0.00" min="0" max="9999" step="0.01"
                   style={{ ...inputStyle, paddingRight:28 }} />
                 <span style={{ position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"var(--ink-40)",pointerEvents:"none" }}>€</span>
@@ -188,18 +224,18 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
               {perPerson && <p style={{ margin:"4px 0 0",fontSize:10,color:"var(--forest-mid)",fontWeight:600 }}>≈ {perPerson} €/pers.</p>}
             </div>
             <div>
-              <label style={labelStyle}>👥 Nombre de personnes</label>
-              <div style={{ display:"flex",alignItems:"center",gap:8 }}>
-                <button onClick={()=>setPeople(p=>Math.max(1,p-1))} style={counterBtn}>−</button>
+              <label htmlFor="visit-people" style={labelStyle}><span aria-hidden="true">👥</span> Nombre de personnes</label>
+              <div id="visit-people" style={{ display:"flex",alignItems:"center",gap:8 }}>
+                <button aria-label="Diminuer le nombre de personnes" onClick={()=>setPeople(p=>Math.max(1,p-1))} style={counterBtn}>−</button>
                 <span style={{ fontSize:16,fontWeight:600,color:"var(--ink)",minWidth:24,textAlign:"center" }}>{people}</span>
-                <button onClick={()=>setPeople(p=>Math.min(50,p+1))} style={counterBtn}>+</button>
+                <button aria-label="Augmenter le nombre de personnes" onClick={()=>setPeople(p=>Math.min(50,p+1))} style={counterBtn}>+</button>
               </div>
             </div>
           </div>
 
           {/* Rating personnel */}
           <div>
-            <label style={labelStyle}>⭐ Ma note personnelle</label>
+            <label id="visit-rating-label" style={labelStyle}><span aria-hidden="true">⭐</span> Ma note personnelle</label>
             <div style={{ display:"flex",gap:6 }}>
               {[1,2,3,4,5].map(s=>(
                 <button key={s}
@@ -217,10 +253,11 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
 
           {/* Mood */}
           <div>
-            <label style={labelStyle}>🎭 Contexte</label>
-            <div style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
+            <label htmlFor="visit-mood" style={labelStyle}><span aria-hidden="true">🎭</span> Contexte</label>
+            <div id="visit-mood" style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
               {MOODS.map(m=>(
                 <button key={m.id} onClick={()=>setMood(v=>v===m.id?"":m.id)}
+                  aria-pressed={mood===m.id}
                   style={{
                     padding:"6px 12px",borderRadius:"var(--r-pill)",
                     fontSize:12,fontWeight:600,cursor:"pointer",
@@ -230,7 +267,7 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
                     fontFamily:"inherit",transition:"all 120ms",
                     display:"flex",alignItems:"center",gap:5,
                   }}>
-                  {m.emoji} {m.label}
+                  <span aria-hidden="true">{m.emoji}</span> {m.label}
                 </button>
               ))}
             </div>
@@ -238,8 +275,8 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
 
           {/* Note */}
           <div>
-            <label style={labelStyle}>📝 Note (optionnel)</label>
-            <textarea value={note} onChange={e=>setNote(e.target.value.slice(0,500))}
+            <label htmlFor="visit-note" style={labelStyle}><span aria-hidden="true">📝</span> Note (optionnel)</label>
+            <textarea id="visit-note" value={note} onChange={e=>setNote(e.target.value.slice(0,500))}
               rows={3} placeholder="Ce que j'ai mangé, l'ambiance, si je recommande…"
               style={{ ...inputStyle, resize:"none", lineHeight:1.6 }}
               onFocus={e=>{e.target.style.borderColor="var(--forest-mid)";e.target.style.boxShadow="var(--s-focus)";}}
@@ -248,12 +285,12 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
             <p style={{ margin:"3px 0 0",fontSize:10,color:"var(--ink-40)",textAlign:"right" }}>{note.length}/500</p>
           </div>
 
-          {error && <p style={{ margin:0,fontSize:12,color:"var(--coral)",fontWeight:600 }}>{error}</p>}
+          {error && <p role="alert" style={{ margin:0,fontSize:12,color:"var(--coral)",fontWeight:600 }}>{error}</p>}
 
           {/* Actions */}
           <div style={{ display:"flex",gap:8,paddingTop:4 }}>
             {isEdit && (
-              <button onClick={handleDelete} style={{ width:40,height:40,borderRadius:"var(--r-md)",border:"1px solid rgba(217,79,61,0.25)",background:"var(--coral-pale)",color:"var(--coral)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+              <button onClick={handleDelete} aria-label="Supprimer cette visite" style={{ width:40,height:40,borderRadius:"var(--r-md)",border:"1px solid rgba(217,79,61,0.25)",background:"var(--coral-pale)",color:"var(--coral)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
                 <IcoTrash />
               </button>
             )}
