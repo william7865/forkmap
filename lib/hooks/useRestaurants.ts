@@ -238,7 +238,6 @@ export function useRestaurants() {
       }
     }
   // favoriteIdsRef is a ref — stable reference, not a dep.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Client-side filter ─────────────────────────────────────

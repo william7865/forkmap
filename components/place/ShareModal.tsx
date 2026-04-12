@@ -141,10 +141,6 @@ export default function ShareModal({ place, onClose }: Props) {
   const rating  = place.fsq?.rating;
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}&query_place_id=${place.lat},${place.lon}`;
 
-  // Génère une URL de partage Forkmap (deep-link)
-  const shareUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/?select=${encodeURIComponent(place.osm_id)}&lat=${place.lat}&lon=${place.lon}&name=${encodeURIComponent(place.name)}`
-    : `https://forkmap.app/?select=${encodeURIComponent(place.osm_id)}&lat=${place.lat}&lon=${place.lon}`;
 
   const shareText = rating
     ? `🍴 ${place.name}${cuisine ? ` · ${cuisine}` : ""} — noté ${rating.toFixed(1)}/10 sur Forkmap`

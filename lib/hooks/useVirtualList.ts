@@ -5,7 +5,7 @@
 // ============================================================
 "use client";
 
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 
 interface UseVirtualListOptions {
   itemHeight: number;   // fixed row height in px
