@@ -7,8 +7,8 @@
 "use client";
 
 import {
-  useState, useRef, useCallback, useEffect,
-  type ReactNode, type CSSProperties,
+  useState, useRef, useCallback,
+  type ReactNode,
 } from "react";
 
 type SnapPoint = "peek" | "half" | "full";
@@ -24,18 +24,6 @@ interface Props {
   /** Called when snap changes */
   onSnapChange?: (snap: SnapPoint) => void;
 }
-
-const SNAP_HEIGHTS: Record<SnapPoint, string> = {
-  peek: "72px",
-  half: "52vh",
-  full: "92vh",
-};
-
-const SNAP_PX: Record<SnapPoint, number> = {
-  peek: 72,
-  half: 0, // calculated at runtime
-  full: 0, // calculated at runtime
-};
 
 export default function BottomSheet({
   children,
