@@ -50,7 +50,11 @@ export default function BottomNav() {
               textDecoration: "none", minHeight: 44,
             }}>
               {active && (
-                <div style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--forest-mid)", marginBottom: 2 }} />
+                <div style={{
+                  width: 32, height: 3, borderRadius: "var(--r-pill)",
+                  background: "var(--forest-mid)", marginBottom: 3,
+                  transition: "width 200ms var(--ease-spring)"
+                }} />
               )}
               <span aria-hidden="true" style={{ fontSize: 18, opacity: active ? 1 : 0.55 }}>{tab.icon}</span>
               <span style={{

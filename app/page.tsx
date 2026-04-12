@@ -336,14 +336,14 @@ export default function HomePage() {
       <header style={{
         height:56, flexShrink:0,
         display:"flex", alignItems:"center",
-        padding:"0 20px", gap:10,
+        padding:"0 16px", gap:10,
         background:"var(--white)",
         borderBottom:"1px solid var(--ink-10)",
         zIndex:1000, position:"relative",
       }}>
 
         {/* Search — filtre résultats visibles */}
-        <div style={{ flex:1, maxWidth:420, position:"relative" }}>
+        <div style={{ flex:1, maxWidth:520, position:"relative" }}>
           <span style={{ position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",color:"var(--ink-40)",pointerEvents:"none",display:"flex" }}>
             <IcoSearch />
           </span>
@@ -481,22 +481,6 @@ export default function HomePage() {
             </span>
           )}
         </button>
-
-        {/* Favoris */}
-        <a href="/favorites" style={{
-          display:"flex", alignItems:"center", gap:6,
-          padding:"7px 13px", borderRadius:"var(--r-md)",
-          textDecoration:"none", fontSize:12, fontWeight:500,
-          background:"var(--off-white)", color:"var(--ink-60)",
-          border:"1px solid var(--ink-10)", flexShrink:0,
-          transition:"all 120ms ease",
-        }}
-          onMouseEnter={e=>{ e.currentTarget.style.background="var(--cream)"; e.currentTarget.style.color="var(--ink)"; e.currentTarget.style.borderColor="var(--ink-20)"; }}
-          onMouseLeave={e=>{ e.currentTarget.style.background="var(--off-white)"; e.currentTarget.style.color="var(--ink-60)"; e.currentTarget.style.borderColor="var(--ink-10)"; }}
-        >
-          <IcoBookmark />
-          {tr("favorites")}
-        </a>
 
         <LanguagePicker />
 
