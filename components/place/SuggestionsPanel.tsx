@@ -2,7 +2,6 @@
 "use client";
 import { useMemo, useState } from "react";
 import { useLanguage } from "@/lib/i18n/useLanguage";
-import { getNotes } from "@/components/place/NoteModal";
 import type { PlaceCard, FavoriteRow } from "@/types";
 
 interface Props {
