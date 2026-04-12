@@ -5,6 +5,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
+import Image from "next/image";
 import type { AuthState } from "@/lib/hooks/useAuth";
 
 interface Props {
@@ -99,7 +100,7 @@ function DropdownPanel({ anchorRef, auth, onClose }: PanelProps) {
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
           {avatar
-            ? <img src={avatar} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }}/>
+            ? <Image src={avatar} alt={name} width={36} height={36} style={{ objectFit: "cover" }} />
             : <span style={{ fontSize: 13, fontWeight: 600, color: "white", letterSpacing: "-0.02em" }}>{initials}</span>
           }
         </div>
@@ -224,7 +225,7 @@ export default function AuthButton({ auth, onOpenModal }: Props) {
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
           {avatarUrl
-            ? <img src={avatarUrl} alt={displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }}/>
+            ? <Image src={avatarUrl} alt={displayName} width={26} height={26} style={{ objectFit: "cover" }} />
             : <span style={{ fontSize: 10, fontWeight: 600, color: "white", letterSpacing: "-0.02em" }}>{initials}</span>
           }
         </div>
