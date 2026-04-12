@@ -160,8 +160,9 @@ export function useRestaurants() {
           if (res.ok) {
             const data = await res.json();
             const batchEnriched: PlaceCard[] = data.data ?? batch;
+            const batchMap = new Map(batchEnriched.map(e => [e.osm_id, e]));
             osmEnriched = osmEnriched.map(orig => {
-              const found = batchEnriched.find(e => e.osm_id === orig.osm_id);
+              const found = batchMap.get(orig.osm_id);
               return found ? { ...found, is_favorite: favoriteIdsRef.current.has(orig.osm_id) } : orig;
             });
           }
@@ -196,9 +197,10 @@ export function useRestaurants() {
           });
           const data = await res.json();
           const fsqBatch: PlaceCard[] = data.data ?? batch;
+          const fsqMap = new Map(fsqBatch.map(e => [e.osm_id, e]));
           // Merge FSQ data onto OSM-enriched base
           enriched = enriched.map(orig => {
-            const fsq = fsqBatch.find(e => e.osm_id === orig.osm_id);
+            const fsq = fsqMap.get(orig.osm_id);
             if (!fsq) return orig;
             return {
               ...orig,
@@ -217,8 +219,9 @@ export function useRestaurants() {
         }
 
         if (fetchCount.current !== myFetch) return;
+        const enrichedMap = new Map(enriched.map(e => [e.osm_id, e]));
         const combined = osmPlaces.map(orig => {
-          const found = enriched.find(e => e.osm_id === orig.osm_id);
+          const found = enrichedMap.get(orig.osm_id);
           return found ?? { ...orig, is_favorite: favoriteIdsRef.current.has(orig.osm_id) };
         });
         const scored  = annotateScores(annotateDistances(combined, bbox.centerLat, bbox.centerLon));
