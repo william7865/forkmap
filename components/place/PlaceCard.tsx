@@ -2,6 +2,7 @@
 // Carte verticale : photo/gradient · badges overlay · Fraunces name · footer distance+heart
 "use client";
 import { memo, useState, useCallback, useEffect } from "react";
+import Image from "next/image";
 import { getNote } from "@/components/place/NoteModal";
 import type { PlaceCard as T } from "@/types";
 
@@ -79,7 +80,7 @@ function priceLabel(price?: number): string {
 export const ITEM_HEIGHT = 262;
 
 const PlaceCard = memo(function PlaceCard({
-  place, isSelected, isHovered, index, onHover, onLeave, onClick, onToggleFavorite, onShare
+  place, isSelected, isHovered, index: _index, onHover, onLeave, onClick, onToggleFavorite, onShare
 }: Props) {
   const [pressing, setPressing] = useState(false);
   const [imgError, setImgError] = useState(false);
@@ -190,15 +191,13 @@ const PlaceCard = memo(function PlaceCard({
           transform: isHovered ? "scale(1.04)" : "scale(1)",
         }}>
           {photoUrl && (
-            <img
+            <Image
               src={photoUrl}
               alt={place.name}
+              fill
+              sizes="400px"
+              style={{ objectFit: "cover" }}
               onError={() => setImgError(true)}
-              style={{
-                position: "absolute", inset: 0,
-                width: "100%", height: "100%",
-                objectFit: "cover",
-              }}
             />
           )}
           {/* Watermark fourchette (visible quand pas de photo) */}
