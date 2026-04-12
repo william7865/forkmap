@@ -30,13 +30,13 @@ const stat     = git('git diff HEAD~1 HEAD --stat')
 
 // ── Run checks ───────────────────────────────────────────────────────────────
 
-console.log('Running lint…')
+console.warn('Running lint…')
 const lint = run('npm run lint 2>&1')
 
-console.log('Running type-check…')
+console.warn('Running type-check…')
 const types = run('npm run type-check 2>&1')
 
-console.log('Running npm audit…')
+console.warn('Running npm audit…')
 const audit = run('npm audit --audit-level=info 2>&1')
 
 // ── Parse summaries ──────────────────────────────────────────────────────────
@@ -117,4 +117,4 @@ ${audit.output.slice(0, 4000) || '(none)'}
 
 mkdirSync(outDir, { recursive: true })
 writeFileSync(outFile, report, 'utf8')
-console.log(`Audit written → ${outFile}`)
+console.warn(`Audit written → ${outFile}`)
