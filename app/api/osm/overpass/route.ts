@@ -36,6 +36,11 @@ export async function GET(req: NextRequest): Promise<NextResponse<OverpassApiRes
 
   const { bbox, types } = parsed.data;
   const [minLon, minLat, maxLon, maxLat] = bbox.split(",").map(Number);
+
+  if (minLon >= maxLon || minLat >= maxLat) {
+    return NextResponse.json({ error: "Invalid bbox" }, { status: 400 });
+  }
+
   const spanLon = maxLon - minLon;
   const spanLat = maxLat - minLat;
 
