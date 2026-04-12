@@ -10,6 +10,7 @@ import { getSupabaseBrowserClient } from "@/lib/hooks/useAuth";
 import type { FavoriteRow, PlaceCard } from "@/types";
 import { PageHeader, GlobalFooter } from "@/components/ui/PageLayout";
 import VisitModal from "@/components/place/VisitModal";
+import Image from "next/image";
 
 async function getAuthHeaders(): Promise<Record<string,string>> {
   try {
@@ -242,7 +243,6 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
   useEffect(()=>{
     loadData();
     fetchVisits();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
   if (auth.loading) return <Spinner />;
@@ -301,7 +301,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
           <div style={{ padding:"22px 24px 0",display:"flex",alignItems:"flex-start",gap:16 }}>
             <div style={{ position:"relative",flexShrink:0 }}>
               <div style={{ width:64,height:64,borderRadius:18,overflow:"hidden",background:"var(--forest-mid)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"var(--s2)",transition:"box-shadow 150ms ease" }}>
-                {avatarUrl?<img src={avatarUrl} alt={displayName} style={{ width:"100%",height:"100%",objectFit:"cover" }}/>:<span style={{ fontSize:22,fontWeight:600,color:"white" }}>{initials}</span>}
+                {avatarUrl?<Image src={avatarUrl} alt={displayName} width={64} height={64} style={{ objectFit:"cover" }}/>:<span style={{ fontSize:22,fontWeight:600,color:"white" }}>{initials}</span>}
               </div>
               {isGoogle&&<div style={{ position:"absolute",bottom:-3,right:-3,width:20,height:20,borderRadius:7,background:"white",border:"2px solid white",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 6px rgba(14,14,13,0.12)" }}><IcoGoogle /></div>}
             </div>
