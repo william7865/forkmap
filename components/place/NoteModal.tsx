@@ -1,6 +1,6 @@
 // NoteModal.tsx — Note personnelle sur un restaurant (localStorage)
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import type { PlaceCard } from "@/types";
 
 const STORAGE_KEY = "forkmap_notes_v1";

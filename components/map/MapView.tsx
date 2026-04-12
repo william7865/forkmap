@@ -204,6 +204,7 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
   useEffect(() => {
     if (readyRef.current) return;
     readyRef.current = true;
+    const markers = markersRef.current;
 
     (async () => {
       await loadAsset("link","lf-css",{ rel:"stylesheet", href:"https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" });
@@ -252,7 +253,7 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
       readyRef.current = false;
       if (debounceRef.current) clearTimeout(debounceRef.current);
       mapRef.current?.remove(); mapRef.current = null;
-      markersRef.current.clear();
+      markers.clear();
     };
   }, []);
 
@@ -265,7 +266,6 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
       icon: L.divIcon({ className:"", html:userDotHTML(), iconSize:[18,18], iconAnchor:[9,9] }),
       zIndexOffset:3000,
     }).addTo(map);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLocation]);
 
   // ── Sync restaurant markers ────────────────────────────

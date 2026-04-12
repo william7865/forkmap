@@ -31,6 +31,8 @@ const nextConfig: NextConfig = {
       // Foursquare photos
       { protocol: "https", hostname: "fastly.4sqi.net" },
       { protocol: "https", hostname: "**.4sqi.net" },
+      // Google OAuth avatars
+      { protocol: "https", hostname: "*.googleusercontent.com" },
     ],
   },
   // Ensure Leaflet doesn't break on SSR
