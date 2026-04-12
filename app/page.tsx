@@ -30,39 +30,7 @@ const FiltersPanel  = dynamic(() => import("@/components/filters/FiltersPanel"),
 const ShareModal    = dynamic(() => import("@/components/place/ShareModal"),     { ssr: false });
 const AuthModal     = dynamic(() => import("@/components/ui/AuthModal"),         { ssr: false });
 
-// ── Icons brandbook stroke 1.7 ─────────────────────────────
-const IcoSearch = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-  </svg>
-);
-const IcoX = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-    <path d="M18 6 6 18M6 6l12 12"/>
-  </svg>
-);
-const IcoSliders = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
-    <line x1="4" y1="6" x2="20" y2="6"/>
-    <line x1="8" y1="12" x2="20" y2="12"/>
-    <line x1="4" y1="18" x2="20" y2="18"/>
-  </svg>
-);
-const IcoMapPin = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
-  </svg>
-);
-const IcoChevLeft = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-    <polyline points="15 18 9 12 15 6"/>
-  </svg>
-);
-const IcoChevRight = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-    <polyline points="9 18 15 12 9 6"/>
-  </svg>
-);
+import { IcoSearch, IcoX, IcoSliders, IcoMapPin, IcoChevLeft, IcoChevRight } from "@/components/icons";
 
 // ── Enrichment bar ─────────────────────────────────────────
 function EnrichBar({ active }: { active: boolean }) {
