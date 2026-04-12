@@ -96,9 +96,10 @@ function PhotoGallery({ photos }: { photos: FoursquarePhoto[] }) {
       <div
         ref={galleryRef}
         onScroll={handleGalleryScroll}
+        className="no-scrollbar"
         style={{
           display: "flex", overflowX: "auto", scrollSnapType: "x mandatory",
-          scrollbarWidth: "none", gap: 0,
+          gap: 0,
         }}
       >
         {urls.map((url, i) => (
@@ -142,7 +143,7 @@ function PhotoGallery({ photos }: { photos: FoursquarePhoto[] }) {
 function RatingBar({ rating }:{ rating:number }) {
   const [w, setW] = useState(0);
   useEffect(() => { const t = setTimeout(() => setW((rating/10)*100), 80); return () => clearTimeout(t); }, [rating]);
-  const color = rating>=8?"#1b7f4f":rating>=6?"var(--forest-mid)":"#c53030";
+  const color = rating>=8?"var(--rating-high)":rating>=6?"var(--rating-mid)":"var(--rating-low)";
   return (
     <div style={{ display:"flex", alignItems:"center", gap:10 }}>
       <div style={{ flex:1, height:5, borderRadius:3, background:"rgba(28,25,23,0.07)", overflow:"hidden" }}>
@@ -157,7 +158,7 @@ function RatingBar({ rating }:{ rating:number }) {
 
 function Label({ children }:{ children?: React.ReactNode }) {
   return (
-    <div style={{ fontSize:9.5, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--ink-60)", marginBottom:8 }}>
+    <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:"var(--ink-40)", marginBottom:8 }}>
       {children}
     </div>
   );
@@ -219,6 +220,7 @@ export default function PlaceDetail({
 
   return (
     <div
+      className="anim-slide-up"
       style={{
         width:"100%", height:"100%",
         background:"var(--white)",
@@ -271,12 +273,12 @@ export default function PlaceDetail({
               aria-label="Note personnelle"
               title={note ? "Modifier ma note" : "Ajouter une note"}
               style={{
-                width:34, height:34, borderRadius:"var(--r-sm)",
+                width:34, height:34, minWidth:44, minHeight:44, borderRadius:"var(--r-sm)",
                 border:`1px solid ${note ? "rgba(45,122,85,0.35)" : "var(--ink-10)"}`,
                 background: note ? "var(--forest-pale)" : "var(--off-white)",
                 color: note ? "var(--forest-mid)" : "var(--ink-60)",
                 cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
-                transition:"all 150ms ease", position:"relative",
+                transition:"background 150ms ease", position:"relative",
               }}
               onMouseEnter={e=>{ e.currentTarget.style.background="var(--forest-pale)"; e.currentTarget.style.borderColor="rgba(45,122,85,0.3)"; e.currentTarget.style.color="var(--forest-mid)"; }}
               onMouseLeave={e=>{ e.currentTarget.style.background=note?"var(--forest-pale)":"var(--off-white)"; e.currentTarget.style.borderColor=note?"rgba(45,122,85,0.35)":"var(--ink-10)"; e.currentTarget.style.color=note?"var(--forest-mid)":"var(--ink-60)"; }}
@@ -291,12 +293,12 @@ export default function PlaceDetail({
               aria-label="Logger une visite"
               title="Logger une visite"
               style={{
-                width:34, height:34, borderRadius:"var(--r-sm)",
+                width:34, height:34, minWidth:44, minHeight:44, borderRadius:"var(--r-sm)",
                 border:`1px solid ${visitCount ? "rgba(196,124,43,0.35)" : "var(--ink-10)"}`,
                 background: visitCount ? "var(--amber-pale)" : "var(--off-white)",
                 color: visitCount ? "var(--amber)" : "var(--ink-60)",
                 cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
-                transition:"all 150ms ease", position:"relative",
+                transition:"background 150ms ease", position:"relative",
               }}
               onMouseEnter={e=>{ e.currentTarget.style.background="var(--amber-pale)"; e.currentTarget.style.borderColor="rgba(196,124,43,0.4)"; e.currentTarget.style.color="var(--amber)"; }}
               onMouseLeave={e=>{ e.currentTarget.style.background=visitCount?"var(--amber-pale)":"var(--off-white)"; e.currentTarget.style.borderColor=visitCount?"rgba(196,124,43,0.35)":"var(--ink-10)"; e.currentTarget.style.color=visitCount?"var(--amber)":"var(--ink-60)"; }}
@@ -315,11 +317,11 @@ export default function PlaceDetail({
               aria-label="Partager ce restaurant"
               title="Partager"
               style={{
-                width:34, height:34, borderRadius:"var(--r-sm)",
+                width:34, height:34, minWidth:44, minHeight:44, borderRadius:"var(--r-sm)",
                 border:"1px solid var(--ink-10)",
                 background:"var(--off-white)", color:"var(--ink-60)",
                 cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
-                transition:"all 150ms ease",
+                transition:"background 150ms ease",
               }}
               onMouseEnter={e=>{ e.currentTarget.style.background="var(--sky-pale)"; e.currentTarget.style.borderColor="rgba(36,89,168,0.3)"; e.currentTarget.style.color="var(--sky)"; }}
               onMouseLeave={e=>{ e.currentTarget.style.background="var(--off-white)"; e.currentTarget.style.borderColor="var(--ink-10)"; e.currentTarget.style.color="var(--ink-60)"; }}
@@ -328,16 +330,16 @@ export default function PlaceDetail({
             </button>
             {/* Favourite — brandbook .rch style */}
             <div style={{
-              width:34, height:34, borderRadius:"var(--r-sm)",
+              width:34, height:34, minWidth:44, minHeight:44, borderRadius:"var(--r-sm)",
               border:`1px solid ${place.is_favorite ? "rgba(45,122,85,0.30)" : "var(--ink-10)"}`,
               background: place.is_favorite ? "var(--forest-pale)" : "var(--off-white)",
               display:"flex", alignItems:"center", justifyContent:"center",
-              transition:"all 140ms ease",
+              transition:"background 150ms ease",
             }}>
               <HeartButton isFavorite={!!place.is_favorite} size={16} onClick={() => onToggleFavorite(place)} />
             </div>
             {/* Close */}
-            <button onClick={onClose} aria-label="Close" style={{ width:34,height:34,borderRadius:"var(--r-sm)",border:"1px solid var(--ink-10)",background:"var(--off-white)",color:"var(--ink-60)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 150ms ease" }}>
+            <button onClick={onClose} aria-label="Close" style={{ width:34,height:34,minWidth:44,minHeight:44,borderRadius:"var(--r-sm)",border:"1px solid var(--ink-10)",background:"var(--off-white)",color:"var(--ink-60)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"background 150ms ease" }}>
               <IcoX />
             </button>
           </div>
@@ -350,9 +352,9 @@ export default function PlaceDetail({
               display:"inline-flex", alignItems:"center", gap:5,
               padding:"4px 11px", borderRadius:"var(--r-pill)",
               fontSize:11, fontWeight:600, letterSpacing:"0.02em",
-              background: place.open_now ? "#dcfce7" : "var(--coral-pale)",
-              color: place.open_now ? "#16a34a" : "var(--coral)",
-              border: `1px solid ${place.open_now ? "#bbf7d0" : "#fecaca"}`,
+              background: place.open_now ? "var(--state-open-bg)" : "var(--state-closed-bg)",
+              color: place.open_now ? "var(--state-open)" : "var(--state-closed)",
+              border: `1px solid ${place.open_now ? "var(--state-open-border)" : "var(--state-closed-border)"}`,
             }}>
               <span style={{ width:5,height:5,borderRadius:"50%",background:"currentColor",flexShrink:0 }}/>
               {place.open_now ? "Ouvert" : "Fermé"}

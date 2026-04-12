@@ -50,9 +50,10 @@ export default function NavRail() {
       {/* Logo mark */}
       <Link href="/" style={{ marginBottom: 16, textDecoration: "none" }}>
         <div style={{
-          width: 28, height: 28, borderRadius: 8,
+          width: 28, height: 28, borderRadius: "var(--r-md)",
           background: "var(--forest-mid)", display: "flex",
           alignItems: "center", justifyContent: "center",
+          boxShadow: "var(--s1)",
         }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <path d="M9 4v8c0 2.5 1 4 3 4.5V21M15 4v5c0 1-.7 1.5-1.5 1.5S12 10 12 9V4M15 9.5c0 2 1.5 3 3 3V21"
@@ -69,6 +70,7 @@ export default function NavRail() {
             <div style={{
               width: 36, height: 36, borderRadius: 9,
               background: active ? "var(--forest-pale)" : "transparent",
+              boxShadow: active ? "inset 2px 0 0 var(--forest-mid)" : "none",
               display: "flex", flexDirection: "column",
               alignItems: "center", justifyContent: "center", gap: 1,
               transition: "background 120ms",
@@ -115,7 +117,7 @@ export default function NavRail() {
           <div style={{
             position: "absolute", bottom: 40, left: 8,
             background: "var(--white)", border: "1px solid var(--ink-10)",
-            borderRadius: 12, boxShadow: "var(--s3)",
+            borderRadius: "var(--r-lg)", boxShadow: "var(--s3)",
             padding: "6px 0", minWidth: 160, zIndex: 300,
           }}>
             {SECONDARY.map(s => (

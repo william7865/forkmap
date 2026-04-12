@@ -96,6 +96,10 @@ const PlaceCard = memo(function PlaceCard({
     : undefined;
 
   const ratingAmber = rating != null && rating >= 9;
+  const ratingColor = rating == null ? undefined
+    : rating >= 8 ? "var(--rating-high)"
+    : rating >= 6 ? "var(--rating-mid)"
+    : "var(--rating-low)";
 
   const handleClick = useCallback(() => {
     setPressing(true);
@@ -135,6 +139,7 @@ const PlaceCard = memo(function PlaceCard({
   return (
     <div
       role="button" tabIndex={0}
+      className="anim-card-in"
       aria-label={`Voir ${place.name}`}
       style={{
         height: ITEM_HEIGHT,
@@ -147,13 +152,25 @@ const PlaceCard = memo(function PlaceCard({
         boxShadow: cardShadow,
         cursor: "pointer",
         transform: cardTransform,
-        transition: "all 220ms var(--ease-out)",
+        transition: "box-shadow 180ms ease, transform 180ms ease",
         outline: "none",
         display: "flex",
         flexDirection: "column",
       }}
-      onMouseEnter={onHover}
-      onMouseLeave={onLeave}
+      onMouseEnter={e => {
+        onHover();
+        if (!isSelected) {
+          e.currentTarget.style.boxShadow = "var(--s3)";
+          e.currentTarget.style.transform = "translateY(-1px)";
+        }
+      }}
+      onMouseLeave={e => {
+        onLeave();
+        if (!isSelected) {
+          e.currentTarget.style.boxShadow = "var(--s2)";
+          e.currentTarget.style.transform = "translateY(0)";
+        }
+      }}
       onClick={handleClick}
       onKeyDown={e => e.key === "Enter" && handleClick()}
     >
@@ -195,7 +212,7 @@ const PlaceCard = memo(function PlaceCard({
         {/* Gradient overlay bas */}
         <div style={{
           position: "absolute", inset: 0,
-          background: "linear-gradient(to bottom, transparent 40%, rgba(14,14,13,0.52) 100%)",
+          background: "linear-gradient(to top, rgba(14,14,13,0.6) 0%, rgba(14,14,13,0.15) 45%, transparent 100%)",
         }}/>
 
         {/* ── BADGES overlay — top ── */}
@@ -211,7 +228,7 @@ const PlaceCard = memo(function PlaceCard({
               borderRadius: "var(--r-pill)",
               padding: "3px 10px",
               fontSize: 12, fontWeight: 700,
-              color: ratingAmber ? "white" : "var(--ink)",
+              color: ratingAmber ? "white" : (ratingColor ?? "var(--ink)"),
               boxShadow: "var(--s1)",
               fontFamily: "var(--font-body)",
             }}>
@@ -229,16 +246,16 @@ const PlaceCard = memo(function PlaceCard({
               padding: "3px 10px",
               borderRadius: "var(--r-pill)",
               fontSize: 10, fontWeight: 600,
-              background: "rgba(14,14,13,0.70)",
+              background: "rgba(14,14,13,0.65)",
               backdropFilter: "blur(6px)",
               fontFamily: "var(--font-body)",
             }}>
               <span style={{
                 width: 5, height: 5, borderRadius: "50%", flexShrink: 0,
-                background: place.open_now ? "#4ade80" : "#f87171",
+                background: place.open_now ? "var(--state-open)" : "var(--state-closed)",
                 display: "block",
               }}/>
-              <span style={{ color: place.open_now ? "#4ade80" : "#f87171" }}>
+              <span style={{ color: place.open_now ? "var(--state-open)" : "var(--state-closed)" }}>
                 {place.open_now ? "Ouvert" : "Fermé"}
               </span>
             </div>
@@ -297,13 +314,11 @@ const PlaceCard = memo(function PlaceCard({
           {cuisine && (
             <span style={{
               fontSize: 11, fontWeight: 600,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
               color: "var(--forest-mid)",
               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               maxWidth: 130,
             }}>
-              {cuisine}
+              {cuisine.charAt(0).toUpperCase() + (cuisine.slice(1).toLowerCase() ?? "")}
             </span>
           )}
           {cuisine && price != null && (

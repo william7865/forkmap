@@ -46,7 +46,7 @@ type ViewMode = "list" | "grid";
 function DeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm: () => void; onCancel: () => void }) {
   return (
     <div style={{ position:"fixed",inset:0,zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:20 }} onClick={onCancel}>
-      <div style={{ position:"absolute",inset:0,background:"rgba(14,14,13,0.5)",backdropFilter:"blur(8px)" }}/>
+      <div style={{ position:"absolute",inset:0,background:"rgba(14,14,13,0.45)",backdropFilter:"blur(4px)" }}/>
       <div onClick={e=>e.stopPropagation()} style={{ position:"relative",background:"var(--white)",borderRadius:"var(--r-xl)",padding:"28px",maxWidth:360,width:"100%",boxShadow:"0 32px 80px rgba(14,14,13,0.22)",animation:"scaleIn 200ms var(--ease-spring) both",fontFamily:"var(--font-body)" }}>
         <div style={{ width:44,height:44,borderRadius:14,background:"var(--coral-pale)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:16,color:"var(--coral)" }}><IcoTrash /></div>
         <h3 style={{ margin:"0 0 8px",fontFamily:"var(--font-display)",fontSize:18,fontWeight:400,letterSpacing:"-0.03em" }}>Retirer des favoris ?</h3>
@@ -141,9 +141,9 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
         {/* Canaux */}
         <div style={{ display:"flex",gap:8,marginBottom:16 }}>
           {[
-            { icon:<IcoWhatsApp />, label:"WhatsApp", color:"#25D366", bg:"rgba(37,211,102,0.08)", onClick:()=>window.open(`https://wa.me/?text=${encodeURIComponent(full)}`,"_blank") },
+            { icon:<IcoWhatsApp />, label:"WhatsApp", color:"var(--forest-bright)", bg:"rgba(37,211,102,0.08)", onClick:()=>window.open(`https://wa.me/?text=${encodeURIComponent(full)}`,"_blank") },
             { icon:<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, label:"SMS", color:"var(--sky)", bg:"var(--sky-pale)", onClick:()=>window.open(`sms:?body=${encodeURIComponent(full)}`,"_blank") },
-            { icon:<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>, label:"Email", color:"var(--ink-80)", bg:"var(--cream)", onClick:()=>window.open(`mailto:?subject=${encodeURIComponent("Restaurant : "+fav.name)}&body=${encodeURIComponent(full)}`,"_blank") },
+            { icon:<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>, label:"Email", color:"var(--ink-60)", bg:"var(--cream)", onClick:()=>window.open(`mailto:?subject=${encodeURIComponent("Restaurant : "+fav.name)}&body=${encodeURIComponent(full)}`,"_blank") },
           ].map((ch,i)=>(
             <button key={i} onClick={ch.onClick} style={{ flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6,padding:"12px 8px",borderRadius:"var(--r-lg)",border:"1px solid var(--ink-10)",background:"var(--white)",cursor:"pointer",transition:"all 150ms",fontFamily:"inherit" }}
               onMouseEnter={e=>{e.currentTarget.style.background=ch.bg;e.currentTarget.style.borderColor=ch.color+"44";e.currentTarget.style.color=ch.color}}
@@ -180,6 +180,7 @@ function FavCardList({ fav, index, note, onRemove, onOpenMap, onShare, onNote }:
 
   return (
     <div
+      className="anim-card-in"
       onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>setHovered(false)}
       style={{
         background:"var(--white)",
@@ -189,7 +190,7 @@ function FavCardList({ fav, index, note, onRemove, onOpenMap, onShare, onNote }:
         boxShadow:hovered?"var(--s3)":"var(--s1)",
         transform:hovered?"translateY(-1px)":"none",
         transition:"all 180ms var(--ease-out)",
-        animation:`cardIn 280ms var(--ease-out) ${index*35}ms both`,
+        animationDelay:`${index*35}ms`,
       }}
     >
       <div style={{ padding:"14px 16px 12px 18px" }}>
@@ -258,13 +259,13 @@ function FavCardGrid({ fav, index, note, onRemove, onOpenMap, onShare, onNote }:
   const grad = cuisine ? (Object.entries(GRADIENTS).find(([k])=>cuisine.toLowerCase().includes(k))?.[1] ?? "linear-gradient(135deg,#1a2e1a,#3d6e3d)") : "linear-gradient(135deg,#1a2e1a,#3d6e3d)";
 
   return (
-    <div onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>setHovered(false)} style={{
+    <div className="anim-card-in" onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>setHovered(false)} style={{
       background:"var(--white)",border:`1px solid ${hovered?"var(--ink-20)":"var(--ink-10)"}`,
       borderRadius:"var(--r-xl)",overflow:"hidden",
       boxShadow:hovered?"var(--s3)":"var(--s1)",
       transform:hovered?"translateY(-2px)":"none",
       transition:"all 200ms var(--ease-out)",
-      animation:`cardIn 280ms var(--ease-out) ${index*30}ms both`,
+      animationDelay:`${index*30}ms`,
       display:"flex",flexDirection:"column",
     }}>
       {/* Photo/gradient area */}
@@ -418,9 +419,9 @@ export default function FavoritesPage() {
               <div style={{ flex:1 }}/>
 
               {/* Vue grille/liste */}
-              <div style={{ display:"flex",borderRadius:"var(--r-sm)",border:"1px solid var(--ink-10)",overflow:"hidden" }}>
+              <div style={{ display:"flex",borderRadius:"var(--r-md)",border:"1px solid var(--ink-10)",overflow:"hidden",background:"var(--off-white)" }}>
                 {(["list","grid"] as ViewMode[]).map(m=>(
-                  <button key={m} onClick={()=>setViewMode(m)} style={{ width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",border:"none",background:viewMode===m?"var(--ink)":"var(--white)",color:viewMode===m?"white":"var(--ink-60)",cursor:"pointer",transition:"all 120ms" }}>
+                  <button key={m} onClick={()=>setViewMode(m)} style={{ width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",border:"none",background:viewMode===m?"var(--ink)":"transparent",color:viewMode===m?"white":"var(--ink-60)",cursor:"pointer",transition:"all 120ms",fontSize:12,fontFamily:"var(--font-body)" }}>
                     {m==="list"?<IcoList />:<IcoGrid />}
                   </button>
                 ))}
@@ -460,10 +461,9 @@ export default function FavoritesPage() {
 
           {/* Empty */}
           {!loading && !favorites.length && (
-            <div style={{
+            <div className="anim-fade-up" style={{
               display: "flex", flexDirection: "column", alignItems: "center",
               justifyContent: "center", padding: "80px 24px", textAlign: "center",
-              animation: "fadeUp 300ms var(--ease-out) both",
             }}>
               {/* SVG map pin with heart */}
               <svg width="72" height="72" viewBox="0 0 72 72" fill="none" style={{ marginBottom: 20 }}>

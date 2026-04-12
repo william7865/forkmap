@@ -287,7 +287,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
           <div style={{ height:4,background:"linear-gradient(90deg,var(--forest),var(--forest-bright))" }}/>
           <div style={{ padding:"22px 24px 0",display:"flex",alignItems:"flex-start",gap:16 }}>
             <div style={{ position:"relative",flexShrink:0 }}>
-              <div style={{ width:64,height:64,borderRadius:18,overflow:"hidden",background:"var(--forest-mid)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"var(--s-forest)" }}>
+              <div style={{ width:64,height:64,borderRadius:18,overflow:"hidden",background:"var(--forest-mid)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"var(--s2)",transition:"box-shadow 150ms ease" }}>
                 {avatarUrl?<img src={avatarUrl} alt={displayName} style={{ width:"100%",height:"100%",objectFit:"cover" }}/>:<span style={{ fontSize:22,fontWeight:600,color:"white" }}>{initials}</span>}
               </div>
               {isGoogle&&<div style={{ position:"absolute",bottom:-3,right:-3,width:20,height:20,borderRadius:7,background:"white",border:"2px solid white",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 6px rgba(14,14,13,0.12)" }}><IcoGoogle /></div>}
@@ -296,7 +296,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
               <h1 style={{ margin:"0 0 3px",fontFamily:"var(--font-display)",fontSize:20,fontWeight:400,letterSpacing:"-0.03em",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const }}>{displayName}</h1>
               <p style={{ margin:"0 0 10px",fontSize:12,color:"var(--ink-60)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const }}>{user.email}</p>
               <div style={{ display:"flex",gap:5,flexWrap:"wrap" }}>
-                <span style={{ display:"flex",alignItems:"center",gap:4,fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:999,background:isGoogle?"#deeeff":"var(--off-white)",color:isGoogle?"#1d65c8":"var(--ink-60)",border:`1px solid ${isGoogle?"rgba(29,101,200,0.2)":"var(--ink-10)"}` }}>{isGoogle?<IcoGoogle />:<IcoShield />} {isGoogle?"Google":"Email"}</span>
+                <span style={{ display:"flex",alignItems:"center",gap:4,fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:999,background:isGoogle?"var(--sky-pale)":"var(--off-white)",color:isGoogle?"var(--sky)":"var(--ink-60)",border:`1px solid ${isGoogle?"var(--sky-border)":"var(--ink-10)"}` }}>{isGoogle?<IcoGoogle />:<IcoShield />} {isGoogle?"Google":"Email"}</span>
                 <span style={{ display:"flex",alignItems:"center",gap:4,fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:999,background:"var(--off-white)",color:"var(--ink-60)",border:"1px solid var(--ink-10)" }}><IcoCalendar /> {joined}</span>
               </div>
             </div>
@@ -307,7 +307,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
               { val:favLoading?"…":favorites.length, label:"Favoris", color:"var(--forest-mid)" },
               { val:statsLoading?"…":(stats?.total_visits??0), label:"Visites", color:"var(--amber)" },
               { val:statsLoading?"…":(stats?.total_spent?`${Math.round(stats.total_spent)}€`:"0€"), label:"Dépensé", color:"var(--coral)" },
-              { val:favLoading?"…":(cuisines.length||"—"), label:"Cuisines", color:"#1d65c8" },
+              { val:favLoading?"…":(cuisines.length||"—"), label:"Cuisines", color:"var(--sky)" },
             ].map((s,i)=>(
               <div key={i} style={{ padding:"12px 8px",textAlign:"center" as const,borderRight:i<3?"1px solid var(--ink-10)":"none" }}>
                 <div style={{ fontFamily:"var(--font-display)",fontSize:20,fontWeight:400,letterSpacing:"-0.04em",color:s.color,lineHeight:1,marginBottom:3 }}>{s.val}</div>
@@ -347,7 +347,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
               color: activeTab === t ? "var(--ink)" : "var(--ink-40)",
               cursor: "pointer", fontFamily: "var(--font-body)",
               boxShadow: activeTab === t ? "var(--s1)" : "none",
-              transition: "all 120ms",
+              transition: "background 150ms ease, color 150ms ease, box-shadow 150ms ease",
             }}>
               {t === "stats" ? "Statistiques" : "Mes visites"}
             </button>
@@ -471,7 +471,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
                     const moodEmoji = visit.mood ? MOOD_EMOJIS[visit.mood] : null;
                     const notePreview = visit.note && visit.note.length > 60 ? visit.note.slice(0, 60) + "…" : visit.note;
                     return (
-                      <div key={visit.id} style={{ display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderBottom:i < sortedVisits.length - 1 ? "1px solid var(--ink-10)" : "none",transition:"background 100ms" }}
+                      <div key={visit.id} className="anim-card-in" style={{ display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderBottom:i < sortedVisits.length - 1 ? "1px solid var(--ink-10)" : "none",transition:"background 100ms",animationDelay:`${i * 40}ms` }}
                         onMouseEnter={e=>(e.currentTarget.style.background="var(--off-white)")}
                         onMouseLeave={e=>(e.currentTarget.style.background="transparent")}
                       >
