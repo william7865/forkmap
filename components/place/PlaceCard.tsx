@@ -137,8 +137,8 @@ const PlaceCard = memo(function PlaceCard({
 
 
   return (
-    <div
-      role="button" tabIndex={0}
+    <button
+      type="button"
       className="anim-card-in"
       aria-label={`Voir ${place.name}`}
       style={{
@@ -156,6 +156,10 @@ const PlaceCard = memo(function PlaceCard({
         outline: "none",
         display: "flex",
         flexDirection: "column",
+        padding: 0,
+        textAlign: "left",
+        fontFamily: "inherit",
+        width: "100%",
       }}
       onMouseEnter={e => {
         onHover();
@@ -172,7 +176,7 @@ const PlaceCard = memo(function PlaceCard({
         }
       }}
       onClick={handleClick}
-      onKeyDown={e => e.key === "Enter" && handleClick()}
+      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleClick(); } }}
     >
 
       {/* ── PHOTO / GRADIENT (148px) ── */}
@@ -264,14 +268,14 @@ const PlaceCard = memo(function PlaceCard({
 
         {/* Visited badge — top-right */}
         {(place.visitCount ?? 0) > 0 && (
-          <div style={{
+          <div aria-label="Visité" style={{
             position: "absolute", top: 8, right: 8,
             background: "var(--forest-pale)", color: "var(--forest-mid)",
             fontSize: 9, fontWeight: 700, letterSpacing: "0.06em",
             padding: "3px 7px", borderRadius: "var(--r-pill)",
             border: "1px solid var(--forest-mid)",
             fontFamily: "var(--font-body)",
-          }}>✓ Visité</div>
+          }}><span aria-hidden="true">✓</span> Visité</div>
         )}
 
         {/* Selected indicator */}
@@ -405,10 +409,10 @@ const PlaceCard = memo(function PlaceCard({
             e.currentTarget.style.color = isFav ? "var(--forest-mid)" : "var(--ink-40)";
           }}
         >
-          {isFav ? "♥" : "♡"}
+          <span aria-hidden="true">{isFav ? "♥" : "♡"}</span>
         </button>
       </div>
-    </div>
+    </button>
   );
 });
 

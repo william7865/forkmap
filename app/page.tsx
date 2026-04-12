@@ -13,22 +13,22 @@ import { useRouteCache, type TransportMode } from "@/lib/hooks/useRouteCache";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useToast } from "@/lib/hooks/useToast";
 import { useIsMobile } from "@/lib/hooks/useMediaQuery";
-import FiltersPanel from "@/components/filters/FiltersPanel";
-import ShareModal from "@/components/place/ShareModal";
 import SuggestionsPanel from "@/components/place/SuggestionsPanel";
 import LanguagePicker from "@/components/ui/LanguagePicker";
 import { useLanguage } from "@/lib/i18n/useLanguage";
 import PlaceList from "@/components/place/PlaceList";
 import PlaceCardSkeleton from "@/components/place/PlaceCardSkeleton";
-import PlaceDetail from "@/components/place/PlaceDetail";
 import StartPanel from "@/components/location/StartPanel";
 import ToastStack from "@/components/ui/ToastStack";
-import AuthModal from "@/components/ui/AuthModal";
 import BottomSheet from "@/components/ui/BottomSheet";
 import { ErrorBoundary } from "@/components/states/ErrorBoundary";
 import type { MapViewHandle } from "@/components/map/MapView";
 
-const MapView = dynamic(() => import("@/components/map/MapView"), { ssr: false });
+const MapView       = dynamic(() => import("@/components/map/MapView"),          { ssr: false });
+const PlaceDetail   = dynamic(() => import("@/components/place/PlaceDetail"),    { ssr: false });
+const FiltersPanel  = dynamic(() => import("@/components/filters/FiltersPanel"), { ssr: false });
+const ShareModal    = dynamic(() => import("@/components/place/ShareModal"),     { ssr: false });
+const AuthModal     = dynamic(() => import("@/components/ui/AuthModal"),         { ssr: false });
 
 // ── Icons brandbook stroke 1.7 ─────────────────────────────
 const IcoSearch = () => (
@@ -73,7 +73,7 @@ const IcoChevRight = () => (
 function EnrichBar({ active }: { active: boolean }) {
   return (
     <div style={{ position:"absolute",bottom:0,left:0,right:0,height:2,background:"transparent",overflow:"hidden",opacity:active?1:0,transition:"opacity 400ms ease" }}>
-      <div style={{ position:"absolute",top:0,left:"-50%",width:"50%",height:"100%",background:"linear-gradient(90deg,transparent,var(--forest-mid),transparent)",animation:active?"enrichSweep 1.4s ease-in-out infinite":"none" }}/>
+      <div style={{ position:"absolute",top:0,left:0,width:"50%",height:"100%",background:"linear-gradient(90deg,transparent,var(--forest-mid),transparent)",animation:active?"enrichSweep 1.4s ease-in-out infinite":"none" }}/>
     </div>
   );
 }
@@ -344,10 +344,14 @@ export default function HomePage() {
 
         {/* Search — filtre résultats visibles */}
         <div style={{ flex:1, maxWidth:520, position:"relative" }}>
+          <label htmlFor="sidebar-search" style={{ position:"absolute",width:1,height:1,overflow:"hidden",clip:"rect(0,0,0,0)",whiteSpace:"nowrap" }}>
+            Rechercher un restaurant
+          </label>
           <span style={{ position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",color:"var(--ink-40)",pointerEvents:"none",display:"flex" }}>
             <IcoSearch />
           </span>
           <input
+            id="sidebar-search"
             type="text"
             placeholder={tr("search_placeholder")}
             value={nameQuery}
@@ -369,7 +373,7 @@ export default function HomePage() {
             }}
           />
           {nameQuery && (
-            <button onClick={()=>setNameQuery("")} style={{ position:"absolute",right:9,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"var(--ink-40)",display:"flex",padding:2 }}>
+            <button onClick={()=>setNameQuery("")} aria-label="Effacer la recherche" style={{ position:"absolute",right:9,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"var(--ink-40)",display:"flex",padding:2 }}>
               <IcoX />
             </button>
           )}
@@ -459,7 +463,7 @@ export default function HomePage() {
         )}
 
         {/* Filtres */}
-        <button onClick={()=>setShowFilters(v=>!v)} style={{
+        <button onClick={()=>setShowFilters(v=>!v)} aria-expanded={showFilters} aria-controls="filters-panel" style={{
           display:"flex", alignItems:"center", gap:6,
           padding:"7px 13px", borderRadius:"var(--r-md)", cursor:"pointer",
           fontSize:12, fontWeight:500, fontFamily:"var(--font-body)",
@@ -488,7 +492,7 @@ export default function HomePage() {
       </header>
 
       {/* ── Filters drawer pleine largeur ── */}
-      <div style={{
+      <div id="filters-panel" style={{
         maxHeight: showFilters ? 68 : 0,
         overflow:"hidden",
         transition:"max-height 280ms var(--ease-out)",

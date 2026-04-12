@@ -44,18 +44,25 @@ type ViewMode = "list" | "grid";
 
 // ── Delete modal ──────────────────────────────────────────
 function DeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm: () => void; onCancel: () => void }) {
+  // Escape key handler
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onCancel(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onCancel]);
+
   return (
     <div style={{ position:"fixed",inset:0,zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:20 }} onClick={onCancel}>
       <div style={{ position:"absolute",inset:0,background:"rgba(14,14,13,0.45)",backdropFilter:"blur(4px)" }}/>
-      <div onClick={e=>e.stopPropagation()} style={{ position:"relative",background:"var(--white)",borderRadius:"var(--r-xl)",padding:"28px",maxWidth:360,width:"100%",boxShadow:"0 32px 80px rgba(14,14,13,0.22)",animation:"scaleIn 200ms var(--ease-spring) both",fontFamily:"var(--font-body)" }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" onClick={e=>e.stopPropagation()} style={{ position:"relative",background:"var(--white)",borderRadius:"var(--r-xl)",padding:"28px",maxWidth:360,width:"100%",boxShadow:"0 32px 80px rgba(14,14,13,0.22)",animation:"scaleIn 200ms var(--ease-spring) both",fontFamily:"var(--font-body)" }}>
         <div style={{ width:44,height:44,borderRadius:14,background:"var(--coral-pale)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:16,color:"var(--coral)" }}><IcoTrash /></div>
-        <h3 style={{ margin:"0 0 8px",fontFamily:"var(--font-display)",fontSize:18,fontWeight:400,letterSpacing:"-0.03em" }}>Retirer des favoris ?</h3>
+        <h3 id="delete-modal-title" style={{ margin:"0 0 8px",fontFamily:"var(--font-display)",fontSize:18,fontWeight:400,letterSpacing:"-0.03em" }}>Retirer des favoris ?</h3>
         <p style={{ margin:"0 0 22px",fontSize:13,color:"var(--ink-60)",lineHeight:1.6 }}>
           <strong style={{ color:"var(--ink-80)" }}>{name}</strong> sera retiré de vos lieux sauvegardés.
         </p>
         <div style={{ display:"flex",gap:8 }}>
-          <button onClick={onCancel} style={{ flex:1,padding:"10px",borderRadius:"var(--r-md)",border:"1px solid var(--ink-10)",background:"transparent",cursor:"pointer",fontSize:13,fontWeight:600,color:"var(--ink-80)",fontFamily:"inherit" }}>Garder</button>
-          <button onClick={onConfirm} style={{ flex:1,padding:"10px",borderRadius:"var(--r-md)",border:"none",background:"var(--coral)",cursor:"pointer",fontSize:13,fontWeight:600,color:"white",fontFamily:"inherit",boxShadow:"0 4px 12px rgba(217,79,61,0.25)" }}>Retirer</button>
+          <button onClick={onCancel} aria-label="Annuler" style={{ flex:1,padding:"10px",borderRadius:"var(--r-md)",border:"1px solid var(--ink-10)",background:"transparent",cursor:"pointer",fontSize:13,fontWeight:600,color:"var(--ink-80)",fontFamily:"inherit" }}>Garder</button>
+          <button onClick={onConfirm} aria-label="Supprimer" style={{ flex:1,padding:"10px",borderRadius:"var(--r-md)",border:"none",background:"var(--coral)",cursor:"pointer",fontSize:13,fontWeight:600,color:"white",fontFamily:"inherit",boxShadow:"0 4px 12px rgba(217,79,61,0.25)" }}>Retirer</button>
         </div>
       </div>
     </div>
@@ -95,7 +102,7 @@ function NoteDrawer({ fav, onClose, onSaved }: { fav: FavoriteRow; onClose: () =
             <p style={{ margin:"0 0 1px",fontFamily:"var(--font-display)",fontSize:15,fontWeight:400,letterSpacing:"-0.02em",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{fav.name}</p>
             <p style={{ margin:0,fontSize:10,color:"var(--ink-40)",fontWeight:600,letterSpacing:"0.05em",textTransform:"uppercase" }}>Note personnelle</p>
           </div>
-          <button onClick={onClose} style={{ width:28,height:28,borderRadius:"50%",border:"1px solid var(--ink-10)",background:"var(--off-white)",color:"var(--ink-60)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}><IcoX /></button>
+          <button onClick={onClose} aria-label="Fermer" style={{ width:28,height:28,borderRadius:"50%",border:"1px solid var(--ink-10)",background:"var(--off-white)",color:"var(--ink-60)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}><IcoX /></button>
         </div>
         <textarea value={value} onChange={e=>setValue(e.target.value.slice(0,MAX))} rows={4}
           placeholder="Tes impressions, ce que tu veux commander, avec qui y aller…"
@@ -136,7 +143,7 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
         <div style={{ width:36,height:4,borderRadius:2,background:"var(--bone)",margin:"0 auto 16px" }}/>
         <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:16 }}>
           <h3 style={{ margin:0,fontFamily:"var(--font-display)",fontSize:16,fontWeight:400,letterSpacing:"-0.02em",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{fav.name}</h3>
-          <button onClick={onClose} style={{ width:28,height:28,borderRadius:"50%",border:"1px solid var(--ink-10)",background:"var(--off-white)",color:"var(--ink-60)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}><IcoX /></button>
+          <button onClick={onClose} aria-label="Fermer" style={{ width:28,height:28,borderRadius:"50%",border:"1px solid var(--ink-10)",background:"var(--off-white)",color:"var(--ink-60)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}><IcoX /></button>
         </div>
         {/* Canaux */}
         <div style={{ display:"flex",gap:8,marginBottom:16 }}>
@@ -196,7 +203,7 @@ function FavCardList({ fav, index, note, onRemove, onOpenMap, onShare, onNote }:
       <div style={{ padding:"14px 16px 12px 18px" }}>
         {/* Row 1: nom + rating + actions */}
         <div style={{ display:"flex",alignItems:"flex-start",gap:10,marginBottom:8 }}>
-          <div style={{ flex:1,minWidth:0,cursor:"pointer" }} onClick={onOpenMap}>
+          <button type="button" onClick={onOpenMap} style={{ flex:1,minWidth:0,cursor:"pointer",background:"none",border:"none",padding:0,textAlign:"left",fontFamily:"inherit" }}>
             <h3 style={{ margin:"0 0 4px",fontFamily:"var(--font-display)",fontSize:16,fontWeight:400,letterSpacing:"-0.03em",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"var(--ink)" }}>
               {fav.name}
             </h3>
@@ -207,12 +214,12 @@ function FavCardList({ fav, index, note, onRemove, onOpenMap, onShare, onNote }:
               {openNow !== undefined && <span style={{ padding:"2px 8px",borderRadius:"var(--r-pill)",fontSize:9.5,fontWeight:700,background:openNow?"#dcfce7":"var(--coral-pale)",color:openNow?"#16a34a":"var(--coral)",border:`1px solid ${openNow?"rgba(22,163,74,0.25)":"rgba(217,79,61,0.25)"}` }}>{openNow?"Ouvert":"Fermé"}</span>}
               {rating != null && <span style={{ display:"inline-flex",alignItems:"center",gap:3,padding:"2px 8px",borderRadius:"var(--r-pill)",fontSize:10,fontWeight:700,background:rating>=9?"var(--amber-pale)":"var(--cream)",color:rating>=9?"var(--amber)":"var(--ink-60)",border:`1px solid ${rating>=9?"#fed7aa":"var(--bone)"}` }}><IcoStar />{rating.toFixed(1)}</span>}
             </div>
-          </div>
+          </button>
           {/* Actions */}
           <div style={{ display:"flex",gap:5,flexShrink:0 }}>
-            <ActionBtn icon={<IcoPen />} label="Note" active={!!note} activeColor="var(--forest-mid)" activeBg="var(--forest-pale)" onClick={onNote} />
+            <ActionBtn icon={<IcoPen />} label="Modifier la note" active={!!note} activeColor="var(--forest-mid)" activeBg="var(--forest-pale)" onClick={onNote} />
             <ActionBtn icon={<IcoShare />} label="Partager" onClick={onShare} />
-            <ActionBtn icon={<IcoTrash />} label="Retirer" hoverColor="var(--coral)" hoverBg="var(--coral-pale)" onClick={onRemove} />
+            <ActionBtn icon={<IcoTrash />} label="Retirer des favoris" hoverColor="var(--coral)" hoverBg="var(--coral-pale)" onClick={onRemove} />
           </div>
         </div>
 
@@ -269,24 +276,24 @@ function FavCardGrid({ fav, index, note, onRemove, onOpenMap, onShare, onNote }:
       display:"flex",flexDirection:"column",
     }}>
       {/* Photo/gradient area */}
-      <div onClick={onOpenMap} style={{ height:100,background:grad,position:"relative",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
+      <button type="button" onClick={onOpenMap} aria-label={`Voir ${fav.name} sur la carte`} style={{ height:100,background:grad,position:"relative",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",border:"none",padding:0,width:"100%" }}>
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" opacity="0.25">
           <path d="M9 4v8c0 2.5 1 4 3 4.5V21M15 4v5c0 1-.7 1.5-1.5 1.5S12 10 12 9V4M15 9.5c0 2 1.5 3 3 3V21" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
         {note && <div style={{ position:"absolute",top:8,left:8,width:8,height:8,borderRadius:"50%",background:"var(--forest-bright)",border:"1.5px solid rgba(255,255,255,0.6)",boxShadow:"0 1px 4px rgba(0,0,0,0.2)" }}/>}
         {rating != null && <span style={{ position:"absolute",top:8,right:8,display:"inline-flex",alignItems:"center",gap:3,padding:"3px 8px",borderRadius:"var(--r-pill)",fontSize:10,fontWeight:700,background:"rgba(255,255,255,0.15)",color:"white",backdropFilter:"blur(4px)",border:"1px solid rgba(255,255,255,0.2)" }}><IcoStar />{rating.toFixed(1)}</span>}
-      </div>
+      </button>
       {/* Body */}
       <div style={{ padding:"12px 14px",flex:1,display:"flex",flexDirection:"column",gap:6 }}>
-        <h3 onClick={onOpenMap} style={{ margin:0,fontFamily:"var(--font-display)",fontSize:14,fontWeight:400,letterSpacing:"-0.02em",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",cursor:"pointer",color:"var(--ink)" }}>{fav.name}</h3>
+        <h3 style={{ margin:0,fontFamily:"var(--font-display)",fontSize:14,fontWeight:400,letterSpacing:"-0.02em",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"var(--ink)" }}>{fav.name}</h3>
         {cuisine && <span style={{ fontSize:9.5,fontWeight:700,letterSpacing:"0.07em",textTransform:"uppercase",color:"var(--forest-mid)" }}>{cuisine}</span>}
         <div style={{ flex:1 }}/>
         {/* Action row */}
         <div style={{ display:"flex",gap:5,paddingTop:6,borderTop:"1px solid var(--ink-10)" }}>
-          <ActionBtn icon={<IcoPen />} active={!!note} activeColor="var(--forest-mid)" activeBg="var(--forest-pale)" onClick={onNote} small />
-          <ActionBtn icon={<IcoShare />} onClick={onShare} small />
+          <ActionBtn icon={<IcoPen />} label="Modifier la note" active={!!note} activeColor="var(--forest-mid)" activeBg="var(--forest-pale)" onClick={onNote} small />
+          <ActionBtn icon={<IcoShare />} label="Partager" onClick={onShare} small />
           <div style={{ flex:1 }}/>
-          <ActionBtn icon={<IcoTrash />} hoverColor="var(--coral)" hoverBg="var(--coral-pale)" onClick={onRemove} small />
+          <ActionBtn icon={<IcoTrash />} label="Retirer des favoris" hoverColor="var(--coral)" hoverBg="var(--coral-pale)" onClick={onRemove} small />
         </div>
       </div>
     </div>
@@ -305,8 +312,8 @@ function ActionBtn({ icon, label, active, activeColor, activeBg, hoverColor, hov
   const color  = active ? (activeColor ?? "var(--forest-mid)") : "var(--ink-40)";
   const border = active ? `1px solid ${activeColor ? activeColor+"44" : "rgba(45,122,85,0.3)"}` : "1px solid var(--ink-10)";
   return (
-    <button onClick={e=>{e.stopPropagation();onClick();}} title={label}
-      style={{ width:sz,height:sz,borderRadius:"var(--r-sm)",border,background:bg,color,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 140ms ease" }}
+    <button onClick={e=>{e.stopPropagation();onClick();}} title={label} aria-label={label}
+      style={{ width:sz,height:sz,minWidth:44,minHeight:44,borderRadius:"var(--r-sm)",border,background:bg,color,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 140ms ease" }}
       onMouseEnter={e=>{e.currentTarget.style.background=hoverBg??activeBg??"var(--cream)";e.currentTarget.style.color=hoverColor??activeColor??"var(--ink)";}}
       onMouseLeave={e=>{e.currentTarget.style.background=bg;e.currentTarget.style.color=color;}}
     >{icon}</button>
@@ -394,6 +401,7 @@ export default function FavoritesPage() {
 
           {/* Titre */}
           <div style={{ marginBottom:24,animation:"fadeUp 280ms var(--ease-out) both" }}>
+            <Link href="/" aria-label="Retour à la carte" style={{ display:"inline-flex",alignItems:"center",gap:6,fontSize:14,color:"var(--ink-60)",textDecoration:"none",marginBottom:16 }}>← Carte</Link>
             <h1 style={{ margin:"0 0 6px",fontFamily:"var(--font-display)",fontSize:30,fontWeight:400,letterSpacing:"-0.04em",lineHeight:1.1 }}>
               Lieux sauvegardés
             </h1>
@@ -453,7 +461,7 @@ export default function FavoritesPage() {
 
           {/* Error */}
           {fetchError && !loading && (
-            <div style={{ textAlign:"center",padding:"40px 0" }}>
+            <div role="alert" style={{ textAlign:"center",padding:"40px 0" }}>
               <p style={{ margin:"0 0 4px",fontSize:13,fontWeight:600,color:"var(--ink-80)" }}>Impossible de charger les favoris</p>
               <button onClick={loadFavorites} style={{ padding:"8px 18px",borderRadius:"var(--r-pill)",border:"1px solid rgba(217,79,61,0.3)",background:"var(--coral-pale)",color:"var(--coral)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit" }}>Réessayer</button>
             </div>

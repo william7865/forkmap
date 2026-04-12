@@ -36,6 +36,21 @@ setInterval(() => {
 }, 300_000);
 
 /**
+ * Extract the client IP from the request headers.
+ * Uses the rightmost entry in x-forwarded-for (set by the trusted proxy),
+ * falling back to x-real-ip, then a default.
+ */
+function getClientIp(req: NextRequest): string {
+  // Rightmost IP in x-forwarded-for is set by the trusted proxy
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) {
+    const ips = xff.split(",").map((s) => s.trim());
+    return ips[ips.length - 1];
+  }
+  return req.headers.get("x-real-ip") ?? "127.0.0.1";
+}
+
+/**
  * Check if the request should be rate-limited.
  * Returns a 429 NextResponse if the limit is exceeded, otherwise null.
  */
@@ -45,11 +60,8 @@ export function rateLimit(
 ): NextResponse<{ error: string }> | null {
   const { limit, windowMs, message = "Too many requests. Please try again later." } = options;
 
-  // Identify the caller: prefer Vercel's forwarded IP, fall back to x-forwarded-for
-  const ip =
-    req.headers.get("x-real-ip") ??
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "anonymous";
+  // Identify the caller using the rightmost (trusted proxy-set) IP
+  const ip = getClientIp(req);
 
   const key   = `${ip}:${new URL(req.url).pathname}`;
   const now   = Date.now();

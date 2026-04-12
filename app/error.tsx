@@ -24,7 +24,7 @@ export default function GlobalError({ error, reset }: Props) {
   }, [error]);
 
   return (
-    <html lang="en">
+    <html lang="fr">
       <body
         style={{
           margin: 0,
@@ -39,6 +39,7 @@ export default function GlobalError({ error, reset }: Props) {
         }}
       >
         <div
+          role="alert"
           style={{
             maxWidth: 420,
             width: "100%",

@@ -208,10 +208,13 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
   const router = useRouter();
   const [favorites, setFavorites] = useState<FavoriteRow[]>([]);
   const [favLoading, setFavLoading] = useState(true);
+  const [favError, setFavError] = useState(false);
   const [stats, setStats] = useState<VisitStats|null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState(false);
   const [visits, setVisits] = useState<VisitRow[]>([]);
   const [visitsLoading, setVisitsLoading] = useState(true);
+  const [visitsError, setVisitsError] = useState(false);
   const [editingVisit, setEditingVisit] = useState<{ visit: VisitRow; place: PlaceCard } | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -220,16 +223,24 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
   const [visitSearch, setVisitSearch] = useState("");
 
   const fetchVisits = async () => {
+    setVisitsError(false);
     const h = await getAuthHeaders();
-    try { const r = await fetch("/api/visits", { headers: h }); if (r.ok) { const d = await r.json(); setVisits(d.data ?? []); } } catch {} finally { setVisitsLoading(false); }
+    try {
+      const r = await fetch("/api/visits", { headers: h });
+      if (r.ok) { const d = await r.json(); setVisits(d.data ?? []); }
+      else { setVisitsError(true); }
+    } catch { setVisitsError(true); } finally { setVisitsLoading(false); }
+  };
+
+  const loadData = async () => {
+    setFavError(false); setStatsError(false);
+    const h = await getAuthHeaders();
+    try { const r=await fetch("/api/favorites",{headers:h}); if(r.ok){const d=await r.json();setFavorites(d.data??[]);} else { setFavError(true); } } catch { setFavError(true); } finally { setFavLoading(false); }
+    try { const r=await fetch("/api/visits/stats",{headers:h}); if(r.ok){const d=await r.json();setStats(d.data);} else { setStatsError(true); } } catch { setStatsError(true); } finally { setStatsLoading(false); }
   };
 
   useEffect(()=>{
-    (async()=>{
-      const h = await getAuthHeaders();
-      try{ const r=await fetch("/api/favorites",{headers:h}); if(r.ok){const d=await r.json();setFavorites(d.data??[]);} }catch{}finally{setFavLoading(false);}
-      try{ const r=await fetch("/api/visits/stats",{headers:h}); if(r.ok){const d=await r.json();setStats(d.data);} }catch{}finally{setStatsLoading(false);}
-    })();
+    loadData();
     fetchVisits();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
@@ -282,6 +293,8 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
 
       <div style={{ maxWidth:640,margin:"0 auto",padding:"32px 20px 80px",display:"flex",flexDirection:"column",gap:14,width:"100%" }}>
 
+        <Link href="/" aria-label="Retour à la carte" style={{ display:"inline-flex",alignItems:"center",gap:6,fontSize:14,color:"var(--ink-60)",textDecoration:"none",marginBottom:16 }}>← Carte</Link>
+
         {/* Hero */}
         <Card style={{ animation:"fadeUp 280ms var(--ease-out) both" }}>
           <div style={{ height:4,background:"linear-gradient(90deg,var(--forest),var(--forest-bright))" }}/>
@@ -304,13 +317,18 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
           {/* Stats row */}
           <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",borderTop:"1px solid var(--ink-10)",marginTop:16 }}>
             {[
-              { val:favLoading?"…":favorites.length, label:"Favoris", color:"var(--forest-mid)" },
-              { val:statsLoading?"…":(stats?.total_visits??0), label:"Visites", color:"var(--amber)" },
-              { val:statsLoading?"…":(stats?.total_spent?`${Math.round(stats.total_spent)}€`:"0€"), label:"Dépensé", color:"var(--coral)" },
-              { val:favLoading?"…":(cuisines.length||"—"), label:"Cuisines", color:"var(--sky)" },
+              { loading:favLoading, error:favError, val:favorites.length, label:"Favoris", color:"var(--forest-mid)" },
+              { loading:statsLoading, error:statsError, val:(stats?.total_visits??0), label:"Visites", color:"var(--amber)" },
+              { loading:statsLoading, error:statsError, val:(stats?.total_spent?`${Math.round(stats.total_spent)}€`:"0€"), label:"Dépensé", color:"var(--coral)" },
+              { loading:favLoading, error:favError, val:(cuisines.length||"—"), label:"Cuisines", color:"var(--sky)" },
             ].map((s,i)=>(
               <div key={i} style={{ padding:"12px 8px",textAlign:"center" as const,borderRight:i<3?"1px solid var(--ink-10)":"none" }}>
-                <div style={{ fontFamily:"var(--font-display)",fontSize:20,fontWeight:400,letterSpacing:"-0.04em",color:s.color,lineHeight:1,marginBottom:3 }}>{s.val}</div>
+                {s.loading
+                  ? <div className="shimmer-bar" style={{ height:20,width:40,margin:"0 auto 3px",borderRadius:4,background:"var(--bone)" }}/>
+                  : s.error
+                    ? <div style={{ fontSize:11,color:"var(--coral)",fontWeight:600 }}>—</div>
+                    : <div style={{ fontFamily:"var(--font-display)",fontSize:20,fontWeight:400,letterSpacing:"-0.04em",color:s.color,lineHeight:1,marginBottom:3 }}>{s.val}</div>
+                }
                 <div style={{ fontSize:9.5,fontWeight:600,color:"var(--ink-40)",letterSpacing:"0.06em",textTransform:"uppercase" as const }}>{s.label}</div>
               </div>
             ))}
@@ -363,7 +381,24 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
         )}
 
         {/* Stats tab content */}
-        {activeTab === "stats" && (
+        {activeTab === "stats" && statsError && (
+          <Card style={{ animation:"fadeUp 280ms var(--ease-out) both" }}>
+            <div style={{ padding:"24px 20px", textAlign:"center" as const }}>
+              <p style={{ margin:"0 0 10px", fontSize:13, color:"var(--ink-60)" }}>Impossible de charger les données</p>
+              <button onClick={loadData} style={{ padding:"7px 14px",borderRadius:"var(--r-md)",border:"1px solid var(--ink-10)",background:"transparent",cursor:"pointer",fontSize:12,fontWeight:600,color:"var(--forest-mid)",fontFamily:"inherit" }}>Réessayer</button>
+            </div>
+          </Card>
+        )}
+        {activeTab === "stats" && statsLoading && (
+          <Card style={{ animation:"fadeUp 280ms var(--ease-out) both" }}>
+            <div style={{ padding:"16px 20px", display:"flex", flexDirection:"column" as const, gap:10 }}>
+              {[1,2,3].map(i => (
+                <div key={i} className="shimmer-bar" style={{ height:44,borderRadius:8,background:"var(--bone)" }}/>
+              ))}
+            </div>
+          </Card>
+        )}
+        {activeTab === "stats" && !statsLoading && !statsError && (
           <>
             {/* Top restaurants — visites */}
             {hasStats && stats!.top_restaurants.length > 0 && (
@@ -456,8 +491,15 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
             <Card style={{ animation:"fadeUp 280ms var(--ease-out) 110ms both" }}>
               <CardHeader label="Mes visites" sub={!visitsLoading ? `${sortedVisits.length} visite${sortedVisits.length !== 1 ? "s" : ""}` : undefined} />
               {visitsLoading ? (
+                <div style={{ padding:"16px 20px", display:"flex", flexDirection:"column" as const, gap:10 }}>
+                  {[1,2,3].map(i => (
+                    <div key={i} className="shimmer-bar" style={{ height:44,borderRadius:8,background:"var(--bone)" }}/>
+                  ))}
+                </div>
+              ) : visitsError ? (
                 <div style={{ padding:"24px 20px", textAlign:"center" as const }}>
-                  <div style={{ width:24,height:24,border:"2px solid var(--bone)",borderTop:"2px solid var(--forest-mid)",borderRadius:"50%",animation:"spin 0.7s linear infinite",margin:"0 auto" }}/>
+                  <p style={{ margin:"0 0 10px", fontSize:13, color:"var(--ink-60)" }}>Impossible de charger les données</p>
+                  <button onClick={fetchVisits} style={{ padding:"7px 14px",borderRadius:"var(--r-md)",border:"1px solid var(--ink-10)",background:"transparent",cursor:"pointer",fontSize:12,fontWeight:600,color:"var(--forest-mid)",fontFamily:"inherit" }}>Réessayer</button>
                 </div>
               ) : sortedVisits.length === 0 ? (
                 <div style={{ padding:"28px 20px", textAlign:"center" as const }}>

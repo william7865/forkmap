@@ -41,8 +41,6 @@
   --amber-pale: #fdf3e3;
   --coral:      #d94f3d;
   --coral-pale: #fdecea;
-  --sky:        #2459a8;
-  --sky-pale:   #e8f0fb;
 
   /* ── Semantic states ── */
   --state-open:      #16a34a;
@@ -60,8 +58,8 @@
   --rating-low:    #c53030;
 
   /* ── Sky / blue ── */
-  --sky:      #2459a8;
-  --sky-pale: #deeeff;
+  --sky:        #2459a8;
+  --sky-pale:   #deeeff;
   --sky-border: #b3d1ff;
 
   /* ── Borders ── */
@@ -270,8 +268,8 @@ h1, h2, h3 {
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes toastOut {
-  from { opacity: 1; transform: translateY(0) scale(1); max-height: 60px; }
-  to   { opacity: 0; transform: translateY(-8px) scale(0.96); max-height: 0; }
+  from { transform: translateY(0); opacity: 1; }
+  to   { transform: translateY(8px); opacity: 0; }
 }
 @keyframes modalIn {
   from { opacity: 0; transform: scale(0.96) translateY(10px); }
@@ -282,8 +280,8 @@ h1, h2, h3 {
   to   { opacity: 1; }
 }
 @keyframes enrichSweep {
-  0%   { left: -50%; }
-  100% { left: 100%; }
+  0%   { transform: translateX(-200%); }
+  100% { transform: translateX(300%); }
 }
 
 .anim-fade-up    { animation: fadeUp var(--t3) var(--ease-out) both; }
