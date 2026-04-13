@@ -63,6 +63,12 @@ export function useRestaurants() {
   // without being in its dependency array, preventing a new function reference
   // (and thus a spurious re-fetch) on every favorite toggle.
   const favoriteIdsRef  = useRef<Set<string>>(new Set());
+  // Ref mirror of places — lets applyClientFilters read the latest places value
+  // without taking a [places] dep that would create a new callback on every batch.
+  const placesRef       = useRef<PlaceCard[]>([]);
+  // AbortController ref — cancels in-flight fetches when a new one starts,
+  // preventing wasted FSQ quota on stale map positions.
+  const abortRef        = useRef<AbortController | null>(null);
 
   // Keep ref in sync with state
   // (state is still needed for re-render; ref is for stable closure reads)
@@ -115,13 +121,19 @@ export function useRestaurants() {
     if (!bboxChanged(lastBbox.current, bbox)) return;
     lastBbox.current = bbox;
 
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const signal = controller.signal;
+
     const myFetch = ++fetchCount.current;
     setLoading(true);
     setError(null);
 
     try {
       const osmRes = await fetch(
-        `/api/osm/overpass?bbox=${bbox.minLon},${bbox.minLat},${bbox.maxLon},${bbox.maxLat}`
+        `/api/osm/overpass?bbox=${bbox.minLon},${bbox.minLat},${bbox.maxLon},${bbox.maxLat}`,
+        { signal }
       );
       if (!osmRes.ok) throw new Error(`OSM ${osmRes.status}`);
       const osmData = await osmRes.json();
@@ -138,6 +150,7 @@ export function useRestaurants() {
           bbox.centerLat, bbox.centerLon
         )
       );
+      placesRef.current = raw;
       setPlaces(raw);
       setFilteredPlaces(applyFilters(raw, currentFilters.current));
       setLoading(false);
@@ -156,6 +169,7 @@ export function useRestaurants() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ places: batch, deep: false }),
+            signal,
           });
           if (res.ok) {
             const data = await res.json();
@@ -171,6 +185,7 @@ export function useRestaurants() {
         if (fetchCount.current !== myFetch) return;
         const scoredOsm = annotateScores(annotateDistances(osmEnriched, bbox.centerLat, bbox.centerLon));
         const withFavOsm = scoredOsm.map(p => ({ ...p, is_favorite: favoriteIdsRef.current.has(p.osm_id) }));
+        placesRef.current = withFavOsm;
         setPlaces(withFavOsm);
         setFilteredPlaces(applyFilters(withFavOsm, currentFilters.current));
       }
@@ -194,6 +209,7 @@ export function useRestaurants() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ places: batch }),
+            signal,
           });
           const data = await res.json();
           const fsqBatch: PlaceCard[] = data.data ?? batch;
@@ -226,11 +242,13 @@ export function useRestaurants() {
         });
         const scored  = annotateScores(annotateDistances(combined, bbox.centerLat, bbox.centerLon));
         const withFav = scored.map(p => ({ ...p, is_favorite: favoriteIdsRef.current.has(p.osm_id) }));
+        placesRef.current = withFav;
         setPlaces(withFav);
         setFilteredPlaces(applyFilters(withFav, currentFilters.current));
       }
 
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return; // cancelled, not an error
       if (fetchCount.current === myFetch) {
         setError(err instanceof Error ? err.message : "Failed to load");
       }
@@ -244,10 +262,12 @@ export function useRestaurants() {
   }, []);
 
   // ── Client-side filter ─────────────────────────────────────
+  // Uses placesRef (not places state) so this callback has a stable reference —
+  // no re-render cascade across consumers on every batch update.
   const applyClientFilters = useCallback((filters: FilterState) => {
     currentFilters.current = filters;
-    setFilteredPlaces(applyFilters(places, filters));
-  }, [places]);
+    setFilteredPlaces(applyFilters(placesRef.current, filters));
+  }, []);
 
   // ── Favourite toggle ────────────────────────────────────────
   const toggleFavorite = useCallback(async (place: PlaceCard): Promise<"ok" | "auth_required" | "error"> => {
@@ -263,7 +283,9 @@ export function useRestaurants() {
     const nextIds = new Set<string>(favoriteIds);
     isFav ? nextIds.delete(place.osm_id) : nextIds.add(place.osm_id);
     updateFavoriteIds(nextIds);
-    setPlaces(flip);
+    const flippedPlaces = flip(placesRef.current);
+    placesRef.current = flippedPlaces;
+    setPlaces(flippedPlaces);
     setFilteredPlaces(flip);
 
     try {
@@ -286,7 +308,9 @@ export function useRestaurants() {
         // Not logged in — rollback optimistic update and signal caller
         const revertIds = new Set<string>(favoriteIds);
         updateFavoriteIds(revertIds);
-        setPlaces(revert);
+        const revertedPlaces401 = revert(placesRef.current);
+        placesRef.current = revertedPlaces401;
+        setPlaces(revertedPlaces401);
         setFilteredPlaces(revert);
         return "auth_required";
       }
@@ -300,7 +324,9 @@ export function useRestaurants() {
       // Rollback on network error
       const revertIds = new Set<string>(favoriteIds);
       updateFavoriteIds(revertIds);
-      setPlaces(revert);
+      const revertedPlaces = revert(placesRef.current);
+      placesRef.current = revertedPlaces;
+      setPlaces(revertedPlaces);
       setFilteredPlaces(revert);
       return "error";
     }

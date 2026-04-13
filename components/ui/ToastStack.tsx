@@ -37,7 +37,7 @@ export default function ToastStack({ toasts, onDismiss }: Props) {
   if (!toasts.length) return null;
 
   return (
-    <div style={{
+    <div role="status" aria-live="polite" aria-atomic="false" style={{
       position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)",
       zIndex: 2000,
       display: "flex", flexDirection: "column-reverse", gap: 8,
@@ -47,7 +47,7 @@ export default function ToastStack({ toasts, onDismiss }: Props) {
       {toasts.map(toast => {
         const s = STYLES[toast.type];
         return (
-          <div key={toast.id} style={{
+          <div key={toast.id} {...(toast.type === "error" ? { role: "alert" } : {})} style={{
             display: "flex", alignItems: "center", gap: 10,
             padding: "10px 16px",
             borderRadius: "var(--r-pill)",

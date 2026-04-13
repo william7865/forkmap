@@ -7,8 +7,8 @@ import NoteModal, { getNote } from "@/components/place/NoteModal";
 import HeartButton from "@/components/ui/HeartButton";
 import type { PlaceCard, FoursquarePhoto } from "@/types";
 import { IcoWalk, IcoBike, IcoCar, IcoPen, IcoShare, IcoVisit, IcoX, IcoMap, IcoPhone, IcoGlobe, IcoClock, IcoArrow, IcoRoute, IcoStar } from "@/components/icons";
+import type { TransportMode } from "@/lib/hooks/useRouteCache";
 
-type TransportMode = "foot" | "bike" | "car";
 interface RouteResult { duration:number; distance:number; coords:[number,number][]; }
 
 interface Props {

@@ -103,6 +103,10 @@ export function useHomeState() {
   }, []);
 
   const locate = useCallback(() => {
+    if (!navigator?.geolocation) {
+      setLocateError(true);
+      return;
+    }
     setLocating(true); setLocateError(false);
     navigator.geolocation.getCurrentPosition(
       pos => {

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useImperativeHandle, forwardRef } from "react";
+import { IcoSearch } from "@/components/icons";
 import type { PlaceCard } from "@/types";
 
 export interface MapViewHandle {
@@ -329,9 +330,7 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
             fontSize:12, fontWeight:700, color:"var(--ink)", cursor:"pointer",
             transition:"all 120ms ease", whiteSpace:"nowrap",
           }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-            </svg>
+            <IcoSearch />
             Search this area
           </button>
         </div>

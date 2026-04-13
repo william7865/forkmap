@@ -17,6 +17,9 @@ import { cacheGet, cacheSet, buildFsqKey, buildFsqSearchKey } from "./cache";
 const FSQ_BASE = "https://api.foursquare.com/v3";
 const FSQ_API_KEY = process.env.FOURSQUARE_API_KEY ?? "";
 
+// Sentinel value stored in cache to represent "searched FSQ, found no match"
+const NEGATIVE_SENTINEL = "__no_fsq_match__";
+
 // Fields to request — keep minimal to save quota
 const SEARCH_FIELDS = "fsq_id,name,geocodes,location,categories";
 const DETAIL_FIELDS =
@@ -159,9 +162,10 @@ async function searchFsqVenue(place: PlaceBase): Promise<FoursquareData | null> 
   }
 
   const cacheKey = buildFsqSearchKey(place.lat, place.lon, place.name);
-  const cached = cacheGet<FoursquareData | null>(cacheKey);
-  if (cached !== undefined && cached !== null) return cached;
-  if (cached === null) return null; // explicitly cached as "no match"
+  const raw = cacheGet<FoursquareData | string>(cacheKey);
+  if (raw === NEGATIVE_SENTINEL) return null;          // explicitly cached as "no match"
+  if (raw !== null) return raw as FoursquareData;      // cached positive result
+  // raw === null means cache miss → fall through to API call
 
   try {
     const data = await fsqGet<FsqSearchResult>("/places/search", {
@@ -186,7 +190,7 @@ async function searchFsqVenue(place: PlaceBase): Promise<FoursquareData | null> 
     }
 
     if (!bestMatch) {
-      cacheSet(cacheKey, null, 3600); // Cache negative result for 1h
+      cacheSet(cacheKey, NEGATIVE_SENTINEL, 3600); // Cache negative result for 1h
       return null;
     }
 

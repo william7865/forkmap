@@ -18,6 +18,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+let _supabase: ReturnType<typeof createClient> | null = null;
+function getAnonClient() {
+  if (!_supabase) {
+    _supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    );
+  }
+  return _supabase;
+}
+
 export interface AuthResult {
   userId: string;
   error: null;
@@ -51,10 +62,7 @@ export async function requireUser(req: NextRequest): Promise<AuthCheck> {
 
     if (!token) return UNAUTHORIZED;
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    );
+    const supabase = getAnonClient();
 
     const { data: { user }, error } = await supabase.auth.getUser(token);
 

@@ -167,7 +167,7 @@ export function normalizeElement(el: OverpassElement): PlaceBase | null {
     // Parse opening hours at source — no Foursquare needed
     open_now: osmEnriched.open_now ?? (tags["opening_hours"] ? isOpenNow(tags["opening_hours"]) ?? undefined : undefined),
     website: tags["website"] ?? tags["contact:website"],
-    phone: tags["phone"] ?? tags["contact:phone"] ?? osmEnriched.email,
+    phone: tags["phone"] ?? tags["contact:phone"],
     address: buildAddress(tags),
     // Pre-attach OSM enrichment so it's immediately available
     osm_enriched: osmEnriched,
