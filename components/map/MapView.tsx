@@ -296,8 +296,9 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
   // ── Update icon states on select / hover ───────────────
   useEffect(() => {
     const L: A = (window as A).L; if (!L) return;
+    const placeMap = new Map(places.map(p => [p.osm_id, p]));
     for (const [id, marker] of markersRef.current) {
-      const place = places.find(p => p.osm_id === id); if (!place) continue;
+      const place = placeMap.get(id); if (!place) continue;
       const st: MState = id===selectedId?"selected":id===hoveredId?"hover":place.is_favorite?"favorite":"default";
       const rating = place.fsq?.rating ?? undefined;
       const sz = st==="selected"?36:st==="hover"?34:28;
@@ -310,7 +311,7 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
   // ── Pan to selected ───────────────────────────────────
   useEffect(() => {
     if (!selectedId || !mapRef.current) return;
-    const p = places.find(p => p.osm_id === selectedId);
+    const p = places.find(place => place.osm_id === selectedId);
     if (p) mapRef.current.panTo([p.lat, p.lon], { animate:true, duration:0.3 });
   }, [selectedId, places]);
 
