@@ -1,5 +1,7 @@
 // next.config.ts
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
+
+const isDev = process.env.NODE_ENV === 'development'
 
 const nextConfig: NextConfig = {
   async headers() {
@@ -14,11 +16,12 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' https://unpkg.com",
-              "style-src 'self' 'unsafe-inline' https://unpkg.com",
+              // 'unsafe-eval' is required by Next.js Fast Refresh in dev mode only
+              `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://unpkg.com`,
+              "style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com",
               "img-src 'self' data: blob: https://fastly.4sqi.net https://*.4sqi.net https://*.googleusercontent.com https://*.basemaps.cartocdn.com https://unpkg.com",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://overpass-api.de https://api.foursquare.com https://router.project-osrm.org https://overpass.kumi.systems https://overpass.openstreetmap.ru https://maps.mail.ru",
-              "font-src 'self'",
+              "font-src 'self' https://fonts.gstatic.com",
               "frame-ancestors 'none'",
             ].join('; '),
           },
@@ -29,17 +32,17 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       // Foursquare photos
-      { protocol: "https", hostname: "fastly.4sqi.net" },
-      { protocol: "https", hostname: "**.4sqi.net" },
+      { protocol: 'https', hostname: 'fastly.4sqi.net' },
+      { protocol: 'https', hostname: '**.4sqi.net' },
       // Google OAuth avatars
-      { protocol: "https", hostname: "*.googleusercontent.com" },
+      { protocol: 'https', hostname: '*.googleusercontent.com' },
     ],
   },
   // Ensure Leaflet doesn't break on SSR
   webpack: (config) => {
-    config.resolve.fallback = { ...config.resolve.fallback, fs: false };
-    return config;
+    config.resolve.fallback = { ...config.resolve.fallback, fs: false }
+    return config
   },
-};
+}
 
-export default nextConfig;
+export default nextConfig
