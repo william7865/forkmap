@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient, type SupabaseClient, type User, type Session } from "@supabase/supabase-js";
+import { Capacitor } from "@capacitor/core";
 
 function getClient(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -66,13 +67,15 @@ export function useAuth(): AuthState {
   }, [sb]);
 
   const signInWithGoogle = useCallback(async () => {
+    const redirectTo = Capacitor.isNativePlatform()
+      ? "com.forkmap.app://auth/callback"
+      : typeof window !== "undefined"
+      ? `${window.location.origin}/auth/callback`
+      : undefined;
+
     const { error } = await sb.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: typeof window !== "undefined"
-          ? `${window.location.origin}/auth/callback`
-          : undefined,
-      },
+      options: { redirectTo },
     });
     return error?.message ?? null;
   }, [sb]);
@@ -82,10 +85,14 @@ export function useAuth(): AuthState {
   }, [sb]);
 
   const resetPassword = useCallback(async (email: string) => {
+    const redirectTo = Capacitor.isNativePlatform()
+      ? "com.forkmap.app://auth/callback?next=/settings"
+      : typeof window !== "undefined"
+      ? `${window.location.origin}/auth/callback?next=/settings`
+      : undefined;
+
     const { error } = await sb.auth.resetPasswordForEmail(email, {
-      redirectTo: typeof window !== "undefined"
-        ? `${window.location.origin}/auth/callback?next=/settings`
-        : undefined,
+      redirectTo,
     });
     return error?.message ?? null;
   }, [sb]);

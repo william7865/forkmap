@@ -6,6 +6,7 @@ import { InfoPage } from "@/components/ui/PageLayout";
 import { useAuthGuard } from "@/lib/hooks/useAuthGuard";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/hooks/useAuth";
+import { apiFetch } from "@/lib/api";
 
 // ── Icons ─────────────────────────────────────────────────
 const IcoCheck = () => (
@@ -108,7 +109,7 @@ export default function SettingsPage() {
       // This calls DELETE /api/account which:
       // 1. Deletes all favorites from the DB
       // 2. Deletes the Supabase Auth user (permanent, GDPR Art. 17)
-      const res = await fetch("/api/account", {
+      const res = await apiFetch("/api/account", {
         method: "DELETE",
         headers: authHeader,
       });

@@ -2,6 +2,7 @@
 import { useEffect, useRef, useImperativeHandle, forwardRef } from "react";
 import { IcoSearch } from "@/components/icons";
 import type { PlaceCard } from "@/types";
+import { lightTap } from "@/lib/native/haptics";
 
 export interface MapViewHandle {
   flyTo: (lat: number, lon: number, zoom?: number) => void;
@@ -287,7 +288,7 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
         .bindTooltip(place.name, {
           direction:"top", offset:[0,-sz-6], opacity:1, className:"",
         })
-        .on("click",     () => cbClick.current(place))
+        .on("click",     () => { lightTap(); cbClick.current(place); })
         .on("mouseover", () => cbHover.current(place.osm_id))
         .on("mouseout",  () => cbHover.current(null));
       ex.set(place.osm_id, marker);
