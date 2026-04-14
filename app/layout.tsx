@@ -3,6 +3,7 @@ import "./globals.css";
 import ErrorBoundary from "@/components/states/ErrorBoundary";
 import { LanguageProvider } from "@/lib/i18n/useLanguage";
 import NavWrapper from "@/components/ui/NavWrapper";
+import CapacitorInit from "@/components/native/CapacitorInit";
 
 export const viewport: Viewport = {
   themeColor: "#ffffff",
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body style={{ height: "100%", margin: 0, padding: 0 }}>
         <LanguageProvider>
           <ErrorBoundary>
+            <CapacitorInit />
             <NavWrapper />
             {/* Push content right on desktop, up on mobile */}
             <div className="main-content-offset">
