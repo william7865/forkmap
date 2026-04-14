@@ -9,6 +9,8 @@ import type { PlaceCard, FoursquarePhoto } from "@/types";
 import { IcoWalk, IcoBike, IcoCar, IcoPen, IcoShare, IcoVisit, IcoX, IcoMap, IcoPhone, IcoGlobe, IcoClock, IcoArrow, IcoRoute, IcoStar } from "@/components/icons";
 import type { TransportMode } from "@/lib/hooks/useRouteCache";
 import { apiFetch } from "@/lib/api";
+import { Capacitor } from "@capacitor/core";
+import { Share } from "@capacitor/share";
 
 interface RouteResult { duration:number; distance:number; coords:[number,number][]; }
 
@@ -187,6 +189,20 @@ export default function PlaceDetail({
   // Fetch visits for this place
   useEffect(() => { fetchVisits(); }, [place.osm_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handleShare = async () => {
+    if (Capacitor.isNativePlatform()) {
+      const address = [place.address, place.osm_enriched?.city].filter(Boolean).join(", ");
+      await Share.share({
+        title: place.name,
+        text: address ? `${place.name} — ${address}` : place.name,
+        url: `https://forkmap.vercel.app`,
+        dialogTitle: "Partager ce restaurant",
+      });
+    } else {
+      setShowShare(true);
+    }
+  };
+
   const cuisine = place.cuisine ?? place.fsq?.categories?.[0]?.name;
   const currentMode = MODES.find(m => m.id === routeMode) ?? MODES[0];
   const photos = place.fsq?.photos ?? [];
@@ -288,7 +304,7 @@ export default function PlaceDetail({
 
             {/* Partager */}
             <button
-              onClick={() => setShowShare(true)}
+              onClick={handleShare}
               aria-label="Partager ce restaurant"
               title="Partager"
               style={{
