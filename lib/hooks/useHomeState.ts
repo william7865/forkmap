@@ -8,6 +8,7 @@ import { useToast } from "@/lib/hooks/useToast";
 import { useIsMobile } from "@/lib/hooks/useMediaQuery";
 import { useLanguage } from "@/lib/i18n/useLanguage";
 import type { MapViewHandle } from "@/components/map/MapView";
+import { getCurrentPosition } from "@/lib/native/geolocation";
 
 export function useHomeState() {
   const auth     = useAuth();
@@ -103,20 +104,20 @@ export function useHomeState() {
   }, []);
 
   const locate = useCallback(() => {
-    if (!navigator?.geolocation) {
-      setLocateError(true);
-      return;
-    }
-    setLocating(true); setLocateError(false);
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        const { latitude: lat, longitude: lon } = pos.coords;
-        setUserLocation([lat, lon]); setLocationLabel(null);
+    setLocating(true);
+    setLocateError(false);
+
+    getCurrentPosition()
+      .then(({ lat, lng: lon }) => {
+        setUserLocation([lat, lon]);
+        setLocationLabel(null);
         mapRef.current?.flyTo(lat, lon, 15);
         setLocating(false);
-      },
-      () => { setLocateError(true); setLocating(false); }
-    );
+      })
+      .catch(() => {
+        setLocateError(true);
+        setLocating(false);
+      });
   }, []);
 
   // ── Pin drop ──────────────────────────────────────────────
