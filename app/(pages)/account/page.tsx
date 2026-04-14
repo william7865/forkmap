@@ -11,6 +11,7 @@ import type { FavoriteRow, PlaceCard } from "@/types";
 import { PageHeader, GlobalFooter } from "@/components/ui/PageLayout";
 import VisitModal from "@/components/place/VisitModal";
 import Image from "next/image";
+import { apiFetch } from "@/lib/api";
 
 async function getAuthHeaders(): Promise<Record<string,string>> {
   try {
@@ -227,7 +228,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
     setVisitsError(false);
     const h = await getAuthHeaders();
     try {
-      const r = await fetch("/api/visits", { headers: h });
+      const r = await apiFetch("/api/visits", { headers: h });
       if (r.ok) { const d = await r.json(); setVisits(d.data ?? []); }
       else { setVisitsError(true); }
     } catch { setVisitsError(true); } finally { setVisitsLoading(false); }
@@ -236,8 +237,8 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
   const loadData = async () => {
     setFavError(false); setStatsError(false);
     const h = await getAuthHeaders();
-    try { const r=await fetch("/api/favorites",{headers:h}); if(r.ok){const d=await r.json();setFavorites(d.data??[]);} else { setFavError(true); } } catch { setFavError(true); } finally { setFavLoading(false); }
-    try { const r=await fetch("/api/visits/stats",{headers:h}); if(r.ok){const d=await r.json();setStats(d.data);} else { setStatsError(true); } } catch { setStatsError(true); } finally { setStatsLoading(false); }
+    try { const r=await apiFetch("/api/favorites",{headers:h}); if(r.ok){const d=await r.json();setFavorites(d.data??[]);} else { setFavError(true); } } catch { setFavError(true); } finally { setFavLoading(false); }
+    try { const r=await apiFetch("/api/visits/stats",{headers:h}); if(r.ok){const d=await r.json();setStats(d.data);} else { setStatsError(true); } } catch { setStatsError(true); } finally { setStatsLoading(false); }
   };
 
   useEffect(()=>{

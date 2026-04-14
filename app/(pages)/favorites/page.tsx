@@ -12,6 +12,7 @@ import { useAuthGuard } from "@/lib/hooks/useAuthGuard";
 import { getSupabaseBrowserClient } from "@/lib/hooks/useAuth";
 import { PageHeader, GlobalFooter } from "@/components/ui/PageLayout";
 import { getNotes, getNote, saveNote } from "@/components/place/NoteModal";
+import { apiFetch } from "@/lib/api";
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   try {
@@ -340,7 +341,7 @@ export default function FavoritesPage() {
     setLoading(true); setFetchError(null);
     try {
       const headers = await getAuthHeaders();
-      const res = await fetch("/api/favorites", { headers });
+      const res = await apiFetch("/api/favorites", { headers });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setFavorites(data.data ?? []);
@@ -379,7 +380,7 @@ export default function FavoritesPage() {
   const handleRemoveConfirm = async () => {
     if (!toDelete) return;
     const headers = await getAuthHeaders();
-    await fetch(`/api/favorites/${encodeURIComponent(toDelete.osm_id)}`,{ method:"DELETE", headers });
+    await apiFetch(`/api/favorites/${encodeURIComponent(toDelete.osm_id)}`,{ method:"DELETE", headers });
     setFavorites(prev => prev.filter(f => f.osm_id !== toDelete.osm_id));
     setToDelete(null);
   };

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { InfoPage } from "@/components/ui/PageLayout";
+import { apiFetch } from "@/lib/api";
 
 type Status = "idle" | "sending" | "success" | "error";
 
@@ -33,7 +34,7 @@ export default function ContactPage() {
     setError("");
 
     try {
-      const res = await fetch("/api/contact", {
+      const res = await apiFetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), email: email.trim(), topic, message: message.trim() }),

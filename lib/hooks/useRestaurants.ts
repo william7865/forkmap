@@ -15,6 +15,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import type { PlaceCard, FilterState, PlaceBase, FavoriteRow } from "@/types";
 import { annotateDistances, annotateScores, applyFilters } from "@/lib/scoring";
 import { getSupabaseBrowserClient } from "@/lib/hooks/useAuth";
+import { apiFetch } from "@/lib/api";
 
 interface BBox {
   minLon: number; minLat: number; maxLon: number; maxLat: number;
@@ -86,7 +87,7 @@ export function useRestaurants() {
 
     getAuthHeaders().then(authHeaders => {
       if (cancelled) return;
-      fetch("/api/favorites", { headers: authHeaders })
+      apiFetch("/api/favorites", { headers: authHeaders })
         .then(r => {
           // 401 = not logged in — completely normal, just skip silently
           if (r.status === 401) return null;
@@ -131,7 +132,7 @@ export function useRestaurants() {
     setError(null);
 
     try {
-      const osmRes = await fetch(
+      const osmRes = await apiFetch(
         `/api/osm/overpass?bbox=${bbox.minLon},${bbox.minLat},${bbox.maxLon},${bbox.maxLat}`,
         { signal }
       );
@@ -165,7 +166,7 @@ export function useRestaurants() {
       for (const batch of osmBatches) {
         if (fetchCount.current !== myFetch) return;
         try {
-          const res = await fetch("/api/places/enrich-osm", {
+          const res = await apiFetch("/api/places/enrich-osm", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ places: batch, deep: false }),
@@ -205,7 +206,7 @@ export function useRestaurants() {
         if (fetchCount.current !== myFetch) return;
 
         try {
-          const res = await fetch("/api/places/enrich", {
+          const res = await apiFetch("/api/places/enrich", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ places: batch }),
@@ -292,12 +293,12 @@ export function useRestaurants() {
       const authHeaders = await getAuthHeaders();
       let res: Response;
       if (isFav) {
-        res = await fetch(`/api/favorites/${encodeURIComponent(place.osm_id)}`, {
+        res = await apiFetch(`/api/favorites/${encodeURIComponent(place.osm_id)}`, {
           method: "DELETE",
           headers: authHeaders,
         });
       } else {
-        res = await fetch("/api/favorites", {
+        res = await apiFetch("/api/favorites", {
           method: "POST",
           headers: { "Content-Type": "application/json", ...authHeaders },
           body: JSON.stringify({ place }),

@@ -8,6 +8,7 @@ import HeartButton from "@/components/ui/HeartButton";
 import type { PlaceCard, FoursquarePhoto } from "@/types";
 import { IcoWalk, IcoBike, IcoCar, IcoPen, IcoShare, IcoVisit, IcoX, IcoMap, IcoPhone, IcoGlobe, IcoClock, IcoArrow, IcoRoute, IcoStar } from "@/components/icons";
 import type { TransportMode } from "@/lib/hooks/useRouteCache";
+import { apiFetch } from "@/lib/api";
 
 interface RouteResult { duration:number; distance:number; coords:[number,number][]; }
 
@@ -171,7 +172,7 @@ export default function PlaceDetail({
       const sb = getSupabaseBrowserClient();
       const { data: { session } } = await sb.auth.getSession();
       if (!session?.access_token) return;
-      const res = await fetch(`/api/visits?osm_id=${encodeURIComponent(place.osm_id)}`, {
+      const res = await apiFetch(`/api/visits?osm_id=${encodeURIComponent(place.osm_id)}`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (res.ok) {

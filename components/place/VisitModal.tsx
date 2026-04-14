@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { getSupabaseBrowserClient } from "@/lib/hooks/useAuth";
 import type { PlaceCard } from "@/types";
 import { friendlyError } from "@/lib/api-errors";
+import { apiFetch } from "@/lib/api";
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   try {
@@ -130,12 +131,12 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
     };
     try {
       const res = isEdit
-        ? await fetch(`/api/visits/${existingVisit!.id}`, {
+        ? await apiFetch(`/api/visits/${existingVisit!.id}`, {
             method: "PATCH",
             headers: { "Content-Type":"application/json", ...headers },
             body: JSON.stringify(body),
           })
-        : await fetch("/api/visits", {
+        : await apiFetch("/api/visits", {
             method: "POST",
             headers: { "Content-Type":"application/json", ...headers },
             body: JSON.stringify(body),
@@ -150,7 +151,7 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
     if (!existingVisit) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/visits/${existingVisit.id}`, {
+      const res = await apiFetch(`/api/visits/${existingVisit.id}`, {
         method: "DELETE",
         headers: await getAuthHeaders(),
       });
