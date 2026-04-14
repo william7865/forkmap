@@ -16,6 +16,7 @@ import type { PlaceCard, FilterState, PlaceBase, FavoriteRow } from "@/types";
 import { annotateDistances, annotateScores, applyFilters } from "@/lib/scoring";
 import { getSupabaseBrowserClient } from "@/lib/hooks/useAuth";
 import { apiFetch } from "@/lib/api";
+import { heavyTap } from "@/lib/native/haptics";
 
 interface BBox {
   minLon: number; minLat: number; maxLon: number; maxLat: number;
@@ -288,6 +289,7 @@ export function useRestaurants() {
     placesRef.current = flippedPlaces;
     setPlaces(flippedPlaces);
     setFilteredPlaces(flip);
+    heavyTap(); // haptic feedback on favorite toggle (no-op on web)
 
     try {
       const authHeaders = await getAuthHeaders();
