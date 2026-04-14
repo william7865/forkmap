@@ -30,10 +30,10 @@
     "@supabase/supabase-js": "^2.45.0",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
-    "next": "^15.0.0",
-    "react": "^18.3.0",
-    "react-dom": "^18.3.0",
-    "zod": "^3.23.8"
+    "next": "^16.2.3",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
@@ -43,8 +43,8 @@
     "@types/leaflet": "^1.9.12",
     "@types/leaflet.markercluster": "^1.5.4",
     "@types/node": "^20.17.0",
-    "@types/react": "^18.3.0",
-    "@types/react-dom": "^18.3.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@vitejs/plugin-react": "^4.3.0",
     "@vitest/coverage-v8": "^4.1.4",
