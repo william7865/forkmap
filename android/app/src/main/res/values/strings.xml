@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Forkmap</string>
+    <string name="title_activity_main">Forkmap</string>
+    <string name="package_name">com.forkmap.app</string>
+    <string name="custom_url_scheme">com.forkmap.app</string>
+</resources>
