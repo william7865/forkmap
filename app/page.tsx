@@ -315,93 +315,101 @@ export default function HomePage() {
                 stroke="white" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </div>
-          <span style={{ fontFamily:"var(--font-display)",fontWeight:400,fontSize:20,letterSpacing:"-0.04em",color:"var(--ink)",lineHeight:1 }}>
-            fork<em style={{ fontStyle:"italic",color:"var(--forest-mid)" }}>map</em>
-          </span>
+          {!isMobile && (
+            <span style={{ fontFamily:"var(--font-display)",fontWeight:400,fontSize:20,letterSpacing:"-0.04em",color:"var(--ink)",lineHeight:1 }}>
+              fork<em style={{ fontStyle:"italic",color:"var(--forest-mid)" }}>map</em>
+            </span>
+          )}
         </Link>
 
-        {/* Séparateur */}
-        <div style={{ width:1,height:22,background:"var(--ink-10)",flexShrink:0,margin:"0 2px" }}/>
+        {/* Séparateur — desktop only */}
+        {!isMobile && <div style={{ width:1,height:22,background:"var(--ink-10)",flexShrink:0,margin:"0 2px" }}/>}
 
-        {/* Search — filtre résultats visibles */}
-        <div style={{ flex:1, maxWidth:420, position:"relative" }}>
-          <span style={{ position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",color:"var(--ink-40)",pointerEvents:"none",display:"flex" }}>
-            <IcoSearch />
-          </span>
-          <input
-            type="text"
-            placeholder={tr("search_placeholder")}
-            value={nameQuery}
-            onChange={e => setNameQuery(e.target.value)}
-            style={{
-              width:"100%", padding:"8px 32px 8px 34px",
-              borderRadius:"var(--r-md)", border:"1px solid var(--ink-10)",
-              background:"var(--off-white)", color:"var(--ink)",
-              fontSize:13, fontWeight:400, outline:"none", fontFamily:"inherit",
-              transition:"all 120ms ease",
-            }}
-            onFocus={e=>{ e.currentTarget.style.borderColor="var(--forest-mid)"; e.currentTarget.style.background="white"; e.currentTarget.style.boxShadow="var(--s-focus)"; }}
-            onBlur={e=>{ e.currentTarget.style.borderColor="var(--ink-10)"; e.currentTarget.style.background="var(--off-white)"; e.currentTarget.style.boxShadow="none"; }}
-          />
-          {nameQuery && (
-            <button onClick={()=>setNameQuery("")} style={{ position:"absolute",right:9,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"var(--ink-40)",display:"flex",padding:2 }}>
-              <IcoX />
-            </button>
-          )}
-        </div>
+        {/* Search — desktop only */}
+        {!isMobile && (
+          <div style={{ flex:1, maxWidth:420, position:"relative" }}>
+            <span style={{ position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",color:"var(--ink-40)",pointerEvents:"none",display:"flex" }}>
+              <IcoSearch />
+            </span>
+            <input
+              type="text"
+              placeholder={tr("search_placeholder")}
+              value={nameQuery}
+              onChange={e => setNameQuery(e.target.value)}
+              style={{
+                width:"100%", padding:"8px 32px 8px 34px",
+                borderRadius:"var(--r-md)", border:"1px solid var(--ink-10)",
+                background:"var(--off-white)", color:"var(--ink)",
+                fontSize:13, fontWeight:400, outline:"none", fontFamily:"inherit",
+                transition:"all 120ms ease",
+              }}
+              onFocus={e=>{ e.currentTarget.style.borderColor="var(--forest-mid)"; e.currentTarget.style.background="white"; e.currentTarget.style.boxShadow="var(--s-focus)"; }}
+              onBlur={e=>{ e.currentTarget.style.borderColor="var(--ink-10)"; e.currentTarget.style.background="var(--off-white)"; e.currentTarget.style.boxShadow="none"; }}
+            />
+            {nameQuery && (
+              <button onClick={()=>setNameQuery("")} style={{ position:"absolute",right:9,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"var(--ink-40)",display:"flex",padding:2 }}>
+                <IcoX />
+              </button>
+            )}
+          </div>
+        )}
 
         <div style={{ flex:1 }}/>
 
-        {/* Loading subtle */}
-        {loading && !enriching && (
+        {/* Loading subtle — desktop only */}
+        {!isMobile && loading && !enriching && (
           <div style={{ display:"flex",alignItems:"center",gap:5,color:"var(--ink-40)",fontSize:11,fontWeight:500,flexShrink:0 }}>
             <div style={{ width:11,height:11,border:"1.5px solid var(--ink-10)",borderTop:"1.5px solid var(--forest-mid)",borderRadius:"50%",animation:"spin 0.8s linear infinite" }}/>
             Chargement
           </div>
         )}
 
-        {/* Filtres */}
-        <button onClick={()=>setShowFilters(v=>!v)} style={{
-          display:"flex", alignItems:"center", gap:6,
-          padding:"7px 13px", borderRadius:"var(--r-md)", cursor:"pointer",
-          fontSize:12, fontWeight:500, fontFamily:"var(--font-body)",
-          background: showFilters ? "var(--forest-mid)" : "var(--off-white)",
-          border:`1px solid ${showFilters ? "var(--forest-mid)" : "var(--ink-10)"}`,
-          color: showFilters ? "white" : "var(--ink-60)",
-          transition:"all 150ms var(--ease-out)", flexShrink:0,
-        }}>
-          <IcoSliders />
-          {tr("filters")}
-          {activeCount > 0 && (
-            <span style={{
-              minWidth:16, height:16, borderRadius:"var(--r-pill)",
-              background: showFilters ? "rgba(255,255,255,0.3)" : "var(--forest-mid)",
-              color:"white", fontSize:9, fontWeight:700,
-              display:"flex", alignItems:"center", justifyContent:"center", padding:"0 4px",
-            }}>
-              {activeCount}
-            </span>
-          )}
-        </button>
+        {/* Filtres — desktop only */}
+        {!isMobile && (
+          <button onClick={()=>setShowFilters(v=>!v)} style={{
+            display:"flex", alignItems:"center", gap:6,
+            padding:"7px 13px", borderRadius:"var(--r-md)", cursor:"pointer",
+            fontSize:12, fontWeight:500, fontFamily:"var(--font-body)",
+            background: showFilters ? "var(--forest-mid)" : "var(--off-white)",
+            border:`1px solid ${showFilters ? "var(--forest-mid)" : "var(--ink-10)"}`,
+            color: showFilters ? "white" : "var(--ink-60)",
+            transition:"all 150ms var(--ease-out)", flexShrink:0,
+          }}>
+            <IcoSliders />
+            {tr("filters")}
+            {activeCount > 0 && (
+              <span style={{
+                minWidth:16, height:16, borderRadius:"var(--r-pill)",
+                background: showFilters ? "rgba(255,255,255,0.3)" : "var(--forest-mid)",
+                color:"white", fontSize:9, fontWeight:700,
+                display:"flex", alignItems:"center", justifyContent:"center", padding:"0 4px",
+              }}>
+                {activeCount}
+              </span>
+            )}
+          </button>
+        )}
 
-        {/* Favoris */}
-        <a href="/favorites" style={{
-          display:"flex", alignItems:"center", gap:6,
-          padding:"7px 13px", borderRadius:"var(--r-md)",
-          textDecoration:"none", fontSize:12, fontWeight:500,
-          background:"var(--off-white)", color:"var(--ink-60)",
-          border:"1px solid var(--ink-10)", flexShrink:0,
-          transition:"all 120ms ease",
-        }}
-          onMouseEnter={e=>{ e.currentTarget.style.background="var(--cream)"; e.currentTarget.style.color="var(--ink)"; e.currentTarget.style.borderColor="var(--ink-20)"; }}
-          onMouseLeave={e=>{ e.currentTarget.style.background="var(--off-white)"; e.currentTarget.style.color="var(--ink-60)"; e.currentTarget.style.borderColor="var(--ink-10)"; }}
-        >
-          <IcoBookmark />
-          {tr("favorites")}
-        </a>
+        {/* Favoris — desktop only */}
+        {!isMobile && (
+          <a href="/favorites" style={{
+            display:"flex", alignItems:"center", gap:6,
+            padding:"7px 13px", borderRadius:"var(--r-md)",
+            textDecoration:"none", fontSize:12, fontWeight:500,
+            background:"var(--off-white)", color:"var(--ink-60)",
+            border:"1px solid var(--ink-10)", flexShrink:0,
+            transition:"all 120ms ease",
+          }}
+            onMouseEnter={e=>{ e.currentTarget.style.background="var(--cream)"; e.currentTarget.style.color="var(--ink)"; e.currentTarget.style.borderColor="var(--ink-20)"; }}
+            onMouseLeave={e=>{ e.currentTarget.style.background="var(--off-white)"; e.currentTarget.style.color="var(--ink-60)"; e.currentTarget.style.borderColor="var(--ink-10)"; }}
+          >
+            <IcoBookmark />
+            {tr("favorites")}
+          </a>
+        )}
 
         <AuthButton auth={auth} onOpenModal={() => setShowAuthModal(true)} />
-        <LanguagePicker />
+        {!isMobile && <LanguagePicker />}
 
         <EnrichBar active={enriching} />
       </header>
@@ -662,6 +670,7 @@ export default function HomePage() {
           title="Restaurants"
           subtitle={loading ? "Chargement…" : `${visiblePlaces.length} trouvés`}
           defaultSnap="half"
+          bottomOffset={80}
         >
           <StartPanel
             userLocation={userLocation}
