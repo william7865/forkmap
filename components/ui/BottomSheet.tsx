@@ -23,6 +23,8 @@ interface Props {
   defaultSnap?: SnapPoint;
   /** Called when snap changes */
   onSnapChange?: (snap: SnapPoint) => void;
+  /** Pixels from the bottom edge — use to clear a bottom nav bar */
+  bottomOffset?: number;
 }
 
 const SNAP_HEIGHTS: Record<SnapPoint, string> = {
@@ -43,6 +45,7 @@ export default function BottomSheet({
   subtitle,
   defaultSnap = "half",
   onSnapChange,
+  bottomOffset = 0,
 }: Props) {
   const [snap, setSnap] = useState<SnapPoint>(defaultSnap);
   const [dragging, setDragging] = useState(false);
@@ -125,7 +128,7 @@ export default function BottomSheet({
       ref={sheetRef}
       style={{
         position: "fixed",
-        bottom: 0,
+        bottom: bottomOffset,
         left: 0,
         right: 0,
         height: currentHeight,
