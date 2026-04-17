@@ -2,85 +2,123 @@
 // components/states/EmptyState.tsx — reusable empty state
 // Variants: no-results, no-favorites, no-location, no-area
 // ============================================================
-"use client";
+'use client'
+
+import { Search, UtensilsCrossed, MapPin, Radio } from 'lucide-react'
 
 interface Props {
-  variant: "no-results" | "no-favorites" | "no-area" | "no-location";
-  searchQuery?: string;
-  onReset?: () => void;
-  onExplore?: () => void;
+  variant: 'no-results' | 'no-favorites' | 'no-area' | 'no-location'
+  searchQuery?: string
+  onReset?: () => void
+  onExplore?: () => void
 }
 
 const CONFIG = {
-  "no-results": {
-    emoji: "🔍",
-    title: "No results found",
-    desc: (q?: string) => q ? `No restaurants match "${q}"` : "No restaurants match your filters",
-    cta: "Reset filters",
+  'no-results': {
+    Icon: Search,
+    title: 'Aucun résultat',
+    desc: (q?: string) =>
+      q
+        ? `Aucun restaurant ne correspond à "${q}"`
+        : 'Aucun restaurant ne correspond à vos filtres',
+    cta: 'Réinitialiser les filtres',
   },
-  "no-favorites": {
-    emoji: "🍽",
-    title: "Nothing saved yet",
-    desc: () => "Tap the ♡ on any restaurant to save it here",
-    cta: "Explore map",
+  'no-favorites': {
+    Icon: UtensilsCrossed,
+    title: "Rien d'enregistré",
+    desc: () => "Appuyez sur ♡ sur un restaurant pour l'enregistrer ici",
+    cta: 'Explorer la carte',
   },
-  "no-area": {
-    emoji: "📍",
-    title: "No restaurants here",
-    desc: () => "Move the map to explore a new area",
+  'no-area': {
+    Icon: MapPin,
+    title: 'Aucun restaurant ici',
+    desc: () => 'Déplacez la carte pour explorer une nouvelle zone',
     cta: null,
   },
-  "no-location": {
-    emoji: "📡",
-    title: "Location not set",
-    desc: () => "Set a starting point to see distances and routes",
+  'no-location': {
+    Icon: Radio,
+    title: 'Position non définie',
+    desc: () => 'Définissez un point de départ pour voir les distances et itinéraires',
     cta: null,
   },
-};
+}
 
 export default function EmptyState({ variant, searchQuery, onReset, onExplore }: Props) {
-  const c = CONFIG[variant];
-  const hasCta = c.cta && (onReset || onExplore);
-  const ctaFn = onReset ?? onExplore;
+  const c = CONFIG[variant]
+  const hasCta = c.cta && (onReset || onExplore)
+  const ctaFn = onReset ?? onExplore
+  const { Icon } = c
 
   return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      justifyContent: "center", gap: 14,
-      padding: "40px 24px", textAlign: "center",
-    }}>
-      <div style={{
-        width: 56, height: 56, borderRadius: 18,
-        background: "rgba(28,25,23,0.04)",
-        border: "1px solid var(--b1)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 26,
-      }}>
-        {c.emoji}
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 14,
+        padding: '40px 24px',
+        textAlign: 'center',
+      }}
+    >
+      <div
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 18,
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--text-3)',
+        }}
+      >
+        <Icon size={24} strokeWidth={1.5} />
       </div>
       <div>
-        <p style={{ margin: "0 0 5px", fontSize: 13, fontWeight: 600, color: "var(--ink-80)", letterSpacing: "-0.02em" }}>
+        <p
+          style={{
+            margin: '0 0 5px',
+            fontSize: 13,
+            fontWeight: 600,
+            color: 'var(--text)',
+            letterSpacing: '-0.02em',
+          }}
+        >
           {c.title}
         </p>
-        <p style={{ margin: 0, fontSize: 12, color: "var(--ink-60)", lineHeight: 1.65 }}>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--text-2)', lineHeight: 1.65 }}>
           {c.desc(searchQuery)}
         </p>
       </div>
       {hasCta && ctaFn && (
-        <button onClick={ctaFn} style={{
-          padding: "8px 18px", borderRadius: 999,
-          border: "1.5px solid var(--forest-mid)",
-          background: "rgba(45,122,85,0.15)",
-          color: "var(--forest)", fontSize: 12, fontWeight: 600,
-          cursor: "pointer", fontFamily: "inherit",
-          transition: "all 120ms ease",
-        }}
-          onMouseEnter={e => { e.currentTarget.style.background = "var(--forest-mid)"; e.currentTarget.style.color = "white"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "rgba(45,122,85,0.15)"; e.currentTarget.style.color = "var(--forest)"; }}
+        <button
+          onClick={ctaFn}
+          style={{
+            padding: '8px 18px',
+            borderRadius: 999,
+            border: '1.5px solid var(--accent)',
+            background: 'rgba(45,122,85,0.15)',
+            color: 'var(--accent)',
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            transition: 'all 120ms ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--accent)'
+            e.currentTarget.style.color = 'white'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(45,122,85,0.15)'
+            e.currentTarget.style.color = 'var(--accent)'
+          }}
         >
           {c.cta}
         </button>
       )}
     </div>
-  );
+  )
 }

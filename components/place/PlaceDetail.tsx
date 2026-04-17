@@ -22,6 +22,25 @@ import {
   IcoRoute,
   IcoStar,
 } from '@/components/icons'
+import {
+  Camera,
+  Trees,
+  Wifi,
+  ShoppingBag,
+  Truck,
+  Calendar,
+  PawPrint,
+  Music,
+  Leaf,
+  Moon,
+  Salad,
+  Accessibility,
+  Wind,
+  Users,
+  CalendarCheck,
+  ExternalLink,
+  Star,
+} from 'lucide-react'
 import type { TransportMode } from '@/lib/hooks/useRouteCache'
 import { apiFetch } from '@/lib/api'
 import { Capacitor } from '@capacitor/core'
@@ -48,9 +67,9 @@ interface Props {
 }
 
 const MODES: { id: TransportMode; icon: React.ReactNode; label: string; gmaps: string }[] = [
-  { id: 'foot', icon: <IcoWalk />, label: 'Walk', gmaps: 'walking' },
-  { id: 'bike', icon: <IcoBike />, label: 'Bike', gmaps: 'bicycling' },
-  { id: 'car', icon: <IcoCar />, label: 'Drive', gmaps: 'driving' },
+  { id: 'foot', icon: <IcoWalk />, label: 'Marche', gmaps: 'walking' },
+  { id: 'bike', icon: <IcoBike />, label: 'Vélo', gmaps: 'bicycling' },
+  { id: 'car', icon: <IcoCar />, label: 'Voiture', gmaps: 'driving' },
 ]
 
 function fmt(secs: number) {
@@ -157,9 +176,12 @@ function PhotoGallery({ photos }: { photos: FoursquarePhoto[] }) {
           fontSize: 9,
           color: 'rgba(255,255,255,0.55)',
           fontWeight: 500,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 3,
         }}
       >
-        📷 Foursquare
+        <Camera size={9} strokeWidth={1.5} /> Foursquare
       </div>
     </div>
   )
@@ -256,15 +278,14 @@ export default function PlaceDetail({
     note?: string
   }
 
-  const MOOD_EMOJI: Record<string, string> = {
-    solo: '🧍',
-    couple: '👫',
-    friends: '👯',
-    family: '👨‍👩‍👧',
-    work: '💼',
+  const MOOD_LABELS: Record<string, string> = {
+    solo: 'Solo',
+    couple: 'En couple',
+    friends: 'Entre amis',
+    family: 'En famille',
+    work: 'Pro',
   }
 
-  const [transportMode, setTransportMode] = useState<'walk' | 'bike' | 'drive'>('walk')
   const [showShare, setShowShare] = useState(false)
   const [showNote, setShowNote] = useState(false)
   const [showVisit, setShowVisit] = useState(false)
@@ -353,8 +374,34 @@ export default function PlaceDetail({
       {photos.length > 0 && <PhotoGallery photos={photos} />}
 
       {/* ── HEADER ─────────────────────────────────── */}
-      <div style={{ padding: '16px 16px 14px', flexShrink: 0 }}>
-        {/* Top row: name + actions */}
+      <div style={{ padding: '16px 16px 14px', flexShrink: 0, position: 'relative' }}>
+        {/* Close button — absolutely positioned top-right */}
+        <button
+          onClick={onClose}
+          aria-label="Fermer"
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            width: 34,
+            height: 34,
+            minWidth: 44,
+            minHeight: 44,
+            borderRadius: 'var(--r-sm)',
+            border: '1px solid var(--ink-10)',
+            background: 'var(--off-white)',
+            color: 'var(--ink-60)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background 150ms ease',
+          }}
+        >
+          <IcoX />
+        </button>
+
+        {/* Top row: name + actions (4 buttons, no close) */}
         <div
           style={{
             display: 'flex',
@@ -362,6 +409,7 @@ export default function PlaceDetail({
             alignItems: 'flex-start',
             gap: 10,
             marginBottom: 10,
+            paddingRight: 46,
           }}
         >
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -416,7 +464,7 @@ export default function PlaceDetail({
               ))}
           </div>
 
-          {/* Action buttons */}
+          {/* Action buttons — 4 buttons (Note, Visite, Share, Fav) */}
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             {/* Note perso */}
             <button
@@ -587,28 +635,6 @@ export default function PlaceDetail({
                 onClick={() => onToggleFavorite(place)}
               />
             </div>
-            {/* Close */}
-            <button
-              onClick={onClose}
-              aria-label="Fermer"
-              style={{
-                width: 34,
-                height: 34,
-                minWidth: 44,
-                minHeight: 44,
-                borderRadius: 'var(--r-sm)',
-                border: '1px solid var(--ink-10)',
-                background: 'var(--off-white)',
-                color: 'var(--ink-60)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'background 150ms ease',
-              }}
-            >
-              <IcoX />
-            </button>
           </div>
         </div>
 
@@ -728,7 +754,7 @@ export default function PlaceDetail({
             >
               <Label>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <IcoStar /> Rating
+                  <IcoStar /> Note
                 </span>
               </Label>
               {place.fsq.total_ratings && (
@@ -739,7 +765,7 @@ export default function PlaceDetail({
                     fontVariantNumeric: 'tabular-nums',
                   }}
                 >
-                  {place.fsq.total_ratings.toLocaleString()} reviews
+                  {place.fsq.total_ratings.toLocaleString()} avis
                 </span>
               )}
             </div>
@@ -752,7 +778,7 @@ export default function PlaceDetail({
           <Label>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <IcoRoute />
-              {hasUserLocation ? 'Route from your start' : 'Getting there'}
+              {hasUserLocation ? 'Depuis votre départ' : 'Y aller'}
             </span>
           </Label>
 
@@ -769,9 +795,9 @@ export default function PlaceDetail({
                 lineHeight: 1.6,
               }}
             >
-              Set a starting point to
+              Définissez un point de départ
               <br />
-              see real-time routes
+              pour voir les itinéraires
             </div>
           ) : (
             <div
@@ -847,7 +873,7 @@ export default function PlaceDetail({
                         animation: 'spin 0.7s linear infinite',
                       }}
                     />
-                    <span style={{ fontSize: 12, color: 'var(--ink-60)' }}>Calculating…</span>
+                    <span style={{ fontSize: 12, color: 'var(--ink-60)' }}>Calcul en cours…</span>
                   </div>
                 ) : routeResult ? (
                   <>
@@ -871,7 +897,7 @@ export default function PlaceDetail({
                             marginBottom: 3,
                           }}
                         >
-                          Travel time
+                          Temps de trajet
                         </div>
                         <div
                           style={{
@@ -896,7 +922,7 @@ export default function PlaceDetail({
                             marginBottom: 3,
                           }}
                         >
-                          By road
+                          Distance
                         </div>
                         <div
                           style={{
@@ -927,7 +953,7 @@ export default function PlaceDetail({
                       }}
                     >
                       <IcoRoute />
-                      Route traced on map
+                      Trajet sur la carte
                     </div>
 
                     {/* Google Maps CTA */}
@@ -954,7 +980,7 @@ export default function PlaceDetail({
                       onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--forest)')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--forest-mid)')}
                     >
-                      Open in Google Maps <IcoArrow />
+                      Ouvrir dans Google Maps <IcoArrow />
                     </a>
                   </>
                 ) : (
@@ -967,7 +993,7 @@ export default function PlaceDetail({
                       color: 'var(--ink-60)',
                     }}
                   >
-                    Select a restaurant to calculate route
+                    Sélectionnez un restaurant pour calculer l&apos;itinéraire
                   </p>
                 )}
               </div>
@@ -995,7 +1021,13 @@ export default function PlaceDetail({
                   border: '1px solid rgba(196,124,43,0.25)',
                 }}
               >
-                {'⭐'.repeat(place.wikidata?.michelin_stars ?? place.osm_enriched?.michelin ?? 0)}{' '}
+                <span style={{ display: 'inline-flex', gap: 1 }}>
+                  {Array.from({
+                    length: place.wikidata?.michelin_stars ?? place.osm_enriched?.michelin ?? 0,
+                  }).map((_, i) => (
+                    <Star key={i} size={10} fill="currentColor" strokeWidth={0} />
+                  ))}
+                </span>{' '}
                 Michelin
               </span>
             )}
@@ -1085,96 +1117,106 @@ export default function PlaceDetail({
         {(() => {
           const e = place.osm_enriched
           if (!e) return null
-          const pills: { label: string; emoji: string; color: string; bg: string }[] = []
+          const pills: { label: string; icon: React.ReactNode; color: string; bg: string }[] = []
           if (e.outdoor_seating)
             pills.push({
               label: 'Terrasse',
-              emoji: '🌿',
+              icon: <Trees size={10} strokeWidth={1.75} />,
               color: 'var(--forest)',
               bg: 'var(--forest-pale)',
             })
           if (e.wifi)
-            pills.push({ label: 'Wi-Fi', emoji: '📶', color: 'var(--sky)', bg: 'var(--sky-pale)' })
+            pills.push({
+              label: 'Wi-Fi',
+              icon: <Wifi size={10} strokeWidth={1.75} />,
+              color: 'var(--sky)',
+              bg: 'var(--sky-pale)',
+            })
           if (e.takeaway)
             pills.push({
               label: 'À emporter',
-              emoji: '🥡',
+              icon: <ShoppingBag size={10} strokeWidth={1.75} />,
               color: 'var(--ink-60)',
               bg: 'var(--cream)',
             })
           if (e.delivery)
             pills.push({
               label: 'Livraison',
-              emoji: '🛵',
+              icon: <Truck size={10} strokeWidth={1.75} />,
               color: 'var(--ink-60)',
               bg: 'var(--cream)',
             })
           if (e.reservations)
             pills.push({
               label: 'Réservation',
-              emoji: '📅',
+              icon: <Calendar size={10} strokeWidth={1.75} />,
               color: 'var(--ink-60)',
               bg: 'var(--cream)',
             })
           if (e.dogs_allowed)
             pills.push({
               label: 'Chiens OK',
-              emoji: '🐕',
+              icon: <PawPrint size={10} strokeWidth={1.75} />,
               color: 'var(--ink-60)',
               bg: 'var(--cream)',
             })
           if (e.live_music)
             pills.push({
               label: 'Musique live',
-              emoji: '🎵',
+              icon: <Music size={10} strokeWidth={1.75} />,
               color: 'var(--amber)',
               bg: 'var(--amber-pale)',
             })
           if (e.organic)
             pills.push({
               label: 'Bio',
-              emoji: '🌱',
+              icon: <Leaf size={10} strokeWidth={1.75} />,
               color: 'var(--forest)',
               bg: 'var(--forest-pale)',
             })
           if (e.halal)
             pills.push({
               label: 'Halal',
-              emoji: '☪️',
+              icon: <Moon size={10} strokeWidth={1.75} />,
               color: 'var(--forest)',
               bg: 'var(--forest-pale)',
             })
           if (e.kosher)
-            pills.push({ label: 'Kasher', emoji: '✡️', color: 'var(--sky)', bg: 'var(--sky-pale)' })
+            pills.push({
+              label: 'Kasher',
+              icon: <Star size={10} strokeWidth={1.75} />,
+              color: 'var(--sky)',
+              bg: 'var(--sky-pale)',
+            })
           if (e.vegetarian_friendly)
             pills.push({
               label: 'Végétarien',
-              emoji: '🥗',
+              icon: <Salad size={10} strokeWidth={1.75} />,
               color: 'var(--forest)',
               bg: 'var(--forest-pale)',
             })
           if (e.wheelchair === 'yes')
             pills.push({
               label: 'Accessible PMR',
-              emoji: '♿',
+              icon: <Accessibility size={10} strokeWidth={1.75} />,
               color: 'var(--sky)',
               bg: 'var(--sky-pale)',
             })
           if (e.wheelchair === 'limited')
             pills.push({
               label: 'PMR partiel',
-              emoji: '♿',
+              icon: <Accessibility size={10} strokeWidth={1.75} />,
               color: 'var(--amber)',
               bg: 'var(--amber-pale)',
             })
           if (e.air_conditioning)
             pills.push({
               label: 'Climatisation',
-              emoji: '❄️',
+              icon: <Wind size={10} strokeWidth={1.75} />,
               color: 'var(--sky)',
               bg: 'var(--sky-pale)',
             })
-          if (!pills.length) return null
+          if (!pills.length && !e.capacity) return null
           return (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {pills.map((p) => (
@@ -1193,7 +1235,7 @@ export default function PlaceDetail({
                     border: 'none',
                   }}
                 >
-                  <span aria-hidden="true">{p.emoji}</span> {p.label}
+                  <span aria-hidden="true">{p.icon}</span> {p.label}
                 </span>
               ))}
               {e.capacity && (
@@ -1210,7 +1252,10 @@ export default function PlaceDetail({
                     color: 'var(--ink-60)',
                   }}
                 >
-                  <span aria-hidden="true">🪑</span> {e.capacity} couverts
+                  <span aria-hidden="true">
+                    <Users size={10} strokeWidth={1.75} />
+                  </span>{' '}
+                  {e.capacity} couverts
                 </span>
               )}
             </div>
@@ -1319,7 +1364,7 @@ export default function PlaceDetail({
                 whiteSpace: 'nowrap',
               }}
             >
-              📅 Réserver
+              <CalendarCheck size={12} strokeWidth={1.75} /> Réserver
             </a>
           )}
           {(place.fsq?.website ?? place.website) && (
@@ -1390,7 +1435,7 @@ export default function PlaceDetail({
                 whiteSpace: 'nowrap',
               }}
             >
-              📷 Instagram
+              <ExternalLink size={12} strokeWidth={1.75} /> Instagram
             </a>
           )}
         </div>
@@ -1491,9 +1536,12 @@ export default function PlaceDetail({
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
                     }}
                   >
-                    📅{' '}
+                    <Calendar size={11} strokeWidth={1.75} />{' '}
                     {new Date(v.visited_at).toLocaleDateString('fr-FR', {
                       day: 'numeric',
                       month: 'short',
@@ -1504,8 +1552,10 @@ export default function PlaceDetail({
                         {'★'.repeat(v.personal_rating)}
                       </span>
                     )}
-                    {v.mood && MOOD_EMOJI[v.mood] && (
-                      <span style={{ marginLeft: 6 }}>{MOOD_EMOJI[v.mood]}</span>
+                    {v.mood && MOOD_LABELS[v.mood] && (
+                      <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--text-3)' }}>
+                        {MOOD_LABELS[v.mood] ?? v.mood}
+                      </span>
                     )}
                     {v.amount_spent != null && (
                       <span style={{ marginLeft: 6, color: 'var(--ink-60)' }}>
@@ -1706,65 +1756,7 @@ export default function PlaceDetail({
             letterSpacing: '0.02em',
           }}
         >
-          View on OpenStreetMap
-        </a>
-      </div>
-
-      {/* Sticky bottom CTA */}
-      <div
-        style={{
-          position: 'sticky',
-          bottom: 0,
-          background: 'var(--white)',
-          borderTop: '1px solid var(--ink-10)',
-          padding: '12px 16px',
-        }}
-      >
-        {/* Transport mode tabs */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
-          {(['walk', 'bike', 'drive'] as const).map((mode) => (
-            <button
-              key={mode}
-              onClick={() => setTransportMode(mode)}
-              style={{
-                flex: 1,
-                padding: '6px 0',
-                borderRadius: 'var(--r-sm)',
-                fontSize: 11,
-                fontWeight: 600,
-                border: `1px solid ${transportMode === mode ? 'var(--forest-mid)' : 'var(--ink-10)'}`,
-                background: transportMode === mode ? 'var(--forest-pale)' : 'transparent',
-                color: transportMode === mode ? 'var(--forest-mid)' : 'var(--ink-60)',
-                cursor: 'pointer',
-                fontFamily: 'var(--font-body)',
-              }}
-            >
-              {mode === 'walk' ? '🚶 Marche' : mode === 'bike' ? '🚲 Vélo' : '🚗 Voiture'}
-            </button>
-          ))}
-        </div>
-        <a
-          href={`https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}&travelmode=${transportMode === 'walk' ? 'walking' : transportMode === 'bike' ? 'bicycling' : 'driving'}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: 'block',
-            width: '100%',
-            padding: '12px',
-            background: 'var(--forest-mid)',
-            color: 'white',
-            border: 'none',
-            borderRadius: 'var(--r-md)',
-            fontSize: 14,
-            fontWeight: 700,
-            cursor: 'pointer',
-            fontFamily: 'var(--font-body)',
-            boxShadow: 'var(--s-forest)',
-            textAlign: 'center',
-            textDecoration: 'none',
-          }}
-        >
-          Itinéraire →
+          Voir sur OpenStreetMap
         </a>
       </div>
 

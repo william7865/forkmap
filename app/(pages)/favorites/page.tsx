@@ -34,8 +34,8 @@ const IcoHeart = ({ filled }: { filled?: boolean }) => (
     width="14"
     height="14"
     viewBox="0 0 24 24"
-    fill={filled ? 'var(--forest-mid)' : 'none'}
-    stroke={filled ? 'var(--forest-mid)' : 'currentColor'}
+    fill={filled ? 'var(--accent)' : 'none'}
+    stroke={filled ? 'var(--accent)' : 'currentColor'}
     strokeWidth="1.7"
     strokeLinecap="round"
     strokeLinejoin="round"
@@ -296,7 +296,7 @@ function DeleteModal({
         >
           Retirer des favoris ?
         </h3>
-        <p style={{ margin: '0 0 22px', fontSize: 13, color: 'var(--ink-60)', lineHeight: 1.6 }}>
+        <p style={{ margin: '0 0 22px', fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>
           <strong style={{ color: 'var(--ink-80)' }}>{name}</strong> sera retiré de vos lieux
           sauvegardés.
         </p>
@@ -308,7 +308,7 @@ function DeleteModal({
               flex: 1,
               padding: '10px',
               borderRadius: 'var(--r-md)',
-              border: '1px solid var(--ink-10)',
+              border: '1px solid var(--border)',
               background: 'transparent',
               cursor: 'pointer',
               fontSize: 13,
@@ -416,12 +416,12 @@ function NoteDrawer({
               width: 36,
               height: 36,
               borderRadius: 10,
-              background: 'var(--forest-pale)',
+              background: 'var(--accent-light)',
               border: '1px solid rgba(45,122,85,0.2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'var(--forest-mid)',
+              color: 'var(--accent)',
               flexShrink: 0,
             }}
           >
@@ -446,7 +446,7 @@ function NoteDrawer({
               style={{
                 margin: 0,
                 fontSize: 10,
-                color: 'var(--ink-40)',
+                color: 'var(--text-3)',
                 fontWeight: 600,
                 letterSpacing: '0.05em',
                 textTransform: 'uppercase',
@@ -462,9 +462,9 @@ function NoteDrawer({
               width: 28,
               height: 28,
               borderRadius: '50%',
-              border: '1px solid var(--ink-10)',
-              background: 'var(--off-white)',
-              color: 'var(--ink-60)',
+              border: '1px solid var(--border)',
+              background: 'var(--surface)',
+              color: 'var(--text-2)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -485,10 +485,10 @@ function NoteDrawer({
             boxSizing: 'border-box',
             padding: '11px 13px',
             borderRadius: 'var(--r-md)',
-            border: '1.5px solid var(--ink-10)',
-            background: 'var(--off-white)',
+            border: '1.5px solid var(--border)',
+            background: 'var(--surface)',
             fontSize: 13,
-            color: 'var(--ink)',
+            color: 'var(--text)',
             lineHeight: 1.65,
             fontFamily: 'var(--font-body)',
             resize: 'none',
@@ -496,11 +496,11 @@ function NoteDrawer({
             transition: 'border-color 150ms',
           }}
           onFocus={(e) => {
-            e.target.style.borderColor = 'var(--forest-mid)'
+            e.target.style.borderColor = 'var(--accent)'
             e.target.style.boxShadow = 'var(--s-focus)'
           }}
           onBlur={(e) => {
-            e.target.style.borderColor = 'var(--ink-10)'
+            e.target.style.borderColor = 'var(--border)'
             e.target.style.boxShadow = 'none'
           }}
         />
@@ -514,7 +514,7 @@ function NoteDrawer({
             marginBottom: 12,
           }}
         >
-          <span style={{ fontSize: 10, color: 'var(--ink-40)', fontWeight: 500 }}>
+          <span style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 500 }}>
             {value.length}/{MAX}
           </span>
         </div>
@@ -549,7 +549,7 @@ function NoteDrawer({
               padding: '11px',
               borderRadius: 'var(--r-md)',
               border: 'none',
-              background: saved ? 'var(--green)' : 'var(--forest-mid)',
+              background: saved ? 'var(--green)' : 'var(--accent)',
               color: 'white',
               cursor: 'pointer',
               fontSize: 13,
@@ -657,9 +657,9 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
               width: 28,
               height: 28,
               borderRadius: '50%',
-              border: '1px solid var(--ink-10)',
-              background: 'var(--off-white)',
-              color: 'var(--ink-60)',
+              border: '1px solid var(--border)',
+              background: 'var(--surface)',
+              color: 'var(--text-2)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -718,7 +718,7 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
                 </svg>
               ),
               label: 'Email',
-              color: 'var(--ink-60)',
+              color: 'var(--text-2)',
               bg: 'var(--cream)',
               onClick: () =>
                 window.open(
@@ -738,7 +738,7 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
                 gap: 6,
                 padding: '12px 8px',
                 borderRadius: 'var(--r-lg)',
-                border: '1px solid var(--ink-10)',
+                border: '1px solid var(--border)',
                 background: 'var(--white)',
                 cursor: 'pointer',
                 transition: 'all 150ms',
@@ -751,8 +751,8 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'var(--white)'
-                e.currentTarget.style.borderColor = 'var(--ink-10)'
-                e.currentTarget.style.color = 'var(--ink-60)'
+                e.currentTarget.style.borderColor = 'var(--border)'
+                e.currentTarget.style.color = 'var(--text-2)'
               }}
             >
               <div style={{ color: 'inherit' }}>{ch.icon}</div>
@@ -768,8 +768,8 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
             gap: 8,
             padding: '9px 10px 9px 14px',
             borderRadius: 'var(--r-md)',
-            background: 'var(--off-white)',
-            border: `1px solid ${copied ? 'rgba(45,122,85,0.4)' : 'var(--ink-10)'}`,
+            background: 'var(--surface)',
+            border: `1px solid ${copied ? 'rgba(45,122,85,0.4)' : 'var(--border)'}`,
             transition: 'border-color 200ms',
           }}
         >
@@ -777,7 +777,7 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
             style={{
               flex: 1,
               fontSize: 11,
-              color: 'var(--ink-60)',
+              color: 'var(--text-2)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -793,12 +793,12 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
               gap: 5,
               padding: '5px 11px',
               borderRadius: 'var(--r-sm)',
-              background: copied ? 'var(--forest-pale)' : 'var(--white)',
-              border: `1px solid ${copied ? 'rgba(45,122,85,0.4)' : 'var(--ink-10)'}`,
+              background: copied ? 'var(--accent-light)' : 'var(--white)',
+              border: `1px solid ${copied ? 'rgba(45,122,85,0.4)' : 'var(--border)'}`,
               cursor: 'pointer',
               fontSize: 11,
               fontWeight: 600,
-              color: copied ? 'var(--green)' : 'var(--ink-60)',
+              color: copied ? 'var(--green)' : 'var(--text-2)',
               fontFamily: 'inherit',
               whiteSpace: 'nowrap',
               flexShrink: 0,
@@ -849,8 +849,8 @@ function FavCardList({
       onMouseLeave={() => setHovered(false)}
       style={{
         background: 'var(--white)',
-        border: `1px solid ${hovered ? 'var(--ink-20)' : 'var(--ink-10)'}`,
-        borderLeft: `3px solid ${hovered ? 'var(--forest-mid)' : 'rgba(45,122,85,0.35)'}`,
+        border: `1px solid ${hovered ? 'var(--ink-20)' : 'var(--border)'}`,
+        borderLeft: `3px solid ${hovered ? 'var(--accent)' : 'rgba(45,122,85,0.35)'}`,
         borderRadius: 'var(--r-xl)',
         overflow: 'hidden',
         boxShadow: hovered ? 'var(--s3)' : 'var(--s1)',
@@ -886,7 +886,7 @@ function FavCardList({
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
-                color: 'var(--ink)',
+                color: 'var(--text)',
               }}
             >
               {fav.name}
@@ -902,8 +902,8 @@ function FavCardList({
                     fontWeight: 700,
                     letterSpacing: '0.07em',
                     textTransform: 'uppercase',
-                    background: 'var(--forest-pale)',
-                    color: 'var(--forest-mid)',
+                    background: 'var(--accent-light)',
+                    color: 'var(--accent)',
                     border: '1px solid rgba(45,122,85,0.2)',
                   }}
                 >
@@ -918,7 +918,7 @@ function FavCardList({
                     fontSize: 10,
                     fontWeight: 600,
                     background: 'var(--cream)',
-                    color: 'var(--ink-60)',
+                    color: 'var(--text-2)',
                     border: '1px solid var(--bone)',
                   }}
                 >
@@ -951,7 +951,7 @@ function FavCardList({
                     fontSize: 10,
                     fontWeight: 700,
                     background: rating >= 9 ? 'var(--amber-pale)' : 'var(--cream)',
-                    color: rating >= 9 ? 'var(--amber)' : 'var(--ink-60)',
+                    color: rating >= 9 ? 'var(--amber)' : 'var(--text-2)',
                     border: `1px solid ${rating >= 9 ? '#fed7aa' : 'var(--bone)'}`,
                   }}
                 >
@@ -967,14 +967,14 @@ function FavCardList({
               icon={<IcoPen />}
               label="Modifier la note"
               active={!!note}
-              activeColor="var(--forest-mid)"
-              activeBg="var(--forest-pale)"
+              activeColor="var(--accent)"
+              activeBg="var(--accent-light)"
               onClick={onNote}
             />
             <ActionBtn icon={<IcoShare />} label="Partager" onClick={onShare} />
             <ActionBtn
               icon={<IcoTrash />}
-              label="Retirer des favoris"
+              label="Retirer"
               hoverColor="var(--coral)"
               hoverBg="var(--coral-pale)"
               onClick={onRemove}
@@ -991,9 +991,9 @@ function FavCardList({
               alignItems: 'flex-start',
               gap: 8,
               padding: '8px 10px',
-              background: 'var(--forest-pale)',
+              background: 'var(--accent-light)',
               border: '1px solid rgba(45,122,85,0.2)',
-              borderLeft: '2px solid var(--forest-mid)',
+              borderLeft: '2px solid var(--accent)',
               borderRadius: 'var(--r-sm)',
               cursor: 'pointer',
               textAlign: 'left',
@@ -1003,7 +1003,7 @@ function FavCardList({
               marginBottom: 4,
             }}
             onMouseEnter={(e) => (e.currentTarget.style.borderLeftColor = 'var(--forest)')}
-            onMouseLeave={(e) => (e.currentTarget.style.borderLeftColor = 'var(--forest-mid)')}
+            onMouseLeave={(e) => (e.currentTarget.style.borderLeftColor = 'var(--accent)')}
           >
             <IcoPen />
             <span
@@ -1031,7 +1031,7 @@ function FavCardList({
             marginTop: 8,
           }}
         >
-          <span style={{ fontSize: 10, color: 'var(--ink-40)', fontWeight: 500 }}>{dateLabel}</span>
+          <span style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 500 }}>{dateLabel}</span>
           <button
             onClick={onOpenMap}
             style={{
@@ -1040,24 +1040,24 @@ function FavCardList({
               gap: 4,
               padding: '4px 10px',
               borderRadius: 'var(--r-sm)',
-              border: '1px solid var(--ink-10)',
+              border: '1px solid var(--border)',
               background: 'transparent',
               cursor: 'pointer',
               fontSize: 11,
               fontWeight: 600,
-              color: 'var(--ink-60)',
+              color: 'var(--text-2)',
               fontFamily: 'inherit',
               transition: 'all 120ms',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--forest-pale)'
-              e.currentTarget.style.color = 'var(--forest-mid)'
+              e.currentTarget.style.background = 'var(--accent-light)'
+              e.currentTarget.style.color = 'var(--accent)'
               e.currentTarget.style.borderColor = 'rgba(45,122,85,0.3)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = 'var(--ink-60)'
-              e.currentTarget.style.borderColor = 'var(--ink-10)'
+              e.currentTarget.style.color = 'var(--text-2)'
+              e.currentTarget.style.borderColor = 'var(--border)'
             }}
           >
             <IcoMap /> Voir sur la carte
@@ -1111,7 +1111,7 @@ function FavCardGrid({
       onMouseLeave={() => setHovered(false)}
       style={{
         background: 'var(--white)',
-        border: `1px solid ${hovered ? 'var(--ink-20)' : 'var(--ink-10)'}`,
+        border: `1px solid ${hovered ? 'var(--ink-20)' : 'var(--border)'}`,
         borderRadius: 'var(--r-xl)',
         overflow: 'hidden',
         boxShadow: hovered ? 'var(--s3)' : 'var(--s1)',
@@ -1201,7 +1201,7 @@ function FavCardGrid({
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
-            color: 'var(--ink)',
+            color: 'var(--text)',
           }}
         >
           {fav.name}
@@ -1213,7 +1213,7 @@ function FavCardGrid({
               fontWeight: 700,
               letterSpacing: '0.07em',
               textTransform: 'uppercase',
-              color: 'var(--forest-mid)',
+              color: 'var(--accent)',
             }}
           >
             {cuisine}
@@ -1222,14 +1222,14 @@ function FavCardGrid({
         <div style={{ flex: 1 }} />
         {/* Action row */}
         <div
-          style={{ display: 'flex', gap: 5, paddingTop: 6, borderTop: '1px solid var(--ink-10)' }}
+          style={{ display: 'flex', gap: 5, paddingTop: 6, borderTop: '1px solid var(--border)' }}
         >
           <ActionBtn
             icon={<IcoPen />}
             label="Modifier la note"
             active={!!note}
-            activeColor="var(--forest-mid)"
-            activeBg="var(--forest-pale)"
+            activeColor="var(--accent)"
+            activeBg="var(--accent-light)"
             onClick={onNote}
             small
           />
@@ -1237,7 +1237,7 @@ function FavCardGrid({
           <div style={{ flex: 1 }} />
           <ActionBtn
             icon={<IcoTrash />}
-            label="Retirer des favoris"
+            label="Retirer"
             hoverColor="var(--coral)"
             hoverBg="var(--coral-pale)"
             onClick={onRemove}
@@ -1272,11 +1272,11 @@ function ActionBtn({
   small?: boolean
 }) {
   const sz = small ? 28 : 30
-  const bg = active ? (activeBg ?? 'var(--forest-pale)') : 'var(--off-white)'
-  const color = active ? (activeColor ?? 'var(--forest-mid)') : 'var(--ink-40)'
+  const bg = active ? (activeBg ?? 'var(--accent-light)') : 'var(--surface)'
+  const color = active ? (activeColor ?? 'var(--accent)') : 'var(--text-3)'
   const border = active
     ? `1px solid ${activeColor ? activeColor + '44' : 'rgba(45,122,85,0.3)'}`
-    : '1px solid var(--ink-10)'
+    : '1px solid var(--border)'
   return (
     <button
       onClick={(e) => {
@@ -1303,7 +1303,7 @@ function ActionBtn({
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.background = hoverBg ?? activeBg ?? 'var(--cream)'
-        e.currentTarget.style.color = hoverColor ?? activeColor ?? 'var(--ink)'
+        e.currentTarget.style.color = hoverColor ?? activeColor ?? 'var(--text)'
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = bg
@@ -1406,7 +1406,7 @@ export default function FavoritesPage() {
             width: 32,
             height: 32,
             border: '2px solid var(--bone)',
-            borderTop: '2px solid var(--forest-mid)',
+            borderTop: '2px solid var(--accent)',
             borderRadius: '50%',
             animation: 'spin 0.7s linear infinite',
           }}
@@ -1436,8 +1436,8 @@ export default function FavoritesPage() {
         borderRadius: 'var(--r-pill)',
         fontSize: 11,
         fontWeight: 600,
-        background: 'var(--forest-pale)',
-        color: 'var(--forest-mid)',
+        background: 'var(--accent-light)',
+        color: 'var(--accent)',
         border: '1px solid rgba(45,122,85,0.2)',
       }}
     >
@@ -1450,15 +1450,15 @@ export default function FavoritesPage() {
     <div
       style={{
         minHeight: '100vh',
-        background: 'var(--off-white)',
-        color: 'var(--ink)',
+        background: 'var(--surface)',
+        color: 'var(--text)',
         fontFamily: 'var(--font-body)',
         display: 'flex',
         flexDirection: 'column',
       }}
     >
       <PageHeader
-        current="Mes favoris"
+        current="Enregistrés"
         actions={!loading && favorites.length > 0 ? headerActions : undefined}
       />
 
@@ -1480,7 +1480,7 @@ export default function FavoritesPage() {
                 alignItems: 'center',
                 gap: 6,
                 fontSize: 14,
-                color: 'var(--ink-60)',
+                color: 'var(--text-2)',
                 textDecoration: 'none',
                 marginBottom: 16,
               }}
@@ -1499,7 +1499,7 @@ export default function FavoritesPage() {
             >
               Lieux sauvegardés
             </h1>
-            <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-40)' }}>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-3)' }}>
               {loading
                 ? 'Chargement…'
                 : `${sorted.length}${cuisine ? ` sur ${favorites.length}` : ''} restaurant${sorted.length !== 1 ? 's' : ''} sauvegardé${sorted.length !== 1 ? 's' : ''}`}
@@ -1525,7 +1525,7 @@ export default function FavoritesPage() {
                   style={{
                     fontSize: 9.5,
                     fontWeight: 700,
-                    color: 'var(--ink-40)',
+                    color: 'var(--text-3)',
                     letterSpacing: '0.1em',
                     textTransform: 'uppercase',
                     marginRight: 2,
@@ -1550,9 +1550,9 @@ export default function FavoritesPage() {
                       fontSize: 11,
                       fontWeight: 600,
                       cursor: 'pointer',
-                      border: `1px solid ${sortBy === k ? 'var(--forest-mid)' : 'var(--ink-10)'}`,
-                      background: sortBy === k ? 'var(--forest-pale)' : 'transparent',
-                      color: sortBy === k ? 'var(--forest)' : 'var(--ink-60)',
+                      border: `1px solid ${sortBy === k ? 'var(--accent)' : 'var(--border)'}`,
+                      background: sortBy === k ? 'var(--accent-light)' : 'transparent',
+                      color: sortBy === k ? 'var(--forest)' : 'var(--text-2)',
                       transition: 'all 120ms',
                       fontFamily: 'inherit',
                     }}
@@ -1569,9 +1569,9 @@ export default function FavoritesPage() {
                 style={{
                   display: 'flex',
                   borderRadius: 'var(--r-md)',
-                  border: '1px solid var(--ink-10)',
+                  border: '1px solid var(--border)',
                   overflow: 'hidden',
-                  background: 'var(--off-white)',
+                  background: 'var(--surface)',
                 }}
               >
                 {(['list', 'grid'] as ViewMode[]).map((m) => (
@@ -1585,8 +1585,8 @@ export default function FavoritesPage() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       border: 'none',
-                      background: viewMode === m ? 'var(--ink)' : 'transparent',
-                      color: viewMode === m ? 'white' : 'var(--ink-60)',
+                      background: viewMode === m ? 'var(--text)' : 'transparent',
+                      color: viewMode === m ? 'white' : 'var(--text-2)',
                       cursor: 'pointer',
                       transition: 'all 120ms',
                       fontSize: 12,
@@ -1622,9 +1622,9 @@ export default function FavoritesPage() {
                   fontSize: 11,
                   fontWeight: 600,
                   cursor: 'pointer',
-                  border: `1px solid ${!cuisine ? 'var(--forest-mid)' : 'var(--ink-10)'}`,
-                  background: !cuisine ? 'var(--forest-pale)' : 'transparent',
-                  color: !cuisine ? 'var(--forest)' : 'var(--ink-60)',
+                  border: `1px solid ${!cuisine ? 'var(--accent)' : 'var(--border)'}`,
+                  background: !cuisine ? 'var(--accent-light)' : 'transparent',
+                  color: !cuisine ? 'var(--forest)' : 'var(--text-2)',
                   transition: 'all 120ms',
                   fontFamily: 'inherit',
                 }}
@@ -1641,9 +1641,9 @@ export default function FavoritesPage() {
                     fontSize: 11,
                     fontWeight: 600,
                     cursor: 'pointer',
-                    border: `1px solid ${cuisine === c ? 'var(--forest-mid)' : 'var(--ink-10)'}`,
-                    background: cuisine === c ? 'var(--forest-pale)' : 'transparent',
-                    color: cuisine === c ? 'var(--forest)' : 'var(--ink-60)',
+                    border: `1px solid ${cuisine === c ? 'var(--accent)' : 'var(--border)'}`,
+                    background: cuisine === c ? 'var(--accent-light)' : 'transparent',
+                    color: cuisine === c ? 'var(--forest)' : 'var(--text-2)',
                     transition: 'all 120ms',
                     fontFamily: 'inherit',
                     textTransform: 'capitalize',
@@ -1674,7 +1674,7 @@ export default function FavoritesPage() {
               <p
                 style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600, color: 'var(--ink-80)' }}
               >
-                Impossible de charger les favoris
+                Impossible de charger les lieux
               </p>
               <button
                 onClick={loadFavorites}
@@ -1716,15 +1716,15 @@ export default function FavoritesPage() {
                 fill="none"
                 style={{ marginBottom: 20 }}
               >
-                <circle cx="36" cy="36" r="36" fill="var(--forest-pale)" />
+                <circle cx="36" cy="36" r="36" fill="var(--accent-light)" />
                 <path
                   d="M36 18C28.268 18 22 24.268 22 32c0 10 14 24 14 24s14-14 14-24c0-7.732-6.268-14-14-14z"
-                  fill="var(--forest-mid)"
+                  fill="var(--accent)"
                   opacity="0.2"
                 />
                 <path
                   d="M36 20C29.373 20 24 25.373 24 32c0 9.5 12 22 12 22s12-12.5 12-22c0-6.627-5.373-12-12-12z"
-                  fill="var(--forest-mid)"
+                  fill="var(--accent)"
                 />
                 <path
                   d="M33 30.5c0-1.657 1.343-3 3-3s3 1.343 3 3c0 .88-.38 1.67-.984 2.22L36 35l-2.016-2.28A2.99 2.99 0 0 1 33 30.5z"
@@ -1740,12 +1740,12 @@ export default function FavoritesPage() {
                   letterSpacing: '-0.03em',
                 }}
               >
-                Aucun favori pour l&apos;instant
+                Aucun lieu enregistré
               </h2>
               <p
                 style={{
                   margin: '0 0 28px',
-                  color: 'var(--ink-40)',
+                  color: 'var(--text-3)',
                   fontSize: 13,
                   lineHeight: 1.7,
                 }}
@@ -1762,7 +1762,7 @@ export default function FavoritesPage() {
                   gap: 6,
                   padding: '11px 24px',
                   borderRadius: 'var(--r-md)',
-                  background: 'var(--forest-mid)',
+                  background: 'var(--accent)',
                   color: 'white',
                   textDecoration: 'none',
                   fontSize: 13,
@@ -1778,7 +1778,7 @@ export default function FavoritesPage() {
           {/* Empty filter */}
           {!loading && favorites.length > 0 && sorted.length === 0 && (
             <div style={{ textAlign: 'center', padding: '32px 0' }}>
-              <p style={{ fontSize: 13, color: 'var(--ink-60)', margin: '0 0 10px' }}>
+              <p style={{ fontSize: 13, color: 'var(--text-2)', margin: '0 0 10px' }}>
                 Aucun résultat pour ce filtre
               </p>
               <button
@@ -1786,11 +1786,11 @@ export default function FavoritesPage() {
                 style={{
                   padding: '7px 16px',
                   borderRadius: 'var(--r-pill)',
-                  border: '1px solid var(--ink-10)',
+                  border: '1px solid var(--border)',
                   background: 'var(--white)',
                   fontSize: 12,
                   fontWeight: 600,
-                  color: 'var(--ink-60)',
+                  color: 'var(--text-2)',
                   cursor: 'pointer',
                   fontFamily: 'inherit',
                 }}

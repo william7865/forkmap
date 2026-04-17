@@ -12,7 +12,6 @@ const NAV = [
 ]
 
 const SECONDARY = [
-  { href: '/settings', label: 'Paramètres' },
   { href: '/help', label: 'Aide' },
   { href: '/about', label: 'À propos' },
   { href: '/contact', label: 'Contact' },
