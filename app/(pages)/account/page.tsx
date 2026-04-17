@@ -6,6 +6,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthGuard } from "@/lib/hooks/useAuthGuard";
+import { useIsMobile } from "@/lib/hooks/useMediaQuery";
 import { getSupabaseBrowserClient } from "@/lib/hooks/useAuth";
 import type { FavoriteRow, PlaceCard } from "@/types";
 import { PageHeader, GlobalFooter } from "@/components/ui/PageLayout";
@@ -89,16 +90,16 @@ function DeleteModal({ email, onConfirm, onCancel }: { email: string; onConfirm:
   );
 }
 
-function BarChart({ data, color="var(--forest-mid)", valueSuffix="" }: {
+function BarChart({ data, color="var(--forest-mid)", valueSuffix="", labelWidth=88 }: {
   data: { label: string; value: number; sublabel?: string }[];
-  color?: string; valueSuffix?: string;
+  color?: string; valueSuffix?: string; labelWidth?: number;
 }) {
   const max = Math.max(...data.map(d => d.value), 1);
   return (
     <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
       {data.map((d, i) => (
         <div key={i} style={{ display:"flex",alignItems:"center",gap:10 }}>
-          <div style={{ width:88,fontSize:11,fontWeight:600,color:"var(--ink-80)",textAlign:"right" as const,flexShrink:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const }} title={d.label}>{d.label}</div>
+          <div style={{ width:labelWidth,fontSize:11,fontWeight:600,color:"var(--ink-80)",textAlign:"right" as const,flexShrink:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const }} title={d.label}>{d.label}</div>
           <div style={{ flex:1,height:24,background:"var(--off-white)",borderRadius:6,overflow:"hidden",position:"relative" }}>
             <div style={{ position:"absolute",top:0,left:0,bottom:0,width:`${(d.value/max)*100}%`,background:color,borderRadius:6,transition:"width 600ms var(--ease-out)" }}/>
             <span style={{ position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",fontSize:10,fontWeight:700,color:"white",zIndex:1,whiteSpace:"nowrap" as const }}>{d.value > 0 ? `${d.value}${valueSuffix}` : ""}</span>
@@ -206,6 +207,7 @@ export default function AccountPage() {
 
 function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["auth"] }) {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [favorites, setFavorites] = useState<FavoriteRow[]>([]);
   const [favLoading, setFavLoading] = useState(true);
   const [stats, setStats] = useState<VisitStats|null>(null);
@@ -260,7 +262,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
         </button>
       }/>
 
-      <div style={{ maxWidth:640,margin:"0 auto",padding:"32px 20px 80px",display:"flex",flexDirection:"column",gap:14,width:"100%" }}>
+      <div style={{ maxWidth:640, margin:"0 auto", padding: isMobile ? "16px 16px 100px" : "32px 20px 80px", display:"flex", flexDirection:"column", gap:14, width:"100%" }}>
 
         {/* Hero */}
         <Card style={{ animation:"fadeUp 280ms var(--ease-out) both" }}>
@@ -282,14 +284,20 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
             </div>
           </div>
           {/* Stats row */}
-          <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",borderTop:"1px solid var(--ink-10)",marginTop:16 }}>
+          <div style={{ display:"grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", borderTop:"1px solid var(--ink-10)", marginTop:16 }}>
             {[
               { val:favLoading?"…":favorites.length, label:"Favoris", color:"var(--forest-mid)" },
               { val:statsLoading?"…":(stats?.total_visits??0), label:"Visites", color:"var(--amber)" },
               { val:statsLoading?"…":(stats?.total_spent?`${Math.round(stats.total_spent)}€`:"0€"), label:"Dépensé", color:"var(--coral)" },
               { val:favLoading?"…":(cuisines.length||"—"), label:"Cuisines", color:"#1d65c8" },
             ].map((s,i)=>(
-              <div key={i} style={{ padding:"12px 8px",textAlign:"center" as const,borderRight:i<3?"1px solid var(--ink-10)":"none" }}>
+              <div key={i} style={{
+                padding:"12px 8px", textAlign:"center" as const,
+                borderRight: isMobile
+                  ? (i % 2 === 0 ? "1px solid var(--ink-10)" : "none")
+                  : (i < 3 ? "1px solid var(--ink-10)" : "none"),
+                borderBottom: isMobile && i < 2 ? "1px solid var(--ink-10)" : "none",
+              }}>
                 <div style={{ fontFamily:"var(--font-display)",fontSize:20,fontWeight:400,letterSpacing:"-0.04em",color:s.color,lineHeight:1,marginBottom:3 }}>{s.val}</div>
                 <div style={{ fontSize:9.5,fontWeight:600,color:"var(--ink-40)",letterSpacing:"0.06em",textTransform:"uppercase" as const }}>{s.label}</div>
               </div>
@@ -313,6 +321,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
               <BarChart
                 data={stats!.top_restaurants.slice(0,7).map(r=>({ label:r.name, value:r.count, sublabel:r.total_spent>0?`${r.total_spent.toFixed(0)}€`:undefined }))}
                 color="var(--forest-mid)" valueSuffix=" fois"
+                labelWidth={isMobile ? 64 : 88}
               />
             </div>
           </Card>
@@ -326,6 +335,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
               <BarChart
                 data={stats!.top_restaurants.filter(r=>r.total_spent>0).slice(0,7).map(r=>({ label:r.name, value:Math.round(r.total_spent), sublabel:r.avg_rating>0?`⭐ ${r.avg_rating.toFixed(1)}`:undefined }))}
                 color="var(--coral)" valueSuffix="€"
+                labelWidth={isMobile ? 64 : 88}
               />
             </div>
           </Card>
@@ -333,7 +343,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>["aut
 
         {/* Cuisine + Mood */}
         {hasStats && (
-          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,animation:"fadeUp 280ms var(--ease-out) 100ms both" }}>
+          <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap:14, animation:"fadeUp 280ms var(--ease-out) 100ms both" }}>
             <Card>
               <CardHeader label="Cuisines" />
               <div style={{ padding:"14px 16px" }}>
