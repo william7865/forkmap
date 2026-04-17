@@ -6,6 +6,7 @@ const config: CapacitorConfig = {
   appName: 'Forkmap',
   webDir: 'out',
   server: {
+    url: 'https://forkmap.vercel.app',
     androidScheme: 'https',
   },
   plugins: {

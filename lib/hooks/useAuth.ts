@@ -40,7 +40,9 @@ export function useAuth(): AuthState {
   const sb = getSupabaseBrowserClient()
 
   useEffect(() => {
+    let initialised = false
     sb.auth.getSession().then(({ data }) => {
+      initialised = true
       setSession(data.session)
       setUser(data.session?.user ?? null)
       setLoading(false)
@@ -48,9 +50,11 @@ export function useAuth(): AuthState {
     const {
       data: { subscription },
     } = sb.auth.onAuthStateChange((_event, session) => {
+      // Only update session state; loading is controlled solely by getSession()
+      // to avoid redirecting before the session is restored from storage.
       setSession(session)
       setUser(session?.user ?? null)
-      setLoading(false)
+      if (initialised) setLoading(false)
     })
     return () => subscription.unsubscribe()
   }, [sb])
