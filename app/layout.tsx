@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import ErrorBoundary from "@/components/states/ErrorBoundary";
 import { LanguageProvider } from "@/lib/i18n/useLanguage";
+import MobileNav from "@/components/ui/MobileNav";
 
 export const metadata: Metadata = {
   title: "Forkmap — Find exceptional restaurants near you",
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
           </ErrorBoundary>
         </LanguageProvider>
+        <MobileNav />
       </body>
     </html>
   );
