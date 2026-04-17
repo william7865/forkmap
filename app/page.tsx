@@ -6,7 +6,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useHomeState } from '@/lib/hooks/useHomeState'
 import SuggestionsPanel from '@/components/place/SuggestionsPanel'
@@ -108,6 +108,18 @@ function MapLoadingOverlay({ loading, routeLoading }: { loading: boolean; routeL
   )
 }
 
+function AuthRequiredWatcher({ onOpen }: { onOpen: () => void }) {
+  const searchParams = useSearchParams()
+  const didOpen = useRef(false)
+  useEffect(() => {
+    if (!didOpen.current && searchParams.get('auth') === 'required') {
+      didOpen.current = true
+      onOpen()
+    }
+  }, [searchParams, onOpen])
+  return null
+}
+
 export default function HomePage() {
   const {
     auth,
@@ -168,16 +180,6 @@ export default function HomePage() {
     handleCloseDetail,
     handleToggleFavorite,
   } = useHomeState()
-
-  // Open auth modal when redirected with ?auth=required
-  const searchParams = useSearchParams()
-  const didOpenAuth = useRef(false)
-  useEffect(() => {
-    if (!didOpenAuth.current && searchParams.get('auth') === 'required') {
-      didOpenAuth.current = true
-      setShowAuthModal(true)
-    }
-  }, [searchParams, setShowAuthModal])
 
   return (
     <div
@@ -977,6 +979,10 @@ export default function HomePage() {
           />
         </div>
       )}
+
+      <Suspense>
+        <AuthRequiredWatcher onOpen={() => setShowAuthModal(true)} />
+      </Suspense>
 
       {showAuthModal && (
         <AuthModal
