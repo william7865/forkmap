@@ -7,7 +7,7 @@ import { Map, Heart, User, MoreHorizontal, LogOut } from 'lucide-react'
 
 const TABS = [
   { href: '/', Icon: Map, label: 'Carte' },
-  { href: '/favorites', Icon: Heart, label: 'Favoris' },
+  { href: '/favorites', Icon: Heart, label: 'Enregistré' },
   { href: '/account', Icon: User, label: 'Compte' },
 ]
 

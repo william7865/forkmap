@@ -7,21 +7,7 @@ import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
 import { useRouter } from 'next/navigation'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { apiFetch } from '@/lib/api'
-
-// ── Icons ─────────────────────────────────────────────────
-const IcoCheck = () => (
-  <svg
-    width="13"
-    height="13"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-  >
-    <polyline points="20 6 9 17 4 12" />
-  </svg>
-)
+import { Check, Eye, EyeOff, LogOut, Trash2, Mail } from 'lucide-react'
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -30,11 +16,9 @@ export default function SettingsPage() {
   const router = useRouter()
   const sb = getSupabaseBrowserClient()
 
-  // Profile state
   const [displayName, setDisplayName] = useState('')
   const [nameState, setNameState] = useState<SaveState>('idle')
 
-  // Password state
   const [_currentPw, setCurrentPw] = useState('')
   const [newPw, setNewPw] = useState('')
   const [confirmPw, setConfirmPw] = useState('')
@@ -42,13 +26,11 @@ export default function SettingsPage() {
   const [pwError, setPwError] = useState('')
   const [showPw, setShowPw] = useState(false)
 
-  // Delete account
   const [deleteModal, setDeleteModal] = useState(false)
   const [deleteEmail, setDeleteEmail] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
 
-  // Initialise display name from auth once ready
   const initialised = useRef(false)
   if (isReady && !initialised.current) {
     initialised.current = true
@@ -58,7 +40,7 @@ export default function SettingsPage() {
 
   if (!isReady) {
     return (
-      <InfoPage headerLabel="Settings">
+      <InfoPage headerLabel="Paramètres">
         <div
           style={{
             display: 'flex',
@@ -71,8 +53,8 @@ export default function SettingsPage() {
             style={{
               width: 32,
               height: 32,
-              border: '3px solid var(--bone)',
-              borderTop: '3px solid var(--forest-mid)',
+              border: '3px solid var(--surface-2)',
+              borderTop: '3px solid var(--accent)',
               borderRadius: '50%',
               animation: 'spin 0.7s linear infinite',
             }}
@@ -94,7 +76,6 @@ export default function SettingsPage() {
     .toUpperCase()
   const isGoogleUser = user.app_metadata?.provider === 'google'
 
-  // ── Save display name ──────────────────────────────────
   const saveName = async () => {
     if (!displayName.trim() || displayName === currentName) return
     setNameState('saving')
@@ -103,15 +84,14 @@ export default function SettingsPage() {
     setTimeout(() => setNameState('idle'), 2500)
   }
 
-  // ── Change password ────────────────────────────────────
   const changePassword = async () => {
     setPwError('')
     if (newPw.length < 8) {
-      setPwError('Password must be at least 8 characters.')
+      setPwError('Le mot de passe doit contenir au moins 8 caractères.')
       return
     }
     if (newPw !== confirmPw) {
-      setPwError("Passwords don't match.")
+      setPwError('Les mots de passe ne correspondent pas.')
       return
     }
     setPwState('saving')
@@ -128,20 +108,16 @@ export default function SettingsPage() {
     setTimeout(() => setPwState('idle'), 2500)
   }
 
-  // ── Sign out ───────────────────────────────────────────
   const signOut = async () => {
     setSigningOut(true)
     await auth.signOut()
     router.replace('/')
   }
 
-  // ── Delete account ─────────────────────────────────────
   const deleteAccount = async () => {
     if (deleteEmail !== user.email) return
     setDeleting(true)
-
     try {
-      // Get the current session token to authenticate the request
       const sb = getSupabaseBrowserClient()
       const {
         data: { session },
@@ -149,86 +125,72 @@ export default function SettingsPage() {
       const authHeader: HeadersInit = session?.access_token
         ? { Authorization: `Bearer ${session.access_token}` }
         : {}
-
-      // This calls DELETE /api/account which:
-      // 1. Deletes all favorites from the DB
-      // 2. Deletes the Supabase Auth user (permanent, GDPR Art. 17)
-      const res = await apiFetch('/api/account', {
-        method: 'DELETE',
-        headers: authHeader,
-      })
-
+      const res = await apiFetch('/api/account', { method: 'DELETE', headers: authHeader })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        alert(data.error ?? 'Failed to delete account. Please try again or contact support.')
+        alert(data.error ?? 'Impossible de supprimer le compte. Contactez le support.')
         setDeleting(false)
         return
       }
-
-      // Sign out locally after server confirms deletion
       await auth.signOut()
       router.replace('/')
     } catch {
-      alert('An unexpected error occurred. Please try again.')
+      alert("Une erreur inattendue s'est produite. Veuillez réessayer.")
       setDeleting(false)
     }
   }
 
   return (
-    <InfoPage headerLabel="Settings" maxWidth={640}>
+    <InfoPage headerLabel="Paramètres" maxWidth={640}>
       <h1
         style={{
           margin: '0 0 4px',
           fontSize: 28,
           fontWeight: 600,
           letterSpacing: '-0.04em',
-          color: 'var(--ink)',
+          color: 'var(--text)',
         }}
       >
-        Settings
+        Paramètres
       </h1>
-      <p style={{ margin: '0 0 36px', fontSize: 14, color: 'var(--ink-60)' }}>
-        Manage your profile and account preferences.
+      <p style={{ margin: '0 0 36px', fontSize: 14, color: 'var(--text-3)' }}>
+        Gérez votre profil et les préférences de votre compte.
       </p>
 
-      {/* ── Avatar ── */}
-      <Card title="Profile photo">
+      {/* Photo de profil */}
+      <Card title="Photo de profil">
         <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-          <div style={{ position: 'relative' }}>
-            <div
-              style={{
-                width: 72,
-                height: 72,
-                borderRadius: 20,
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, var(--forest-mid), var(--accent))',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 16px rgba(45,122,85,0.15)',
-              }}
-            >
-              {avatarUrl ? (
-                <Image
-                  src={avatarUrl}
-                  alt={currentName}
-                  width={72}
-                  height={72}
-                  style={{ objectFit: 'cover' }}
-                />
-              ) : (
-                <span style={{ fontSize: 22, fontWeight: 600, color: 'white' }}>{initials}</span>
-              )}
-            </div>
+          <div
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: 20,
+              overflow: 'hidden',
+              background: 'linear-gradient(135deg, var(--accent-hover), var(--accent))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 16px rgba(45,122,85,0.15)',
+            }}
+          >
+            {avatarUrl ? (
+              <Image
+                src={avatarUrl}
+                alt={currentName}
+                width={72}
+                height={72}
+                style={{ objectFit: 'cover' }}
+              />
+            ) : (
+              <span style={{ fontSize: 22, fontWeight: 600, color: 'white' }}>{initials}</span>
+            )}
           </div>
           <div>
-            <p style={{ margin: '0 0 6px', fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
+            <p style={{ margin: '0 0 6px', fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
               {currentName}
             </p>
-            <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--ink-60)' }}>
-              {isGoogleUser
-                ? 'Profile photo managed by Google'
-                : 'Avatar generated from your initials'}
+            <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--text-3)' }}>
+              {isGoogleUser ? 'Photo gérée par Google' : 'Avatar généré depuis vos initiales'}
             </p>
             {isGoogleUser && (
               <span
@@ -242,22 +204,22 @@ export default function SettingsPage() {
                   fontWeight: 600,
                 }}
               >
-                Google account
+                Compte Google
               </span>
             )}
           </div>
         </div>
       </Card>
 
-      {/* ── Display name ── */}
-      <Card title="Display name">
+      {/* Nom affiché */}
+      <Card title="Nom affiché">
         <div style={{ display: 'flex', gap: 10 }}>
           <input
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Your name"
-            aria-label="Display name"
+            placeholder="Votre nom"
+            aria-label="Nom affiché"
             style={inputStyle}
             onFocus={(e) => Object.assign(e.currentTarget.style, focusStyle)}
             onBlur={(e) => Object.assign(e.currentTarget.style, blurStyle)}
@@ -269,7 +231,7 @@ export default function SettingsPage() {
               padding: '10px 18px',
               borderRadius: 10,
               border: 'none',
-              background: nameState === 'saved' ? 'var(--green)' : 'var(--forest-mid)',
+              background: nameState === 'saved' ? '#16a34a' : 'var(--accent)',
               color: 'white',
               fontSize: 12,
               fontWeight: 600,
@@ -285,77 +247,64 @@ export default function SettingsPage() {
           >
             {nameState === 'saved' ? (
               <>
-                <IcoCheck /> Saved
+                <Check size={13} strokeWidth={2.5} /> Enregistré
               </>
             ) : nameState === 'saving' ? (
-              'Saving…'
+              'Enregistrement…'
             ) : (
-              'Save'
+              'Enregistrer'
             )}
           </button>
         </div>
         {nameState === 'error' && (
           <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--coral)' }}>
-            Failed to save. Try again.
+            Échec de l&apos;enregistrement. Réessayez.
           </p>
         )}
       </Card>
 
-      {/* ── Email ── */}
-      <Card title="Email address">
+      {/* Adresse e-mail */}
+      <Card title="Adresse e-mail">
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 12,
             padding: '10px 14px',
-            background: 'var(--off-white)',
+            background: 'var(--surface)',
             borderRadius: 10,
-            border: '1px solid var(--b1)',
+            border: '1px solid var(--border)',
           }}
         >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="var(--ink-60)"
-            strokeWidth="2"
-            strokeLinecap="round"
-          >
-            <rect x="2" y="4" width="20" height="16" rx="2" />
-            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-          </svg>
-          <span style={{ fontSize: 13, color: 'var(--ink-80)', fontWeight: 500 }}>
-            {user.email}
-          </span>
+          <Mail size={14} strokeWidth={2} color="var(--text-3)" />
+          <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>{user.email}</span>
         </div>
-        <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--ink-40)' }}>
+        <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--text-3)' }}>
           {isGoogleUser
-            ? 'Email is managed by your Google account and cannot be changed here.'
-            : 'To change your email, contact support.'}
+            ? "L'adresse e-mail est gérée par votre compte Google et ne peut pas être modifiée ici."
+            : 'Pour changer votre e-mail, contactez le support.'}
         </p>
       </Card>
 
-      {/* ── Password ── */}
+      {/* Mot de passe */}
       {!isGoogleUser && (
-        <Card title="Change password">
+        <Card title="Changer le mot de passe">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <PwField
-              label="New password"
+              label="Nouveau mot de passe"
               value={newPw}
               onChange={setNewPw}
               show={showPw}
               onToggle={() => setShowPw((v) => !v)}
-              placeholder="Min. 8 characters"
+              placeholder="Min. 8 caractères"
             />
             <PwField
-              label="Confirm new password"
+              label="Confirmer le nouveau mot de passe"
               value={confirmPw}
               onChange={setConfirmPw}
               show={showPw}
               onToggle={() => setShowPw((v) => !v)}
-              placeholder="Repeat new password"
+              placeholder="Répétez le nouveau mot de passe"
             />
             {pwError && (
               <p style={{ margin: 0, fontSize: 12, color: 'var(--coral)', fontWeight: 600 }}>
@@ -370,7 +319,7 @@ export default function SettingsPage() {
                 padding: '10px 20px',
                 borderRadius: 10,
                 border: 'none',
-                background: pwState === 'saved' ? 'var(--green)' : 'var(--forest-mid)',
+                background: pwState === 'saved' ? '#16a34a' : 'var(--accent)',
                 color: 'white',
                 fontSize: 12,
                 fontWeight: 600,
@@ -385,22 +334,21 @@ export default function SettingsPage() {
             >
               {pwState === 'saved' ? (
                 <>
-                  <IcoCheck /> Password updated
+                  <Check size={13} strokeWidth={2.5} /> Mot de passe mis à jour
                 </>
               ) : pwState === 'saving' ? (
-                'Updating…'
+                'Mise à jour…'
               ) : (
-                'Update password'
+                'Mettre à jour'
               )}
             </button>
           </div>
         </Card>
       )}
 
-      {/* ── Danger zone ── */}
-      <Card title="Account actions" danger>
+      {/* Actions du compte */}
+      <Card title="Actions du compte" danger>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {/* Sign out */}
           <button
             onClick={signOut}
             disabled={signingOut}
@@ -410,40 +358,27 @@ export default function SettingsPage() {
               gap: 10,
               padding: '13px 16px',
               background: 'transparent',
-              border: '1.5px solid var(--b2)',
+              border: '1.5px solid var(--border-strong)',
               borderRadius: 10,
               cursor: 'pointer',
               fontFamily: 'inherit',
               textAlign: 'left',
               transition: 'background 100ms',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--off-white)')}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--ink-80)"
-              strokeWidth="2"
-              strokeLinecap="round"
-            >
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
+            <LogOut size={14} strokeWidth={2} color="var(--text-2)" />
             <div>
-              <p style={{ margin: '0 0 1px', fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
-                {signingOut ? 'Signing out…' : 'Sign out'}
+              <p style={{ margin: '0 0 1px', fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+                {signingOut ? 'Déconnexion…' : 'Se déconnecter'}
               </p>
-              <p style={{ margin: 0, fontSize: 11, color: 'var(--ink-60)' }}>
-                Sign out of your account on this device
+              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-3)' }}>
+                Se déconnecter sur cet appareil
               </p>
             </div>
           </button>
 
-          {/* Delete */}
           <button
             onClick={() => setDeleteModal(true)}
             style={{
@@ -462,34 +397,22 @@ export default function SettingsPage() {
             onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--coral-pale)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--coral)"
-              strokeWidth="2"
-              strokeLinecap="round"
-            >
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-              <path d="M10 11v6M14 11v6" />
-            </svg>
+            <Trash2 size={14} strokeWidth={2} color="var(--coral)" />
             <div>
               <p
                 style={{ margin: '0 0 1px', fontSize: 13, fontWeight: 600, color: 'var(--coral)' }}
               >
-                Delete account
+                Supprimer le compte
               </p>
-              <p style={{ margin: 0, fontSize: 11, color: 'var(--ink-60)' }}>
-                Permanently delete your account and all data
+              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-3)' }}>
+                Supprimer définitivement votre compte et toutes vos données
               </p>
             </div>
           </button>
         </div>
       </Card>
 
-      {/* Delete modal */}
+      {/* Modal suppression */}
       {deleteModal && (
         <div
           style={{
@@ -507,7 +430,7 @@ export default function SettingsPage() {
             style={{
               position: 'absolute',
               inset: 0,
-              background: 'rgba(28,25,23,0.4)',
+              background: 'rgba(0,0,0,0.4)',
               backdropFilter: 'blur(4px)',
             }}
           />
@@ -515,12 +438,12 @@ export default function SettingsPage() {
             onClick={(e) => e.stopPropagation()}
             style={{
               position: 'relative',
-              background: 'var(--white)',
+              background: 'var(--bg)',
               borderRadius: 20,
               padding: '28px 28px 24px',
               maxWidth: 380,
               width: '100%',
-              boxShadow: '0 24px 64px rgba(28,25,23,0.2)',
+              boxShadow: 'var(--s4)',
               animation: 'scaleIn 200ms cubic-bezier(0.16,1,0.3,1) both',
             }}
           >
@@ -536,18 +459,7 @@ export default function SettingsPage() {
                 marginBottom: 16,
               }}
             >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--coral)"
-                strokeWidth="2"
-                strokeLinecap="round"
-              >
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-              </svg>
+              <Trash2 size={20} strokeWidth={2} color="var(--coral)" />
             </div>
             <h3
               style={{
@@ -555,23 +467,23 @@ export default function SettingsPage() {
                 fontSize: 16,
                 fontWeight: 600,
                 letterSpacing: '-0.03em',
-                color: 'var(--ink)',
+                color: 'var(--text)',
               }}
             >
-              Delete your account?
+              Supprimer votre compte ?
             </h3>
             <p
-              style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--ink-60)', lineHeight: 1.6 }}
+              style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--text-3)', lineHeight: 1.6 }}
             >
-              This permanently deletes your account and all saved places. This cannot be undone.
-              Type your email to confirm:
+              Cette action supprime définitivement votre compte et tous vos lieux enregistrés. Elle
+              est irréversible. Tapez votre e-mail pour confirmer :
             </p>
             <input
               type="email"
               value={deleteEmail}
               onChange={(e) => setDeleteEmail(e.target.value)}
-              placeholder={user.email ?? 'your@email.com'}
-              aria-label="Confirm email to delete account"
+              placeholder={user.email ?? 'votre@email.com'}
+              aria-label="Confirmer l'e-mail pour supprimer le compte"
               style={{ ...inputStyle, marginBottom: 14 }}
               onFocus={(e) => Object.assign(e.currentTarget.style, focusStyle)}
               onBlur={(e) => Object.assign(e.currentTarget.style, blurStyle)}
@@ -586,16 +498,16 @@ export default function SettingsPage() {
                   flex: 1,
                   padding: '10px',
                   borderRadius: 10,
-                  border: '1.5px solid rgba(28,25,23,0.12)',
+                  border: '1.5px solid var(--border-strong)',
                   background: 'transparent',
                   cursor: 'pointer',
                   fontSize: 13,
                   fontWeight: 600,
-                  color: 'var(--ink-80)',
+                  color: 'var(--text)',
                   fontFamily: 'inherit',
                 }}
               >
-                Cancel
+                Annuler
               </button>
               <button
                 onClick={deleteAccount}
@@ -605,18 +517,16 @@ export default function SettingsPage() {
                   padding: '10px',
                   borderRadius: 10,
                   border: 'none',
-                  background: deleteEmail === user.email ? 'var(--coral)' : 'var(--cream)',
-                  color: deleteEmail === user.email ? 'white' : 'var(--ink-40)',
+                  background: deleteEmail === user.email ? 'var(--coral)' : 'var(--surface-2)',
+                  color: deleteEmail === user.email ? 'white' : 'var(--text-3)',
                   cursor: deleteEmail === user.email ? 'pointer' : 'not-allowed',
                   fontSize: 13,
                   fontWeight: 600,
                   fontFamily: 'inherit',
-                  boxShadow:
-                    deleteEmail === user.email ? '0 4px 12px rgba(197,48,48,0.25)' : 'none',
                   transition: 'all 150ms',
                 }}
               >
-                {deleting ? 'Deleting…' : 'Delete account'}
+                {deleting ? 'Suppression…' : 'Supprimer'}
               </button>
             </div>
           </div>
@@ -645,22 +555,22 @@ function Card({
       <h2
         style={{
           margin: '0 0 12px',
-          fontSize: 13,
-          fontWeight: 600,
-          letterSpacing: '0.02em',
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: '0.08em',
           textTransform: 'uppercase',
-          color: danger ? 'var(--coral)' : 'var(--ink-60)',
+          color: danger ? 'var(--coral)' : 'var(--text-3)',
         }}
       >
         {title}
       </h2>
       <div
         style={{
-          background: 'var(--white)',
-          border: `1px solid ${danger ? 'rgba(197,48,48,0.12)' : 'var(--b1)'}`,
-          borderRadius: 14,
+          background: 'var(--bg)',
+          border: `1px solid ${danger ? 'rgba(197,48,48,0.12)' : 'var(--border)'}`,
+          borderRadius: 12,
           padding: '18px 20px',
-          boxShadow: '0 1px 4px rgba(28,25,23,0.05)',
+          boxShadow: 'var(--s1)',
         }}
       >
         {children}
@@ -691,7 +601,7 @@ function PwField({
           display: 'block',
           fontSize: 12,
           fontWeight: 600,
-          color: 'var(--ink-60)',
+          color: 'var(--text-3)',
           marginBottom: 5,
         }}
       >
@@ -711,7 +621,7 @@ function PwField({
         <button
           onClick={onToggle}
           type="button"
-          aria-label={show ? 'Hide password' : 'Show password'}
+          aria-label={show ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
           style={{
             position: 'absolute',
             right: 10,
@@ -720,38 +630,12 @@ function PwField({
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            color: 'var(--ink-60)',
+            color: 'var(--text-3)',
             display: 'flex',
             padding: 2,
           }}
         >
-          {show ? (
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            >
-              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-              <line x1="1" y1="1" x2="23" y2="23" />
-            </svg>
-          ) : (
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            >
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-          )}
+          {show ? <EyeOff size={14} strokeWidth={2} /> : <Eye size={14} strokeWidth={2} />}
         </button>
       </div>
     </div>
@@ -763,9 +647,9 @@ const inputStyle: React.CSSProperties = {
   boxSizing: 'border-box',
   padding: '10px 14px',
   borderRadius: 10,
-  border: '1.5px solid rgba(28,25,23,0.12)',
-  background: 'white',
-  color: 'var(--ink)',
+  border: '1.5px solid var(--border-strong)',
+  background: 'var(--bg)',
+  color: 'var(--text)',
   fontSize: 13,
   fontWeight: 500,
   fontFamily: 'inherit',
@@ -773,7 +657,7 @@ const inputStyle: React.CSSProperties = {
   transition: 'border-color 120ms, box-shadow 120ms',
 }
 const focusStyle: React.CSSProperties = {
-  borderColor: 'var(--forest-mid)',
-  boxShadow: '0 0 0 3px rgba(45,122,85,0.15)',
+  borderColor: 'var(--accent)',
+  boxShadow: 'var(--s-focus)',
 }
-const blurStyle: React.CSSProperties = { borderColor: 'rgba(28,25,23,0.12)', boxShadow: 'none' }
+const blurStyle: React.CSSProperties = { borderColor: 'var(--border-strong)', boxShadow: 'none' }
