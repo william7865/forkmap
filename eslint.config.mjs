@@ -8,14 +8,16 @@ const __dirname = dirname(__filename)
 
 const compat = new FlatCompat({ baseDirectory: __dirname })
 
-export default [
+const config = [
   ...compat.extends('next/core-web-vitals', 'prettier'),
   {
     plugins: { '@typescript-eslint': tsPlugin },
     rules: {
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'warn',
       'no-console': ['warn', { allow: ['warn', 'error'] }],
     },
   },
 ]
+
+export default config

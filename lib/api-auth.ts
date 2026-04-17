@@ -15,26 +15,34 @@
 //   headers: { "Authorization": `Bearer ${session.access_token}` }
 // ============================================================
 
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+
+let _supabase: ReturnType<typeof createClient> | null = null
+function getAnonClient() {
+  if (!_supabase) {
+    _supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+  }
+  return _supabase
+}
 
 export interface AuthResult {
-  userId: string;
-  error: null;
+  userId: string
+  error: null
 }
 export interface AuthError {
-  userId: null;
-  error: NextResponse;
+  userId: null
+  error: NextResponse
 }
-export type AuthCheck = AuthResult | AuthError;
+export type AuthCheck = AuthResult | AuthError
 
 const UNAUTHORIZED: AuthError = {
   userId: null,
-  error: NextResponse.json(
-    { error: "Authentication required" },
-    { status: 401 }
-  ),
-};
+  error: NextResponse.json({ error: 'Authentication required' }, { status: 401 }),
+}
 
 /**
  * Verify the caller's Supabase session.
@@ -44,24 +52,22 @@ const UNAUTHORIZED: AuthError = {
  */
 export async function requireUser(req: NextRequest): Promise<AuthCheck> {
   try {
-    const authHeader = req.headers.get("authorization") ?? "";
-    const token = authHeader.startsWith("Bearer ")
-      ? authHeader.slice(7).trim()
-      : null;
+    const authHeader = req.headers.get('authorization') ?? ''
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null
 
-    if (!token) return UNAUTHORIZED;
+    if (!token) return UNAUTHORIZED
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    );
+    const supabase = getAnonClient()
 
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser(token)
 
-    if (error || !user) return UNAUTHORIZED;
+    if (error || !user) return UNAUTHORIZED
 
-    return { userId: user.id, error: null };
+    return { userId: user.id, error: null }
   } catch {
-    return UNAUTHORIZED;
+    return UNAUTHORIZED
   }
 }

@@ -1,20 +1,26 @@
-import type { CapacitorConfig } from "@capacitor/cli";
-
-const serverUrl = process.env.CAPACITOR_SERVER_URL;
+// capacitor.config.ts
+import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-  appId: "com.forkmap.app",
-  appName: "Forkmap",
-  webDir: "mobile-web",
+  appId: 'com.forkmap.app',
+  appName: 'Forkmap',
+  webDir: 'out',
   server: {
-    ...(serverUrl ? { url: serverUrl } : {}),
-    androidScheme: "https",
+    androidScheme: 'https',
   },
   plugins: {
-    PushNotifications: { presentationOptions: ["badge", "sound", "alert"] },
-    StatusBar: { style: "Default", backgroundColor: "#ffffff", overlaysWebView: false },
-    SplashScreen: { launchShowDuration: 0 },
+    PushNotifications: {
+      presentationOptions: ['badge', 'sound', 'alert'],
+    },
+    StatusBar: {
+      style: 'Default',
+      backgroundColor: '#ffffff',
+      overlaysWebView: false,
+    },
+    SplashScreen: {
+      launchShowDuration: 0,
+    },
   },
-};
+}
 
-export default config;
+export default config
