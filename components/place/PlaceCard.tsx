@@ -2,7 +2,7 @@
 import { memo, useState, useCallback, useEffect } from 'react'
 import { getNote } from '@/components/place/NoteModal'
 import type { PlaceCard as T } from '@/types'
-import { Heart, MapPin, Utensils } from 'lucide-react'
+import { Bookmark, MapPin, Utensils } from 'lucide-react'
 
 interface Props {
   place: T
@@ -275,7 +275,7 @@ const PlaceCard = memo(function PlaceCard({
           e.currentTarget.style.color = isFav ? 'var(--accent)' : 'var(--text-3)'
         }}
       >
-        <Heart size={18} strokeWidth={1.75} fill={isFav ? 'currentColor' : 'none'} />
+        <Bookmark size={18} strokeWidth={1.75} fill={isFav ? 'currentColor' : 'none'} />
       </button>
     </button>
   )

@@ -21,7 +21,7 @@ import {
   Bike,
   Car,
   Footprints,
-  Heart,
+  Bookmark,
   Map,
   Navigation,
   Settings,
@@ -67,7 +67,7 @@ export const IcoMap = (p: LucideProps) => <Map {...DEFAULTS} size={13} {...p} />
 export const IcoWalk = (p: LucideProps) => <Footprints {...DEFAULTS} size={15} {...p} />
 export const IcoBike = (p: LucideProps) => <Bike {...DEFAULTS} size={15} {...p} />
 export const IcoCar = (p: LucideProps) => <Car {...DEFAULTS} size={15} {...p} />
-export const IcoHeart = (p: LucideProps) => <Heart {...DEFAULTS} size={15} {...p} />
+export const IcoHeart = (p: LucideProps) => <Bookmark {...DEFAULTS} size={15} {...p} />
 export const IcoNavigation = (p: LucideProps) => <Navigation {...DEFAULTS} size={18} {...p} />
 export const IcoSettings = (p: LucideProps) => <Settings {...DEFAULTS} size={18} {...p} />
 export const IcoUser = (p: LucideProps) => <User {...DEFAULTS} size={18} {...p} />
