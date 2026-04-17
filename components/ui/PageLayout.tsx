@@ -257,7 +257,7 @@ export function GlobalFooter() {
           borderTop: "1px solid var(--ink-10)", paddingTop: 20,
           display: "flex",
           flexDirection: isMobile ? "column" : "row",
-          justifyContent: "space-between",
+          justifyContent: isMobile ? "flex-start" : "space-between",
           alignItems: isMobile ? "flex-start" : "center",
           flexWrap: "wrap", gap: 8,
         }}>
