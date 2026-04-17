@@ -1,80 +1,56 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400;1,9..144,600&family=Geist:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════════════
-   FORKMAP — Design System 3.0 "Carte Blanche"
-   Brandbook canonique · Vert Forêt · Fraunces + Geist
+   FORKMAP — Design System 4.0 "Clean Minimal"
+   Geist · Vert Forêt · White/Gray surfaces
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── Polices ── */
-  --font-display: 'Fraunces', Georgia, serif;
+  /* ── Police ── */
   --font-body: 'Geist', system-ui, -apple-system, sans-serif;
+  --font-display: 'Geist', system-ui, -apple-system, sans-serif;
 
-  /* ── Brand — Vert Forêt (brandbook canonical) ── */
-  --forest: #1a4a35;
-  --forest-mid: #2d7a55;
-  --forest-bright: #3da672;
-  --forest-pale: #e6f4ee;
+  /* ── Accent — Vert Forêt ── */
+  --accent: #2d7a55;
+  --accent-hover: #1a4a35;
+  --accent-light: #e6f4ee;
+  --accent-text: #2d7a55;
 
-  /* ── Surfaces — Papier (brandbook canonical) ── */
-  --white: #ffffff;
-  --off-white: #f9f8f6;
-  --cream: #f3f1ec;
-  --bone: #e8e5df;
-  --stone: #cbc7bf;
+  /* ── Surfaces ── */
+  --bg: #ffffff;
+  --surface: #f7f7f7;
+  --surface-2: #efefef;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.14);
 
-  /* ── Texte — Encre (brandbook canonical) ── */
-  --ink: #0e0e0d;
-  --ink-80: #2a2a28;
-  --ink-60: #5a5954;
-  --ink-40: #908e88;
-  --ink-20: #cac8c3;
-  --ink-10: #e4e3df;
+  /* ── Texte ── */
+  --text: #111111;
+  --text-2: #555555;
+  --text-3: #999999;
+  --text-4: #bbbbbb;
 
-  /* ── Sémantique (brandbook canonical) ── */
-  --green: #16a34a;
+  /* ── Sémantique ── */
+  --open: #16a34a;
+  --open-bg: #dcfce7;
+  --closed: #dc2626;
+  --closed-bg: #fef2f2;
   --amber: #c47c2b;
   --amber-pale: #fdf3e3;
   --coral: #d94f3d;
   --coral-pale: #fdecea;
 
-  /* ── Semantic states ── */
-  --state-open: #16a34a;
-  --state-open-bg: #dcfce7;
-  --state-open-border: #bbf7d0;
-  --state-closed: #dc2626;
-  --state-closed-bg: #fef2f2;
-  --state-closed-border: #fecaca;
-  --state-warning: var(--amber);
-  --state-warning-bg: var(--amber-pale);
-
-  /* ── Rating colors ── */
-  --rating-high: #1b7f4f;
-  --rating-mid: var(--forest-mid);
-  --rating-low: #c53030;
-
-  /* ── Sky / blue ── */
-  --sky: #2459a8;
-  --sky-pale: #deeeff;
-  --sky-border: #b3d1ff;
-
-  /* ── Borders ── */
-  --b1: rgba(14, 14, 13, 0.06);
-  --b2: rgba(14, 14, 13, 0.1);
-  --b3: rgba(14, 14, 13, 0.18);
-
-  /* ── Shadows ── */
+  /* ── Shadows (légères, minimalistes) ── */
   --s0: none;
-  --s1: 0 1px 3px rgba(14, 14, 13, 0.06), 0 1px 2px rgba(14, 14, 13, 0.04);
-  --s2: 0 3px 12px rgba(14, 14, 13, 0.08), 0 1px 4px rgba(14, 14, 13, 0.05);
-  --s3: 0 8px 28px rgba(14, 14, 13, 0.1), 0 2px 8px rgba(14, 14, 13, 0.06);
-  --s4: 0 20px 60px rgba(14, 14, 13, 0.13), 0 6px 16px rgba(14, 14, 13, 0.07);
-  --s-forest: 0 4px 20px rgba(29, 74, 53, 0.22);
-  --s-focus: 0 0 0 3px rgba(45, 122, 85, 0.28);
+  --s1: 0 1px 4px rgba(0, 0, 0, 0.06);
+  --s2: 0 2px 12px rgba(0, 0, 0, 0.08);
+  --s3: 0 4px 24px rgba(0, 0, 0, 0.1);
+  --s4: 0 8px 40px rgba(0, 0, 0, 0.12);
+  --s-accent: 0 4px 20px rgba(45, 122, 85, 0.2);
+  --s-focus: 0 0 0 3px rgba(45, 122, 85, 0.25);
 
   /* ── Motion ── */
   --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
@@ -86,18 +62,46 @@
   --t4: 420ms;
 
   /* ── Radius ── */
-  --r-xs: 3px;
+  --r-xs: 4px;
   --r-sm: 6px;
   --r-md: 10px;
   --r-lg: 14px;
-  --r-xl: 20px;
-  --r-2xl: 28px;
+  --r-xl: 16px;
+  --r-2xl: 20px;
   --r-pill: 999px;
 
-  /* ── Legacy aliases — compatibilité HeartButton, ErrorBoundary, etc. ── */
-  --accent: var(--amber);
-  --accent-light: var(--amber-pale);
-  --accent-text: var(--amber);
+  /* ── Aliases rétrocompat (composants existants) ── */
+  --white: var(--bg);
+  --off-white: var(--surface);
+  --cream: var(--surface-2);
+  --bone: #e5e5e5;
+  --stone: #cccccc;
+  --forest: var(--accent-hover);
+  --forest-mid: var(--accent);
+  --forest-bright: #3da672;
+  --forest-pale: var(--accent-light);
+  --ink: var(--text);
+  --ink-80: #333333;
+  --ink-60: var(--text-2);
+  --ink-40: var(--text-3);
+  --ink-20: var(--text-4);
+  --ink-10: var(--border);
+  --b1: rgba(0, 0, 0, 0.06);
+  --b2: rgba(0, 0, 0, 0.1);
+  --b3: rgba(0, 0, 0, 0.16);
+  --state-open: var(--open);
+  --state-open-bg: var(--open-bg);
+  --state-closed: var(--closed);
+  --state-closed-bg: var(--closed-bg);
+  --rating-high: #1b7f4f;
+  --rating-mid: var(--accent);
+  --rating-low: #c53030;
+  --sky: #2459a8;
+  --sky-pale: #deeeff;
+  --sky-border: #b3d1ff;
+  --s-forest: var(--s-accent);
+  --green: var(--open);
+  --accent-light: var(--accent-light);
 }
 
 *,
@@ -123,10 +127,10 @@ body {
 h1,
 h2,
 h3 {
-  font-family: var(--font-display);
-  font-weight: 300;
-  letter-spacing: -0.04em;
-  line-height: 1.15;
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
 }
 
 /* ── Leaflet ── */

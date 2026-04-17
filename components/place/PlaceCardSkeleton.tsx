@@ -1,32 +1,46 @@
+import { ITEM_HEIGHT } from '@/components/place/PlaceCard'
+
 export default function PlaceCardSkeleton() {
   return (
     <div
       role="status"
       aria-label="Chargement..."
       style={{
-        height: 262,
-        borderRadius: 16,
+        height: ITEM_HEIGHT,
+        borderRadius: 12,
         overflow: 'hidden',
-        background: 'var(--off-white)',
-        border: '1px solid var(--ink-10)',
-        marginBottom: 8,
-        position: 'relative',
+        background: 'var(--bg)',
+        border: '1px solid var(--border)',
+        margin: '0 12px 8px',
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 14px',
+        gap: 12,
       }}
     >
-      {/* Photo area shimmer */}
+      {/* Icon square */}
       <div
-        style={{ height: 160, background: 'var(--bone)', position: 'relative', overflow: 'hidden' }}
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 10,
+          background: 'var(--surface-2)',
+          flexShrink: 0,
+          position: 'relative',
+          overflow: 'hidden',
+        }}
       >
         <div className="shimmer-bar" style={{ position: 'absolute', inset: 0 }} />
       </div>
+
       {/* Text lines */}
-      <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div
           style={{
-            height: 14,
-            borderRadius: 4,
-            background: 'var(--bone)',
-            width: '70%',
+            height: 13,
+            borderRadius: 6,
+            background: 'var(--surface-2)',
+            width: '65%',
             position: 'relative',
             overflow: 'hidden',
           }}
@@ -36,21 +50,9 @@ export default function PlaceCardSkeleton() {
         <div
           style={{
             height: 10,
-            borderRadius: 4,
-            background: 'var(--bone)',
-            width: '45%',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
-          <div className="shimmer-bar" style={{ position: 'absolute', inset: 0 }} />
-        </div>
-        <div
-          style={{
-            height: 10,
-            borderRadius: 4,
-            background: 'var(--bone)',
-            width: '55%',
+            borderRadius: 6,
+            background: 'var(--surface-2)',
+            width: '40%',
             position: 'relative',
             overflow: 'hidden',
           }}

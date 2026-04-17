@@ -3,14 +3,16 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth, getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { useState, useRef, useEffect, useMemo } from 'react'
+import { Map, Heart, User, Settings, HelpCircle, Info, Mail, LogOut } from 'lucide-react'
 
 const NAV = [
-  { href: '/', icon: '🗺', label: 'Carte' },
-  { href: '/favorites', icon: '♡', label: 'Favoris' },
-  { href: '/account', icon: '◎', label: 'Compte' },
+  { href: '/', Icon: Map, label: 'Carte' },
+  { href: '/favorites', Icon: Heart, label: 'Favoris' },
+  { href: '/account', Icon: User, label: 'Compte' },
 ]
 
 const SECONDARY = [
+  { href: '/settings', label: 'Paramètres' },
   { href: '/help', label: 'Aide' },
   { href: '/about', label: 'À propos' },
   { href: '/contact', label: 'Contact' },
@@ -51,9 +53,9 @@ export default function NavRail() {
         top: 0,
         left: 0,
         bottom: 0,
-        width: 52,
-        background: 'var(--white)',
-        borderRight: '1px solid var(--ink-10)',
+        width: 56,
+        background: 'var(--bg)',
+        borderRight: '1px solid var(--border)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -61,84 +63,69 @@ export default function NavRail() {
         zIndex: 200,
       }}
     >
-      {/* Logo mark */}
-      <Link href="/" style={{ marginBottom: 16, textDecoration: 'none' }}>
+      {/* Logo */}
+      <Link href="/" style={{ marginBottom: 20, textDecoration: 'none' }}>
         <div
           style={{
-            width: 28,
-            height: 28,
-            borderRadius: 'var(--r-md)',
-            background: 'var(--forest-mid)',
+            width: 32,
+            height: 32,
+            borderRadius: 10,
+            background: 'var(--accent)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: 'var(--s1)',
           }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <path
               d="M9 4v8c0 2.5 1 4 3 4.5V21M15 4v5c0 1-.7 1.5-1.5 1.5S12 10 12 9V4M15 9.5c0 2 1.5 3 3 3V21"
               stroke="white"
-              strokeWidth="2"
+              strokeWidth="1.75"
               strokeLinecap="round"
             />
           </svg>
         </div>
       </Link>
 
-      {/* Primary nav items */}
-      {NAV.map((item) => {
-        const active =
-          pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href + '/'))
+      {/* Nav items */}
+      {NAV.map(({ href, Icon, label }) => {
+        const active = pathname === href || (href !== '/' && pathname.startsWith(href + '/'))
         return (
           <Link
-            key={item.href}
-            href={item.href}
-            title={item.label}
+            key={href}
+            href={href}
+            title={label}
             aria-current={active ? 'page' : undefined}
-            style={{ textDecoration: 'none', marginBottom: 4 }}
+            style={{ textDecoration: 'none', marginBottom: 2 }}
           >
             <div
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: 9,
-                background: active ? 'var(--forest-pale)' : 'transparent',
-                boxShadow: active ? 'inset 2px 0 0 var(--forest-mid)' : 'none',
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: active ? 'var(--accent-light)' : 'transparent',
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 1,
-                transition: 'background 120ms',
+                transition: 'background 120ms ease',
+                color: active ? 'var(--accent)' : 'var(--text-3)',
+              }}
+              onMouseEnter={(e) => {
+                if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--surface)'
+              }}
+              onMouseLeave={(e) => {
+                if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'
               }}
             >
-              <span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1 }}>
-                {item.icon}
-              </span>
-              {active && (
-                <span
-                  aria-hidden="true"
-                  style={{
-                    fontSize: 8,
-                    fontWeight: 700,
-                    letterSpacing: '0.04em',
-                    color: 'var(--forest-mid)',
-                    fontFamily: 'var(--font-body)',
-                  }}
-                >
-                  {item.label}
-                </span>
-              )}
+              <Icon size={18} strokeWidth={active ? 2 : 1.75} />
             </div>
           </Link>
         )
       })}
 
-      {/* Spacer */}
       <div style={{ flex: 1 }} />
 
-      {/* Settings item */}
+      {/* Settings */}
       <Link
         href="/settings"
         title="Paramètres"
@@ -147,74 +134,68 @@ export default function NavRail() {
       >
         <div
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 9,
-            background: pathname === '/settings' ? 'var(--forest-pale)' : 'transparent',
+            width: 40,
+            height: 40,
+            borderRadius: 10,
+            background: pathname === '/settings' ? 'var(--accent-light)' : 'transparent',
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 1,
-            transition: 'background 120ms',
+            color: pathname === '/settings' ? 'var(--accent)' : 'var(--text-3)',
+            transition: 'background 120ms ease',
+          }}
+          onMouseEnter={(e) => {
+            if (pathname !== '/settings')
+              (e.currentTarget as HTMLElement).style.background = 'var(--surface)'
+          }}
+          onMouseLeave={(e) => {
+            if (pathname !== '/settings')
+              (e.currentTarget as HTMLElement).style.background = 'transparent'
           }}
         >
-          <span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1 }}>
-            ⚙️
-          </span>
-          {pathname === '/settings' && (
-            <span
-              aria-hidden="true"
-              style={{
-                fontSize: 8,
-                fontWeight: 700,
-                letterSpacing: '0.04em',
-                color: 'var(--forest-mid)',
-                fontFamily: 'var(--font-body)',
-              }}
-            >
-              Réglages
-            </span>
-          )}
+          <Settings size={18} strokeWidth={1.75} />
         </div>
       </Link>
 
-      {/* Avatar / popover */}
+      {/* Avatar */}
       <div ref={avatarRef} style={{ position: 'relative' }}>
         <button
           aria-label="Mon compte"
           aria-expanded={popover}
           onClick={() => setPopover((v) => !v)}
           style={{
-            width: 30,
-            height: 30,
+            width: 32,
+            height: 32,
             minWidth: 44,
             minHeight: 44,
             borderRadius: '50%',
-            background: auth.user ? 'var(--forest-mid)' : 'var(--ink-20)',
+            background: auth.user ? 'var(--accent)' : 'var(--surface-2)',
             border: 'none',
             cursor: 'pointer',
-            color: 'white',
-            fontSize: 11,
-            fontWeight: 700,
+            color: auth.user ? 'white' : 'var(--text-3)',
+            fontSize: 12,
+            fontWeight: 600,
             fontFamily: 'var(--font-body)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          {initials}
+          {auth.user ? initials : <User size={15} strokeWidth={1.75} />}
         </button>
 
         {popover && (
           <div
             style={{
               position: 'absolute',
-              bottom: 40,
+              bottom: 44,
               left: 8,
-              background: 'var(--white)',
-              border: '1px solid var(--ink-10)',
-              borderRadius: 'var(--r-lg)',
+              background: 'var(--bg)',
+              border: '1px solid var(--border)',
+              borderRadius: 12,
               boxShadow: 'var(--s3)',
               padding: '6px 0',
-              minWidth: 160,
+              minWidth: 168,
               zIndex: 300,
             }}
           >
@@ -225,58 +206,58 @@ export default function NavRail() {
                 onClick={() => setPopover(false)}
                 style={{
                   display: 'block',
-                  padding: '7px 14px',
+                  padding: '8px 14px',
                   fontSize: 13,
-                  color: 'var(--ink-80)',
+                  color: 'var(--text)',
                   textDecoration: 'none',
                   fontFamily: 'var(--font-body)',
+                  transition: 'background 100ms',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--off-white)')}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
                 {s.label}
               </Link>
             ))}
-            {auth.user && (
-              <>
-                <button
-                  onClick={async () => {
-                    try {
-                      await sb.auth.signOut()
-                    } catch {
-                      /* ignore network errors on sign-out */
-                    } finally {
-                      setPopover(false)
-                    }
-                  }}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    padding: '7px 14px',
-                    textAlign: 'left',
-                    fontSize: 13,
-                    color: 'var(--coral)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-body)',
-                  }}
-                >
-                  Se déconnecter
-                </button>
-              </>
-            )}
-            {!auth.user && (
+            <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+            {auth.user ? (
+              <button
+                onClick={async () => {
+                  try {
+                    await sb.auth.signOut()
+                  } catch {
+                    /* ignore */
+                  } finally {
+                    setPopover(false)
+                  }
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  width: '100%',
+                  padding: '8px 14px',
+                  textAlign: 'left',
+                  fontSize: 13,
+                  color: 'var(--coral)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-body)',
+                }}
+              >
+                <LogOut size={14} strokeWidth={1.75} />
+                Se déconnecter
+              </button>
+            ) : (
               <Link
                 href="/?auth=required"
                 onClick={() => setPopover(false)}
                 style={{
                   display: 'block',
-                  width: '100%',
-                  padding: '7px 14px',
-                  textAlign: 'left',
+                  padding: '8px 14px',
                   fontSize: 13,
-                  color: 'var(--forest-mid)',
+                  color: 'var(--accent)',
                   fontWeight: 600,
                   textDecoration: 'none',
                   fontFamily: 'var(--font-body)',

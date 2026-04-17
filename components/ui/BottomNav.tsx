@@ -1,13 +1,14 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuth, getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
+import { Map, Heart, User, MoreHorizontal, LogOut } from 'lucide-react'
 
 const TABS = [
-  { href: '/', icon: '🗺', label: 'Carte' },
-  { href: '/favorites', icon: '♡', label: 'Favoris' },
-  { href: '/account', icon: '◎', label: 'Compte' },
+  { href: '/', Icon: Map, label: 'Carte' },
+  { href: '/favorites', Icon: Heart, label: 'Favoris' },
+  { href: '/account', Icon: User, label: 'Compte' },
 ]
 
 const MORE_LINKS = [
@@ -21,7 +22,7 @@ export default function BottomNav() {
   const pathname = usePathname()
   const auth = useAuth()
   const [sheet, setSheet] = useState(false)
-  const sb = getSupabaseBrowserClient()
+  const sb = useMemo(() => getSupabaseBrowserClient(), [])
 
   useEffect(() => {
     if (!sheet) return
@@ -40,9 +41,8 @@ export default function BottomNav() {
           bottom: 0,
           left: 0,
           right: 0,
-          minHeight: 56,
-          background: 'var(--white)',
-          borderTop: '1px solid var(--ink-10)',
+          background: 'var(--bg)',
+          borderTop: '1px solid var(--border)',
           display: 'flex',
           zIndex: 200,
           paddingBottom: 'env(safe-area-inset-bottom)',
@@ -62,32 +62,19 @@ export default function BottomNav() {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 2,
+                gap: 3,
                 textDecoration: 'none',
-                minHeight: 44,
+                minHeight: 56,
+                color: active ? 'var(--accent)' : 'var(--text-3)',
               }}
             >
-              {active && (
-                <div
-                  style={{
-                    width: 32,
-                    height: 3,
-                    borderRadius: 'var(--r-pill)',
-                    background: 'var(--forest-mid)',
-                    marginBottom: 3,
-                    transition: 'width 200ms var(--ease-spring)',
-                  }}
-                />
-              )}
-              <span aria-hidden="true" style={{ fontSize: 18, opacity: active ? 1 : 0.55 }}>
-                {tab.icon}
-              </span>
+              <tab.Icon size={20} strokeWidth={active ? 2 : 1.75} />
               <span
                 style={{
                   fontSize: 10,
-                  fontWeight: 600,
-                  color: active ? 'var(--forest-mid)' : 'var(--ink-40)',
+                  fontWeight: active ? 600 : 400,
                   fontFamily: 'var(--font-body)',
+                  letterSpacing: 0,
                 }}
               >
                 {tab.label}
@@ -96,7 +83,6 @@ export default function BottomNav() {
           )
         })}
 
-        {/* Plus tab */}
         <button
           onClick={() => setSheet(true)}
           aria-label="Plus d'options"
@@ -106,22 +92,20 @@ export default function BottomNav() {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 2,
+            gap: 3,
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            minHeight: 44,
+            minHeight: 56,
             minWidth: 44,
+            color: 'var(--text-3)',
           }}
         >
-          <span aria-hidden="true" style={{ fontSize: 18 }}>
-            ⋯
-          </span>
+          <MoreHorizontal size={20} strokeWidth={1.75} />
           <span
             style={{
               fontSize: 10,
-              fontWeight: 600,
-              color: 'var(--ink-40)',
+              fontWeight: 400,
               fontFamily: 'var(--font-body)',
             }}
           >
@@ -130,10 +114,9 @@ export default function BottomNav() {
         </button>
       </nav>
 
-      {/* "Plus" bottom sheet */}
       {sheet && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 500 }} onClick={() => setSheet(false)}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(14,14,13,0.4)' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)' }} />
           <div
             onClick={(e) => e.stopPropagation()}
             role="dialog"
@@ -144,9 +127,10 @@ export default function BottomNav() {
               bottom: 0,
               left: 0,
               right: 0,
-              background: 'var(--white)',
-              borderRadius: '20px 20px 0 0',
-              padding: '8px 0 32px',
+              background: 'var(--bg)',
+              borderRadius: '16px 16px 0 0',
+              padding: '8px 0',
+              paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)',
             }}
           >
             <div
@@ -154,8 +138,8 @@ export default function BottomNav() {
                 width: 36,
                 height: 4,
                 borderRadius: 2,
-                background: 'var(--bone)',
-                margin: '8px auto 16px',
+                background: 'var(--surface-2)',
+                margin: '8px auto 12px',
               }}
             />
             {MORE_LINKS.map((l) => (
@@ -165,17 +149,17 @@ export default function BottomNav() {
                 onClick={() => setSheet(false)}
                 style={{
                   display: 'block',
-                  padding: '14px 24px',
+                  padding: '14px 20px',
                   fontSize: 15,
-                  color: 'var(--ink-80)',
+                  color: 'var(--text)',
                   textDecoration: 'none',
                   fontFamily: 'var(--font-body)',
-                  borderBottom: '1px solid var(--ink-10)',
                 }}
               >
                 {l.label}
               </Link>
             ))}
+            <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
             {auth.user ? (
               <button
                 onClick={async () => {
@@ -188,9 +172,11 @@ export default function BottomNav() {
                   }
                 }}
                 style={{
-                  display: 'block',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
                   width: '100%',
-                  padding: '14px 24px',
+                  padding: '14px 20px',
                   textAlign: 'left',
                   fontSize: 15,
                   color: 'var(--coral)',
@@ -200,6 +186,7 @@ export default function BottomNav() {
                   fontFamily: 'var(--font-body)',
                 }}
               >
+                <LogOut size={16} strokeWidth={1.75} />
                 Se déconnecter
               </button>
             ) : (
@@ -208,9 +195,9 @@ export default function BottomNav() {
                 onClick={() => setSheet(false)}
                 style={{
                   display: 'block',
-                  padding: '14px 24px',
+                  padding: '14px 20px',
                   fontSize: 15,
-                  color: 'var(--forest-mid)',
+                  color: 'var(--accent)',
                   fontWeight: 600,
                   textDecoration: 'none',
                   fontFamily: 'var(--font-body)',

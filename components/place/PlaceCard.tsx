@@ -1,11 +1,8 @@
-// PlaceCard — Design exact brandbook "Carte Blanche"
-// Carte verticale : photo/gradient · badges overlay · Fraunces name · footer distance+heart
 'use client'
 import { memo, useState, useCallback, useEffect } from 'react'
-import Image from 'next/image'
 import { getNote } from '@/components/place/NoteModal'
 import type { PlaceCard as T } from '@/types'
-import { IcoStar, IcoShare, IcoPin, IcoFork } from '@/components/icons'
+import { Heart, MapPin, Utensils } from 'lucide-react'
 
 interface Props {
   place: T
@@ -19,55 +16,19 @@ interface Props {
   onShare?: () => void
 }
 
-// ── Gradient backgrounds per cuisine (brandbook inspiration) ─
-function getCuisineGradient(cuisine?: string, isFav?: boolean): string {
-  if (isFav)
-    return 'linear-gradient(135deg,var(--forest) 0%,var(--forest-mid) 60%,var(--forest-bright) 100%)'
-  const c = (cuisine ?? '').toLowerCase()
-  if (c.includes('japan') || c.includes('sushi') || c.includes('ramen'))
-    return 'linear-gradient(120deg,#0c2d3a 0%,#1a5468 50%,#2980a0 100%)'
-  if (c.includes('ital') || c.includes('pizza') || c.includes('pasta'))
-    return 'linear-gradient(160deg,#2d1a0e 0%,#7c4422 100%)'
-  if (c.includes('french') || c.includes('franç') || c.includes('bistro') || c.includes('bistrot'))
-    return 'linear-gradient(135deg,var(--forest) 0%,var(--forest-mid) 60%,var(--forest-bright) 100%)'
-  if (c.includes('indian') || c.includes('indien'))
-    return 'linear-gradient(135deg,#3d1c02 0%,#a0521e 100%)'
-  if (
-    c.includes('chinese') ||
-    c.includes('chinois') ||
-    c.includes('asian') ||
-    c.includes('asiatique')
-  )
-    return 'linear-gradient(135deg,#1a0a0a 0%,#7c1414 100%)'
-  if (c.includes('burger') || c.includes('american') || c.includes('américain'))
-    return 'linear-gradient(135deg,#1a1200 0%,#7c5a00 100%)'
-  if (c.includes('seafood') || c.includes('poisson') || c.includes('mer'))
-    return 'linear-gradient(120deg,#0a1f2d 0%,#1a4a6a 100%)'
-  if (c.includes('mexican') || c.includes('mexicain'))
-    return 'linear-gradient(135deg,#1f0a00 0%,#7a3010 100%)'
-  if (c.includes('greek') || c.includes('grec'))
-    return 'linear-gradient(135deg,#0a1a3d 0%,#1a4080 100%)'
-  // Default — forest
-  return 'linear-gradient(135deg,#1a2e1a 0%,#2d4a2d 60%,#3d6e3d 100%)'
-}
-
-// ── Walk time ────────────────────────────────────────────
 function formatWalkTime(metres?: number): string {
   if (metres == null) return ''
   const mins = Math.round(metres / 80)
   if (mins < 1) return 'À côté'
-  return `${mins} min à pied`
+  return `${mins} min`
 }
 
-// ── Price label ──────────────────────────────────────────
 function priceLabel(price?: number): string {
   if (price == null) return ''
   return '€'.repeat(price)
 }
 
-// ── Card height — fixed for virtual list ────────────────
-// Photo area 148px + body ~68px + footer 46px = 262px
-export const ITEM_HEIGHT = 262
+export const ITEM_HEIGHT = 92
 
 const PlaceCard = memo(function PlaceCard({
   place,
@@ -78,10 +39,8 @@ const PlaceCard = memo(function PlaceCard({
   onLeave,
   onClick,
   onToggleFavorite,
-  onShare,
 }: Props) {
   const [pressing, setPressing] = useState(false)
-  const [imgError, setImgError] = useState(false)
   const [hasNote, setHasNote] = useState(false)
   useEffect(() => {
     setHasNote(!!getNote(place.osm_id))
@@ -91,18 +50,6 @@ const PlaceCard = memo(function PlaceCard({
   const rating = place.fsq?.rating
   const price = place.fsq?.price
   const isFav = !!place.is_favorite
-  const photo = !imgError ? place.fsq?.photos?.[0] : undefined
-  const photoUrl = photo ? `${photo.prefix}400x300${photo.suffix}` : undefined
-
-  const ratingAmber = rating != null && rating >= 9
-  const ratingColor =
-    rating == null
-      ? undefined
-      : rating >= 8
-        ? 'var(--rating-high)'
-        : rating >= 6
-          ? 'var(--rating-mid)'
-          : 'var(--rating-low)'
 
   const handleClick = useCallback(() => {
     setPressing(true)
@@ -118,64 +65,38 @@ const PlaceCard = memo(function PlaceCard({
     [onToggleFavorite]
   )
 
-  // Card-level visual state
-  const cardBorder = isSelected
-    ? '1.5px solid var(--forest-mid)'
-    : isHovered
-      ? '1px solid var(--ink-20)'
-      : '1px solid var(--ink-10)'
-
-  const cardShadow = isSelected ? 'var(--s-forest)' : isHovered ? 'var(--s4)' : 'var(--s1)'
-
-  const cardTransform = pressing
-    ? 'scale(0.985)'
-    : isHovered && !pressing
-      ? 'translateY(-3px)'
-      : isSelected
-        ? 'translateY(-2px)'
-        : 'translateZ(0)'
-
-  const gradient = getCuisineGradient(cuisine, isFav)
+  const cardBorder = isSelected ? '1.5px solid var(--accent)' : '1px solid var(--border)'
+  const cardShadow = isSelected ? 'var(--s2)' : isHovered ? 'var(--s1)' : 'none'
+  const cardBg = isSelected ? 'var(--accent-light)' : 'var(--bg)'
+  const cardTransform = pressing ? 'scale(0.985)' : 'scale(1)'
 
   return (
     <button
       type="button"
-      className="anim-card-in"
       aria-label={`Voir ${place.name}`}
       style={{
         height: ITEM_HEIGHT,
         boxSizing: 'border-box',
-        margin: '0 12px 12px',
-        borderRadius: 'var(--r-xl)',
+        margin: '0 12px 8px',
+        borderRadius: 12,
         overflow: 'hidden',
-        background: 'var(--white)',
+        background: cardBg,
         border: cardBorder,
         boxShadow: cardShadow,
         cursor: 'pointer',
         transform: cardTransform,
-        transition: 'box-shadow 180ms ease, transform 180ms ease',
+        transition: 'box-shadow 150ms ease, transform 150ms ease, background 150ms ease',
         outline: 'none',
         display: 'flex',
-        flexDirection: 'column',
-        padding: 0,
+        alignItems: 'center',
+        padding: '0 14px',
+        gap: 12,
         textAlign: 'left',
         fontFamily: 'inherit',
         width: '100%',
       }}
-      onMouseEnter={(e) => {
-        onHover()
-        if (!isSelected) {
-          e.currentTarget.style.boxShadow = 'var(--s3)'
-          e.currentTarget.style.transform = 'translateY(-1px)'
-        }
-      }}
-      onMouseLeave={(e) => {
-        onLeave()
-        if (!isSelected) {
-          e.currentTarget.style.boxShadow = 'var(--s2)'
-          e.currentTarget.style.transform = 'translateY(0)'
-        }
-      }}
+      onMouseEnter={onHover}
+      onMouseLeave={onLeave}
       onClick={handleClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -184,343 +105,180 @@ const PlaceCard = memo(function PlaceCard({
         }
       }}
     >
-      {/* ── PHOTO / GRADIENT (148px) ── */}
-      <div style={{ height: 148, position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
-        {/* Background — photo or gradient */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: gradient,
-            transition: 'transform 400ms ease',
-            transform: isHovered ? 'scale(1.04)' : 'scale(1)',
-          }}
-        >
-          {photoUrl && (
-            <Image
-              src={photoUrl}
-              alt={place.name}
-              fill
-              sizes="400px"
-              style={{ objectFit: 'cover' }}
-              onError={() => setImgError(true)}
-            />
-          )}
-          {/* Watermark fourchette (visible quand pas de photo) */}
-          {!photoUrl && (
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: 0.18,
-              }}
-            >
-              <IcoFork />
-            </div>
-          )}
-        </div>
-
-        {/* Gradient overlay bas */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background:
-              'linear-gradient(to top, rgba(14,14,13,0.6) 0%, rgba(14,14,13,0.15) 45%, transparent 100%)',
-          }}
-        />
-
-        {/* ── BADGES overlay — top ── */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 10,
-            left: 10,
-            right: 10,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-          }}
-        >
-          {/* Rating pill */}
-          {rating != null ? (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                background: ratingAmber ? 'var(--amber)' : 'white',
-                borderRadius: 'var(--r-pill)',
-                padding: '3px 10px',
-                fontSize: 12,
-                fontWeight: 700,
-                color: ratingAmber ? 'white' : (ratingColor ?? 'var(--ink)'),
-                boxShadow: 'var(--s1)',
-                fontFamily: 'var(--font-body)',
-              }}
-            >
-              <IcoStar />
-              <span>{rating.toFixed(1)}</span>
-            </div>
-          ) : (
-            <div style={{ width: 4 }} />
-          )}
-
-          {/* Open/closed badge */}
-          {place.open_now !== undefined && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '3px 10px',
-                borderRadius: 'var(--r-pill)',
-                fontSize: 10,
-                fontWeight: 600,
-                background: 'rgba(14,14,13,0.65)',
-                backdropFilter: 'blur(6px)',
-                fontFamily: 'var(--font-body)',
-              }}
-            >
-              <span
-                style={{
-                  width: 5,
-                  height: 5,
-                  borderRadius: '50%',
-                  flexShrink: 0,
-                  background: place.open_now ? 'var(--state-open)' : 'var(--state-closed)',
-                  display: 'block',
-                }}
-              />
-              <span style={{ color: place.open_now ? 'var(--state-open)' : 'var(--state-closed)' }}>
-                {place.open_now ? 'Ouvert' : 'Fermé'}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Visited badge — top-right */}
-        {(place.visitCount ?? 0) > 0 && (
-          <div
-            aria-label="Visité"
-            style={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              background: 'var(--forest-pale)',
-              color: 'var(--forest-mid)',
-              fontSize: 9,
-              fontWeight: 700,
-              letterSpacing: '0.06em',
-              padding: '3px 7px',
-              borderRadius: 'var(--r-pill)',
-              border: '1px solid var(--forest-mid)',
-              fontFamily: 'var(--font-body)',
-            }}
-          >
-            <span aria-hidden="true">✓</span> Visité
-          </div>
-        )}
-
-        {/* Selected indicator */}
-        {isSelected && (
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              border: '2px solid var(--forest-mid)',
-              borderRadius: 'var(--r-xl) var(--r-xl) 0 0',
-              pointerEvents: 'none',
-            }}
-          />
-        )}
+      {/* Icon square */}
+      <div
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 10,
+          background: isSelected ? 'var(--accent)' : 'var(--surface)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          color: isSelected ? 'white' : 'var(--text-3)',
+          transition: 'background 150ms ease, color 150ms ease',
+        }}
+      >
+        <Utensils size={18} strokeWidth={1.75} />
       </div>
 
-      {/* ── BODY ── */}
-      <div style={{ padding: '14px 16px 0', flex: 1 }}>
-        {/* Name — Fraunces display */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-          <div
+      {/* Content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Name row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+          <span
             style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 17,
-              fontWeight: 400,
-              letterSpacing: '-0.03em',
-              color: 'var(--ink)',
+              fontSize: 14,
+              fontWeight: 600,
+              color: 'var(--text)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
-              lineHeight: 1.2,
+              lineHeight: 1.3,
               flex: 1,
               minWidth: 0,
+              letterSpacing: '-0.01em',
             }}
           >
             {place.name}
-          </div>
+          </span>
           {hasNote && (
             <span
-              title="Note personnelle enregistrée"
+              title="Note personnelle"
               style={{
                 flexShrink: 0,
-                width: 7,
-                height: 7,
+                width: 6,
+                height: 6,
                 borderRadius: '50%',
-                background: 'var(--forest-mid)',
-                border: '1.5px solid white',
-                boxShadow: '0 1px 3px rgba(45,122,85,0.35)',
+                background: 'var(--accent)',
               }}
             />
           )}
+          {/* Rating badge */}
+          {rating != null && (
+            <span
+              style={{
+                flexShrink: 0,
+                fontSize: 11,
+                fontWeight: 700,
+                color: 'var(--accent)',
+                background: 'var(--accent-light)',
+                borderRadius: 6,
+                padding: '1px 6px',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              {rating.toFixed(1)}
+            </span>
+          )}
         </div>
 
-        {/* Meta row: CUISINE · €€€ */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        {/* Meta row */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 12,
+            color: 'var(--text-3)',
+            flexWrap: 'nowrap',
+            overflow: 'hidden',
+          }}
+        >
           {cuisine && (
             <span
               style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: 'var(--forest-mid)',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
-                maxWidth: 130,
+                maxWidth: 110,
               }}
             >
-              {cuisine.charAt(0).toUpperCase() + (cuisine.slice(1).toLowerCase() ?? '')}
+              {cuisine.charAt(0).toUpperCase() + cuisine.slice(1).toLowerCase()}
             </span>
           )}
-          {cuisine && price != null && (
-            <span
-              style={{
-                width: 3,
-                height: 3,
-                borderRadius: '50%',
-                background: 'var(--ink-20)',
-                flexShrink: 0,
-              }}
-            />
+          {cuisine && (price != null || place.distance != null) && (
+            <span style={{ color: 'var(--border-strong)', flexShrink: 0 }}>·</span>
           )}
           {price != null && (
-            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink-40)', flexShrink: 0 }}>
-              {priceLabel(price)}
+            <span style={{ flexShrink: 0, color: 'var(--text-3)' }}>{priceLabel(price)}</span>
+          )}
+          {price != null && place.distance != null && (
+            <span style={{ color: 'var(--border-strong)', flexShrink: 0 }}>·</span>
+          )}
+          {place.distance != null && (
+            <span
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 3,
+                flexShrink: 0,
+              }}
+            >
+              <MapPin size={11} strokeWidth={1.75} />
+              {formatWalkTime(place.distance)}
             </span>
+          )}
+          {place.open_now !== undefined && (
+            <>
+              <span style={{ color: 'var(--border-strong)', flexShrink: 0 }}>·</span>
+              <span
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  flexShrink: 0,
+                  color: place.open_now ? 'var(--open)' : 'var(--closed)',
+                }}
+              >
+                <span
+                  style={{
+                    width: 5,
+                    height: 5,
+                    borderRadius: '50%',
+                    background: place.open_now ? 'var(--open)' : 'var(--closed)',
+                    flexShrink: 0,
+                  }}
+                />
+                {place.open_now ? 'Ouvert' : 'Fermé'}
+              </span>
+            </>
           )}
         </div>
       </div>
 
-      {/* ── FOOTER — distance + heart ── */}
-      <div
+      {/* Favorite button */}
+      <button
+        onClick={handleFavClick}
+        aria-label={isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
         style={{
-          padding: '10px 16px 14px',
+          width: 36,
+          height: 36,
+          minWidth: 44,
+          minHeight: 44,
+          borderRadius: 8,
+          border: 'none',
+          background: 'none',
           display: 'flex',
-          justifyContent: 'space-between',
           alignItems: 'center',
-          borderTop: '1px solid var(--ink-10)',
-          marginTop: 12,
+          justifyContent: 'center',
+          cursor: 'pointer',
+          color: isFav ? 'var(--accent)' : 'var(--text-3)',
           flexShrink: 0,
+          transition: 'color 140ms ease',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = 'var(--accent)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = isFav ? 'var(--accent)' : 'var(--text-3)'
         }}
       >
-        {/* Distance */}
-        <span
-          style={{
-            fontSize: 11,
-            color: 'var(--ink-40)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            fontFamily: 'var(--font-body)',
-          }}
-        >
-          <IcoPin />
-          {place.distance != null ? <span>{formatWalkTime(place.distance)}</span> : '—'}
-        </span>
-
-        {/* Share button — apparaît au survol */}
-        {onShare && isHovered && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onShare()
-            }}
-            aria-label="Partager"
-            title="Partager ce restaurant"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              padding: '5px 9px',
-              borderRadius: 'var(--r-sm)',
-              border: '1px solid var(--ink-10)',
-              background: 'var(--off-white)',
-              color: 'var(--ink-40)',
-              cursor: 'pointer',
-              fontSize: 10,
-              fontWeight: 600,
-              fontFamily: 'var(--font-body)',
-              transition: 'all 120ms ease',
-              animation: 'fadeIn 120ms ease both',
-              minWidth: 44,
-              minHeight: 44,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--sky-pale)'
-              e.currentTarget.style.borderColor = 'rgba(36,89,168,0.3)'
-              e.currentTarget.style.color = 'var(--sky)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'var(--off-white)'
-              e.currentTarget.style.borderColor = 'var(--ink-10)'
-              e.currentTarget.style.color = 'var(--ink-40)'
-            }}
-          >
-            <IcoShare />
-            Partager
-          </button>
-        )}
-
-        {/* Heart button — brandbook .rch style */}
-        <button
-          onClick={handleFavClick}
-          aria-label={isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-          style={{
-            width: 30,
-            height: 30,
-            minWidth: 44,
-            minHeight: 44,
-            borderRadius: 'var(--r-sm)',
-            border: `1px solid ${isFav ? 'rgba(45,122,85,0.30)' : 'var(--ink-10)'}`,
-            background: isFav ? 'var(--forest-pale)' : 'var(--off-white)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            fontSize: 13,
-            color: isFav ? 'var(--forest-mid)' : 'var(--ink-40)',
-            transition: 'all 140ms ease',
-            flexShrink: 0,
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'var(--forest-pale)'
-            e.currentTarget.style.borderColor = 'rgba(45,122,85,0.30)'
-            e.currentTarget.style.color = 'var(--forest-mid)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = isFav ? 'var(--forest-pale)' : 'var(--off-white)'
-            e.currentTarget.style.borderColor = isFav ? 'rgba(45,122,85,0.30)' : 'var(--ink-10)'
-            e.currentTarget.style.color = isFav ? 'var(--forest-mid)' : 'var(--ink-40)'
-          }}
-        >
-          <span aria-hidden="true">{isFav ? '♥' : '♡'}</span>
-        </button>
-      </div>
+        <Heart size={18} strokeWidth={1.75} fill={isFav ? 'currentColor' : 'none'} />
+      </button>
     </button>
   )
 })
-
-// @keyframes fadeIn needed for share btn — defined in globals.css
 
 export default PlaceCard
