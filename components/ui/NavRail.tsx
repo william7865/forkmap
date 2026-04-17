@@ -267,7 +267,8 @@ export default function NavRail() {
               </>
             )}
             {!auth.user && (
-              <button
+              <Link
+                href="/?auth=required"
                 onClick={() => setPopover(false)}
                 style={{
                   display: 'block',
@@ -276,14 +277,13 @@ export default function NavRail() {
                   textAlign: 'left',
                   fontSize: 13,
                   color: 'var(--forest-mid)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
+                  fontWeight: 600,
+                  textDecoration: 'none',
                   fontFamily: 'var(--font-body)',
                 }}
               >
                 Se connecter
-              </button>
+              </Link>
             )}
           </div>
         )}

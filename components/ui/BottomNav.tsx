@@ -176,7 +176,7 @@ export default function BottomNav() {
                 {l.label}
               </Link>
             ))}
-            {auth.user && (
+            {auth.user ? (
               <button
                 onClick={async () => {
                   try {
@@ -202,6 +202,22 @@ export default function BottomNav() {
               >
                 Se déconnecter
               </button>
+            ) : (
+              <Link
+                href="/?auth=required"
+                onClick={() => setSheet(false)}
+                style={{
+                  display: 'block',
+                  padding: '14px 24px',
+                  fontSize: 15,
+                  color: 'var(--forest-mid)',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  fontFamily: 'var(--font-body)',
+                }}
+              >
+                Se connecter
+              </Link>
             )}
           </div>
         </div>

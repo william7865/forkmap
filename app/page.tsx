@@ -6,6 +6,8 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import { useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useHomeState } from '@/lib/hooks/useHomeState'
 import SuggestionsPanel from '@/components/place/SuggestionsPanel'
 import LanguagePicker from '@/components/ui/LanguagePicker'
@@ -166,6 +168,16 @@ export default function HomePage() {
     handleCloseDetail,
     handleToggleFavorite,
   } = useHomeState()
+
+  // Open auth modal when redirected with ?auth=required
+  const searchParams = useSearchParams()
+  const didOpenAuth = useRef(false)
+  useEffect(() => {
+    if (!didOpenAuth.current && searchParams.get('auth') === 'required') {
+      didOpenAuth.current = true
+      setShowAuthModal(true)
+    }
+  }, [searchParams, setShowAuthModal])
 
   return (
     <div
