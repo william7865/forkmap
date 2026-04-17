@@ -6,6 +6,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useIsMobile } from "@/lib/hooks/useMediaQuery";
 
 // ── Logo fourchette brandbook ────────────────────────────
 export function ForkmapLogo({ size = 30 }: { size?: number }) {
@@ -60,11 +61,13 @@ export function PageHeader({
   current: string;
   actions?: ReactNode;
 }) {
+  const isMobile = useIsMobile();
+
   return (
     <header style={{
       height: 56, flexShrink: 0,
       display: "flex", alignItems: "center",
-      padding: "0 20px", gap: 12,
+      padding: "0 16px", gap: 10,
       background: "var(--white)",
       borderBottom: "1px solid var(--ink-10)",
       position: "sticky", top: 0, zIndex: 100,
@@ -93,32 +96,33 @@ export function PageHeader({
         }}
       >
         <IcoArrowLeft />
-        Carte
+        {!isMobile && "Carte"}
       </Link>
 
       {/* Separator */}
       <div style={{ width: 1, height: 16, background: "var(--ink-10)", flexShrink: 0 }}/>
 
-      {/* Logo + wordmark */}
-      <ForkmapWordmark />
+      {/* Logo — icon only on mobile, full wordmark on desktop */}
+      {isMobile ? <ForkmapLogo size={28} /> : <ForkmapWordmark />}
 
       <div style={{ flex: 1 }}/>
 
       {/* Custom actions slot */}
       {actions}
 
-      {/* Current page pill — eyebrow brandbook */}
+      {/* Current page pill */}
       <span style={{
         display: "inline-flex", alignItems: "center", gap: 6,
         fontSize: 10, fontWeight: 600,
         color: "var(--forest-mid)",
         letterSpacing: "0.12em", textTransform: "uppercase",
-        padding: "4px 12px",
+        padding: "4px 10px",
         borderRadius: "var(--r-pill)",
         background: "var(--forest-pale)",
         border: "1px solid rgba(45,122,85,0.18)",
         fontFamily: "var(--font-body)",
         flexShrink: 0,
+        whiteSpace: "nowrap" as const,
       }}>
         <span style={{ display: "block", width: 10, height: 1.5, background: "var(--forest-mid)" }}/>
         {current}
@@ -160,6 +164,7 @@ export function InfoPage({
 
 // ── GlobalFooter brandbook ────────────────────────────────
 export function GlobalFooter() {
+  const isMobile = useIsMobile();
   const year = new Date().getFullYear();
 
   const cols = [
@@ -199,8 +204,9 @@ export function GlobalFooter() {
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <div style={{
           display: "grid",
-          gridTemplateColumns: "1fr repeat(3, auto)",
-          gap: 48, marginBottom: 40,
+          gridTemplateColumns: isMobile ? "1fr" : "1fr repeat(3, auto)",
+          gap: isMobile ? 28 : 48,
+          marginBottom: 40,
         }}>
           {/* Brand column */}
           <div>
@@ -249,8 +255,11 @@ export function GlobalFooter() {
         {/* Bottom bar */}
         <div style={{
           borderTop: "1px solid var(--ink-10)", paddingTop: 20,
-          display: "flex", justifyContent: "space-between",
-          alignItems: "center", flexWrap: "wrap", gap: 8,
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          justifyContent: "space-between",
+          alignItems: isMobile ? "flex-start" : "center",
+          flexWrap: "wrap", gap: 8,
         }}>
           <span style={{ fontSize: 11, color: "var(--ink-20)" }}>
             © {year} Forkmap · Données © OpenStreetMap contributors (ODbL)
