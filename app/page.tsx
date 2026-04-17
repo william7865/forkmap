@@ -115,7 +115,8 @@ export default function HomePage() {
       }}
     >
       {/* ═══ MAP — full screen base ═══ */}
-      <div style={{ position: 'absolute', inset: 0 }}>
+      {/* z-index:0 creates a stacking context so Leaflet's internal z-indices (400+) stay contained */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
         <ErrorBoundary
           fallback={
             <div
