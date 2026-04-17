@@ -12,6 +12,7 @@ import { useAuthGuard } from "@/lib/hooks/useAuthGuard";
 import { getSupabaseBrowserClient } from "@/lib/hooks/useAuth";
 import { PageHeader, GlobalFooter } from "@/components/ui/PageLayout";
 import { getNotes, getNote, saveNote } from "@/components/place/NoteModal";
+import { useIsMobile } from "@/lib/hooks/useMediaQuery";
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   try {
@@ -328,6 +329,7 @@ export default function FavoritesPage() {
   const [noteTarget, setNoteTarget] = useState<FavoriteRow|null>(null);
   // notes: osm_id → texte (state local rafraîchi depuis localStorage)
   const [notes, setNotes]           = useState<Record<string,string>>({});
+  const isMobile = useIsMobile();
 
   const loadFavorites = useCallback(async () => {
     setLoading(true); setFetchError(null);
@@ -389,7 +391,7 @@ export default function FavoritesPage() {
       <PageHeader current="Mes favoris" actions={!loading && favorites.length>0 ? headerActions : undefined} />
 
       <main style={{ flex:1 }}>
-        <div style={{ maxWidth:660, margin:"0 auto", padding:"36px 20px 80px" }}>
+        <div style={{ maxWidth:660, margin:"0 auto", padding: isMobile ? "24px 16px 100px" : "36px 20px 80px" }}>
 
           {/* Titre */}
           <div style={{ marginBottom:24,animation:"fadeUp 280ms var(--ease-out) both" }}>
@@ -403,7 +405,11 @@ export default function FavoritesPage() {
 
           {/* Barre contrôles */}
           {!loading && favorites.length > 0 && (
-            <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:16,flexWrap:"wrap",animation:"fadeUp 280ms var(--ease-out) 40ms both" }}>
+            <div style={{
+  display:"flex", alignItems:"center", gap:8, marginBottom:16,
+  animation:"fadeUp 280ms var(--ease-out) 40ms both",
+  ...(isMobile ? { overflowX:"auto" as const, WebkitOverflowScrolling:"touch" as const, scrollbarWidth:"none" as const, paddingBottom:4, flexWrap:"nowrap" as const } : { flexWrap:"wrap" as const }),
+}}>
 
               {/* Sort */}
               <div style={{ display:"flex",alignItems:"center",gap:5 }}>
@@ -430,7 +436,11 @@ export default function FavoritesPage() {
 
           {/* Filtre cuisine */}
           {!loading && cuisineOptions.length > 1 && (
-            <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:20,flexWrap:"wrap",animation:"fadeUp 280ms var(--ease-out) 60ms both" }}>
+            <div style={{
+  display:"flex", alignItems:"center", gap:6, marginBottom:20,
+  animation:"fadeUp 280ms var(--ease-out) 60ms both",
+  ...(isMobile ? { overflowX:"auto" as const, WebkitOverflowScrolling:"touch" as const, scrollbarWidth:"none" as const, paddingBottom:4, flexWrap:"nowrap" as const } : { flexWrap:"wrap" as const }),
+}}>
               <IcoFilter />
               <button onClick={()=>setCuisine(null)} style={{ padding:"4px 11px",borderRadius:"var(--r-pill)",fontSize:11,fontWeight:600,cursor:"pointer",border:`1px solid ${!cuisine?"var(--forest-mid)":"var(--ink-10)"}`,background:!cuisine?"var(--forest-pale)":"transparent",color:!cuisine?"var(--forest)":"var(--ink-60)",transition:"all 120ms",fontFamily:"inherit" }}>
                 Tout
@@ -491,7 +501,7 @@ export default function FavoritesPage() {
               ))}
             </div>
           ) : (
-            <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:12 }}>
+            <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(200px,1fr))", gap:12 }}>
               {sorted.map((fav,i)=>(
                 <FavCardGrid key={fav.id} fav={fav} index={i} note={notes[fav.osm_id]??""}
                   onRemove={()=>setToDelete(fav)}
