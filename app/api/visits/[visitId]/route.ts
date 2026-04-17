@@ -32,13 +32,17 @@ export async function PATCH(
   const body = await req.json().catch(() => null)
   const parsed = PatchSchema.safeParse(body)
   if (!parsed.success)
-    return NextResponse.json({ error: parsed.error.errors[0]?.message }, { status: 400 })
+    return NextResponse.json(
+      { error: parsed.error.errors[0]?.message ?? 'Invalid request' },
+      { status: 400 }
+    )
 
   try {
     const { visitId } = await params
+    if (!visitId) return NextResponse.json({ error: 'Missing visitId' }, { status: 400 })
     const visit = await updateVisit(
       auth.userId as string,
-      visitId ?? '',
+      visitId,
       parsed.data as Partial<import('@/lib/db').VisitInput>
     )
     return NextResponse.json({ data: visit })
@@ -51,17 +55,14 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ visitId: string }> }
 ) {
-  try {
-    const limited = rateLimit(req, { limit: 30, windowMs: 60_000 })
-    if (limited) return limited
-  } catch {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
-  }
+  const limited = rateLimit(req, { limit: 30, windowMs: 60_000 })
+  if (limited) return limited
   const auth = await requireUser(req)
   if (auth.error) return auth.error
   try {
     const { visitId } = await params
-    await deleteVisit(auth.userId as string, visitId ?? '')
+    if (!visitId) return NextResponse.json({ error: 'Missing visitId' }, { status: 400 })
+    await deleteVisit(auth.userId as string, visitId)
     return NextResponse.json({ ok: true })
   } catch {
     return NextResponse.json({ error: 'Failed to delete visit' }, { status: 500 })

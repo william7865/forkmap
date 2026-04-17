@@ -41,12 +41,15 @@ export function useAuth(): AuthState {
 
   useEffect(() => {
     let initialised = false
-    sb.auth.getSession().then(({ data }) => {
-      initialised = true
-      setSession(data.session)
-      setUser(data.session?.user ?? null)
-      setLoading(false)
-    })
+    sb.auth
+      .getSession()
+      .then(({ data }) => {
+        initialised = true
+        setSession(data.session)
+        setUser(data.session?.user ?? null)
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
     const {
       data: { subscription },
     } = sb.auth.onAuthStateChange((_event, session) => {

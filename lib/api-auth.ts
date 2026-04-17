@@ -39,9 +39,11 @@ export interface AuthError {
 }
 export type AuthCheck = AuthResult | AuthError
 
-const UNAUTHORIZED: AuthError = {
-  userId: null,
-  error: NextResponse.json({ error: 'Authentication required' }, { status: 401 }),
+function unauthorized(): AuthError {
+  return {
+    userId: null,
+    error: NextResponse.json({ error: 'Authentication required' }, { status: 401 }),
+  }
 }
 
 /**
@@ -55,7 +57,7 @@ export async function requireUser(req: NextRequest): Promise<AuthCheck> {
     const authHeader = req.headers.get('authorization') ?? ''
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null
 
-    if (!token) return UNAUTHORIZED
+    if (!token) return unauthorized()
 
     const supabase = getAnonClient()
 
@@ -64,10 +66,10 @@ export async function requireUser(req: NextRequest): Promise<AuthCheck> {
       error,
     } = await supabase.auth.getUser(token)
 
-    if (error || !user) return UNAUTHORIZED
+    if (error || !user) return unauthorized()
 
     return { userId: user.id, error: null }
   } catch {
-    return UNAUTHORIZED
+    return unauthorized()
   }
 }
