@@ -1,0 +1,284 @@
+'use client'
+
+import React, { useEffect, useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
+import { useLists } from '@/lib/hooks/useLists'
+import { CreateListModal } from './CreateListModal'
+
+interface Props {
+  osmId: string
+  placeSnapshot: Record<string, unknown>
+  anchorRef: React.RefObject<HTMLElement | null>
+  onClose: () => void
+}
+
+export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Props) {
+  const {
+    lists,
+    loading,
+    fetchLists,
+    createList,
+    addItemToList,
+    removeItemFromList,
+    getListsForPlace,
+  } = useLists()
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
+  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set())
+  const [showCreate, setShowCreate] = useState(false)
+  const [position, setPosition] = useState({ top: 0, right: 0 })
+  const popupRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!anchorRef.current) return
+    const rect = anchorRef.current.getBoundingClientRect()
+    setPosition({ top: rect.top + window.scrollY - 8, right: window.innerWidth - rect.right })
+  }, [anchorRef])
+
+  useEffect(() => {
+    fetchLists()
+    getListsForPlace(osmId).then((ids) => setCheckedIds(new Set(ids)))
+  }, [osmId, fetchLists, getListsForPlace])
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) onClose()
+    }
+    const t = setTimeout(() => document.addEventListener('mousedown', handler), 0)
+    return () => {
+      clearTimeout(t)
+      document.removeEventListener('mousedown', handler)
+    }
+  }, [onClose])
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [onClose])
+
+  const toggle = async (listId: string) => {
+    if (pendingIds.has(listId)) return
+    setPendingIds((prev) => new Set(prev).add(listId))
+    try {
+      if (checkedIds.has(listId)) {
+        await removeItemFromList(listId, osmId)
+        setCheckedIds((prev) => {
+          const s = new Set(prev)
+          s.delete(listId)
+          return s
+        })
+      } else {
+        await addItemToList(listId, osmId, placeSnapshot)
+        setCheckedIds((prev) => new Set(prev).add(listId))
+      }
+    } finally {
+      setPendingIds((prev) => {
+        const s = new Set(prev)
+        s.delete(listId)
+        return s
+      })
+    }
+  }
+
+  const handleCreate = async (name: string, description: string | null, isPublic: boolean) => {
+    const created = await createList(name, description, isPublic)
+    await addItemToList(created.id, osmId, placeSnapshot)
+    setCheckedIds((prev) => new Set(prev).add(created.id))
+    setShowCreate(false)
+  }
+
+  const popup = (
+    <div
+      ref={popupRef}
+      style={{
+        position: 'absolute',
+        top: position.top,
+        right: position.right,
+        transform: 'translateY(-100%)',
+        zIndex: 99999,
+        background: 'var(--white)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--r-xl)',
+        boxShadow: '0 8px 32px rgba(14,14,13,0.18)',
+        minWidth: 220,
+        maxWidth: 280,
+        overflow: 'hidden',
+        animation: 'popupIn 160ms var(--ease-out) both',
+        fontFamily: 'var(--font-body)',
+      }}
+    >
+      <div style={{ padding: '8px 12px 4px', borderBottom: '1px solid var(--border)' }}>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 10,
+            fontWeight: 700,
+            color: 'var(--text-3)',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+          }}
+        >
+          Enregistrer dans…
+        </p>
+      </div>
+      <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+        {loading && (
+          <div style={{ padding: '12px', textAlign: 'center' }}>
+            <div
+              style={{
+                width: 16,
+                height: 16,
+                border: '2px solid var(--bone)',
+                borderTop: '2px solid var(--accent)',
+                borderRadius: '50%',
+                animation: 'spin 0.7s linear infinite',
+                display: 'inline-block',
+              }}
+            />
+          </div>
+        )}
+        {!loading &&
+          lists.map((list) => {
+            const checked = checkedIds.has(list.id)
+            const pending = pendingIds.has(list.id)
+            return (
+              <button
+                key={list.id}
+                type="button"
+                onClick={() => toggle(list.id)}
+                disabled={pending}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  width: '100%',
+                  padding: '9px 12px',
+                  border: 'none',
+                  background: checked ? 'var(--accent-light)' : 'transparent',
+                  cursor: pending ? 'wait' : 'pointer',
+                  textAlign: 'left',
+                  fontFamily: 'inherit',
+                  transition: 'background 120ms',
+                }}
+                onMouseEnter={(e) => {
+                  if (!checked) e.currentTarget.style.background = 'var(--surface)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = checked ? 'var(--accent-light)' : 'transparent'
+                }}
+              >
+                <div
+                  style={{
+                    width: 16,
+                    height: 16,
+                    borderRadius: 4,
+                    border: `1.5px solid ${checked ? 'var(--accent)' : 'var(--bone)'}`,
+                    background: checked ? 'var(--accent)' : 'transparent',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    transition: 'all 120ms',
+                  }}
+                >
+                  {checked && (
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="white"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </div>
+                <span
+                  style={{
+                    flex: 1,
+                    fontSize: 13,
+                    color: checked ? 'var(--accent)' : 'var(--text)',
+                    fontWeight: checked ? 600 : 400,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {list.name}
+                </span>
+                <span style={{ fontSize: 10, color: 'var(--text-3)', flexShrink: 0 }}>
+                  ({list.item_count})
+                </span>
+              </button>
+            )
+          })}
+        {!loading && lists.length === 0 && (
+          <p
+            style={{
+              margin: 0,
+              padding: '12px',
+              fontSize: 12,
+              color: 'var(--text-3)',
+              textAlign: 'center',
+            }}
+          >
+            Aucune liste encore
+          </p>
+        )}
+      </div>
+      <div style={{ borderTop: '1px solid var(--border)' }}>
+        <button
+          type="button"
+          onClick={() => setShowCreate(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            width: '100%',
+            padding: '10px 12px',
+            border: 'none',
+            background: 'transparent',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            color: 'var(--accent)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--accent-light)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent'
+          }}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          <span style={{ fontSize: 13, fontWeight: 600 }}>Nouvelle liste</span>
+        </button>
+      </div>
+      <style>{`
+        @keyframes popupIn{from{opacity:0;transform:translateY(calc(-100% + 6px))}to{opacity:1;transform:translateY(-100%)}}
+        @keyframes spin{to{transform:rotate(360deg)}}
+      `}</style>
+    </div>
+  )
+
+  return (
+    <>
+      {typeof document !== 'undefined' && createPortal(popup, document.body)}
+      {showCreate && <CreateListModal onSave={handleCreate} onClose={() => setShowCreate(false)} />}
+    </>
+  )
+}
