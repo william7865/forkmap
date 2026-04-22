@@ -70,7 +70,11 @@ export async function fetchOverpass(query: string): Promise<OverpassResponse> {
 
       const res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Accept: 'application/json',
+          'User-Agent': 'Forkmap/1.0 (https://forkmap.vercel.app)',
+        },
         body: `data=${encodeURIComponent(query)}`,
         signal: controller.signal,
       })
