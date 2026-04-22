@@ -51,3 +51,6 @@ pnpm-debug.log*
 # ─── Supabase local ──────────────────────────────────────────
 supabase/.branches/
 supabase/.temp/
+
+# ─── Git worktrees ────────────────────────────────────────────
+.worktrees/
