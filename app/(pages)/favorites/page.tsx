@@ -4,9 +4,9 @@
 // ============================================================
 'use client'
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react'
+import React, { Suspense, useEffect, useState, useMemo, useCallback } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import type { FavoriteRow } from '@/types'
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
@@ -14,6 +14,9 @@ import { PageHeader, GlobalFooter } from '@/components/ui/PageLayout'
 import { getNotes, getNote, saveNote } from '@/components/place/NoteModal'
 import { apiFetch } from '@/lib/api'
 import { useIsMobile } from '@/lib/hooks/useMediaQuery'
+import { useLists, type ListRow as HookListRow } from '@/lib/hooks/useLists'
+import { ListCard, NewListCard } from '@/components/lists/ListCard'
+import { CreateListModal } from '@/components/lists/CreateListModal'
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   try {
@@ -211,6 +214,14 @@ const IcoList = () => (
 // ── Types ─────────────────────────────────────────────────
 type SortKey = 'date_desc' | 'date_asc' | 'name' | 'rating'
 type ViewMode = 'list' | 'grid'
+
+interface ListItemEntry {
+  id: string
+  list_id: string
+  osm_id: string
+  place_snapshot: Record<string, unknown>
+  added_at: string
+}
 
 // ── Delete modal ──────────────────────────────────────────
 function DeleteModal({
@@ -1316,7 +1327,7 @@ function ActionBtn({
 }
 
 // ── Main page ─────────────────────────────────────────────
-export default function FavoritesPage() {
+function FavoritesPageInner() {
   const { isReady } = useAuthGuard()
   const router = useRouter()
 
@@ -1332,6 +1343,16 @@ export default function FavoritesPage() {
   // notes: osm_id → texte (state local rafraîchi depuis localStorage)
   const [notes, setNotes] = useState<Record<string, string>>({})
   const isMobile = useIsMobile()
+
+  const searchParams = useSearchParams()
+  const activeListId = searchParams.get('list')
+
+  const { lists, fetchLists, createList, updateList, deleteList, removeItemFromList } = useLists()
+  const [showCreateList, setShowCreateList] = useState(false)
+  const [editingList, setEditingList] = useState<HookListRow | null>(null)
+  const [listItems, setListItems] = useState<ListItemEntry[]>([])
+  const [listItemsLoading, setListItemsLoading] = useState(false)
+  const [deleteListTarget, setDeleteListTarget] = useState<HookListRow | null>(null)
 
   const loadFavorites = useCallback(async () => {
     setLoading(true)
@@ -1353,8 +1374,24 @@ export default function FavoritesPage() {
     if (isReady) {
       loadFavorites()
       setNotes(getNotes())
+      fetchLists()
     }
-  }, [isReady, loadFavorites])
+  }, [isReady, loadFavorites, fetchLists])
+
+  useEffect(() => {
+    if (!isReady || !activeListId) {
+      setListItems([])
+      return
+    }
+    setListItemsLoading(true)
+    getAuthHeaders().then((headers) =>
+      fetch(`/api/lists/${activeListId}/items`, { headers })
+        .then((r) => r.json())
+        .then((json) => setListItems(json.data ?? []))
+        .catch(() => setListItems([]))
+        .finally(() => setListItemsLoading(false))
+    )
+  }, [isReady, activeListId])
 
   const cuisineOptions = useMemo(
     () =>
@@ -1445,6 +1482,8 @@ export default function FavoritesPage() {
       {favorites.length} lieu{favorites.length !== 1 ? 'x' : ''}
     </span>
   )
+
+  const activeList = activeListId ? lists.find((l) => l.id === activeListId) : null
 
   return (
     <div
@@ -1652,6 +1691,248 @@ export default function FavoritesPage() {
                   {c}
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* Lists grid */}
+          {!activeListId && lists.length > 0 && (
+            <div style={{ marginBottom: 32, animation: 'fadeUp 280ms var(--ease-out) 20ms both' }}>
+              <p
+                style={{
+                  margin: '0 0 12px',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: 'var(--text-3)',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Mes listes
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {lists.map((list) => (
+                  <ListCard
+                    key={list.id}
+                    list={list}
+                    onClick={() => router.push(`/favorites?list=${list.id}`)}
+                  />
+                ))}
+                <NewListCard onClick={() => setShowCreateList(true)} />
+              </div>
+            </div>
+          )}
+          {!activeListId && lists.length === 0 && !loading && (
+            <div style={{ marginBottom: 24 }}>
+              <NewListCard onClick={() => setShowCreateList(true)} />
+            </div>
+          )}
+
+          {/* List detail view */}
+          {activeListId && activeList && (
+            <div>
+              <button
+                onClick={() => router.push('/favorites')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: 14,
+                  color: 'var(--text-2)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  marginBottom: 20,
+                  fontFamily: 'inherit',
+                }}
+              >
+                ← Enregistrés
+              </button>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  marginBottom: 24,
+                }}
+              >
+                <div>
+                  <h2
+                    style={{
+                      margin: '0 0 4px',
+                      fontFamily: 'var(--font-display)',
+                      fontSize: 26,
+                      fontWeight: 400,
+                      letterSpacing: '-0.04em',
+                    }}
+                  >
+                    {activeList.name}
+                  </h2>
+                  {activeList.description && (
+                    <p
+                      style={{
+                        margin: '0 0 6px',
+                        fontSize: 13,
+                        color: 'var(--text-3)',
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      {activeList.description}
+                    </p>
+                  )}
+                  <p style={{ margin: 0, fontSize: 12, color: 'var(--text-3)' }}>
+                    {activeList.item_count} lieu{activeList.item_count !== 1 ? 'x' : ''} ·{' '}
+                    {activeList.is_public ? 'Publique' : 'Privée'}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  <button
+                    onClick={() => setEditingList(activeList)}
+                    style={{
+                      padding: '7px 14px',
+                      borderRadius: 'var(--r-md)',
+                      border: '1px solid var(--border)',
+                      background: 'var(--white)',
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: 'var(--text-2)',
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    Modifier
+                  </button>
+                  <button
+                    onClick={() => setDeleteListTarget(activeList)}
+                    style={{
+                      padding: '7px 14px',
+                      borderRadius: 'var(--r-md)',
+                      border: '1px solid rgba(217,79,61,0.3)',
+                      background: 'var(--coral-pale)',
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: 'var(--coral)',
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    Supprimer
+                  </button>
+                </div>
+              </div>
+              {listItemsLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {[1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="skeleton"
+                      style={{ height: 80, borderRadius: 'var(--r-xl)' }}
+                    />
+                  ))}
+                </div>
+              ) : listItems.length === 0 ? (
+                <div
+                  style={{
+                    textAlign: 'center',
+                    padding: '40px 0',
+                    color: 'var(--text-3)',
+                    fontSize: 13,
+                  }}
+                >
+                  Cette liste est vide.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {listItems.map((item) => {
+                    const snap = item.place_snapshot as {
+                      name?: string
+                      lat?: number
+                      lon?: number
+                    }
+                    return (
+                      <div
+                        key={item.id}
+                        style={{
+                          background: 'var(--white)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--r-xl)',
+                          padding: '14px 16px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 12,
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p
+                            style={{
+                              margin: '0 0 3px',
+                              fontFamily: 'var(--font-display)',
+                              fontSize: 15,
+                              fontWeight: 400,
+                              letterSpacing: '-0.02em',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {snap.name ?? item.osm_id}
+                          </p>
+                          <button
+                            onClick={() => {
+                              if (snap.lat != null && snap.lon != null) {
+                                router.push(
+                                  `/?select=${encodeURIComponent(item.osm_id)}&lat=${snap.lat}&lon=${snap.lon}`
+                                )
+                              }
+                            }}
+                            style={{
+                              padding: 0,
+                              border: 'none',
+                              background: 'none',
+                              cursor: 'pointer',
+                              fontSize: 11,
+                              color: 'var(--text-3)',
+                              fontFamily: 'inherit',
+                            }}
+                          >
+                            Voir sur la carte →
+                          </button>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            await removeItemFromList(activeListId, item.osm_id)
+                            setListItems((prev) => prev.filter((i) => i.osm_id !== item.osm_id))
+                          }}
+                          aria-label="Retirer de la liste"
+                          style={{
+                            width: 30,
+                            height: 30,
+                            borderRadius: 'var(--r-sm)',
+                            border: '1px solid var(--border)',
+                            background: 'var(--surface)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'var(--text-3)',
+                            flexShrink: 0,
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'var(--coral-pale)'
+                            e.currentTarget.style.color = 'var(--coral)'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'var(--surface)'
+                            e.currentTarget.style.color = 'var(--text-3)'
+                          }}
+                        >
+                          <IcoX />
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -1869,6 +2150,39 @@ export default function FavoritesPage() {
         />
       )}
 
+      {showCreateList && (
+        <CreateListModal
+          onSave={async (name, desc, pub) => {
+            await createList(name, desc, pub)
+            setShowCreateList(false)
+          }}
+          onClose={() => setShowCreateList(false)}
+        />
+      )}
+
+      {editingList && (
+        <CreateListModal
+          initial={editingList}
+          onSave={async (name, desc, pub) => {
+            await updateList(editingList.id, { name, description: desc, is_public: pub })
+            setEditingList(null)
+          }}
+          onClose={() => setEditingList(null)}
+        />
+      )}
+
+      {deleteListTarget && (
+        <DeleteModal
+          name={deleteListTarget.name}
+          onConfirm={async () => {
+            await deleteList(deleteListTarget.id)
+            setDeleteListTarget(null)
+            router.push('/favorites')
+          }}
+          onCancel={() => setDeleteListTarget(null)}
+        />
+      )}
+
       <style>{`
         @keyframes fadeUp  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
         @keyframes scaleIn { from{opacity:0;transform:scale(0.94)} to{opacity:1;transform:scale(1)} }
@@ -1879,5 +2193,13 @@ export default function FavoritesPage() {
 
       <GlobalFooter />
     </div>
+  )
+}
+
+export default function FavoritesPage() {
+  return (
+    <Suspense>
+      <FavoritesPageInner />
+    </Suspense>
   )
 }
