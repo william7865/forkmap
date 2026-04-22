@@ -633,6 +633,8 @@ export default function PlaceDetail({
                 isFavorite={!!place.is_favorite}
                 size={16}
                 onClick={() => onToggleFavorite(place)}
+                osmId={place.osm_id}
+                placeSnapshot={place as unknown as Record<string, unknown>}
               />
             </div>
           </div>
