@@ -266,14 +266,7 @@ export function useHomeState() {
         toast.error('Impossible de mettre à jour les favoris.')
         return
       }
-      if (isCurrentlyFav) {
-        toast.info(`"${place.name}" retiré des favoris`)
-      } else {
-        toast.success('❤️ Ajouté aux favoris', 5000, {
-          label: 'Annuler',
-          onClick: () => toggleFavorite(place),
-        })
-      }
+      // no toast on success — HeartButton animation is enough feedback
     },
     [toggleFavorite, favoriteIds, toast]
   )
