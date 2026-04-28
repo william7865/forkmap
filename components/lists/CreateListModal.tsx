@@ -42,15 +42,16 @@ export function CreateListModal({ initial, onSave, onClose }: Props) {
         inset: 0,
         zIndex: 9999,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         justifyContent: 'center',
-        padding: 20,
+        padding: '0 0 env(safe-area-inset-bottom)',
+        overflowY: 'auto',
       }}
       onClick={onClose}
     >
       <div
         style={{
-          position: 'absolute',
+          position: 'fixed',
           inset: 0,
           background: 'rgba(14,14,13,0.45)',
           backdropFilter: 'blur(4px)',
@@ -65,18 +66,27 @@ export function CreateListModal({ initial, onSave, onClose }: Props) {
         style={{
           position: 'relative',
           background: 'var(--white)',
-          borderRadius: 'var(--r-xl)',
-          padding: '28px',
-          maxWidth: 380,
+          borderRadius: 'var(--r-xl) var(--r-xl) 0 0',
+          padding: '24px 20px 32px',
+          maxWidth: 480,
           width: '100%',
-          boxShadow: '0 32px 80px rgba(14,14,13,0.22)',
-          animation: 'scaleIn 200ms var(--ease-spring) both',
+          boxShadow: '0 -8px 40px rgba(14,14,13,0.18)',
+          animation: 'slideUp 220ms var(--ease-spring) both',
           fontFamily: 'var(--font-body)',
           display: 'flex',
           flexDirection: 'column',
           gap: 16,
         }}
       >
+        <div
+          style={{
+            width: 36,
+            height: 4,
+            borderRadius: 2,
+            background: 'var(--bone)',
+            margin: '-4px auto 4px',
+          }}
+        />
         <h3
           id="create-list-title"
           style={{
@@ -270,7 +280,7 @@ export function CreateListModal({ initial, onSave, onClose }: Props) {
           </button>
         </div>
       </form>
-      <style>{`@keyframes scaleIn{from{opacity:0;transform:scale(0.94)}to{opacity:1;transform:scale(1)}}`}</style>
+      <style>{`@keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}`}</style>
     </div>
   )
 }

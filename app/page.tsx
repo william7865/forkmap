@@ -886,7 +886,10 @@ export default function HomePage() {
         <div
           style={{
             position: 'fixed',
-            inset: 'auto 0 0 0',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 'calc(56px + env(safe-area-inset-bottom))',
             zIndex: 900,
             animation: 'slideUp 260ms cubic-bezier(0.16,1,0.3,1) both',
           }}
