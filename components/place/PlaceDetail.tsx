@@ -40,6 +40,7 @@ import {
   CalendarCheck,
   ExternalLink,
   Star,
+  ChevronLeft,
 } from 'lucide-react'
 import type { TransportMode } from '@/lib/hooks/useRouteCache'
 import { apiFetch } from '@/lib/api'
@@ -361,373 +362,275 @@ export default function PlaceDetail({
         overflow: 'hidden',
       }}
     >
-      {/* ── Gradient accent top bar ── */}
+      {/* ── Photo banner with overlay ── */}
+      {(() => {
+        const firstPhoto = photos[0]
+        const photoUrl = firstPhoto ? buildPhotoUrl(firstPhoto, 600) : null
+
+        const glassBtnStyle: React.CSSProperties = {
+          width: 36,
+          height: 36,
+          borderRadius: '50%',
+          border: 'none',
+          background: 'rgba(0,0,0,0.35)',
+          backdropFilter: 'blur(6px)',
+          color: 'white',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          transition: 'background 150ms ease',
+        }
+
+        return (
+          <div
+            style={{
+              position: 'relative',
+              height: 200,
+              flexShrink: 0,
+              background: photoUrl
+                ? undefined
+                : 'linear-gradient(135deg, var(--forest) 0%, var(--forest-mid) 100%)',
+              overflow: 'hidden',
+            }}
+          >
+            {photoUrl && (
+              <Image
+                src={photoUrl}
+                alt=""
+                fill
+                sizes="100vw"
+                style={{ objectFit: 'cover' }}
+                priority
+              />
+            )}
+
+            {/* Glassmorphism buttons on photo */}
+            <div
+              style={{
+                position: 'absolute',
+                top: 12,
+                left: 12,
+                right: 12,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                zIndex: 2,
+              }}
+            >
+              <button
+                onClick={onClose}
+                aria-label="Fermer"
+                style={glassBtnStyle}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(0,0,0,0.55)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(0,0,0,0.35)'
+                }}
+              >
+                <ChevronLeft size={18} strokeWidth={2.5} />
+              </button>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={glassBtnStyle}>
+                  <HeartButton
+                    isFavorite={!!place.is_favorite}
+                    size={16}
+                    onClick={() => onToggleFavorite(place)}
+                    osmId={place.osm_id}
+                    placeSnapshot={place as unknown as Record<string, unknown>}
+                    colorOverride="white"
+                  />
+                </div>
+                <button
+                  onClick={handleShare}
+                  aria-label="Partager ce restaurant"
+                  style={glassBtnStyle}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(0,0,0,0.55)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(0,0,0,0.35)'
+                  }}
+                >
+                  <IcoShare />
+                </button>
+              </div>
+            </div>
+
+            {/* Overlay gradient with name + badges */}
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                padding: '40px 14px 12px',
+                background: 'linear-gradient(transparent, rgba(0,0,0,0.65))',
+                zIndex: 1,
+              }}
+            >
+              <h2
+                id="place-detail-title"
+                style={{
+                  margin: '0 0 6px',
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 20,
+                  fontWeight: 400,
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1.15,
+                  color: 'white',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {place.name}
+              </h2>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                {place.open_now !== undefined && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '3px 8px',
+                      borderRadius: 'var(--r-pill)',
+                      fontSize: 10,
+                      fontWeight: 600,
+                      background: place.open_now ? 'rgba(45,122,85,0.85)' : 'rgba(180,40,40,0.75)',
+                      color: 'white',
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 4,
+                        height: 4,
+                        borderRadius: '50%',
+                        background: 'currentColor',
+                        flexShrink: 0,
+                      }}
+                    />
+                    {place.open_now ? 'Ouvert' : 'Fermé'}
+                  </span>
+                )}
+                {place.fsq?.rating != null && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: 'rgba(255,255,255,0.9)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 3,
+                    }}
+                  >
+                    <IcoStar /> {place.fsq.rating.toFixed(1)}
+                  </span>
+                )}
+                {place.fsq?.price != null && (
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.75)' }}>
+                    {'€'.repeat(place.fsq.price)}
+                  </span>
+                )}
+                {cuisine && (
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 600,
+                      color: 'rgba(255,255,255,0.7)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                    }}
+                  >
+                    {cuisine}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* ── Quick actions row ── */}
       <div
         style={{
-          height: 3,
-          background: 'linear-gradient(90deg,var(--forest-mid) 0%,#c47c2b 100%)',
+          background: 'var(--white)',
+          borderBottom: '1px solid var(--ink-10)',
+          display: 'flex',
+          gap: 8,
+          padding: '10px 14px',
           flexShrink: 0,
         }}
-      />
-
-      {/* ── Photo gallery (Foursquare) ── */}
-      {photos.length > 0 && <PhotoGallery photos={photos} />}
-
-      {/* ── HEADER ─────────────────────────────────── */}
-      <div style={{ padding: '16px 16px 14px', flexShrink: 0, position: 'relative' }}>
-        {/* Close button — absolutely positioned top-right */}
-        <button
-          onClick={onClose}
-          aria-label="Fermer"
+      >
+        <a
+          href={`https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}&travelmode=walking`}
+          target="_blank"
+          rel="noopener noreferrer"
           style={{
-            position: 'absolute',
-            top: 12,
-            right: 12,
-            width: 34,
-            height: 34,
-            minWidth: 44,
-            minHeight: 44,
-            borderRadius: 'var(--r-sm)',
-            border: '1px solid var(--ink-10)',
-            background: 'var(--off-white)',
-            color: 'var(--ink-60)',
-            cursor: 'pointer',
+            flex: 1,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'background 150ms ease',
+            gap: 6,
+            padding: '9px 12px',
+            borderRadius: 10,
+            background: 'var(--forest-mid)',
+            color: 'white',
+            textDecoration: 'none',
+            fontSize: 12,
+            fontWeight: 700,
+            whiteSpace: 'nowrap',
           }}
         >
-          <IcoX />
-        </button>
-
-        {/* Top row: name + actions (4 buttons, no close) */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            gap: 10,
-            marginBottom: 10,
-            paddingRight: 46,
-          }}
-        >
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {/* Name — Fraunces display brandbook */}
-            <h2
-              id="place-detail-title"
-              style={{
-                margin: '0 0 4px',
-                fontFamily: 'var(--font-display)',
-                fontSize: 22,
-                fontWeight: 400,
-                letterSpacing: '-0.03em',
-                lineHeight: 1.15,
-                color: 'var(--ink)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {place.name}
-            </h2>
-            {cuisine &&
-              (onCuisineFilter ? (
-                <button
-                  onClick={() => onCuisineFilter(cuisine)}
-                  aria-label={`Filtrer par cuisine : ${cuisine}`}
-                  style={{
-                    cursor: 'pointer',
-                    background: 'none',
-                    border: '1px solid var(--ink-10)',
-                    borderRadius: 'var(--r-pill)',
-                    padding: '3px 8px',
-                    fontSize: 11,
-                    color: 'var(--ink-60)',
-                    fontFamily: 'var(--font-body)',
-                  }}
-                >
-                  {cuisine}
-                </button>
-              ) : (
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    letterSpacing: '0.06em',
-                    textTransform: 'uppercase',
-                    color: 'var(--forest-mid)',
-                  }}
-                >
-                  {cuisine}
-                </span>
-              ))}
-          </div>
-
-          {/* Action buttons — 4 buttons (Note, Visite, Share, Fav) */}
-          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-            {/* Note perso */}
-            <button
-              onClick={() => setShowNote(true)}
-              aria-label="Note personnelle"
-              title={note ? 'Modifier ma note' : 'Ajouter une note'}
-              style={{
-                width: 34,
-                height: 34,
-                minWidth: 44,
-                minHeight: 44,
-                borderRadius: 'var(--r-sm)',
-                border: `1px solid ${note ? 'rgba(45,122,85,0.35)' : 'var(--ink-10)'}`,
-                background: note ? 'var(--forest-pale)' : 'var(--off-white)',
-                color: note ? 'var(--forest-mid)' : 'var(--ink-60)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'background 150ms ease',
-                position: 'relative',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--forest-pale)'
-                e.currentTarget.style.borderColor = 'rgba(45,122,85,0.3)'
-                e.currentTarget.style.color = 'var(--forest-mid)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = note ? 'var(--forest-pale)' : 'var(--off-white)'
-                e.currentTarget.style.borderColor = note ? 'rgba(45,122,85,0.35)' : 'var(--ink-10)'
-                e.currentTarget.style.color = note ? 'var(--forest-mid)' : 'var(--ink-60)'
-              }}
-            >
-              <IcoPen />
-              {note && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: 4,
-                    right: 4,
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    background: 'var(--forest-mid)',
-                    border: '1.5px solid white',
-                  }}
-                />
-              )}
-            </button>
-
-            {/* Logger visite */}
-            <button
-              onClick={() => {
-                setSelectedVisit(null)
-                setShowVisit(true)
-              }}
-              aria-label="Logger une visite"
-              title="Logger une visite"
-              style={{
-                width: 34,
-                height: 34,
-                minWidth: 44,
-                minHeight: 44,
-                borderRadius: 'var(--r-sm)',
-                border: `1px solid ${visitCount ? 'rgba(196,124,43,0.35)' : 'var(--ink-10)'}`,
-                background: visitCount ? 'var(--amber-pale)' : 'var(--off-white)',
-                color: visitCount ? 'var(--amber)' : 'var(--ink-60)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'background 150ms ease',
-                position: 'relative',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--amber-pale)'
-                e.currentTarget.style.borderColor = 'rgba(196,124,43,0.4)'
-                e.currentTarget.style.color = 'var(--amber)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = visitCount
-                  ? 'var(--amber-pale)'
-                  : 'var(--off-white)'
-                e.currentTarget.style.borderColor = visitCount
-                  ? 'rgba(196,124,43,0.35)'
-                  : 'var(--ink-10)'
-                e.currentTarget.style.color = visitCount ? 'var(--amber)' : 'var(--ink-60)'
-              }}
-            >
-              <IcoVisit />
-              {visitCount != null && visitCount > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: -5,
-                    right: -5,
-                    minWidth: 16,
-                    height: 16,
-                    borderRadius: '50%',
-                    background: 'var(--amber)',
-                    border: '2px solid white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 8,
-                    fontWeight: 700,
-                    color: 'white',
-                    padding: '0 2px',
-                  }}
-                >
-                  {visitCount > 9 ? '9+' : visitCount}
-                </span>
-              )}
-            </button>
-
-            {/* Partager */}
-            <button
-              onClick={handleShare}
-              aria-label="Partager ce restaurant"
-              title="Partager"
-              style={{
-                width: 34,
-                height: 34,
-                minWidth: 44,
-                minHeight: 44,
-                borderRadius: 'var(--r-sm)',
-                border: '1px solid var(--ink-10)',
-                background: 'var(--off-white)',
-                color: 'var(--ink-60)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'background 150ms ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--sky-pale)'
-                e.currentTarget.style.borderColor = 'rgba(36,89,168,0.3)'
-                e.currentTarget.style.color = 'var(--sky)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'var(--off-white)'
-                e.currentTarget.style.borderColor = 'var(--ink-10)'
-                e.currentTarget.style.color = 'var(--ink-60)'
-              }}
-            >
-              <IcoShare />
-            </button>
-            {/* Favourite — brandbook .rch style */}
-            <div
-              style={{
-                width: 34,
-                height: 34,
-                minWidth: 44,
-                minHeight: 44,
-                borderRadius: 'var(--r-sm)',
-                border: `1px solid ${place.is_favorite ? 'rgba(45,122,85,0.30)' : 'var(--ink-10)'}`,
-                background: place.is_favorite ? 'var(--forest-pale)' : 'var(--off-white)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'background 150ms ease',
-              }}
-            >
-              <HeartButton
-                isFavorite={!!place.is_favorite}
-                size={16}
-                onClick={() => onToggleFavorite(place)}
-                osmId={place.osm_id}
-                placeSnapshot={place as unknown as Record<string, unknown>}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Status row — badges brandbook exact */}
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {place.open_now !== undefined && (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-                padding: '4px 11px',
-                borderRadius: 'var(--r-pill)',
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: '0.02em',
-                background: place.open_now ? 'var(--state-open-bg)' : 'var(--state-closed-bg)',
-                color: place.open_now ? 'var(--state-open)' : 'var(--state-closed)',
-                border: `1px solid ${place.open_now ? 'var(--state-open-border)' : 'var(--state-closed-border)'}`,
-              }}
-            >
-              <span
-                style={{
-                  width: 5,
-                  height: 5,
-                  borderRadius: '50%',
-                  background: 'currentColor',
-                  flexShrink: 0,
-                }}
-              />
-              {place.open_now ? 'Ouvert' : 'Fermé'}
-            </span>
-          )}
-          {place.fsq?.price != null && (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                padding: '4px 11px',
-                borderRadius: 'var(--r-pill)',
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: '0.02em',
-                background: 'var(--cream)',
-                color: 'var(--ink-60)',
-                border: '1px solid var(--bone)',
-              }}
-            >
-              {'€'.repeat(place.fsq.price)}
-            </span>
-          )}
-          {place.distance != null && (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '4px 11px',
-                borderRadius: 'var(--r-pill)',
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: '0.02em',
-                background: 'var(--cream)',
-                color: 'var(--ink-60)',
-                border: '1px solid var(--bone)',
-              }}
-            >
-              <IcoMap />
-              {fmtDist(place.distance)}
-            </span>
-          )}
-          {place.fsq?.rating != null && (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '4px 11px',
-                borderRadius: 'var(--r-pill)',
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: '0.02em',
-                background: place.fsq.rating >= 9 ? 'var(--amber-pale)' : 'var(--cream)',
-                color: place.fsq.rating >= 9 ? 'var(--amber)' : 'var(--ink-60)',
-                border: `1px solid ${place.fsq.rating >= 9 ? '#fed7aa' : 'var(--bone)'}`,
-              }}
-            >
-              <IcoStar /> {place.fsq.rating.toFixed(1)}
-            </span>
-          )}
-        </div>
+          <IcoRoute /> Itinéraire
+        </a>
+        {(place.fsq?.tel ?? place.phone) && (
+          <a
+            href={`tel:${place.fsq?.tel ?? place.phone}`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '9px 12px',
+              borderRadius: 10,
+              border: '1.5px solid var(--ink-10)',
+              background: 'var(--white)',
+              color: 'var(--ink-80)',
+              textDecoration: 'none',
+              fontSize: 12,
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <IcoPhone /> Appeler
+          </a>
+        )}
+        {(place.fsq?.website ?? place.website) && (
+          <a
+            href={place.fsq?.website ?? place.website}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '9px 12px',
+              borderRadius: 10,
+              border: '1.5px solid var(--ink-10)',
+              background: 'var(--white)',
+              color: 'var(--ink-80)',
+              textDecoration: 'none',
+              fontSize: 12,
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <IcoGlobe /> Site web
+          </a>
+        )}
       </div>
 
       <Divider />
@@ -743,6 +646,142 @@ export default function PlaceDetail({
           gap: 18,
         }}
       >
+        {/* Secondary actions: Note + Visite + cuisine filter */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setShowNote(true)}
+            aria-label="Note personnelle"
+            title={note ? 'Modifier ma note' : 'Ajouter une note'}
+            style={{
+              height: 34,
+              padding: '0 12px',
+              borderRadius: 'var(--r-sm)',
+              border: `1px solid ${note ? 'rgba(45,122,85,0.35)' : 'var(--ink-10)'}`,
+              background: note ? 'var(--forest-pale)' : 'var(--off-white)',
+              color: note ? 'var(--forest-mid)' : 'var(--ink-60)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              fontSize: 11,
+              fontWeight: 600,
+              fontFamily: 'inherit',
+              transition: 'background 150ms ease',
+              position: 'relative',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--forest-pale)'
+              e.currentTarget.style.borderColor = 'rgba(45,122,85,0.3)'
+              e.currentTarget.style.color = 'var(--forest-mid)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = note ? 'var(--forest-pale)' : 'var(--off-white)'
+              e.currentTarget.style.borderColor = note ? 'rgba(45,122,85,0.35)' : 'var(--ink-10)'
+              e.currentTarget.style.color = note ? 'var(--forest-mid)' : 'var(--ink-60)'
+            }}
+          >
+            <IcoPen /> Note
+            {note && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: 5,
+                  right: 5,
+                  width: 5,
+                  height: 5,
+                  borderRadius: '50%',
+                  background: 'var(--forest-mid)',
+                  border: '1px solid white',
+                }}
+              />
+            )}
+          </button>
+
+          <button
+            onClick={() => {
+              setSelectedVisit(null)
+              setShowVisit(true)
+            }}
+            aria-label="Logger une visite"
+            style={{
+              height: 34,
+              padding: '0 12px',
+              borderRadius: 'var(--r-sm)',
+              border: `1px solid ${visitCount ? 'rgba(196,124,43,0.35)' : 'var(--ink-10)'}`,
+              background: visitCount ? 'var(--amber-pale)' : 'var(--off-white)',
+              color: visitCount ? 'var(--amber)' : 'var(--ink-60)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              fontSize: 11,
+              fontWeight: 600,
+              fontFamily: 'inherit',
+              transition: 'background 150ms ease',
+              position: 'relative',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--amber-pale)'
+              e.currentTarget.style.borderColor = 'rgba(196,124,43,0.4)'
+              e.currentTarget.style.color = 'var(--amber)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = visitCount
+                ? 'var(--amber-pale)'
+                : 'var(--off-white)'
+              e.currentTarget.style.borderColor = visitCount
+                ? 'rgba(196,124,43,0.35)'
+                : 'var(--ink-10)'
+              e.currentTarget.style.color = visitCount ? 'var(--amber)' : 'var(--ink-60)'
+            }}
+          >
+            <IcoVisit /> Visites
+            {visitCount != null && visitCount > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: -4,
+                  right: -4,
+                  minWidth: 15,
+                  height: 15,
+                  borderRadius: '50%',
+                  background: 'var(--amber)',
+                  border: '2px solid white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 8,
+                  fontWeight: 700,
+                  color: 'white',
+                  padding: '0 2px',
+                }}
+              >
+                {visitCount > 9 ? '9+' : visitCount}
+              </span>
+            )}
+          </button>
+
+          {cuisine && onCuisineFilter && (
+            <button
+              onClick={() => onCuisineFilter(cuisine)}
+              aria-label={`Filtrer par cuisine : ${cuisine}`}
+              style={{
+                cursor: 'pointer',
+                background: 'none',
+                border: '1px solid var(--ink-10)',
+                borderRadius: 'var(--r-pill)',
+                padding: '3px 8px',
+                fontSize: 11,
+                color: 'var(--ink-60)',
+                fontFamily: 'var(--font-body)',
+                height: 34,
+              }}
+            >
+              {cuisine}
+            </button>
+          )}
+        </div>
+
         {/* Rating */}
         {place.fsq?.rating != null && (
           <div>
@@ -1341,7 +1380,7 @@ export default function PlaceDetail({
           </div>
         )}
 
-        {/* ── CTA buttons ── */}
+        {/* ── CTA buttons (booking + instagram only — phone/website in quick actions row) ── */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {place.osm_enriched?.booking_url && (
             <a
@@ -1367,54 +1406,6 @@ export default function PlaceDetail({
               }}
             >
               <CalendarCheck size={12} strokeWidth={1.75} /> Réserver
-            </a>
-          )}
-          {(place.fsq?.website ?? place.website) && (
-            <a
-              href={place.fsq?.website ?? place.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                padding: '11px 12px',
-                borderRadius: 10,
-                background: 'var(--forest-mid)',
-                color: 'white',
-                textDecoration: 'none',
-                fontSize: 12.5,
-                fontWeight: 700,
-                boxShadow: '0 4px 16px rgba(29,74,53,0.22)',
-                letterSpacing: '-0.01em',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--forest)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--forest-mid)')}
-            >
-              <IcoGlobe /> Site web
-            </a>
-          )}
-          {(place.fsq?.tel ?? place.phone) && (
-            <a
-              href={`tel:${place.fsq?.tel ?? place.phone}`}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                padding: '11px 14px',
-                borderRadius: 10,
-                background: 'rgba(28,25,23,0.04)',
-                border: '1.5px solid rgba(28,25,23,0.1)',
-                color: 'var(--ink-80)',
-                textDecoration: 'none',
-                fontSize: 12,
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <IcoPhone /> Appeler
             </a>
           )}
           {place.osm_enriched?.instagram && (

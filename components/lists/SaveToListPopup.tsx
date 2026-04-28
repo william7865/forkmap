@@ -31,7 +31,7 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
   useEffect(() => {
     if (!anchorRef.current) return
     const rect = anchorRef.current.getBoundingClientRect()
-    setPosition({ top: rect.top + window.scrollY - 8, right: window.innerWidth - rect.right })
+    setPosition({ top: rect.bottom + 8, right: window.innerWidth - rect.right })
   }, [anchorRef])
 
   useEffect(() => {
@@ -93,10 +93,9 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
     <div
       ref={popupRef}
       style={{
-        position: 'absolute',
+        position: 'fixed',
         top: position.top,
         right: position.right,
-        transform: 'translateY(-100%)',
         zIndex: 99999,
         background: 'var(--white)',
         border: '1px solid var(--border)',
@@ -106,6 +105,7 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
         maxWidth: 280,
         overflow: 'hidden',
         animation: 'popupIn 160ms var(--ease-out) both',
+        transformOrigin: 'top right',
         fontFamily: 'var(--font-body)',
       }}
     >
@@ -269,7 +269,7 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
         </button>
       </div>
       <style>{`
-        @keyframes popupIn{from{opacity:0;transform:translateY(calc(-100% + 6px))}to{opacity:1;transform:translateY(-100%)}}
+        @keyframes popupIn{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}
         @keyframes spin{to{transform:rotate(360deg)}}
       `}</style>
     </div>
