@@ -278,7 +278,12 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
   return (
     <>
       {typeof document !== 'undefined' && createPortal(popup, document.body)}
-      {showCreate && <CreateListModal onSave={handleCreate} onClose={() => setShowCreate(false)} />}
+      {showCreate &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <CreateListModal onSave={handleCreate} onClose={() => setShowCreate(false)} />,
+          document.body
+        )}
     </>
   )
 }

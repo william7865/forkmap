@@ -20,8 +20,8 @@ interface Props {
   defaultSnap?: SnapPoint
   /** Called when snap changes */
   onSnapChange?: (snap: SnapPoint) => void
-  /** Pixels from the bottom edge — use to clear a bottom nav bar */
-  bottomOffset?: number
+  /** Distance from the bottom edge — use to clear a bottom nav bar */
+  bottomOffset?: number | string
 }
 
 export default function BottomSheet({

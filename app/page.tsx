@@ -853,6 +853,7 @@ export default function HomePage() {
           title="Restaurants"
           subtitle={loading ? 'Chargement…' : `${visiblePlaces.length} trouvés`}
           defaultSnap="half"
+          bottomOffset="calc(56px + env(safe-area-inset-bottom))"
         >
           <StartPanel
             userLocation={userLocation}

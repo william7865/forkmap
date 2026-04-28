@@ -40,20 +40,18 @@ export function CreateListModal({ initial, onSave, onClose }: Props) {
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 9999,
+        zIndex: 100001,
         display: 'flex',
         alignItems: 'flex-end',
         justifyContent: 'center',
-        padding: '0 0 env(safe-area-inset-bottom)',
-        overflowY: 'auto',
       }}
       onClick={onClose}
     >
       <div
         style={{
-          position: 'fixed',
+          position: 'absolute',
           inset: 0,
-          background: 'rgba(14,14,13,0.45)',
+          background: 'rgba(14,14,13,0.5)',
           backdropFilter: 'blur(4px)',
         }}
       />
@@ -66,12 +64,14 @@ export function CreateListModal({ initial, onSave, onClose }: Props) {
         style={{
           position: 'relative',
           background: 'var(--white)',
-          borderRadius: 'var(--r-xl) var(--r-xl) 0 0',
-          padding: '24px 20px 32px',
-          maxWidth: 480,
+          borderRadius: '20px 20px 0 0',
+          padding: '20px 20px calc(28px + env(safe-area-inset-bottom))',
           width: '100%',
-          boxShadow: '0 -8px 40px rgba(14,14,13,0.18)',
-          animation: 'slideUp 220ms var(--ease-spring) both',
+          maxWidth: 520,
+          maxHeight: '90dvh',
+          overflowY: 'auto',
+          boxShadow: '0 -8px 40px rgba(14,14,13,0.2)',
+          animation: 'slideUp 240ms cubic-bezier(0.16,1,0.3,1) both',
           fontFamily: 'var(--font-body)',
           display: 'flex',
           flexDirection: 'column',
@@ -84,7 +84,7 @@ export function CreateListModal({ initial, onSave, onClose }: Props) {
             height: 4,
             borderRadius: 2,
             background: 'var(--bone)',
-            margin: '-4px auto 4px',
+            margin: '0 auto 4px',
           }}
         />
         <h3
