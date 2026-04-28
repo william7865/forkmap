@@ -10,6 +10,7 @@ interface Props {
   ariaLabel?: string
   osmId?: string
   placeSnapshot?: Record<string, unknown>
+  colorOverride?: string
 }
 
 function Particles({ active }: { active: boolean }) {
@@ -59,6 +60,7 @@ export default function HeartButton({
   ariaLabel,
   osmId,
   placeSnapshot,
+  colorOverride,
 }: Props) {
   const [animState, setAnimState] = useState<'idle' | 'adding' | 'removing'>('idle')
   const prevFav = useRef(isFavorite)
@@ -122,7 +124,7 @@ export default function HeartButton({
           border: 'none',
           cursor: 'pointer',
           padding: '3px',
-          color: isFavorite ? 'var(--accent)' : 'var(--text-3)',
+          color: colorOverride ?? (isFavorite ? 'var(--accent)' : 'var(--text-3)'),
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
