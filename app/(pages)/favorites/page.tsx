@@ -1,6 +1,6 @@
 // ============================================================
 // app/(pages)/favorites/page.tsx — Lieux sauvegardés
-// Refonte complète : partage, notes, filtres cuisine, grid/list
+// Lieux enregistrés : listes collections + vue liste/grille des favoris
 // ============================================================
 'use client'
 
@@ -17,6 +17,7 @@ import { useIsMobile } from '@/lib/hooks/useMediaQuery'
 import { useLists, type ListRow as HookListRow } from '@/lib/hooks/useLists'
 import { ListCard, NewListCard } from '@/components/lists/ListCard'
 import { CreateListModal } from '@/components/lists/CreateListModal'
+import { placeGradient } from '@/lib/gradients'
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   try {
@@ -32,21 +33,6 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 }
 
 // ── Icons ─────────────────────────────────────────────────
-const IcoMap = () => (
-  <svg
-    width="11"
-    height="11"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.7"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-    <circle cx="12" cy="10" r="3" />
-  </svg>
-)
 const IcoTrash = () => (
   <svg
     width="13"
@@ -796,27 +782,11 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
   )
 }
 
-// ── Shared gradient utilities for fav cards ───────────────
-const FAV_GRADIENTS: [string, string][] = [
-  ['#1c3a28', '#4a8c5c'],
-  ['#3a1c1c', '#8c4a4a'],
-  ['#1c2a3a', '#4a5c8c'],
-  ['#3a2d1c', '#8c6c3a'],
-  ['#2d1c3a', '#6c4a8c'],
-  ['#1c3a3a', '#3a8c8c'],
-]
-function thumbGradient(osmId: string): string {
-  const idx = osmId.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % FAV_GRADIENTS.length
-  const [from, to] = FAV_GRADIENTS[idx]
-  return `linear-gradient(135deg, ${from}, ${to})`
-}
-
 // ── Fav card — liste ──────────────────────────────────────
 function FavCardList({
   fav,
   index,
   note,
-  listNames = [],
   onRemove,
   onOpenMap,
   onShare,
@@ -825,7 +795,6 @@ function FavCardList({
   fav: FavoriteRow
   index: number
   note: string
-  listNames?: string[]
   onRemove: () => void
   onOpenMap: () => void
   onShare: () => void
@@ -860,7 +829,7 @@ function FavCardList({
           width: 52,
           height: 52,
           borderRadius: 'var(--r-lg)',
-          background: thumbGradient(fav.osm_id),
+          background: placeGradient(fav.osm_id),
           border: 'none',
           flexShrink: 0,
           cursor: 'pointer',
@@ -897,27 +866,6 @@ function FavCardList({
           {fav.name}
         </p>
         {meta && <p style={{ margin: '0 0 6px', fontSize: 11, color: 'var(--ink-60)' }}>{meta}</p>}
-        {/* List badges */}
-        {listNames.length > 0 && (
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-            {listNames.map((n) => (
-              <span
-                key={n}
-                style={{
-                  background: 'var(--accent-light)',
-                  color: 'var(--accent)',
-                  fontSize: 9,
-                  fontWeight: 700,
-                  padding: '2px 7px',
-                  borderRadius: 999,
-                  letterSpacing: '0.03em',
-                }}
-              >
-                {n}
-              </span>
-            ))}
-          </div>
-        )}
       </button>
 
       {/* Actions */}
@@ -979,7 +927,7 @@ function FavCardGrid({
         aria-label={`Voir ${fav.name} sur la carte`}
         style={{
           height: 90,
-          background: thumbGradient(fav.osm_id),
+          background: placeGradient(fav.osm_id),
           border: 'none',
           cursor: 'pointer',
           width: '100%',
@@ -1203,12 +1151,6 @@ function FavoritesPageInner() {
     }
     return arr
   }, [favorites, sortBy])
-
-  const osmIdToListNames = useMemo((): Map<string, string[]> => {
-    // Intentionally empty: loading all list memberships for every fav would require
-    // N API calls. Badges show only when viewing a specific list (?list=id).
-    return new Map<string, string[]>()
-  }, [])
 
   if (!isReady)
     return (
@@ -1743,7 +1685,6 @@ function FavoritesPageInner() {
                   fav={fav}
                   index={i}
                   note={notes[fav.osm_id] ?? ''}
-                  listNames={osmIdToListNames.get(fav.osm_id) ?? []}
                   onRemove={() => setToDelete(fav)}
                   onOpenMap={() =>
                     router.push(
