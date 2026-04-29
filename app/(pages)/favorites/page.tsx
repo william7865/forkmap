@@ -977,97 +977,44 @@ function FavCardList({
 function FavCardGrid({
   fav,
   index,
-  note,
   onRemove,
   onOpenMap,
-  onShare,
-  onNote,
 }: {
   fav: FavoriteRow
   index: number
-  note: string
   onRemove: () => void
   onOpenMap: () => void
-  onShare: () => void
-  onNote: () => void
 }) {
-  const [hovered, setHovered] = useState(false)
-  const cuisine = fav.snapshot?.cuisine ?? fav.snapshot?.fsq?.categories?.[0]?.name
   const rating = fav.snapshot?.fsq?.rating
-  const GRADIENTS: Record<string, string> = {
-    japonais: 'linear-gradient(135deg,#0c2d3a,#2980a0)',
-    sushi: 'linear-gradient(135deg,#0c2d3a,#2980a0)',
-    italien: 'linear-gradient(135deg,#2d1a0e,#7c4422)',
-    pizza: 'linear-gradient(135deg,#2d1a0e,#7c4422)',
-    français: 'linear-gradient(135deg,#1a2e1a,#3d7e3d)',
-    burger: 'linear-gradient(135deg,#1a1200,#7c5a00)',
-    chinois: 'linear-gradient(135deg,#1a0a0a,#8b1a1a)',
-    indien: 'linear-gradient(135deg,#2d1400,#c45c00)',
-  }
-  const grad = cuisine
-    ? (Object.entries(GRADIENTS).find(([k]) => cuisine.toLowerCase().includes(k))?.[1] ??
-      'linear-gradient(135deg,#1a2e1a,#3d6e3d)')
-    : 'linear-gradient(135deg,#1a2e1a,#3d6e3d)'
 
   return (
     <div
       className="anim-card-in"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       style={{
         background: 'var(--white)',
-        border: `1px solid ${hovered ? 'var(--ink-20)' : 'var(--border)'}`,
         borderRadius: 'var(--r-xl)',
         overflow: 'hidden',
-        boxShadow: hovered ? 'var(--s3)' : 'var(--s1)',
-        transform: hovered ? 'translateY(-2px)' : 'none',
-        transition: 'all 200ms var(--ease-out)',
+        boxShadow: 'var(--s1)',
         animationDelay: `${index * 30}ms`,
         display: 'flex',
         flexDirection: 'column',
       }}
     >
-      {/* Photo/gradient area */}
+      {/* Thumbnail */}
       <button
         type="button"
         onClick={onOpenMap}
         aria-label={`Voir ${fav.name} sur la carte`}
         style={{
-          height: 100,
-          background: grad,
-          position: 'relative',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          height: 90,
+          background: thumbGradient(fav.osm_id),
           border: 'none',
-          padding: 0,
+          cursor: 'pointer',
           width: '100%',
+          position: 'relative',
+          padding: 0,
         }}
       >
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" opacity="0.25">
-          <path
-            d="M9 4v8c0 2.5 1 4 3 4.5V21M15 4v5c0 1-.7 1.5-1.5 1.5S12 10 12 9V4M15 9.5c0 2 1.5 3 3 3V21"
-            stroke="white"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-        </svg>
-        {note && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 8,
-              left: 8,
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              background: 'var(--forest-bright)',
-              border: '1.5px solid rgba(255,255,255,0.6)',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-            }}
-          />
-        )}
         {rating != null && (
           <span
             style={{
@@ -1078,77 +1025,58 @@ function FavCardGrid({
               alignItems: 'center',
               gap: 3,
               padding: '3px 8px',
-              borderRadius: 'var(--r-pill)',
+              borderRadius: 999,
               fontSize: 10,
               fontWeight: 700,
-              background: 'rgba(255,255,255,0.15)',
-              color: 'white',
+              background: 'rgba(255,255,255,0.18)',
+              color: '#ffffff',
               backdropFilter: 'blur(4px)',
-              border: '1px solid rgba(255,255,255,0.2)',
+              border: '1px solid rgba(255,255,255,0.25)',
             }}
           >
-            <IcoStar />
-            {rating.toFixed(1)}
+            ★ {rating.toFixed(1)}
           </span>
         )}
       </button>
       {/* Body */}
-      <div
-        style={{ padding: '12px 14px', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}
-      >
-        <h3
+      <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button
+          type="button"
+          onClick={onOpenMap}
           style={{
-            margin: 0,
-            fontFamily: 'var(--font-display)',
-            fontSize: 14,
-            fontWeight: 400,
-            letterSpacing: '-0.02em',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            color: 'var(--text)',
+            flex: 1,
+            minWidth: 0,
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            textAlign: 'left',
+            fontFamily: 'inherit',
           }}
         >
-          {fav.name}
-        </h3>
-        {cuisine && (
-          <span
+          <p
             style={{
-              fontSize: 9.5,
+              margin: 0,
+              fontSize: 13,
               fontWeight: 700,
-              letterSpacing: '0.07em',
-              textTransform: 'uppercase',
-              color: 'var(--accent)',
+              color: 'var(--ink)',
+              letterSpacing: '-0.01em',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
           >
-            {cuisine}
-          </span>
-        )}
-        <div style={{ flex: 1 }} />
-        {/* Action row */}
-        <div
-          style={{ display: 'flex', gap: 5, paddingTop: 6, borderTop: '1px solid var(--border)' }}
-        >
-          <ActionBtn
-            icon={<IcoPen />}
-            label="Modifier la note"
-            active={!!note}
-            activeColor="var(--accent)"
-            activeBg="var(--accent-light)"
-            onClick={onNote}
-            small
-          />
-          <ActionBtn icon={<IcoShare />} label="Partager" onClick={onShare} small />
-          <div style={{ flex: 1 }} />
-          <ActionBtn
-            icon={<IcoTrash />}
-            label="Retirer"
-            hoverColor="var(--coral)"
-            hoverBg="var(--coral-pale)"
-            onClick={onRemove}
-            small
-          />
-        </div>
+            {fav.name}
+          </p>
+        </button>
+        <ActionBtn
+          icon={<IcoTrash />}
+          label="Retirer"
+          hoverColor="var(--coral)"
+          hoverBg="var(--coral-pale)"
+          onClick={onRemove}
+          small
+        />
       </div>
     </div>
   )
