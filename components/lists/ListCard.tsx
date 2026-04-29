@@ -29,7 +29,7 @@ export function ListCard({ list, onClick }: { list: ListRow; onClick: () => void
         position: 'relative',
         width: '100%',
         aspectRatio: '0.85',
-        borderRadius: 16,
+        borderRadius: 'var(--r-xl)',
         overflow: 'hidden',
         cursor: 'pointer',
         border: 'none',
@@ -37,7 +37,6 @@ export function ListCard({ list, onClick }: { list: ListRow; onClick: () => void
         background: `linear-gradient(160deg, ${from} 0%, ${to} 100%)`,
         boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
         fontFamily: 'var(--font-body)',
-        flexShrink: 0,
       }}
     >
       {/* Bottom gradient veil */}
@@ -67,7 +66,7 @@ export function ListCard({ list, onClick }: { list: ListRow; onClick: () => void
             margin: '0 0 2px',
             fontSize: 13,
             fontWeight: 700,
-            color: 'white',
+            color: '#ffffff',
             letterSpacing: '-0.02em',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -96,7 +95,7 @@ export function NewListCard({ onClick }: { onClick: () => void }) {
       style={{
         width: '100%',
         aspectRatio: '0.85',
-        borderRadius: 16,
+        borderRadius: 'var(--r-xl)',
         border: `2px dashed ${hovered ? 'var(--accent)' : 'var(--bone)'}`,
         background: hovered ? 'var(--accent-light)' : 'rgba(255,255,255,0.5)',
         cursor: 'pointer',
