@@ -824,7 +824,7 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
   )
 }
 
-// ── Fav card — liste ──────────────────────────────────────
+// ── Shared gradient utilities for fav cards ───────────────
 const FAV_GRADIENTS: [string, string][] = [
   ['#1c3a28', '#4a8c5c'],
   ['#3a1c1c', '#8c4a4a'],
@@ -839,11 +839,12 @@ function thumbGradient(osmId: string): string {
   return `linear-gradient(135deg, ${from}, ${to})`
 }
 
+// ── Fav card — liste ──────────────────────────────────────
 function FavCardList({
   fav,
   index,
   note,
-  listNames,
+  listNames = [],
   onRemove,
   onOpenMap,
   onShare,
@@ -852,7 +853,7 @@ function FavCardList({
   fav: FavoriteRow
   index: number
   note: string
-  listNames: string[]
+  listNames?: string[]
   onRemove: () => void
   onOpenMap: () => void
   onShare: () => void
@@ -860,7 +861,7 @@ function FavCardList({
 }) {
   const cuisine = fav.snapshot?.cuisine ?? fav.snapshot?.fsq?.categories?.[0]?.name
   const rating = fav.snapshot?.fsq?.rating
-  const meta = [cuisine, rating != null ? `⭐ ${rating.toFixed(1)}` : null]
+  const meta = [cuisine, rating != null ? `★ ${rating.toFixed(1)}` : null]
     .filter(Boolean)
     .join(' · ')
 
@@ -869,12 +870,12 @@ function FavCardList({
       className="anim-card-in"
       style={{
         background: 'var(--white)',
-        borderRadius: 14,
+        borderRadius: 'var(--r-xl)',
         padding: 12,
         display: 'flex',
         gap: 12,
         alignItems: 'flex-start',
-        boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
+        boxShadow: 'var(--s1)',
         animationDelay: `${index * 35}ms`,
       }}
     >
@@ -886,7 +887,7 @@ function FavCardList({
         style={{
           width: 52,
           height: 52,
-          borderRadius: 10,
+          borderRadius: 'var(--r-lg)',
           background: thumbGradient(fav.osm_id),
           border: 'none',
           flexShrink: 0,
@@ -948,7 +949,7 @@ function FavCardList({
       </button>
 
       {/* Actions */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 0, flexShrink: 0 }}>
         <ActionBtn
           icon={<IcoPen />}
           label="Note"
