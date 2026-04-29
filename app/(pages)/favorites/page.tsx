@@ -1034,7 +1034,7 @@ function FavCardGrid({
               border: '1px solid rgba(255,255,255,0.25)',
             }}
           >
-            ★ {rating.toFixed(1)}
+            <IcoStar /> {rating.toFixed(1)}
           </span>
         )}
       </button>
