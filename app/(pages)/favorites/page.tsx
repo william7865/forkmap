@@ -1249,6 +1249,10 @@ function FavoritesPageInner() {
     return arr
   }, [favorites, sortBy, cuisine])
 
+  const osmIdToListNames = useMemo((): Map<string, string[]> => {
+    return new Map<string, string[]>()
+  }, [])
+
   if (!isReady)
     return (
       <div
@@ -1285,26 +1289,6 @@ function FavoritesPageInner() {
     setToDelete(null)
   }
 
-  const headerActions = (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 5,
-        padding: '4px 11px',
-        borderRadius: 'var(--r-pill)',
-        fontSize: 11,
-        fontWeight: 600,
-        background: 'var(--accent-light)',
-        color: 'var(--accent)',
-        border: '1px solid rgba(45,122,85,0.2)',
-      }}
-    >
-      <IcoHeart filled />
-      {favorites.length} lieu{favorites.length !== 1 ? 'x' : ''}
-    </span>
-  )
-
   const activeList = activeListId ? lists.find((l) => l.id === activeListId) : null
 
   return (
@@ -1318,10 +1302,7 @@ function FavoritesPageInner() {
         flexDirection: 'column',
       }}
     >
-      <PageHeader
-        current="Enregistrés"
-        actions={!loading && favorites.length > 0 ? headerActions : undefined}
-      />
+      <PageHeader current="Enregistrés" />
 
       <main style={{ flex: 1 }}>
         <div
@@ -1331,188 +1312,103 @@ function FavoritesPageInner() {
             padding: isMobile ? '24px 16px 100px' : '36px 20px 80px',
           }}
         >
-          {/* Titre */}
+          {/* Header */}
           <div style={{ marginBottom: 24, animation: 'fadeUp 280ms var(--ease-out) both' }}>
-            <Link
-              href="/"
-              aria-label="Retour à la carte"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: 14,
-                color: 'var(--text-2)',
-                textDecoration: 'none',
-                marginBottom: 16,
-              }}
-            >
-              ← Carte
-            </Link>
             <h1
               style={{
-                margin: '0 0 6px',
+                margin: '0 0 4px',
                 fontFamily: 'var(--font-display)',
-                fontSize: 30,
+                fontSize: 26,
                 fontWeight: 400,
                 letterSpacing: '-0.04em',
                 lineHeight: 1.1,
+                color: 'var(--ink)',
               }}
             >
-              Lieux sauvegardés
+              Enregistré
             </h1>
-            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-3)' }}>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-60)' }}>
               {loading
                 ? 'Chargement…'
-                : `${sorted.length}${cuisine ? ` sur ${favorites.length}` : ''} restaurant${sorted.length !== 1 ? 's' : ''} sauvegardé${sorted.length !== 1 ? 's' : ''}`}
+                : `${favorites.length} restaurant${favorites.length !== 1 ? 's' : ''} · ${lists.length} liste${lists.length !== 1 ? 's' : ''}`}
             </p>
           </div>
 
-          {/* Barre contrôles */}
-          {!loading && favorites.length > 0 && (
+          {/* Controls */}
+          {!loading && !activeListId && (
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8,
-                marginBottom: 16,
-                flexWrap: isMobile ? 'nowrap' : 'wrap',
-                overflowX: isMobile ? 'auto' : 'visible',
+                justifyContent: 'space-between',
+                marginBottom: 12,
                 animation: 'fadeUp 280ms var(--ease-out) 40ms both',
               }}
             >
-              {/* Sort */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span
-                  style={{
-                    fontSize: 9.5,
-                    fontWeight: 700,
-                    color: 'var(--text-3)',
-                    letterSpacing: '0.1em',
-                    textTransform: 'uppercase',
-                    marginRight: 2,
-                  }}
-                >
-                  Trier
-                </span>
-                {(
-                  [
-                    ['date_desc', 'Récent'],
-                    ['date_asc', 'Ancien'],
-                    ['name', 'A→Z'],
-                    ['rating', 'Note'],
-                  ] as [SortKey, string][]
-                ).map(([k, l]) => (
-                  <button
-                    key={k}
-                    onClick={() => setSortBy(k)}
-                    style={{
-                      padding: '4px 11px',
-                      borderRadius: 'var(--r-pill)',
-                      fontSize: 11,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      border: `1px solid ${sortBy === k ? 'var(--accent)' : 'var(--border)'}`,
-                      background: sortBy === k ? 'var(--accent-light)' : 'transparent',
-                      color: sortBy === k ? 'var(--forest)' : 'var(--text-2)',
-                      transition: 'all 120ms',
-                      fontFamily: 'inherit',
-                    }}
-                  >
-                    {l}
-                  </button>
-                ))}
-              </div>
-
-              <div style={{ flex: 1 }} />
-
-              {/* Vue grille/liste */}
-              <div
+              <span
                 style={{
-                  display: 'flex',
-                  borderRadius: 'var(--r-md)',
-                  border: '1px solid var(--border)',
-                  overflow: 'hidden',
-                  background: 'var(--surface)',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: 'var(--ink-40)',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
                 }}
               >
-                {(['list', 'grid'] as ViewMode[]).map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setViewMode(m)}
-                    style={{
-                      width: 32,
-                      height: 32,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      border: 'none',
-                      background: viewMode === m ? 'var(--text)' : 'transparent',
-                      color: viewMode === m ? 'white' : 'var(--text-2)',
-                      cursor: 'pointer',
-                      transition: 'all 120ms',
-                      fontSize: 12,
-                      fontFamily: 'var(--font-body)',
-                    }}
-                  >
-                    {m === 'list' ? <IcoList /> : <IcoGrid />}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Filtre cuisine */}
-          {!loading && cuisineOptions.length > 1 && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                marginBottom: 20,
-                flexWrap: isMobile ? 'nowrap' : 'wrap',
-                overflowX: isMobile ? 'auto' : 'visible',
-                animation: 'fadeUp 280ms var(--ease-out) 60ms both',
-              }}
-            >
-              <IcoFilter />
-              <button
-                onClick={() => setCuisine(null)}
-                style={{
-                  padding: '4px 11px',
-                  borderRadius: 'var(--r-pill)',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  border: `1px solid ${!cuisine ? 'var(--accent)' : 'var(--border)'}`,
-                  background: !cuisine ? 'var(--accent-light)' : 'transparent',
-                  color: !cuisine ? 'var(--forest)' : 'var(--text-2)',
-                  transition: 'all 120ms',
-                  fontFamily: 'inherit',
-                }}
-              >
-                Tout
-              </button>
-              {cuisineOptions.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setCuisine(c === cuisine ? null : c)}
+                Tous enregistrés · {sorted.length}
+              </span>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortKey)}
                   style={{
-                    padding: '4px 11px',
-                    borderRadius: 'var(--r-pill)',
+                    padding: '4px 10px',
+                    borderRadius: 'var(--r-md)',
+                    border: '1px solid var(--border)',
+                    background: 'var(--white)',
                     fontSize: 11,
                     fontWeight: 600,
+                    color: 'var(--ink)',
+                    fontFamily: 'var(--font-body)',
                     cursor: 'pointer',
-                    border: `1px solid ${cuisine === c ? 'var(--accent)' : 'var(--border)'}`,
-                    background: cuisine === c ? 'var(--accent-light)' : 'transparent',
-                    color: cuisine === c ? 'var(--forest)' : 'var(--text-2)',
-                    transition: 'all 120ms',
-                    fontFamily: 'inherit',
-                    textTransform: 'capitalize',
+                    outline: 'none',
                   }}
                 >
-                  {c}
-                </button>
-              ))}
+                  <option value="date_desc">Récent</option>
+                  <option value="date_asc">Ancien</option>
+                  <option value="name">A→Z</option>
+                  <option value="rating">Note</option>
+                </select>
+                <div
+                  style={{
+                    display: 'flex',
+                    borderRadius: 'var(--r-md)',
+                    border: '1px solid var(--border)',
+                    overflow: 'hidden',
+                    background: 'var(--surface)',
+                  }}
+                >
+                  {(['list', 'grid'] as ViewMode[]).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setViewMode(m)}
+                      style={{
+                        width: 32,
+                        height: 32,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: 'none',
+                        background: viewMode === m ? 'var(--ink)' : 'transparent',
+                        color: viewMode === m ? 'white' : 'var(--text-2)',
+                        cursor: 'pointer',
+                        transition: 'all 120ms',
+                      }}
+                    >
+                      {m === 'list' ? <IcoList /> : <IcoGrid />}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
@@ -1521,11 +1417,11 @@ function FavoritesPageInner() {
             <div style={{ marginBottom: 32, animation: 'fadeUp 280ms var(--ease-out) 20ms both' }}>
               <p
                 style={{
-                  margin: '0 0 12px',
-                  fontSize: 11,
+                  margin: '0 0 10px',
+                  fontSize: 10,
                   fontWeight: 700,
-                  color: 'var(--text-3)',
-                  letterSpacing: '0.08em',
+                  color: 'var(--ink-40)',
+                  letterSpacing: '0.1em',
                   textTransform: 'uppercase',
                 }}
               >
@@ -1912,6 +1808,7 @@ function FavoritesPageInner() {
                   fav={fav}
                   index={i}
                   note={notes[fav.osm_id] ?? ''}
+                  listNames={osmIdToListNames.get(fav.osm_id) ?? []}
                   onRemove={() => setToDelete(fav)}
                   onOpenMap={() =>
                     router.push(
@@ -1936,15 +1833,12 @@ function FavoritesPageInner() {
                   key={fav.id}
                   fav={fav}
                   index={i}
-                  note={notes[fav.osm_id] ?? ''}
                   onRemove={() => setToDelete(fav)}
                   onOpenMap={() =>
                     router.push(
                       `/?select=${encodeURIComponent(fav.osm_id)}&lat=${fav.lat}&lon=${fav.lon}`
                     )
                   }
-                  onShare={() => setShareTarget(fav)}
-                  onNote={() => setNoteTarget(fav)}
                 />
               ))}
             </div>
