@@ -825,10 +825,25 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
 }
 
 // ── Fav card — liste ──────────────────────────────────────
+const FAV_GRADIENTS: [string, string][] = [
+  ['#1c3a28', '#4a8c5c'],
+  ['#3a1c1c', '#8c4a4a'],
+  ['#1c2a3a', '#4a5c8c'],
+  ['#3a2d1c', '#8c6c3a'],
+  ['#2d1c3a', '#6c4a8c'],
+  ['#1c3a3a', '#3a8c8c'],
+]
+function thumbGradient(osmId: string): string {
+  const idx = osmId.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % FAV_GRADIENTS.length
+  const [from, to] = FAV_GRADIENTS[idx]
+  return `linear-gradient(135deg, ${from}, ${to})`
+}
+
 function FavCardList({
   fav,
   index,
   note,
+  listNames,
   onRemove,
   onOpenMap,
   onShare,
@@ -837,243 +852,121 @@ function FavCardList({
   fav: FavoriteRow
   index: number
   note: string
+  listNames: string[]
   onRemove: () => void
   onOpenMap: () => void
   onShare: () => void
   onNote: () => void
 }) {
-  const [hovered, setHovered] = useState(false)
   const cuisine = fav.snapshot?.cuisine ?? fav.snapshot?.fsq?.categories?.[0]?.name
   const rating = fav.snapshot?.fsq?.rating
-  const price = fav.snapshot?.fsq?.price
-  const openNow = fav.snapshot?.open_now
-  const dateLabel = new Date(fav.created_at).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
+  const meta = [cuisine, rating != null ? `⭐ ${rating.toFixed(1)}` : null]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
     <div
       className="anim-card-in"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       style={{
         background: 'var(--white)',
-        border: `1px solid ${hovered ? 'var(--ink-20)' : 'var(--border)'}`,
-        borderLeft: `3px solid ${hovered ? 'var(--accent)' : 'rgba(45,122,85,0.35)'}`,
-        borderRadius: 'var(--r-xl)',
-        overflow: 'hidden',
-        boxShadow: hovered ? 'var(--s3)' : 'var(--s1)',
-        transform: hovered ? 'translateY(-1px)' : 'none',
-        transition: 'all 180ms var(--ease-out)',
+        borderRadius: 14,
+        padding: 12,
+        display: 'flex',
+        gap: 12,
+        alignItems: 'flex-start',
+        boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
         animationDelay: `${index * 35}ms`,
       }}
     >
-      <div style={{ padding: '14px 16px 12px 18px' }}>
-        {/* Row 1: nom + rating + actions */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
-          <button
-            type="button"
-            onClick={onOpenMap}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              cursor: 'pointer',
-              background: 'none',
-              border: 'none',
-              padding: 0,
-              textAlign: 'left',
-              fontFamily: 'inherit',
-            }}
-          >
-            <h3
-              style={{
-                margin: '0 0 4px',
-                fontFamily: 'var(--font-display)',
-                fontSize: 16,
-                fontWeight: 400,
-                letterSpacing: '-0.03em',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                color: 'var(--text)',
-              }}
-            >
-              {fav.name}
-            </h3>
-            {/* Badges */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-              {cuisine && (
-                <span
-                  style={{
-                    padding: '2px 9px',
-                    borderRadius: 'var(--r-pill)',
-                    fontSize: 9.5,
-                    fontWeight: 700,
-                    letterSpacing: '0.07em',
-                    textTransform: 'uppercase',
-                    background: 'var(--accent-light)',
-                    color: 'var(--accent)',
-                    border: '1px solid rgba(45,122,85,0.2)',
-                  }}
-                >
-                  {cuisine}
-                </span>
-              )}
-              {price != null && (
-                <span
-                  style={{
-                    padding: '2px 8px',
-                    borderRadius: 'var(--r-pill)',
-                    fontSize: 10,
-                    fontWeight: 600,
-                    background: 'var(--cream)',
-                    color: 'var(--text-2)',
-                    border: '1px solid var(--bone)',
-                  }}
-                >
-                  {'€'.repeat(price)}
-                </span>
-              )}
-              {openNow !== undefined && (
-                <span
-                  style={{
-                    padding: '2px 8px',
-                    borderRadius: 'var(--r-pill)',
-                    fontSize: 9.5,
-                    fontWeight: 700,
-                    background: openNow ? '#dcfce7' : 'var(--coral-pale)',
-                    color: openNow ? '#16a34a' : 'var(--coral)',
-                    border: `1px solid ${openNow ? 'rgba(22,163,74,0.25)' : 'rgba(217,79,61,0.25)'}`,
-                  }}
-                >
-                  {openNow ? 'Ouvert' : 'Fermé'}
-                </span>
-              )}
-              {rating != null && (
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 3,
-                    padding: '2px 8px',
-                    borderRadius: 'var(--r-pill)',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    background: rating >= 9 ? 'var(--amber-pale)' : 'var(--cream)',
-                    color: rating >= 9 ? 'var(--amber)' : 'var(--text-2)',
-                    border: `1px solid ${rating >= 9 ? '#fed7aa' : 'var(--bone)'}`,
-                  }}
-                >
-                  <IcoStar />
-                  {rating.toFixed(1)}
-                </span>
-              )}
-            </div>
-          </button>
-          {/* Actions */}
-          <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-            <ActionBtn
-              icon={<IcoPen />}
-              label="Modifier la note"
-              active={!!note}
-              activeColor="var(--accent)"
-              activeBg="var(--accent-light)"
-              onClick={onNote}
-            />
-            <ActionBtn icon={<IcoShare />} label="Partager" onClick={onShare} />
-            <ActionBtn
-              icon={<IcoTrash />}
-              label="Retirer"
-              hoverColor="var(--coral)"
-              hoverBg="var(--coral-pale)"
-              onClick={onRemove}
-            />
-          </div>
-        </div>
+      {/* Thumbnail */}
+      <button
+        type="button"
+        onClick={onOpenMap}
+        aria-label={`Voir ${fav.name} sur la carte`}
+        style={{
+          width: 52,
+          height: 52,
+          borderRadius: 10,
+          background: thumbGradient(fav.osm_id),
+          border: 'none',
+          flexShrink: 0,
+          cursor: 'pointer',
+        }}
+      />
 
-        {/* Note preview */}
-        {note && (
-          <button
-            onClick={onNote}
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 8,
-              padding: '8px 10px',
-              background: 'var(--accent-light)',
-              border: '1px solid rgba(45,122,85,0.2)',
-              borderLeft: '2px solid var(--accent)',
-              borderRadius: 'var(--r-sm)',
-              cursor: 'pointer',
-              textAlign: 'left',
-              width: '100%',
-              fontFamily: 'inherit',
-              transition: 'all 120ms',
-              marginBottom: 4,
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderLeftColor = 'var(--forest)')}
-            onMouseLeave={(e) => (e.currentTarget.style.borderLeftColor = 'var(--accent)')}
-          >
-            <IcoPen />
-            <span
-              style={{
-                fontSize: 12,
-                color: 'var(--ink-80)',
-                lineHeight: 1.5,
-                overflow: 'hidden',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical' as const,
-              }}
-            >
-              {note}
-            </span>
-          </button>
-        )}
-
-        {/* Footer: date + voir sur carte */}
-        <div
+      {/* Content */}
+      <button
+        type="button"
+        onClick={onOpenMap}
+        style={{
+          flex: 1,
+          minWidth: 0,
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          cursor: 'pointer',
+          textAlign: 'left',
+          fontFamily: 'inherit',
+        }}
+      >
+        <p
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginTop: 8,
+            margin: '0 0 2px',
+            fontSize: 14,
+            fontWeight: 700,
+            color: 'var(--ink)',
+            letterSpacing: '-0.01em',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
           }}
         >
-          <span style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 500 }}>{dateLabel}</span>
-          <button
-            onClick={onOpenMap}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              padding: '4px 10px',
-              borderRadius: 'var(--r-sm)',
-              border: '1px solid var(--border)',
-              background: 'transparent',
-              cursor: 'pointer',
-              fontSize: 11,
-              fontWeight: 600,
-              color: 'var(--text-2)',
-              fontFamily: 'inherit',
-              transition: 'all 120ms',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--accent-light)'
-              e.currentTarget.style.color = 'var(--accent)'
-              e.currentTarget.style.borderColor = 'rgba(45,122,85,0.3)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = 'var(--text-2)'
-              e.currentTarget.style.borderColor = 'var(--border)'
-            }}
-          >
-            <IcoMap /> Voir sur la carte
-          </button>
-        </div>
+          {fav.name}
+        </p>
+        {meta && <p style={{ margin: '0 0 6px', fontSize: 11, color: 'var(--ink-60)' }}>{meta}</p>}
+        {/* List badges */}
+        {listNames.length > 0 && (
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            {listNames.map((n) => (
+              <span
+                key={n}
+                style={{
+                  background: 'var(--accent-light)',
+                  color: 'var(--accent)',
+                  fontSize: 9,
+                  fontWeight: 700,
+                  padding: '2px 7px',
+                  borderRadius: 999,
+                  letterSpacing: '0.03em',
+                }}
+              >
+                {n}
+              </span>
+            ))}
+          </div>
+        )}
+      </button>
+
+      {/* Actions */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
+        <ActionBtn
+          icon={<IcoPen />}
+          label="Note"
+          active={!!note}
+          activeColor="var(--accent)"
+          activeBg="var(--accent-light)"
+          onClick={onNote}
+          small
+        />
+        <ActionBtn icon={<IcoShare />} label="Partager" onClick={onShare} small />
+        <ActionBtn
+          icon={<IcoTrash />}
+          label="Retirer"
+          hoverColor="var(--coral)"
+          hoverBg="var(--coral-pale)"
+          onClick={onRemove}
+          small
+        />
       </div>
     </div>
   )
