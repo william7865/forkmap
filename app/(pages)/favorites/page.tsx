@@ -32,20 +32,6 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 }
 
 // ── Icons ─────────────────────────────────────────────────
-const IcoHeart = ({ filled }: { filled?: boolean }) => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill={filled ? 'var(--accent)' : 'none'}
-    stroke={filled ? 'var(--accent)' : 'currentColor'}
-    strokeWidth="1.7"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-  </svg>
-)
 const IcoMap = () => (
   <svg
     width="11"
@@ -158,20 +144,6 @@ const IcoX = () => (
     strokeLinecap="round"
   >
     <path d="M18 6 6 18M6 6l12 12" />
-  </svg>
-)
-const IcoFilter = () => (
-  <svg
-    width="13"
-    height="13"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.7"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
   </svg>
 )
 const IcoGrid = () => (
@@ -1158,7 +1130,6 @@ function FavoritesPageInner() {
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<SortKey>('date_desc')
   const [viewMode, setViewMode] = useState<ViewMode>('list')
-  const [cuisine, setCuisine] = useState<string | null>(null)
   const [toDelete, setToDelete] = useState<FavoriteRow | null>(null)
   const [shareTarget, setShareTarget] = useState<FavoriteRow | null>(null)
   const [noteTarget, setNoteTarget] = useState<FavoriteRow | null>(null)
@@ -1215,24 +1186,8 @@ function FavoritesPageInner() {
     )
   }, [isReady, activeListId])
 
-  const cuisineOptions = useMemo(
-    () =>
-      [
-        ...new Set(
-          favorites
-            .map((f) => f.snapshot?.cuisine ?? f.snapshot?.fsq?.categories?.[0]?.name)
-            .filter(Boolean) as string[]
-        ),
-      ].sort(),
-    [favorites]
-  )
-
   const sorted = useMemo((): FavoriteRow[] => {
     let arr: FavoriteRow[] = [...favorites]
-    if (cuisine)
-      arr = arr.filter(
-        (f) => (f.snapshot?.cuisine ?? f.snapshot?.fsq?.categories?.[0]?.name) === cuisine
-      )
     switch (sortBy) {
       case 'date_asc':
         arr.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
@@ -1247,9 +1202,11 @@ function FavoritesPageInner() {
         arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     }
     return arr
-  }, [favorites, sortBy, cuisine])
+  }, [favorites, sortBy])
 
   const osmIdToListNames = useMemo((): Map<string, string[]> => {
+    // Intentionally empty: loading all list memberships for every fav would require
+    // N API calls. Badges show only when viewing a specific list (?list=id).
     return new Map<string, string[]>()
   }, [])
 
@@ -1360,6 +1317,7 @@ function FavoritesPageInner() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortKey)}
+                  aria-label="Trier par"
                   style={{
                     padding: '4px 10px',
                     borderRadius: 'var(--r-md)',
@@ -1391,6 +1349,8 @@ function FavoritesPageInner() {
                     <button
                       key={m}
                       onClick={() => setViewMode(m)}
+                      aria-label={m === 'list' ? 'Vue liste' : 'Vue grille'}
+                      aria-pressed={viewMode === m}
                       style={{
                         width: 32,
                         height: 32,
@@ -1771,31 +1731,6 @@ function FavoritesPageInner() {
               >
                 Explorer la carte →
               </Link>
-            </div>
-          )}
-
-          {/* Empty filter */}
-          {!loading && favorites.length > 0 && sorted.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '32px 0' }}>
-              <p style={{ fontSize: 13, color: 'var(--text-2)', margin: '0 0 10px' }}>
-                Aucun résultat pour ce filtre
-              </p>
-              <button
-                onClick={() => setCuisine(null)}
-                style={{
-                  padding: '7px 16px',
-                  borderRadius: 'var(--r-pill)',
-                  border: '1px solid var(--border)',
-                  background: 'var(--white)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: 'var(--text-2)',
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                }}
-              >
-                Réinitialiser
-              </button>
             </div>
           )}
 
