@@ -9,6 +9,8 @@ const __dirname = dirname(__filename)
 const compat = new FlatCompat({ baseDirectory: __dirname })
 
 const config = [
+  // Build artifacts & native shells — never lint generated output
+  { ignores: ['.next/**', 'out/**', 'ios/**', 'android/**', 'next-env.d.ts'] },
   ...compat.extends('next/core-web-vitals', 'prettier'),
   {
     plugins: { '@typescript-eslint': tsPlugin },

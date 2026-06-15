@@ -7,12 +7,12 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================================
 -- Table: favorites
--- user_id is now TEXT to support both UUID auth users
--- and the "demo-user" fallback for unauthenticated sessions
+-- user_id is a real Supabase Auth UUID (auth is mandatory —
+-- the legacy "demo-user" fallback no longer exists in code).
 -- ============================================================
 CREATE TABLE IF NOT EXISTS favorites (
   id          UUID        DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id     TEXT        NOT NULL,
+  user_id     UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   osm_id      TEXT        NOT NULL,
   name        TEXT        NOT NULL,
   lat         DOUBLE PRECISION NOT NULL,
@@ -43,23 +43,11 @@ ALTER TABLE favorites ENABLE ROW LEVEL SECURITY;
 -- Authenticated users see only their own favorites
 CREATE POLICY "Users see own favorites" ON favorites
   FOR ALL
-  USING (
-    auth.uid()::TEXT = user_id
-    OR user_id = 'demo-user'   -- fallback for unauthenticated
-  )
-  WITH CHECK (
-    auth.uid()::TEXT = user_id
-    OR user_id = 'demo-user'
-  );
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
 
 -- Allow service role to bypass RLS (used by server routes)
 -- This is automatic for the service role key
-
--- ============================================================
--- Migration: if upgrading from demo schema
--- ============================================================
--- ALTER TABLE favorites ALTER COLUMN user_id TYPE TEXT;
--- UPDATE favorites SET user_id = 'demo-user' WHERE user_id = 'demo-user';
 
 -- ============================================================
 -- Table: visits
@@ -67,7 +55,7 @@ CREATE POLICY "Users see own favorites" ON favorites
 -- ============================================================
 CREATE TABLE IF NOT EXISTS visits (
   id            UUID          DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id       TEXT          NOT NULL,
+  user_id       UUID          NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   osm_id        TEXT          NOT NULL,
   name          TEXT          NOT NULL,
   lat           DOUBLE PRECISION NOT NULL,
@@ -76,7 +64,7 @@ CREATE TABLE IF NOT EXISTS visits (
   amount_spent  DECIMAL(8,2),          -- euros, can be null
   people_count  INTEGER       DEFAULT 1,-- number of people
   personal_rating INTEGER     CHECK (personal_rating BETWEEN 1 AND 5),
-  mood          TEXT,                  -- 'solo','couple','friends','family','work'
+  mood          TEXT          CHECK (mood IN ('solo','couple','friends','family','work')),
   note          TEXT,                  -- free text note
   snapshot      JSONB,                 -- place snapshot at time of visit
   created_at    TIMESTAMPTZ   DEFAULT NOW(),
@@ -91,5 +79,5 @@ ALTER TABLE visits ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users see own visits" ON visits
   FOR ALL
-  USING  (auth.uid()::TEXT = user_id)
-  WITH CHECK (auth.uid()::TEXT = user_id);
+  USING  (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
