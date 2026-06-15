@@ -55,3 +55,6 @@ supabase/.temp/
 
 # ─── Git worktrees ────────────────────────────────────────────
 .worktrees/
+
+# Superpowers brainstorming
+.superpowers/

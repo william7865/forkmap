@@ -6,7 +6,7 @@ import NavWrapper from '@/components/ui/NavWrapper'
 import CapacitorInit from '@/components/native/CapacitorInit'
 
 export const viewport: Viewport = {
-  themeColor: '#ffffff',
+  themeColor: '#f6efe1',
 }
 
 export const metadata: Metadata = {

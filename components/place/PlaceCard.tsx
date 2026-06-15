@@ -129,13 +129,14 @@ const PlaceCard = memo(function PlaceCard({
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
           <span
             style={{
-              fontSize: 14,
+              fontFamily: 'var(--font-display)',
+              fontSize: 15.5,
               fontWeight: 600,
               color: 'var(--text)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
-              lineHeight: 1.3,
+              lineHeight: 1.25,
               flex: 1,
               minWidth: 0,
               letterSpacing: '-0.01em',
@@ -162,8 +163,8 @@ const PlaceCard = memo(function PlaceCard({
                 flexShrink: 0,
                 fontSize: 11,
                 fontWeight: 700,
-                color: 'var(--accent)',
-                background: 'var(--accent-light)',
+                color: 'var(--ember-text)',
+                background: 'var(--ember-light)',
                 borderRadius: 6,
                 padding: '1px 6px',
                 letterSpacing: '-0.01em',
@@ -264,15 +265,15 @@ const PlaceCard = memo(function PlaceCard({
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
-          color: isFav ? 'var(--accent)' : 'var(--text-3)',
+          color: isFav ? 'var(--ember)' : 'var(--text-3)',
           flexShrink: 0,
           transition: 'color 140ms ease',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.color = 'var(--accent)'
+          e.currentTarget.style.color = 'var(--ember)'
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.color = isFav ? 'var(--accent)' : 'var(--text-3)'
+          e.currentTarget.style.color = isFav ? 'var(--ember)' : 'var(--text-3)'
         }}
       >
         <Bookmark size={18} strokeWidth={1.75} fill={isFav ? 'currentColor' : 'none'} />

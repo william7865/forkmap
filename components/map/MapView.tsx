@@ -6,6 +6,7 @@ import { lightTap } from '@/lib/native/haptics'
 
 export interface MapViewHandle {
   flyTo: (lat: number, lon: number, zoom?: number) => void
+  fitBounds: (points: [number, number][]) => void
   drawRoute: (coords: [number, number][], color?: string) => void
   clearRoute: () => void
   enablePinDrop: () => void
@@ -87,13 +88,13 @@ function markerHTML(state: MState, rating?: number): string {
     bodyStroke = 'var(--ink)'
     bodyStrokeW = '2'
   } else if (isFav) {
-    bodyFill = '#2d7a55'
+    bodyFill = '#bb5e2e'
     bodyStroke = 'none'
-    bodyStrokeW = '0' // forest-mid
+    bodyStrokeW = '0' // ember (signature)
   } else {
-    bodyFill = '#0e0e0d'
+    bodyFill = '#241f18'
     bodyStroke = 'none'
-    bodyStrokeW = '0' // ink
+    bodyStrokeW = '0' // warm ink
   }
 
   const shadow = isSelected
@@ -108,7 +109,7 @@ function markerHTML(state: MState, rating?: number): string {
     // Brandbook: cercle ink + point blanc au centre
     const cy = Math.round(size * 0.44)
     inner =
-      `<circle cx="${size / 2}" cy="${cy}" r="${Math.round(size * 0.28)}" fill="#0e0e0d"/>` +
+      `<circle cx="${size / 2}" cy="${cy}" r="${Math.round(size * 0.28)}" fill="#241f18"/>` +
       `<circle cx="${size / 2}" cy="${cy}" r="${Math.round(size * 0.1)}" fill="white"/>`
   } else if (rating != null) {
     // Avec note — cercle blanc + texte
@@ -116,14 +117,14 @@ function markerHTML(state: MState, rating?: number): string {
     const r = Math.round(size * 0.3)
     inner =
       `<circle cx="${size / 2}" cy="${cy}" r="${r}" fill="white" opacity=".95"/>` +
-      `<text x="${size / 2}" y="${cy + 4}" text-anchor="middle" font-size="9" font-weight="700" fill="#0e0e0d" font-family="Geist,system-ui">${rating.toFixed(1)}</text>`
+      `<text x="${size / 2}" y="${cy + 4}" text-anchor="middle" font-size="9" font-weight="700" fill="#241f18" font-family="Geist,system-ui">${rating.toFixed(1)}</text>`
   } else if (isFav) {
     // Favori — cercle blanc + ♥
     const cy = Math.round(size * 0.44)
     const r = Math.round(size * 0.3)
     inner =
       `<circle cx="${size / 2}" cy="${cy}" r="${r}" fill="white" opacity=".95"/>` +
-      `<text x="${size / 2}" y="${cy + 5}" text-anchor="middle" font-size="11" fill="#2d7a55" font-family="Georgia,serif">♥</text>`
+      `<text x="${size / 2}" y="${cy + 5}" text-anchor="middle" font-size="11" fill="#bb5e2e" font-family="Georgia,serif">♥</text>`
   } else {
     // Default — cercle blanc
     const cy = Math.round(size * 0.44)
@@ -140,7 +141,7 @@ function markerHTML(state: MState, rating?: number): string {
 
   // Pulse ring for selected (behind the marker)
   const ring = isSelected
-    ? `<div style="position:absolute;inset:-10px;border-radius:50%;border:2.5px solid rgba(45,122,85,0.32);animation:pulse-ring 1.8s ease-out infinite;pointer-events:none;bottom:auto;top:5px;left:-3px;right:-3px;height:${size + 6}px"></div>`
+    ? `<div style="position:absolute;inset:-10px;border-radius:50%;border:2.5px solid rgba(29,93,64,0.32);animation:pulse-ring 1.8s ease-out infinite;pointer-events:none;bottom:auto;top:5px;left:-3px;right:-3px;height:${size + 6}px"></div>`
     : ''
 
   return `
@@ -213,7 +214,17 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
     flyTo(lat, lon, zoom = 15) {
       mapRef.current?.flyTo([lat, lon], zoom, { animate: true, duration: 0.7 })
     },
-    drawRoute(coords, color = '#2d7a55') {
+    fitBounds(points) {
+      const L: A = (window as A).L
+      const map = mapRef.current
+      if (!L || !map || points.length === 0) return
+      if (points.length === 1) {
+        map.flyTo(points[0], 15, { animate: true, duration: 0.7 })
+        return
+      }
+      map.flyToBounds(L.latLngBounds(points), { padding: [64, 64], maxZoom: 16, duration: 0.7 })
+    },
+    drawRoute(coords, color = '#1d5d40') {
       const L: A = (window as A).L
       const map = mapRef.current
       if (!L || !map) return

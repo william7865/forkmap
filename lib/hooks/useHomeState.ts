@@ -1,9 +1,11 @@
 'use client'
 import { useState, useCallback, useMemo, useRef } from 'react'
-import type { PlaceCard, FilterState } from '@/types'
+import type { PlaceCard, FilterState, FavoriteRow } from '@/types'
 import { useRestaurants } from '@/lib/hooks/useRestaurants'
 import { useRouteCache, type TransportMode } from '@/lib/hooks/useRouteCache'
-import { useAuth } from '@/lib/hooks/useAuth'
+import { useAuth, getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
+import { apiFetch } from '@/lib/api'
+import { haversineDistance } from '@/lib/scoring'
 import { useToast } from '@/lib/hooks/useToast'
 import { useIsMobile } from '@/lib/hooks/useMediaQuery'
 import { useLanguage } from '@/lib/i18n/useLanguage'
@@ -33,6 +35,7 @@ export function useHomeState() {
   const [filters, setFilters] = useState<FilterState>({ sortBy: 'score' })
   const [nameQuery, setNameQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
+  const [showSurprise, setShowSurprise] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showSearchHere, setShowSearchHere] = useState(false)
   const [lastSearchBbox, setLastSearchBbox] = useState<string | null>(null)
@@ -43,6 +46,9 @@ export function useHomeState() {
   const [locating, setLocating] = useState(false)
   const [locateError, setLocateError] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [savedOnly, setSavedOnly] = useState(false)
+  const [favoritesData, setFavoritesData] = useState<FavoriteRow[]>([])
+  const [favoritesLoading, setFavoritesLoading] = useState(false)
   const [sharePlace, setSharePlace] = useState<PlaceCard | null>(null)
   const [searchFocused, setSearchFocused] = useState(false)
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
@@ -94,17 +100,39 @@ export function useHomeState() {
     })
   }, [])
 
+  // ── Saved-only layer ──────────────────────────────────────
+  // Favorites are rendered from their DB snapshots, so they appear on the
+  // map regardless of the current viewport (NOT limited to the loaded OSM
+  // bbox). Distances are recomputed from the map center.
+  const favoritePlaces = useMemo<PlaceCard[]>(() => {
+    const center = mapRef.current?.getBounds()
+    return favoritesData
+      .map((row) => {
+        const snap = row.snapshot ?? ({} as PlaceCard)
+        const lat = snap.lat ?? row.lat
+        const lon = snap.lon ?? row.lon
+        const p: PlaceCard = { ...snap, lat, lon, name: snap.name ?? row.name, is_favorite: true }
+        if (center) p.distance = haversineDistance(center.centerLat, center.centerLon, lat, lon)
+        return p
+      })
+      .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
+  }, [favoritesData])
+
+  // What the map + list show: favorites layer in saved-only mode, else the
+  // normal (filtered) discovery results.
+  const mapPlaces = savedOnly ? favoritePlaces : filteredPlaces
+
   // ── Name filter ───────────────────────────────────────────
   const visiblePlaces = useMemo(
     () =>
       nameQuery.trim()
-        ? filteredPlaces.filter(
+        ? mapPlaces.filter(
             (p) =>
               p.name.toLowerCase().includes(nameQuery.toLowerCase()) ||
               p.cuisine?.toLowerCase().includes(nameQuery.toLowerCase())
           )
-        : filteredPlaces,
-    [filteredPlaces, nameQuery]
+        : mapPlaces,
+    [mapPlaces, nameQuery]
   )
 
   // ── Top cuisines for quick filter chips ──────────────────
@@ -118,6 +146,61 @@ export function useHomeState() {
       .slice(0, 3)
       .map(([c]) => c)
   }, [visiblePlaces])
+
+  // ── Cuisines the user already favorites (for the "Découverte" mood) ──
+  const knownCuisines = useMemo(() => {
+    const set = new Set<string>()
+    places.forEach((p) => {
+      if (p.is_favorite && p.cuisine) set.add(p.cuisine.toLowerCase())
+    })
+    return [...set]
+  }, [places])
+
+  const fetchFavoritesData = useCallback(async (): Promise<FavoriteRow[] | null> => {
+    setFavoritesLoading(true)
+    try {
+      const sb = getSupabaseBrowserClient()
+      const {
+        data: { session },
+      } = await sb.auth.getSession()
+      if (!session?.access_token) return null
+      const res = await apiFetch('/api/favorites', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (!res.ok) return null
+      const data = await res.json()
+      const rows: FavoriteRow[] = data.data ?? []
+      setFavoritesData(rows)
+      return rows
+    } catch {
+      return null
+    } finally {
+      setFavoritesLoading(false)
+    }
+  }, [])
+
+  const toggleSavedOnly = useCallback(async () => {
+    if (savedOnly) {
+      setSavedOnly(false)
+      return
+    }
+    if (!auth.user) {
+      setShowAuthModal(true)
+      toast.info('Connectez-vous pour voir vos enregistrés')
+      return
+    }
+    const rows = await fetchFavoritesData()
+    if (!rows || rows.length === 0) {
+      toast.info("Vous n'avez pas encore d'enregistrés")
+      return
+    }
+    setSavedOnly(true)
+    setShowSearchHere(false)
+    const pts = rows
+      .map((r) => [r.snapshot?.lat ?? r.lat, r.snapshot?.lon ?? r.lon] as [number, number])
+      .filter(([la, lo]) => la != null && lo != null)
+    if (pts.length) setTimeout(() => mapRef.current?.fitBounds(pts), 60)
+  }, [savedOnly, auth.user, fetchFavoritesData, toast])
 
   // ── Location ──────────────────────────────────────────────
   const handleLocationChange = useCallback((lat: number, lon: number, label: string) => {
@@ -163,13 +246,16 @@ export function useHomeState() {
     (bbox: Parameters<typeof fetchRestaurants>[0]) => {
       const key = `${bbox.minLon.toFixed(3)},${bbox.minLat.toFixed(3)},${bbox.maxLon.toFixed(3)},${bbox.maxLat.toFixed(3)}`
       currentBboxRef.current = key
+      // In saved-only mode the map shows favorites, not viewport results —
+      // panning must not trigger a fetch or the "search this area" prompt.
+      if (savedOnly) return
       if (lastSearchBbox && key !== lastSearchBbox) setShowSearchHere(true)
       else {
         setLastSearchBbox(key)
         fetchRestaurants(bbox)
       }
     },
-    [lastSearchBbox, fetchRestaurants]
+    [lastSearchBbox, fetchRestaurants, savedOnly]
   )
 
   const doSearchHere = useCallback(() => {
@@ -266,9 +352,18 @@ export function useHomeState() {
         toast.error('Impossible de mettre à jour les favoris.')
         return
       }
+      // In saved-only mode, keep the favorites layer in sync (a place just
+      // un-saved should leave the map/list).
+      if (savedOnly) {
+        if (isCurrentlyFav) {
+          setFavoritesData((prev) => prev.filter((r) => r.osm_id !== place.osm_id))
+        } else {
+          fetchFavoritesData()
+        }
+      }
       // no toast on success — HeartButton animation is enough feedback
     },
-    [toggleFavorite, favoriteIds, toast]
+    [toggleFavorite, favoriteIds, toast, savedOnly, fetchFavoritesData]
   )
 
   return {
@@ -279,12 +374,16 @@ export function useHomeState() {
     tr,
     // data
     filteredPlaces,
+    mapPlaces,
     loading,
     enriching,
     error,
     places,
     fetchRestaurants,
     favoriteIds,
+    savedOnly,
+    toggleSavedOnly,
+    favoritesLoading,
     routeLoading,
     routeResult,
     // state
@@ -298,6 +397,8 @@ export function useHomeState() {
     setNameQuery,
     showFilters,
     setShowFilters,
+    showSurprise,
+    setShowSurprise,
     showAuthModal,
     setShowAuthModal,
     showSearchHere,
@@ -319,6 +420,7 @@ export function useHomeState() {
     activeCount,
     visiblePlaces,
     topCuisines,
+    knownCuisines,
     nearbyPlaces,
     // refs
     mapRef,
