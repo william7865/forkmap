@@ -1,41 +1,33 @@
-// app/api/push-tokens/route.ts
+// app/api/push-tokens/route.ts — POST /api/push-tokens
+// Registers (or refreshes) a device push token for the current user.
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { requireUser } from '@/lib/api-auth'
-import { createClient } from '@supabase/supabase-js'
+import { savePushToken } from '@/lib/db'
 
-function getServiceClient() {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-}
+const PushTokenSchema = z.object({
+  token: z.string().min(1).max(512),
+  platform: z.enum(['ios', 'android', 'web']),
+})
 
 export async function POST(req: NextRequest) {
   const auth = await requireUser(req)
-  if (auth.error) {
-    return auth.error
-  }
+  if (auth.error) return auth.error
+  const { userId } = auth as { userId: string; error: null }
 
   const body = await req.json().catch(() => null)
-  const token: string = body?.token
-  const platform: string = body?.platform
-
-  if (!token || !platform) {
+  const parsed = PushTokenSchema.safeParse(body)
+  if (!parsed.success) {
     return NextResponse.json({ error: 'token and platform required' }, { status: 400 })
   }
 
-  if (!['ios', 'android', 'web'].includes(platform)) {
-    return NextResponse.json({ error: 'invalid platform' }, { status: 400 })
-  }
-
-  const sb = getServiceClient()
-  const { error } = await sb
-    .from('push_tokens')
-    .upsert(
-      { user_id: auth.userId, token, platform, updated_at: new Date().toISOString() },
-      { onConflict: 'user_id,token' }
+  try {
+    await savePushToken(userId, parsed.data.token, parsed.data.platform)
+    return NextResponse.json({ ok: true })
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : 'Failed to save token' },
+      { status: 500 }
     )
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
   }
-
-  return NextResponse.json({ ok: true })
 }

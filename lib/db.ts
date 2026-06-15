@@ -406,3 +406,31 @@ export async function getListsForPlace(userId: string, osmId: string): Promise<s
   if (error) throw error
   return (data ?? []).map((row: { list_id: string }) => row.list_id)
 }
+
+// ---------- Push tokens ----------
+
+export type PushPlatform = 'ios' | 'android' | 'web'
+
+export interface PushTokenRow {
+  id: string
+  user_id: string
+  token: string
+  platform: PushPlatform
+  created_at: string
+  updated_at: string
+}
+
+/** Register (or refresh) a device push token for a user. Idempotent per (user, token). */
+export async function savePushToken(
+  userId: string,
+  token: string,
+  platform: PushPlatform
+): Promise<void> {
+  const { error } = await db
+    .from('push_tokens')
+    .upsert(
+      { user_id: userId, token, platform, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id,token' }
+    )
+  if (error) throw error
+}

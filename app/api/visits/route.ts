@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireUser } from '@/lib/api-auth'
 import { rateLimit } from '@/lib/rate-limit'
-import { getVisits, addVisit } from '@/lib/db'
+import { getVisits, getVisitsByPlace, addVisit } from '@/lib/db'
 
 const VisitSchema = z.object({
   osm_id: z.string().min(1).max(64),
@@ -26,8 +26,10 @@ export async function GET(req: NextRequest) {
   const auth = await requireUser(req)
   if (auth.error) return auth.error
   const { userId } = auth as { userId: string; error: null }
+  // Optional ?osm_id=... filters visits to a single place (used by PlaceDetail).
+  const osmId = req.nextUrl.searchParams.get('osm_id')
   try {
-    const visits = await getVisits(userId)
+    const visits = osmId ? await getVisitsByPlace(userId, osmId) : await getVisits(userId)
     return NextResponse.json({ data: visits })
   } catch {
     return NextResponse.json({ error: 'Failed to load visits' }, { status: 500 })

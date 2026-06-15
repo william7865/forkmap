@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
+import { apiFetch } from '@/lib/api'
 
 export interface ListRow {
   id: string
@@ -36,7 +37,7 @@ export function useLists() {
     setLoading(true)
     try {
       const headers = await getAuthHeaders()
-      const res = await fetch('/api/lists', { headers })
+      const res = await apiFetch('/api/lists', { headers })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = await res.json()
       setLists(json.data ?? [])
@@ -48,7 +49,7 @@ export function useLists() {
   const createList = useCallback(
     async (name: string, description: string | null, isPublic: boolean): Promise<ListRow> => {
       const headers = await getAuthHeaders()
-      const res = await fetch('/api/lists', {
+      const res = await apiFetch('/api/lists', {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, description, is_public: isPublic }),
@@ -68,7 +69,7 @@ export function useLists() {
       patch: { name?: string; description?: string | null; is_public?: boolean }
     ): Promise<void> => {
       const headers = await getAuthHeaders()
-      const res = await fetch(`/api/lists/${id}`, {
+      const res = await apiFetch(`/api/lists/${id}`, {
         method: 'PATCH',
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify(patch),
@@ -82,7 +83,7 @@ export function useLists() {
 
   const deleteList = useCallback(async (id: string): Promise<void> => {
     const headers = await getAuthHeaders()
-    const res = await fetch(`/api/lists/${id}`, { method: 'DELETE', headers })
+    const res = await apiFetch(`/api/lists/${id}`, { method: 'DELETE', headers })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     setLists((prev) => prev.filter((l) => l.id !== id))
   }, [])
@@ -94,7 +95,7 @@ export function useLists() {
       placeSnapshot: Record<string, unknown>
     ): Promise<void> => {
       const headers = await getAuthHeaders()
-      const res = await fetch(`/api/lists/${listId}/items`, {
+      const res = await apiFetch(`/api/lists/${listId}/items`, {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ osm_id: osmId, place_snapshot: placeSnapshot }),
@@ -109,7 +110,7 @@ export function useLists() {
 
   const removeItemFromList = useCallback(async (listId: string, osmId: string): Promise<void> => {
     const headers = await getAuthHeaders()
-    const res = await fetch(`/api/lists/${listId}/items/${encodeURIComponent(osmId)}`, {
+    const res = await apiFetch(`/api/lists/${listId}/items/${encodeURIComponent(osmId)}`, {
       method: 'DELETE',
       headers,
     })
@@ -121,7 +122,9 @@ export function useLists() {
 
   const getListsForPlace = useCallback(async (osmId: string): Promise<string[]> => {
     const headers = await getAuthHeaders()
-    const res = await fetch(`/api/lists/for-place?osm_id=${encodeURIComponent(osmId)}`, { headers })
+    const res = await apiFetch(`/api/lists/for-place?osm_id=${encodeURIComponent(osmId)}`, {
+      headers,
+    })
     if (!res.ok) return []
     const json = await res.json()
     return json.data ?? []

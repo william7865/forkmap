@@ -1,70 +1,80 @@
-# 🍽 RestaurantFinder
+# 🍽 Forkmap
 
-> Interactive restaurant map powered by **OpenStreetMap + Overpass API** (free) with optional **Foursquare** enrichment (1000 req/day free).
+> Carte interactive de restaurants, propulsée par **OpenStreetMap + Overpass API** (gratuit), enrichie par **Wikidata** (étoiles Michelin, distinctions) et, en option, **Foursquare** (notes, photos, prix). Web + apps iOS/Android via Capacitor.
 
-![Stack](https://img.shields.io/badge/Next.js-15-black) ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue) ![Tailwind](https://img.shields.io/badge/Tailwind-3-38bdf8) ![Leaflet](https://img.shields.io/badge/Leaflet-1.9-3fb543)
+![Stack](https://img.shields.io/badge/Next.js-15-black) ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue) ![Tailwind](https://img.shields.io/badge/Tailwind-3-38bdf8) ![Leaflet](https://img.shields.io/badge/Leaflet-1.9-3fb543) ![Capacitor](https://img.shields.io/badge/Capacitor-8-119eff)
 
----
-
-## ✨ Features
-
-| Feature | Status |
-|---|---|
-| Interactive Leaflet map (OSM tiles) | ✅ |
-| Overpass API — free POI data | ✅ |
-| Foursquare enrichment (rating, price, photos) | ✅ optional |
-| Filters: rating, price, cuisine, distance, open now | ✅ |
-| Composite scoring algorithm | ✅ |
-| Marker clustering | ✅ |
-| List ↔ map sync (hover/select) | ✅ |
-| Place detail panel with photos | ✅ |
-| Favorites with PostgreSQL (Supabase) | ✅ |
-| In-memory cache (10min Overpass, 1h FSQ) | ✅ |
-| Type-safe API with Zod validation | ✅ |
-| Debounced map events (500ms) | ✅ |
+> Interface **100 % française**. Détails d'architecture pour les contributeurs : voir [`CLAUDE.md`](./CLAUDE.md).
 
 ---
 
-## 🚀 Quick Start
+## ✨ Fonctionnalités
 
-### 1. Clone & install
+| Fonctionnalité                                              | Statut       |
+| ----------------------------------------------------------- | ------------ |
+| Carte Leaflet interactive (tuiles OSM) + clustering         | ✅           |
+| Overpass API — POI gratuits, bascule multi-endpoints        | ✅           |
+| Enrichissement OSM détaillé (horaires, équipements, régime) | ✅           |
+| Enrichissement Wikidata/Wikipédia (Michelin, distinctions)  | ✅           |
+| Enrichissement Foursquare (note, prix, photos)              | ✅ optionnel |
+| Filtres : note, avis, prix, cuisine, distance, ouvert       | ✅           |
+| Score composite + tri                                       | ✅           |
+| Sync liste ↔ carte (survol/sélection)                       | ✅           |
+| Auth Supabase (email/mot de passe + Google OAuth)           | ✅           |
+| Favoris (Postgres/Supabase, RLS)                            | ✅           |
+| Listes personnalisées                                       | ✅           |
+| Journal de visites (dépenses, note, humeur)                 | ✅           |
+| Itinéraires OSRM (à pied / vélo / voiture)                  | ✅           |
+| Apps iOS/Android (Capacitor) + notifications push           | ✅           |
+| Cache mémoire (Overpass 10 min, FSQ 1 h) + rate limiting    | ✅           |
+| API typée avec validation Zod                               | ✅           |
+
+---
+
+## 🚀 Démarrage rapide
+
+### 1. Cloner & installer
+
 ```bash
-git clone https://github.com/your-org/restaurant-finder
-cd restaurant-finder
+git clone <repo-url> forkmap
+cd forkmap
 npm install
 ```
 
-### 2. Environment variables
+### 2. Variables d'environnement
+
 ```bash
 cp .env.example .env.local
+# puis renseigner les valeurs (voir CLAUDE.md → « Configuration de l'environnement »)
 ```
 
-Edit `.env.local`:
-```env
-# Supabase (required for favorites)
-NEXT_PUBLIC_SUPABASE_URL=https://yourproject.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+### 3. Base de données (Supabase)
 
-# Foursquare (optional — enriches OSM data with ratings/photos)
-# Free tier: 1000 req/day → https://developer.foursquare.com
-FOURSQUARE_API_KEY=fsq3xxxxx
-```
+Exécuter, **dans l'ordre**, dans l'éditeur SQL Supabase :
 
-### 3. Database setup (Supabase)
+1. `sql/schema.sql` — `favorites`, `osm_fsq_mapping`, `visits`
+2. `sql/lists.sql` — `lists`, `list_items`
+3. `sql/push_tokens.sql` — `push_tokens`
+
+Pour Google OAuth : activer le provider Google dans Supabase Auth (redirection `/auth/callback`).
+
+### 4. Lancer en local
+
 ```bash
-# Copy sql/schema.sql content into your Supabase SQL editor and run it
+npm run dev          # http://localhost:3000
 ```
 
-### 4. Run locally
+### 5. Déployer
+
 ```bash
-npm run dev
-# Open http://localhost:3000
+npx vercel           # ajouter les variables d'env dans le dashboard Vercel
 ```
 
-### 5. Deploy to Vercel
+### 6. Builds mobiles (Capacitor)
+
 ```bash
-npx vercel
-# Add env vars in Vercel dashboard
+npm run build:mobile # export statique → ./out
+npx cap sync         # synchronise ios/ et android/
 ```
 
 ---
@@ -72,270 +82,97 @@ npx vercel
 ## 🏗 Architecture
 
 ```
-restaurant-finder/
+forkmap/
 ├── app/
-│   ├── page.tsx                    # Main map page
-│   ├── layout.tsx
-│   ├── globals.css
-│   ├── api/
-│   │   ├── osm/overpass/route.ts   # GET  /api/osm/overpass?bbox=...
-│   │   ├── places/enrich/route.ts  # POST /api/places/enrich
-│   │   └── favorites/
-│   │       ├── route.ts            # GET, POST /api/favorites
-│   │       └── [osmId]/route.ts    # DELETE /api/favorites/:osmId
-│   └── (pages)/favorites/page.tsx  # Saved favorites page
+│   ├── page.tsx                    # Carte principale (vue ; logique dans useHomeState)
+│   ├── layout.tsx · globals.css · error.tsx
+│   ├── auth/callback/              # Retour OAuth
+│   ├── (pages)/                    # favorites, account, settings, about, help, contact, legal…
+│   └── api/                        # overpass, places/enrich(-osm), favorites, lists, visits, push-tokens, account, contact
 │
-├── components/
-│   ├── map/MapView.tsx             # Leaflet map (dynamic import, no SSR)
-│   ├── filters/FiltersPanel.tsx    # Filter controls
-│   └── place/
-│       ├── PlaceList.tsx           # Scrollable list
-│       ├── PlaceCard.tsx           # List item
-│       └── PlaceDetail.tsx         # Slide-in detail panel
+├── components/                     # map, place, filters, lists, ui, states, native…
 │
 ├── lib/
-│   ├── overpass.ts                 # Overpass QL builder + normalizer
-│   ├── foursquare.ts               # FSQ API client + fuzzy matcher
-│   ├── scoring.ts                  # Haversine + composite score + filters
-│   ├── cache.ts                    # In-memory cache (cacheAside pattern)
-│   ├── db.ts                       # Supabase client + helpers
-│   └── hooks/
-│       └── useRestaurants.ts       # Main data orchestration hook
+│   ├── overpass.ts · foursquare.ts · osm-enrichment.ts · wikidata.ts · opening-hours.ts
+│   ├── scoring.ts · cache.ts · rate-limit.ts · api.ts · api-auth.ts · api-errors.ts · db.ts
+│   ├── hooks/                      # useHomeState, useRestaurants, useAuth, useLists, useRouteCache…
+│   ├── i18n/                       # translations.ts + useLanguage (verrouillé sur « fr »)
+│   └── native/                     # wrappers Capacitor web-safe (geolocation, haptics, push)
 │
-├── types/index.ts                  # All shared TypeScript types
-├── sql/schema.sql                  # Supabase tables + RLS
-└── .env.example
+├── types/index.ts                  # Types partagés (PlaceBase → PlaceCard → FavoriteRow)
+├── sql/                            # schema.sql · lists.sql · push_tokens.sql · migrations/
+├── ios/ · android/                 # coques natives Capacitor
+└── capacitor.config.ts · next.config.ts · vitest.config.ts
+```
+
+Pour le détail du flux de données, des patterns d'auth et des conventions : **voir [`CLAUDE.md`](./CLAUDE.md)**.
+
+---
+
+## ⚙️ Flux de données
+
+```
+Déplacement carte
+    │  (debounce + garde-fous : fetchCount + AbortController)
+    ▼
+GET /api/osm/overpass?bbox=…           → PlaceBase[]   (cache 10 min, 30 req/min)
+    ▼
+POST /api/places/enrich-osm            → tags OSM détaillés + Wikidata (gratuit)
+    ▼
+POST /api/places/enrich                → Foursquare (note/prix/photos, optionnel)
+    ▼
+score composite + filtres/tri (lib/scoring.ts)
+    ▼
+Marqueurs Leaflet + liste synchronisée (amélioration progressive après chaque lot)
 ```
 
 ---
 
-## 🔌 API Reference
+## 🎯 Algorithme de score
 
-### `GET /api/osm/overpass`
+Score composite (0–1), tri par défaut :
 
-Fetch restaurants from Overpass API within a bounding box.
+```
+score = note × 0.4 + popularité × 0.2 + distance × 0.3 + vérifié × 0.1
+        + bonus (ouvert, Michelin, photo, adresse, site web)
+```
 
-**Query params:**
-| Param | Type | Required | Example |
-|---|---|---|---|
-| `bbox` | string | ✅ | `2.30,48.84,2.40,48.87` |
-| `types` | string | ❌ | `restaurant,cafe,bar` |
+- `note` = note FSQ / 10 (défaut 0.5 si inconnue)
+- `popularité` = min(nb_avis / 500, 1)
+- `distance` = max(0, 1 − distance_m / 2000)
+- Les données manquantes retombent sur des valeurs neutres ; les filtres sont inclusifs envers l'inconnu.
 
-**Example request:**
+---
+
+## 🔐 Authentification
+
+- **Supabase Auth** : email/mot de passe + Google OAuth (`lib/hooks/useAuth.ts`).
+- Pas d'auth dans le middleware (no-op volontaire) ; protection des pages côté client via `useAuthGuard`.
+- Routes API : `requireUser(req)` lit `Authorization: Bearer <token>` ; écritures via le client service-role (`lib/db.ts`), autorisation par `userId` + RLS.
+
+---
+
+## 🚦 Rate limits & cache
+
+| Source               | Limite                        | Cache                      |
+| -------------------- | ----------------------------- | -------------------------- |
+| Overpass API         | 30 req/min/IP                 | 10 min par bbox            |
+| Foursquare (gratuit) | 20 req/min/IP · 1000 req/jour | 1 h par lieu               |
+| Routage OSRM         | —                             | 15 min par trajet (client) |
+| Tuiles OSM           | usage raisonnable             | cache navigateur           |
+
+Le cache est en mémoire (mono-instance). Pour le multi-région, remplacer `lib/cache.ts` par Upstash Redis (l'interface reste identique).
+
+---
+
+## 🧪 Qualité
+
 ```bash
-curl "http://localhost:3000/api/osm/overpass?bbox=2.30,48.84,2.40,48.87&types=restaurant,cafe"
+npm run lint && npm run type-check && npm run test:run
 ```
 
-**Response:**
-```json
-{
-  "data": [
-    {
-      "osm_id": "node/123456789",
-      "osm_type": "node",
-      "name": "Le Procope",
-      "lat": 48.8527,
-      "lon": 2.3398,
-      "cuisine": "French",
-      "address": "13 Rue de l'Ancienne Comédie, 75006 Paris",
-      "tags": { "amenity": "restaurant", "cuisine": "french", ... }
-    }
-  ],
-  "count": 47,
-  "cached": false,
-  "bbox_key": "overpass:2.3,48.84,2.4,48.87:restaurant"
-}
-```
-
-**Caching:** 10 minutes per bbox (rounded to 3 decimal places ≈ 111m)  
-**Rate limit:** Overpass has a fair-use policy, the 500ms debounce prevents abuse.
+CI (`.github/workflows/ci.yml`) : lint · type-check · build à chaque push/PR sur `master`.
 
 ---
 
-### `POST /api/places/enrich`
-
-Enrich OSM places with Foursquare data (ratings, photos, price, hours).
-
-**Body:**
-```json
-{
-  "places": [
-    {
-      "osm_id": "node/123456789",
-      "osm_type": "node",
-      "name": "Le Procope",
-      "lat": 48.8527,
-      "lon": 2.3398,
-      "tags": {}
-    }
-  ]
-}
-```
-
-**Response:**
-```json
-{
-  "data": [
-    {
-      "osm_id": "node/123456789",
-      "name": "Le Procope",
-      "lat": 48.8527,
-      "lon": 2.3398,
-      "fsq": {
-        "fsq_id": "4adcda28f964a5205b1e21e3",
-        "rating": 8.2,
-        "price": 3,
-        "total_ratings": 412,
-        "categories": [{ "id": 13065, "name": "French Restaurant" }],
-        "photos": [{ "prefix": "https://fastly.4sqi.net/img/general/", "suffix": "/123.jpg", ... }],
-        "hours": { "open_now": true, "display": "Mon-Fri 12:00-23:00" },
-        "website": "https://www.procope.com"
-      }
-    }
-  ],
-  "enriched_count": 1,
-  "cached_count": 0
-}
-```
-
-**Matching algorithm:**
-1. Search FSQ within 100m radius + place name
-2. Fuzzy name match (Levenshtein similarity ≥ 0.6)
-3. Cache result for 1 hour per place
-
-**Without `FOURSQUARE_API_KEY`:** Returns places as-is (graceful degradation).
-
----
-
-### `GET /api/favorites`
-Returns all saved favorites for the current user.
-
-### `POST /api/favorites`
-Save a restaurant. Body: `{ place: PlaceCard }`.
-
-### `DELETE /api/favorites/:osmId`
-Remove a favorite by OSM ID (URL-encoded).
-
----
-
-## ⚙️ Data Flow
-
-```
-User moves map
-    │
-    ▼ (debounce 500ms)
-GET /api/osm/overpass?bbox=...
-    │
-    ▼ (check cache → Overpass QL → normalize)
-PlaceBase[]
-    │
-    ▼ (batches of 20)
-POST /api/places/enrich
-    │
-    ▼ (FSQ search → fuzzy match → detail fetch → cache)
-PlaceCard[]
-    │
-    ▼ (haversine distance + composite score)
-Annotated PlaceCard[]
-    │
-    ▼ (client-side filter + sort)
-Filtered PlaceCard[]
-    │
-    ├──▶ Leaflet markers (amber=default, red=selected, purple=favorite)
-    └──▶ Scrollable list (synchronized)
-```
-
----
-
-## 🎯 Scoring Algorithm
-
-The composite score (0–1) is used as the default sort:
-
-```
-score = rating_score × 0.4
-      + popularity_score × 0.2
-      + distance_score × 0.3
-      + verified_bonus × 0.1
-```
-
-Where:
-- `rating_score` = FSQ rating / 10 (fallback 0.5 if unknown)
-- `popularity_score` = min(total_ratings / 500, 1)
-- `distance_score` = max(0, 1 - distance_m / 2000)
-- `verified_bonus` = 1 if FSQ verified, 0 otherwise
-
----
-
-## 🗄 Database Schema
-
-```sql
--- Favorites table
-CREATE TABLE favorites (
-  id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id    TEXT NOT NULL,
-  osm_id     TEXT NOT NULL,
-  name       TEXT NOT NULL,
-  lat        DOUBLE PRECISION,
-  lon        DOUBLE PRECISION,
-  fsq_id     TEXT,
-  snapshot   JSONB,       -- Full PlaceCard for offline display
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE (user_id, osm_id)
-);
-
--- Match cache (avoids re-matching same OSM place)
-CREATE TABLE osm_fsq_mapping (
-  osm_id     TEXT PRIMARY KEY,
-  fsq_id     TEXT NOT NULL,
-  confidence DOUBLE PRECISION,
-  matched_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
-
----
-
-## 🔐 Authentication
-
-The current implementation uses a hardcoded `demo-user` ID. For production:
-
-1. Integrate **Supabase Auth** or **Clerk**
-2. Extract `userId` from session in route handlers
-3. Enable Row Level Security (RLS) policies in Supabase
-
----
-
-## 🚦 Rate Limits & Caching
-
-| Source | Limit | Our Cache |
-|---|---|---|
-| Overpass API | Fair use (~1 req/sec) | 10 min per bbox |
-| Foursquare (free) | 1000 req/day | 1h per FSQ ID |
-| Map tiles (OSM) | Reasonable use | Browser-cached |
-
-The 500ms debounce on map movement prevents excessive Overpass calls during panning.
-
----
-
-## 📦 Production Upgrades
-
-### Redis caching (Upstash)
-```bash
-npm install @upstash/redis
-```
-Replace `cacheGet`/`cacheSet` in `lib/cache.ts` with Upstash client. The `cacheAside` interface stays identical.
-
-### Cluster support
-`leaflet.markercluster` is already integrated. The cluster radius is set to 50px.
-
-### Multi-user auth
-Swap `DEMO_USER_ID` constant with `auth().userId` from your auth provider.
-
----
-
-## 🤝 Contributing
-
-PRs welcome! The codebase is intentionally modular — each lib file has a single responsibility.
-
----
-
-*Built with ❤️ using free and open APIs. No paid services required for basic functionality.*
+_Construit avec ❤️ sur des APIs ouvertes. Données © OpenStreetMap contributors (ODbL)._

@@ -1126,7 +1126,7 @@ function FavoritesPageInner() {
     }
     setListItemsLoading(true)
     getAuthHeaders().then((headers) =>
-      fetch(`/api/lists/${activeListId}/items`, { headers })
+      apiFetch(`/api/lists/${activeListId}/items`, { headers })
         .then((r) => r.json())
         .then((json) => setListItems(json.data ?? []))
         .catch(() => setListItems([]))
