@@ -447,12 +447,7 @@ export default function HomePage() {
               overflow: 'hidden',
             }}
           >
-            <FiltersPanel
-              filters={filters}
-              onChange={handleFilters}
-              places={filteredPlaces}
-              horizontal
-            />
+            <FiltersPanel filters={filters} onChange={handleFilters} places={places} horizontal />
           </div>
         )}
 

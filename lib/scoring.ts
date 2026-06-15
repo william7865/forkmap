@@ -3,6 +3,7 @@
 // ============================================================
 
 import type { PlaceCard, FilterState } from '@/types'
+import { placeDistrict } from '@/lib/districts'
 
 // ---------- Distance ----------
 
@@ -104,6 +105,13 @@ export function applyFilters(places: PlaceCard[], filters: FilterState): PlaceCa
         p.cuisine?.toLowerCase().includes(q) ||
         p.fsq?.categories?.some((c) => c.name.toLowerCase().includes(q))
     )
+  }
+
+  // Arrondissement / quartier — explicit location filter, so it is strict
+  // (places without a known zone are excluded, unlike rating/price which
+  // keep unknowns).
+  if (filters.district) {
+    result = result.filter((p) => placeDistrict(p) === filters.district)
   }
 
   if (filters.openNow) {
