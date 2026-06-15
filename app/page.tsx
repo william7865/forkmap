@@ -1,8 +1,8 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useEffect, useRef, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useEffect, Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useHomeState } from '@/lib/hooks/useHomeState'
 import SuggestionsPanel from '@/components/place/SuggestionsPanel'
 import PlaceList from '@/components/place/PlaceList'
@@ -29,13 +29,18 @@ const AuthModal = dynamic(() => import('@/components/ui/AuthModal'), { ssr: fals
 
 function AuthRequiredWatcher({ onOpen }: { onOpen: () => void }) {
   const searchParams = useSearchParams()
-  const didOpen = useRef(false)
+  const router = useRouter()
   useEffect(() => {
-    if (!didOpen.current && searchParams.get('auth') === 'required') {
-      didOpen.current = true
-      onOpen()
-    }
-  }, [searchParams, onOpen])
+    if (searchParams.get('auth') !== 'required') return
+    onOpen()
+    // Clear the `auth` param so clicking "Se connecter" again re-opens the
+    // modal (without this, the URL stays at ?auth=required and a second
+    // click is a no-op → the button appears dead).
+    const params = new URLSearchParams(Array.from(searchParams.entries()))
+    params.delete('auth')
+    const qs = params.toString()
+    router.replace(qs ? `/?${qs}` : '/', { scroll: false })
+  }, [searchParams, onOpen, router])
   return null
 }
 
