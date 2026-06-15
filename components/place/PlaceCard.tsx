@@ -71,8 +71,9 @@ const PlaceCard = memo(function PlaceCard({
   const cardTransform = pressing ? 'scale(0.985)' : 'scale(1)'
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       aria-label={`Voir ${place.name}`}
       style={{
         height: ITEM_HEIGHT,
@@ -278,7 +279,7 @@ const PlaceCard = memo(function PlaceCard({
       >
         <Bookmark size={18} strokeWidth={1.75} fill={isFav ? 'currentColor' : 'none'} />
       </button>
-    </button>
+    </div>
   )
 })
 
