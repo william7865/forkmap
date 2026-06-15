@@ -38,7 +38,7 @@ export function useHomeState() {
   const [showSurprise, setShowSurprise] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showSearchHere, setShowSearchHere] = useState(false)
-  const [lastSearchBbox, setLastSearchBbox] = useState<string | null>(null)
+  const [, setLastSearchBbox] = useState<string | null>(null)
   const [pinDropActive, setPinDropActive] = useState(false)
   const [routeMode, setRouteMode] = useState<TransportMode>('foot')
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
@@ -247,15 +247,16 @@ export function useHomeState() {
       const key = `${bbox.minLon.toFixed(3)},${bbox.minLat.toFixed(3)},${bbox.maxLon.toFixed(3)},${bbox.maxLat.toFixed(3)}`
       currentBboxRef.current = key
       // In saved-only mode the map shows favorites, not viewport results —
-      // panning must not trigger a fetch or the "search this area" prompt.
+      // panning must not trigger a fetch.
       if (savedOnly) return
-      if (lastSearchBbox && key !== lastSearchBbox) setShowSearchHere(true)
-      else {
-        setLastSearchBbox(key)
-        fetchRestaurants(bbox)
-      }
+      // Auto-search on move (no manual button). fetchRestaurants is already
+      // throttled by its bboxChanged threshold + 10-min cache + AbortController,
+      // so frequent small pans don't hammer the API.
+      setShowSearchHere(false)
+      setLastSearchBbox(key)
+      fetchRestaurants(bbox)
     },
-    [lastSearchBbox, fetchRestaurants, savedOnly]
+    [fetchRestaurants, savedOnly]
   )
 
   const doSearchHere = useCallback(() => {

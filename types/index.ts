@@ -150,6 +150,7 @@ export interface FilterState {
   minRatings?: number // minimum number of reviews
   maxPrice?: 1 | 2 | 3 | 4
   cuisine?: string
+  district?: string // arrondissement / quartier label (see lib/districts)
   openNow?: boolean
   maxDistance?: number // meters
   sortBy: 'distance' | 'rating' | 'score' | 'name'

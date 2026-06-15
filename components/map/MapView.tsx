@@ -155,6 +155,47 @@ function markerHTML(state: MState, rating?: number): string {
     </div>`
 }
 
+// ── Marker state / signature helpers (perf) ───────────────
+// A marker is only re-iconned when its signature changes, so the
+// enrichment stream / hover / select never recreate every icon.
+function markerState(
+  id: string,
+  selectedId: string | undefined,
+  hoveredId: string | null | undefined,
+  isFav: boolean
+): MState {
+  if (id === selectedId) return 'selected'
+  if (id === hoveredId) return 'hover'
+  return isFav ? 'favorite' : 'default'
+}
+
+function markerSig(state: MState, rating: number | undefined, isFav: boolean): string {
+  return `${state}|${rating ?? ''}|${isFav ? 1 : 0}`
+}
+
+function iconDims(state: MState): [number, number] {
+  if (state === 'selected') return [36, 48]
+  if (state === 'hover') return [34, 45]
+  return [28, 38]
+}
+
+function makeDivIcon(L: A, state: MState, rating?: number): A {
+  const [sz, sh] = iconDims(state)
+  return L.divIcon({
+    className: '',
+    html: markerHTML(state, rating),
+    iconSize: [sz, sh],
+    iconAnchor: [sz / 2, sh],
+  })
+}
+
+// ── Cluster bubble — brandbook (papier + anneau terracotta, chiffre serif) ──
+function clusterIconHTML(count: number): string {
+  const s = count < 10 ? 38 : count < 100 ? 44 : 50
+  const fs = count < 100 ? 14 : 13
+  return `<div style="width:${s}px;height:${s}px;border-radius:50%;background:rgba(255,253,248,0.95);border:2px solid #bb5e2e;box-shadow:0 3px 12px rgba(61,44,24,0.22);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:${fs}px;color:#241f18">${count}</div>`
+}
+
 // ── User location dot ──────────────────────────────────────
 function userDotHTML(): string {
   return `
@@ -192,7 +233,14 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
 ) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<A>(null)
+  // value: { marker, sig } — sig lets us skip unchanged icon rebuilds
   const markersRef = useRef<Map<string, A>>(new Map())
+  const clusterRef = useRef<A>(null)
+  const placesMapRef = useRef<Map<string, PlaceCard>>(new Map())
+  const selIdRef = useRef<string | undefined>(undefined)
+  const hovIdRef = useRef<string | null | undefined>(undefined)
+  const prevSelectedRef = useRef<string | undefined>(undefined)
+  const prevHoveredRef = useRef<string | null | undefined>(undefined)
   const userMarkerRef = useRef<A>(null)
   const startMarkerRef = useRef<A>(null)
   const routeLayerRef = useRef<A>(null)
@@ -209,6 +257,11 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
   cbClick.current = onMarkerClick
   cbHover.current = onMarkerHover
   cbPin.current = onPinDrop
+
+  // Keep latest selection / place data readable from stable closures
+  selIdRef.current = selectedId
+  hovIdRef.current = hoveredId
+  placesMapRef.current = new Map(places.map((p) => [p.osm_id, p]))
 
   useImperativeHandle(ref, () => ({
     flyTo(lat, lon, zoom = 15) {
@@ -289,6 +342,14 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
         src: 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
         crossorigin: '',
       })
+      // Marker clustering (declutters + lifts the 200-pin cap, much faster)
+      await loadAsset('link', 'mc-css', {
+        rel: 'stylesheet',
+        href: 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',
+      })
+      await loadAsset('script', 'mc-js', {
+        src: 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js',
+      })
 
       const L: A = (window as A).L
       if (!L || !containerRef.current) return
@@ -310,6 +371,24 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
 
       L.control.zoom({ position: 'bottomright' }).addTo(map)
       mapRef.current = map
+
+      // Cluster group — brand-styled bubbles, declusters when zoomed in.
+      clusterRef.current = L.markerClusterGroup
+        ? L.markerClusterGroup({
+            maxClusterRadius: 48,
+            disableClusteringAtZoom: 17,
+            showCoverageOnHover: false,
+            spiderfyOnMaxZoom: true,
+            chunkedLoading: true,
+            removeOutsideVisibleBounds: true,
+            iconCreateFunction: (cluster: A) => {
+              const n = cluster.getChildCount()
+              const s = n < 10 ? 38 : n < 100 ? 44 : 50
+              return L.divIcon({ html: clusterIconHTML(n), className: '', iconSize: [s, s] })
+            },
+          })
+        : L.layerGroup()
+      map.addLayer(clusterRef.current)
 
       const fire = () => {
         if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -370,80 +449,88 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
     }).addTo(map)
   }, [userLocation])
 
-  // ── Sync restaurant markers ────────────────────────────
+  // ── Sync restaurant markers (clustered, signature-diffed) ──
+  // Adds new pins in bulk, removes stale ones, and re-icons ONLY the
+  // markers whose signature (state|rating|fav) actually changed — so the
+  // 3-layer enrichment stream never recreates the whole marker set.
   useEffect(() => {
     const L: A = (window as A).L
-    const map = mapRef.current
-    if (!L || !map) return
-    const ex = markersRef.current
+    const cluster = clusterRef.current
+    if (!L || !cluster) return
+    const store = markersRef.current
     const ids = new Set(places.map((p) => p.osm_id))
-    for (const [id, m] of ex) {
+
+    // Remove markers for places no longer present
+    for (const [id, entry] of store) {
       if (!ids.has(id)) {
-        m.remove()
-        ex.delete(id)
+        cluster.removeLayer(entry.marker)
+        store.delete(id)
       }
     }
 
-    for (const place of places.filter((p) => !ex.has(p.osm_id)).slice(0, 200)) {
-      const st: MState = place.is_favorite ? 'favorite' : 'default'
+    const toAdd: A[] = []
+    for (const place of places) {
+      const isFav = !!place.is_favorite
+      const state = markerState(place.osm_id, selIdRef.current, hovIdRef.current, isFav)
       const rating = place.fsq?.rating ?? undefined
-      const sz = 28
-      const sh = 38
-      const marker = L.marker([place.lat, place.lon], {
-        icon: L.divIcon({
-          className: '',
-          html: markerHTML(st, rating),
-          iconSize: [sz, sh],
-          iconAnchor: [sz / 2, sh],
-        }),
-      })
-        .addTo(map)
-        .bindTooltip(place.name, {
-          direction: 'top',
-          offset: [0, -sz - 6],
-          opacity: 1,
-          className: '',
-        })
-        .on('click', () => {
-          lightTap()
-          cbClick.current(place)
-        })
-        .on('mouseover', () => cbHover.current(place.osm_id))
-        .on('mouseout', () => cbHover.current(null))
-      ex.set(place.osm_id, marker)
+      const sig = markerSig(state, rating, isFav)
+      const existing = store.get(place.osm_id)
+
+      if (!existing) {
+        const id = place.osm_id
+        const marker = L.marker([place.lat, place.lon], { icon: makeDivIcon(L, state, rating) })
+          .bindTooltip(place.name, {
+            direction: 'top',
+            offset: [0, -34],
+            opacity: 1,
+            className: '',
+          })
+          .on('click', () => {
+            lightTap()
+            cbClick.current(placesMapRef.current.get(id) ?? place)
+          })
+          .on('mouseover', () => cbHover.current(id))
+          .on('mouseout', () => cbHover.current(null))
+        store.set(id, { marker, sig })
+        toAdd.push(marker)
+      } else if (existing.sig !== sig) {
+        existing.marker.setIcon(makeDivIcon(L, state, rating))
+        existing.sig = sig
+      }
+    }
+
+    if (toAdd.length) {
+      if (cluster.addLayers) cluster.addLayers(toAdd)
+      else toAdd.forEach((m) => cluster.addLayer(m))
     }
   }, [places])
 
-  // ── Update icon states on select / hover ───────────────
+  // ── Update icon state on select / hover (only affected pins) ──
   useEffect(() => {
     const L: A = (window as A).L
     if (!L) return
-    const placeMap = new Map(places.map((p) => [p.osm_id, p]))
-    for (const [id, marker] of markersRef.current) {
-      const place = placeMap.get(id)
-      if (!place) continue
-      const st: MState =
-        id === selectedId
-          ? 'selected'
-          : id === hoveredId
-            ? 'hover'
-            : place.is_favorite
-              ? 'favorite'
-              : 'default'
-      const rating = place.fsq?.rating ?? undefined
-      const sz = st === 'selected' ? 36 : st === 'hover' ? 34 : 28
-      const sh = st === 'selected' ? 48 : st === 'hover' ? 45 : 38
-      marker.setIcon(
-        L.divIcon({
-          className: '',
-          html: markerHTML(st, rating),
-          iconSize: [sz, sh],
-          iconAnchor: [sz / 2, sh],
-        })
-      )
-      marker.setZIndexOffset(st === 'selected' ? 2000 : st === 'hover' ? 1000 : 0)
+    const store = markersRef.current
+    const affected = new Set<string>()
+    for (const id of [prevSelectedRef.current, selectedId, prevHoveredRef.current, hoveredId]) {
+      if (id) affected.add(id)
     }
-  }, [selectedId, hoveredId, places])
+    for (const id of affected) {
+      const entry = store.get(id)
+      const place = placesMapRef.current.get(id)
+      if (!entry || !place) continue
+      const isFav = !!place.is_favorite
+      const state = markerState(id, selectedId, hoveredId, isFav)
+      const rating = place.fsq?.rating ?? undefined
+      const sig = markerSig(state, rating, isFav)
+      if (entry.sig !== sig) {
+        entry.marker.setIcon(makeDivIcon(L, state, rating))
+        entry.sig = sig
+      }
+      entry.marker.setZIndexOffset(state === 'selected' ? 2000 : state === 'hover' ? 1000 : 0)
+    }
+    prevSelectedRef.current = selectedId
+    prevHoveredRef.current = hoveredId
+  }, [selectedId, hoveredId])
 
   // ── Pan to selected ───────────────────────────────────
   useEffect(() => {
