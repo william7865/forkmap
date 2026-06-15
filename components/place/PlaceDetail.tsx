@@ -391,7 +391,7 @@ export default function PlaceDetail({
               flexShrink: 0,
               background: photoUrl
                 ? undefined
-                : 'linear-gradient(135deg, var(--forest) 0%, var(--forest-mid) 100%)',
+                : 'linear-gradient(150deg, var(--ember) 0%, var(--ember-hover) 42%, var(--accent) 100%)',
               overflow: 'hidden',
             }}
           >
@@ -477,10 +477,10 @@ export default function PlaceDetail({
                 style={{
                   margin: '0 0 6px',
                   fontFamily: 'var(--font-display)',
-                  fontSize: 20,
-                  fontWeight: 400,
-                  letterSpacing: '-0.03em',
-                  lineHeight: 1.15,
+                  fontSize: 23,
+                  fontWeight: 500,
+                  letterSpacing: '-0.01em',
+                  lineHeight: 1.12,
                   color: 'white',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',

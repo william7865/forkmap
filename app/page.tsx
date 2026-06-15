@@ -19,6 +19,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Navigation,
+  Sparkles,
+  Bookmark,
 } from 'lucide-react'
 
 const MapView = dynamic(() => import('@/components/map/MapView'), { ssr: false })
@@ -26,6 +28,7 @@ const PlaceDetail = dynamic(() => import('@/components/place/PlaceDetail'), { ss
 const FiltersPanel = dynamic(() => import('@/components/filters/FiltersPanel'), { ssr: false })
 const ShareModal = dynamic(() => import('@/components/place/ShareModal'), { ssr: false })
 const AuthModal = dynamic(() => import('@/components/ui/AuthModal'), { ssr: false })
+const SurpriseSheet = dynamic(() => import('@/components/place/SurpriseSheet'), { ssr: false })
 
 function AuthRequiredWatcher({ onOpen }: { onOpen: () => void }) {
   const searchParams = useSearchParams()
@@ -51,12 +54,15 @@ export default function HomePage() {
     isMobile,
     tr,
     filteredPlaces,
+    mapPlaces,
     loading,
     enriching,
     error,
     places,
     fetchRestaurants,
     favoriteIds,
+    savedOnly,
+    toggleSavedOnly,
     routeLoading,
     routeResult,
     selectedPlace,
@@ -68,6 +74,8 @@ export default function HomePage() {
     setNameQuery,
     showFilters,
     setShowFilters,
+    showSurprise,
+    setShowSurprise,
     showAuthModal,
     setShowAuthModal,
     showSearchHere,
@@ -88,6 +96,7 @@ export default function HomePage() {
     activeCount,
     visiblePlaces,
     topCuisines,
+    knownCuisines,
     nearbyPlaces,
     mapRef,
     handleFilters,
@@ -173,7 +182,7 @@ export default function HomePage() {
         >
           <MapView
             ref={mapRef}
-            places={filteredPlaces}
+            places={mapPlaces}
             selectedId={selectedPlace?.osm_id}
             hoveredId={hoveredId}
             userLocation={userLocation}
@@ -367,6 +376,33 @@ export default function HomePage() {
             }}
           >
             <Navigation size={15} strokeWidth={1.75} />
+          </button>
+
+          {/* Saved-only toggle */}
+          <button
+            onClick={toggleSavedOnly}
+            title={savedOnly ? 'Voir tous les restaurants' : 'Voir mes enregistrés'}
+            aria-label={savedOnly ? 'Voir tous les restaurants' : 'Voir mes enregistrés'}
+            aria-pressed={savedOnly}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '8px 10px',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 600,
+              fontFamily: 'var(--font-body)',
+              background: savedOnly ? 'var(--ember-light)' : 'none',
+              border: 'none',
+              color: savedOnly ? 'var(--ember-text)' : 'var(--text-2)',
+              flexShrink: 0,
+              transition: 'all 120ms ease',
+            }}
+          >
+            <Bookmark size={15} strokeWidth={1.75} fill={savedOnly ? 'currentColor' : 'none'} />
+            {!isMobile && 'Enregistrés'}
           </button>
         </div>
 
@@ -597,9 +633,11 @@ export default function HomePage() {
                   textTransform: 'uppercase',
                 }}
               >
-                {loading
-                  ? tr('loading')
-                  : `${visiblePlaces.length} ${visiblePlaces.length !== 1 ? tr('places') : tr('place')}`}
+                {savedOnly
+                  ? `${visiblePlaces.length} enregistré${visiblePlaces.length !== 1 ? 's' : ''}`
+                  : loading
+                    ? tr('loading')
+                    : `${visiblePlaces.length} ${visiblePlaces.length !== 1 ? tr('places') : tr('place')}`}
               </span>
               <div style={{ flex: 1 }} />
               <button
@@ -774,6 +812,47 @@ export default function HomePage() {
         </button>
       )}
 
+      {/* ═══ « Surprends-moi » floating CTA — desktop ═══ */}
+      {!isMobile && !selectedPlace && !pinDropActive && (
+        <button
+          onClick={() => setShowSurprise(true)}
+          style={{
+            position: 'absolute',
+            bottom: 24,
+            left: `calc(50% + ${sidebarCollapsed ? 0 : sidebarW / 2}px)`,
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 9,
+            padding: '13px 22px',
+            borderRadius: 'var(--r-pill)',
+            border: 'none',
+            cursor: 'pointer',
+            background: 'var(--ember)',
+            color: '#fff',
+            fontSize: 14,
+            fontWeight: 700,
+            fontFamily: 'var(--font-body)',
+            letterSpacing: '-0.01em',
+            boxShadow: 'var(--s-ember)',
+            zIndex: 450,
+            transition:
+              'transform 120ms var(--ease-spring), background 140ms ease, left 280ms cubic-bezier(0.16,1,0.3,1)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--ember-hover)'
+            e.currentTarget.style.transform = 'translateX(-50%) translateY(-2px)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'var(--ember)'
+            e.currentTarget.style.transform = 'translateX(-50%)'
+          }}
+        >
+          <Sparkles size={17} strokeWidth={2} />
+          Surprends-moi
+        </button>
+      )}
+
       {/* Pin drop banner */}
       {pinDropActive && (
         <div
@@ -852,11 +931,25 @@ export default function HomePage() {
       {/* ═══ MOBILE ═══ */}
       {isMobile && (
         <BottomSheet
-          title="Restaurants"
-          subtitle={loading ? 'Chargement…' : `${visiblePlaces.length} trouvés`}
+          title={savedOnly ? 'Mes enregistrés' : 'Restaurants'}
+          subtitle={
+            savedOnly
+              ? `${visiblePlaces.length} enregistré${visiblePlaces.length !== 1 ? 's' : ''}`
+              : loading
+                ? 'Chargement…'
+                : `${visiblePlaces.length} trouvés`
+          }
           defaultSnap="half"
           bottomOffset="calc(56px + env(safe-area-inset-bottom))"
         >
+          <button
+            onClick={() => setShowSurprise(true)}
+            className="btn-ember"
+            style={{ margin: '4px 0 12px' }}
+          >
+            <Sparkles size={16} strokeWidth={2} />
+            Je ne sais pas quoi manger
+          </button>
           <StartPanel
             userLocation={userLocation}
             locationLabel={locationLabel}
@@ -916,6 +1009,20 @@ export default function HomePage() {
       <Suspense>
         <AuthRequiredWatcher onOpen={() => setShowAuthModal(true)} />
       </Suspense>
+
+      {showSurprise && (
+        <SurpriseSheet
+          places={filteredPlaces}
+          knownCuisines={knownCuisines}
+          isMobile={isMobile}
+          onClose={() => setShowSurprise(false)}
+          onSelectPlace={(p) => {
+            setShowSurprise(false)
+            handleMarkerClick(p)
+          }}
+          onToggleFavorite={handleToggleFavorite}
+        />
+      )}
 
       {showAuthModal && (
         <AuthModal

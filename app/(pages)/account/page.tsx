@@ -189,8 +189,8 @@ interface VisitRow {
 }
 
 const CUISINE_COLORS = [
-  '#1a4a35',
-  '#2d7a55',
+  '#1d5d40',
+  '#bb5e2e',
   '#c47c2b',
   '#1d65c8',
   '#d94f3d',
@@ -1357,13 +1357,11 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                 <CardHeader label="Restaurants les plus visités" />
                 <div style={{ padding: '16px 20px' }}>
                   <BarChart
-                    data={stats!.top_restaurants
-                      .slice(0, 7)
-                      .map((r) => ({
-                        label: r.name,
-                        value: r.count,
-                        sublabel: r.total_spent > 0 ? `${r.total_spent.toFixed(0)}€` : undefined,
-                      }))}
+                    data={stats!.top_restaurants.slice(0, 7).map((r) => ({
+                      label: r.name,
+                      value: r.count,
+                      sublabel: r.total_spent > 0 ? `${r.total_spent.toFixed(0)}€` : undefined,
+                    }))}
                     color="var(--forest-mid)"
                     valueSuffix=" fois"
                     labelWidth={isMobile ? 64 : 88}
@@ -1427,7 +1425,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                         label: MOOD_LABELS[m.mood] ?? m.mood,
                         value: m.count,
                       }))}
-                      colors={['#1a4a35', '#c47c2b', '#1d65c8', '#d94f3d', '#7c3aed']}
+                      colors={['#1d5d40', '#bb5e2e', '#1d65c8', '#d94f3d', '#7c3aed']}
                     />
                   </div>
                 </Card>
