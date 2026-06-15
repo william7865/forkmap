@@ -267,7 +267,7 @@ export default function AuthModal({ onClose, auth, onSuccess, onError }: Props) 
     } else {
       err = await auth.signUpWithEmail(email, password, name)
       if (!err) {
-        onSuccess?.('Compte créé ! Vérifiez votre e-mail pour confirmer.')
+        onSuccess?.('Compte créé ! Bienvenue 🎉')
         onClose()
         setBusy(false)
         return
@@ -362,7 +362,7 @@ export default function AuthModal({ onClose, auth, onSuccess, onError }: Props) 
           </div>
           <button
             onClick={onClose}
-            aria-label="Close"
+            aria-label="Fermer"
             style={{
               background: 'none',
               border: 'none',

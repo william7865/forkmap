@@ -8,12 +8,12 @@ import { apiFetch } from '@/lib/api'
 type Status = 'idle' | 'sending' | 'success' | 'error'
 
 const TOPICS = [
-  'General question',
-  'Bug report',
-  'Feature request',
-  'Data error (wrong info on a restaurant)',
-  'Account issue',
-  'Other',
+  'Question générale',
+  'Signaler un bug',
+  'Suggestion de fonctionnalité',
+  'Erreur de données (info erronée sur un restaurant)',
+  'Problème de compte',
+  'Autre',
 ]
 
 export default function ContactPage() {
@@ -48,7 +48,9 @@ export default function ContactPage() {
 
       if (res.status === 429) {
         setStatus('error')
-        setError('Too many messages sent. Please wait a few minutes before trying again.')
+        setError(
+          'Trop de messages envoyés. Veuillez patienter quelques minutes avant de réessayer.'
+        )
         return
       }
 
@@ -63,7 +65,7 @@ export default function ContactPage() {
       setError(
         err instanceof Error
           ? err.message
-          : 'Failed to send. Please try again or email us directly.'
+          : 'Échec de l’envoi. Veuillez réessayer ou nous écrire directement par e-mail.'
       )
     }
   }
@@ -97,12 +99,11 @@ export default function ContactPage() {
               color: 'var(--ink)',
             }}
           >
-            Message sent!
+            Message envoyé !
           </h1>
           <p style={{ margin: '0 0 28px', fontSize: 14, color: 'var(--ink-60)', lineHeight: 1.7 }}>
-            Thanks for reaching out, {name.split(' ')[0]}. We&apos;ll get back to you
-            <br />
-            at <strong style={{ color: 'var(--ink-80)' }}>{email}</strong> within a few days.
+            Merci de nous avoir contactés, {name.split(' ')[0]}. Nous vous répondrons
+            <br />à <strong style={{ color: 'var(--ink-80)' }}>{email}</strong> sous quelques jours.
           </p>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
             <button
@@ -124,7 +125,7 @@ export default function ContactPage() {
                 fontFamily: 'inherit',
               }}
             >
-              Send another
+              Envoyer un autre message
             </button>
             <Link
               href="/"
@@ -138,7 +139,7 @@ export default function ContactPage() {
                 textDecoration: 'none',
               }}
             >
-              Back to map
+              Retour à la carte
             </Link>
           </div>
         </div>
@@ -157,34 +158,35 @@ export default function ContactPage() {
           color: 'var(--ink)',
         }}
       >
-        Get in touch
+        Contactez-nous
       </h1>
       <p style={{ margin: '0 0 36px', fontSize: 14, color: 'var(--ink-60)', lineHeight: 1.7 }}>
-        Have a question, spotted a data error, or want to suggest a feature? We read every message.
+        Une question, une erreur de données repérée ou une fonctionnalité à suggérer ? Nous lisons
+        chaque message.
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         {/* Name + Email row */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <Field label="Your name" required>
+          <Field label="Votre nom" required>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="William Lin"
-              aria-label="Your name"
+              placeholder="Jean Dupont"
+              aria-label="Votre nom"
               style={inputStyle}
               onFocus={(e) => Object.assign(e.currentTarget.style, focusStyle)}
               onBlur={(e) => Object.assign(e.currentTarget.style, blurStyle)}
             />
           </Field>
-          <Field label="Email address" required>
+          <Field label="Adresse e-mail" required>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="william@example.com"
-              aria-label="Email address"
+              placeholder="jean@exemple.com"
+              aria-label="Adresse e-mail"
               style={inputStyle}
               onFocus={(e) => Object.assign(e.currentTarget.style, focusStyle)}
               onBlur={(e) => Object.assign(e.currentTarget.style, blurStyle)}
@@ -193,11 +195,11 @@ export default function ContactPage() {
         </div>
 
         {/* Topic */}
-        <Field label="Topic">
+        <Field label="Sujet">
           <select
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
-            aria-label="Topic"
+            aria-label="Sujet"
             style={{ ...inputStyle, cursor: 'pointer' }}
             onFocus={(e) => Object.assign(e.currentTarget.style, focusStyle)}
             onBlur={(e) => Object.assign(e.currentTarget.style, blurStyle)}
@@ -211,11 +213,11 @@ export default function ContactPage() {
         </Field>
 
         {/* Message */}
-        <Field label="Message" required hint="At least 10 characters">
+        <Field label="Message" required hint="Au moins 10 caractères">
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Tell us what's on your mind…"
+            placeholder="Dites-nous ce que vous avez en tête…"
             rows={5}
             aria-label="Message"
             style={{ ...inputStyle, resize: 'vertical', minHeight: 120, lineHeight: 1.6 }}
@@ -230,7 +232,7 @@ export default function ContactPage() {
               color: message.length >= 10 ? 'var(--green)' : 'var(--ink-40)',
             }}
           >
-            {message.length} / 10 min
+            {message.length} / 10 min.
           </div>
         </Field>
 
@@ -261,15 +263,15 @@ export default function ContactPage() {
         >
           {status === 'sending' ? (
             <>
-              <Spinner /> Sending…
+              <Spinner /> Envoi…
             </>
           ) : (
-            'Send message →'
+            'Envoyer le message →'
           )}
         </button>
 
         <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-40)', textAlign: 'center' }}>
-          You can also email us directly at{' '}
+          Vous pouvez aussi nous écrire directement à{' '}
           <a
             href="mailto:hello@forkmap.app"
             style={{ color: 'var(--forest-mid)', textDecoration: 'none', fontWeight: 600 }}

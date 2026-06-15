@@ -15,7 +15,7 @@ No test suite is configured — `npm test` is not available.
 
 ## Environment Setup
 
-Copy `.env.example` to `.env.local` and populate:
+Create a `.env.local` file (gitignored — never commit secrets) and populate:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://yourproject.supabase.co
@@ -42,16 +42,16 @@ After each batch, places are re-scored via `lib/scoring.ts` (composite score = 4
 
 ### Key Files
 
-| File | Role |
-|---|---|
-| `app/page.tsx` | Main page — wires all hooks, renders sidebar + map + overlays |
-| `components/map/MapView.tsx` | Leaflet map, **always dynamically imported** (`ssr: false`) to avoid SSR issues |
-| `lib/hooks/useRestaurants.ts` | Central state — fetches, enriches, filters, handles favorites |
-| `lib/hooks/useAuth.ts` | Supabase browser client singleton + auth state |
-| `lib/api-auth.ts` | Server-side auth: reads `Authorization: Bearer <token>` header |
-| `lib/scoring.ts` | Haversine distance, composite score, `applyFilters` |
-| `lib/cache.ts` | In-memory `cacheAside` — replace with Upstash Redis for multi-instance |
-| `types/index.ts` | All shared types: `PlaceBase → PlaceCard`, `FilterState`, `FavoriteRow` |
+| File                          | Role                                                                            |
+| ----------------------------- | ------------------------------------------------------------------------------- |
+| `app/page.tsx`                | Main page — wires all hooks, renders sidebar + map + overlays                   |
+| `components/map/MapView.tsx`  | Leaflet map, **always dynamically imported** (`ssr: false`) to avoid SSR issues |
+| `lib/hooks/useRestaurants.ts` | Central state — fetches, enriches, filters, handles favorites                   |
+| `lib/hooks/useAuth.ts`        | Supabase browser client singleton + auth state                                  |
+| `lib/api-auth.ts`             | Server-side auth: reads `Authorization: Bearer <token>` header                  |
+| `lib/scoring.ts`              | Haversine distance, composite score, `applyFilters`                             |
+| `lib/cache.ts`                | In-memory `cacheAside` — replace with Upstash Redis for multi-instance          |
+| `types/index.ts`              | All shared types: `PlaceBase → PlaceCard`, `FilterState`, `FavoriteRow`         |
 
 ### Authentication Pattern
 

@@ -77,11 +77,12 @@ export default function GlobalError({ error, reset }: Props) {
                 color: '#1c1917',
               }}
             >
-              Forkmap hit a snag
+              Un problème est survenu
             </h2>
 
             <p style={{ margin: '0 0 20px', fontSize: 13, color: '#78716c', lineHeight: 1.65 }}>
-              An unexpected error occurred. Reloading usually fixes it — your saved places are safe.
+              Une erreur inattendue s’est produite. Recharger la page suffit généralement — vos
+              lieux enregistrés sont en sécurité.
             </p>
 
             {error?.message && (
@@ -120,7 +121,7 @@ export default function GlobalError({ error, reset }: Props) {
                   boxShadow: '0 4px 14px rgba(224,90,30,0.25)',
                 }}
               >
-                Reload page
+                Recharger la page
               </button>
 
               <button
@@ -138,7 +139,7 @@ export default function GlobalError({ error, reset }: Props) {
                   fontFamily: 'inherit',
                 }}
               >
-                Try again
+                Réessayer
               </button>
             </div>
 
@@ -152,7 +153,7 @@ export default function GlobalError({ error, reset }: Props) {
                   letterSpacing: '0.04em',
                 }}
               >
-                Error digest: {error.digest}
+                Code d’erreur : {error.digest}
               </p>
             )}
           </div>

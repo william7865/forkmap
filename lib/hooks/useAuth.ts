@@ -72,10 +72,18 @@ export function useAuth(): AuthState {
 
   const signUpWithEmail = useCallback(
     async (email: string, password: string, name?: string) => {
+      // Where the confirmation-email link should land. /auth/callback
+      // exchanges the `code` for a session (same handler as OAuth).
+      const emailRedirectTo = Capacitor.isNativePlatform()
+        ? 'com.forkmap.app://auth/callback'
+        : typeof window !== 'undefined'
+          ? `${window.location.origin}/auth/callback`
+          : undefined
+
       const { error } = await sb.auth.signUp({
         email,
         password,
-        options: { data: { full_name: name } },
+        options: { data: { full_name: name }, emailRedirectTo },
       })
       return error?.message ?? null
     },

@@ -2,59 +2,144 @@
 // app/(pages)/terms/page.tsx — Terms of Service
 // ============================================================
 
-import type { Metadata } from "next";
-import { InfoPage } from "@/components/ui/PageLayout";
-import Link from "next/link";
+import type { Metadata } from 'next'
+import { InfoPage } from '@/components/ui/PageLayout'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: "Terms of Service — Forkmap",
-  description: "Forkmap terms of use.",
-};
+  title: 'Conditions d’utilisation — Forkmap',
+  description: 'Conditions d’utilisation de Forkmap.',
+}
 
 export default function TermsPage() {
   return (
-    <InfoPage headerLabel="Terms of Service">
-      <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.04em", color: "var(--ink)", margin: "0 0 8px" }}>
-        Terms of Service
+    <InfoPage headerLabel="Conditions d’utilisation">
+      <h1
+        style={{
+          fontSize: 28,
+          fontWeight: 800,
+          letterSpacing: '-0.04em',
+          color: 'var(--ink)',
+          margin: '0 0 8px',
+        }}
+      >
+        Conditions d’utilisation
       </h1>
-      <p style={{ fontSize: 13, color: "var(--ink-60)", margin: "0 0 40px" }}>Last updated: March 2026</p>
+      <p style={{ fontSize: 13, color: 'var(--ink-60)', margin: '0 0 40px' }}>
+        Dernière mise à jour : mars 2026
+      </p>
 
-      <Section title="Acceptance of terms">
-        <p>By using Forkmap, you agree to these terms. If you do not agree, please do not use the application.</p>
+      <Section title="Acceptation des conditions">
+        <p>
+          En utilisant Forkmap, vous acceptez les présentes conditions. Si vous ne les acceptez pas,
+          veuillez ne pas utiliser l’application.
+        </p>
       </Section>
-      <Section title="What Forkmap is">
-        <p>Forkmap is a restaurant discovery tool that aggregates publicly available data from OpenStreetMap and Foursquare. It is provided as-is, for informational purposes only.</p>
+      <Section title="Ce qu’est Forkmap">
+        <p>
+          Forkmap est un outil de découverte de restaurants qui agrège des données publiquement
+          disponibles provenant d’OpenStreetMap et de Foursquare. Il est fourni en l’état, à titre
+          informatif uniquement.
+        </p>
       </Section>
-      <Section title="Your account">
-        <p>You are responsible for maintaining the security of your account credentials. You must not use Forkmap for any illegal or harmful purpose. You must be at least 13 years old to create an account.</p>
+      <Section title="Votre compte">
+        <p>
+          Vous êtes responsable du maintien de la sécurité de vos identifiants de compte. Vous ne
+          devez pas utiliser Forkmap à des fins illégales ou nuisibles. Vous devez avoir au moins 13
+          ans pour créer un compte.
+        </p>
       </Section>
-      <Section title="Data accuracy">
-        <p>Restaurant data comes from OpenStreetMap, which is community-maintained. We do not guarantee the accuracy, completeness, or currency of any restaurant information. Always verify critical details (opening hours, address) directly with the restaurant.</p>
+      <Section title="Exactitude des données">
+        <p>
+          Les données sur les restaurants proviennent d’OpenStreetMap, dont le contenu est maintenu
+          par la communauté. Nous ne garantissons pas l’exactitude, l’exhaustivité ou l’actualité
+          des informations sur les restaurants. Vérifiez toujours les informations essentielles
+          (horaires d’ouverture, adresse) directement auprès du restaurant.
+        </p>
       </Section>
-      <Section title="Intellectual property">
-        <p>The Forkmap interface, code, and branding are our property. Restaurant data is © OpenStreetMap contributors under the <a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener noreferrer" style={{ color: "#e05a1e" }}>ODbL licence</a>. Ratings data is provided by Foursquare.</p>
+      <Section title="Propriété intellectuelle">
+        <p>
+          L’interface, le code et l’identité visuelle de Forkmap sont notre propriété. Les données
+          sur les restaurants sont © les contributeurs d’OpenStreetMap sous{' '}
+          <a
+            href="https://opendatacommons.org/licenses/odbl/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: '#e05a1e' }}
+          >
+            licence ODbL
+          </a>
+          . Les données d’évaluation sont fournies par Foursquare.
+        </p>
       </Section>
-      <Section title="Limitation of liability">
-        <p>Forkmap is provided &quot;as is&quot; without warranty of any kind. We are not liable for any damages arising from your use of the application, reliance on restaurant data, or any interruption of service.</p>
+      <Section title="Limitation de responsabilité">
+        <p>
+          Forkmap est fourni &quot;en l’état&quot; sans garantie d’aucune sorte. Nous ne sommes pas
+          responsables des dommages résultant de votre utilisation de l’application, de votre
+          confiance dans les données sur les restaurants, ou de toute interruption du service.
+        </p>
       </Section>
-      <Section title="Termination">
-        <p>We reserve the right to suspend or terminate your account at any time for violation of these terms. You may delete your account at any time from <Link href="/settings" style={{ color: "#e05a1e" }}>Settings</Link>.</p>
+      <Section title="Résiliation">
+        <p>
+          Nous nous réservons le droit de suspendre ou de résilier votre compte à tout moment en cas
+          de violation des présentes conditions. Vous pouvez supprimer votre compte à tout moment
+          depuis les{' '}
+          <Link href="/settings" style={{ color: '#e05a1e' }}>
+            Paramètres
+          </Link>
+          .
+        </p>
       </Section>
-      <Section title="Changes to these terms">
-        <p>We may update these terms from time to time. Continued use of Forkmap after changes constitutes acceptance of the new terms.</p>
+      <Section title="Modifications des présentes conditions">
+        <p>
+          Nous pouvons mettre à jour ces conditions de temps à autre. L’utilisation continue de
+          Forkmap après des modifications vaut acceptation des nouvelles conditions.
+        </p>
       </Section>
       <Section title="Contact">
-        <p>Questions? Use the <Link href="/contact" style={{ color: "#e05a1e" }}>Contact page</Link> or email <a href="mailto:hello@forkmap.app" style={{ color: "#e05a1e" }}>hello@forkmap.app</a>.</p>
+        <p>
+          Des questions ? Utilisez la{' '}
+          <Link href="/contact" style={{ color: '#e05a1e' }}>
+            page Contact
+          </Link>{' '}
+          ou écrivez à{' '}
+          <a href="mailto:hello@forkmap.app" style={{ color: '#e05a1e' }}>
+            hello@forkmap.app
+          </a>
+          .
+        </p>
       </Section>
     </InfoPage>
-  );
+  )
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 36 }}>
-      <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: "0 0 12px", paddingBottom: 8, borderBottom: "1px solid rgba(28,25,23,0.06)" }}>{title}</h2>
-      <div style={{ fontSize: 14, color: "var(--ink-80)", lineHeight: 1.75, display: "flex", flexDirection: "column", gap: 10 }}>{children}</div>
+      <h2
+        style={{
+          fontSize: 15,
+          fontWeight: 700,
+          color: 'var(--ink)',
+          margin: '0 0 12px',
+          paddingBottom: 8,
+          borderBottom: '1px solid rgba(28,25,23,0.06)',
+        }}
+      >
+        {title}
+      </h2>
+      <div
+        style={{
+          fontSize: 14,
+          color: 'var(--ink-80)',
+          lineHeight: 1.75,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+        }}
+      >
+        {children}
+      </div>
     </div>
-  );
+  )
 }

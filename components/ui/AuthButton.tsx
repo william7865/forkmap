@@ -321,7 +321,7 @@ function DropdownPanel({ anchorRef, auth, onClose }: PanelProps) {
           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
         >
           <IcoLogOut />
-          Sign out
+          Se déconnecter
         </button>
       </div>
     </div>,
@@ -377,7 +377,7 @@ export default function AuthButton({ auth, onOpenModal }: Props) {
         onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--forest-mid)')}
       >
         <IcoUser />
-        Sign in
+        Se connecter
       </button>
     )
   }

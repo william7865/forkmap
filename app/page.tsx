@@ -5,7 +5,6 @@ import { useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useHomeState } from '@/lib/hooks/useHomeState'
 import SuggestionsPanel from '@/components/place/SuggestionsPanel'
-import LanguagePicker from '@/components/ui/LanguagePicker'
 import PlaceList from '@/components/place/PlaceList'
 import PlaceCardSkeleton from '@/components/place/PlaceCardSkeleton'
 import StartPanel from '@/components/location/StartPanel'
@@ -364,8 +363,6 @@ export default function HomePage() {
           >
             <Navigation size={15} strokeWidth={1.75} />
           </button>
-
-          <LanguagePicker />
         </div>
 
         {/* Enrichment progress bar */}
