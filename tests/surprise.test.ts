@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { pickSurprise, moodAffinity, buildReasons, MOODS } from '@/lib/surprise'
+import { pickSurprise, rankDeck, moodAffinity, buildReasons, MOODS } from '@/lib/surprise'
+import { emptyProfile, recordSave } from '@/lib/taste'
 import type { PlaceCard } from '@/types'
 
 // ---------- Helpers ----------
@@ -177,6 +178,55 @@ describe('buildReasons', () => {
       { mood: 'comfort' }
     )
     expect(reasons.length).toBeLessThanOrEqual(3)
+  })
+})
+
+// ---------- rankDeck ----------
+
+describe('rankDeck', () => {
+  it('returns [] for an empty pool', () => {
+    expect(rankDeck([], {}, null, rng(0))).toEqual([])
+  })
+
+  it('orders the whole pool by weight (best first)', () => {
+    const places = [
+      makePlace({ osm_id: 'low', score: 0.1 }),
+      makePlace({ osm_id: 'high', score: 0.9 }),
+      makePlace({ osm_id: 'mid', score: 0.5 }),
+    ]
+    const deck = rankDeck(places, {}, null, rng(0))
+    expect(deck.map((d) => d.place.osm_id)).toEqual(['high', 'mid', 'low'])
+  })
+
+  it('excludes already-seen ids', () => {
+    const places = [makePlace({ osm_id: 'a' }), makePlace({ osm_id: 'b' })]
+    const deck = rankDeck(places, { exclude: ['a'] }, null, rng(0))
+    expect(deck.map((d) => d.place.osm_id)).toEqual(['b'])
+  })
+
+  it('applies constraints (openNow)', () => {
+    const places = [
+      makePlace({ osm_id: 'open', open_now: true }),
+      makePlace({ osm_id: 'closed', open_now: false }),
+    ]
+    const deck = rankDeck(places, { openNow: true }, null, rng(0))
+    expect(deck.map((d) => d.place.osm_id)).toEqual(['open'])
+  })
+
+  it('lets the taste profile lift a liked cuisine above an equal-score rival', () => {
+    const places = [
+      makePlace({ osm_id: 'sushi', cuisine: 'Sushi', score: 0.5 }),
+      makePlace({ osm_id: 'pizza', cuisine: 'Pizza', score: 0.5 }),
+    ]
+    let profile = emptyProfile()
+    for (let i = 0; i < 5; i++) profile = recordSave(profile, makePlace({ cuisine: 'Pizza' }))
+    const deck = rankDeck(places, {}, profile, rng(0))
+    expect(deck[0].place.osm_id).toBe('pizza')
+  })
+
+  it('attaches reason chips to each entry', () => {
+    const deck = rankDeck([makePlace({ open_now: true, distance: 300 })], {}, null, rng(0))
+    expect(deck[0].reasons.length).toBeGreaterThan(0)
   })
 })
 

@@ -117,7 +117,7 @@ function markerHTML(state: MState, rating?: number): string {
     const r = Math.round(size * 0.3)
     inner =
       `<circle cx="${size / 2}" cy="${cy}" r="${r}" fill="white" opacity=".95"/>` +
-      `<text x="${size / 2}" y="${cy + 4}" text-anchor="middle" font-size="9" font-weight="700" fill="#241f18" font-family="Geist,system-ui">${rating.toFixed(1)}</text>`
+      `<text x="${size / 2}" y="${cy + 4}" text-anchor="middle" font-size="9" font-weight="700" fill="#241f18" font-family="Hanken Grotesk,system-ui">${rating.toFixed(1)}</text>`
   } else if (isFav) {
     // Favori — cercle blanc + ♥
     const cy = Math.round(size * 0.44)
@@ -193,7 +193,7 @@ function makeDivIcon(L: A, state: MState, rating?: number): A {
 function clusterIconHTML(count: number): string {
   const s = count < 10 ? 38 : count < 100 ? 44 : 50
   const fs = count < 100 ? 14 : 13
-  return `<div style="width:${s}px;height:${s}px;border-radius:50%;background:rgba(255,253,248,0.95);border:2px solid #bb5e2e;box-shadow:0 3px 12px rgba(61,44,24,0.22);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:${fs}px;color:#241f18">${count}</div>`
+  return `<div style="width:${s}px;height:${s}px;border-radius:50%;background:rgba(255,253,248,0.95);border:2px solid #bb5e2e;box-shadow:0 3px 12px rgba(61,44,24,0.22);display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-weight:700;font-size:${fs}px;color:#241f18">${count}</div>`
 }
 
 // ── User location dot ──────────────────────────────────────

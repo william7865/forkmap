@@ -1,19 +1,19 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════════════
-   FORKMAP — Design System 5.0 "Éditorial Chaleureux"
-   Fraunces (serif display) · Geist (UI) · Papier crème
+   FORKMAP — Design System 5.1 "Éditorial Chaleureux"
+   Bricolage Grotesque (display) · Hanken Grotesk (UI) · Papier crème
    Vert Forêt (ancre/repères) + Terracotta (caractère/appétit)
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
   /* ── Polices ── */
-  --font-body: 'Geist', system-ui, -apple-system, sans-serif;
-  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-body: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  --font-display: 'Bricolage Grotesque', system-ui, -apple-system, sans-serif;
 
   /* ── Accent — Vert Forêt (ancre, repères, confiance) ── */
   --accent: #1d5d40;

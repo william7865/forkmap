@@ -1016,6 +1016,10 @@ export default function HomePage() {
             handleMarkerClick(p)
           }}
           onToggleFavorite={handleToggleFavorite}
+          onSeeSaved={() => {
+            setShowSurprise(false)
+            if (!savedOnly) toggleSavedOnly()
+          }}
         />
       )}
 
