@@ -4,8 +4,10 @@
 // ============================================================
 'use client'
 
-import React, { Suspense, useEffect, useState, useMemo, useCallback } from 'react'
+import React, { Suspense, useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
+import { createPortal } from 'react-dom'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { FavoriteRow } from '@/types'
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
@@ -17,6 +19,7 @@ import { useIsMobile } from '@/lib/hooks/useMediaQuery'
 import { useLists, type ListRow as HookListRow } from '@/lib/hooks/useLists'
 import { ListCard, NewListCard } from '@/components/lists/ListCard'
 import { CreateListModal } from '@/components/lists/CreateListModal'
+import { SaveToListPopup } from '@/components/lists/SaveToListPopup'
 import { placeGradient } from '@/lib/gradients'
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
@@ -217,7 +220,7 @@ function DeleteModal({
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'rgba(14,14,13,0.45)',
+          background: 'rgba(36,31,24,0.45)',
           backdropFilter: 'blur(4px)',
         }}
       />
@@ -228,12 +231,13 @@ function DeleteModal({
         onClick={(e) => e.stopPropagation()}
         style={{
           position: 'relative',
-          background: 'var(--white)',
-          borderRadius: 'var(--r-xl)',
+          background: 'var(--bg)',
+          borderRadius: 'var(--r-2xl)',
           padding: '28px',
           maxWidth: 360,
           width: '100%',
-          boxShadow: '0 32px 80px rgba(14,14,13,0.22)',
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--s4)',
           animation: 'scaleIn 200ms var(--ease-spring) both',
           fontFamily: 'var(--font-body)',
         }}
@@ -242,7 +246,7 @@ function DeleteModal({
           style={{
             width: 44,
             height: 44,
-            borderRadius: 14,
+            borderRadius: 'var(--r-md)',
             background: 'var(--coral-pale)',
             display: 'flex',
             alignItems: 'center',
@@ -302,7 +306,7 @@ function DeleteModal({
               fontWeight: 600,
               color: 'white',
               fontFamily: 'inherit',
-              boxShadow: '0 4px 12px rgba(217,79,61,0.25)',
+              boxShadow: 'var(--s2)',
             }}
           >
             Retirer
@@ -351,7 +355,7 @@ function NoteDrawer({
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'rgba(14,14,13,0.45)',
+          background: 'rgba(36,31,24,0.45)',
           backdropFilter: 'blur(6px)',
         }}
       />
@@ -359,12 +363,13 @@ function NoteDrawer({
         onClick={(e) => e.stopPropagation()}
         style={{
           position: 'relative',
-          background: 'var(--white)',
-          borderRadius: '20px 20px 0 0',
+          background: 'var(--bg)',
+          borderRadius: 'var(--r-2xl) var(--r-2xl) 0 0',
           width: '100%',
           maxWidth: 520,
           padding: '20px 20px 32px',
-          boxShadow: '0 -16px 48px rgba(14,14,13,0.18)',
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--s4)',
           animation: 'slideUp 240ms var(--ease-out) both',
           fontFamily: 'var(--font-body)',
         }}
@@ -374,7 +379,7 @@ function NoteDrawer({
           style={{
             width: 36,
             height: 4,
-            borderRadius: 2,
+            borderRadius: 'var(--r-pill)',
             background: 'var(--bone)',
             margin: '0 auto 16px',
           }}
@@ -384,9 +389,9 @@ function NoteDrawer({
             style={{
               width: 36,
               height: 36,
-              borderRadius: 10,
+              borderRadius: 'var(--r-md)',
               background: 'var(--accent-light)',
-              border: '1px solid rgba(45,122,85,0.2)',
+              border: '1px solid var(--border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -498,7 +503,7 @@ function NoteDrawer({
               style={{
                 padding: '9px 14px',
                 borderRadius: 'var(--r-md)',
-                border: '1px solid rgba(217,79,61,0.25)',
+                border: '1px solid var(--border-strong)',
                 background: 'transparent',
                 color: 'var(--coral)',
                 cursor: 'pointer',
@@ -518,13 +523,13 @@ function NoteDrawer({
               padding: '11px',
               borderRadius: 'var(--r-md)',
               border: 'none',
-              background: saved ? 'var(--green)' : 'var(--accent)',
+              background: saved ? 'var(--accent)' : 'var(--ember)',
               color: 'white',
               cursor: 'pointer',
               fontSize: 13,
               fontWeight: 600,
               fontFamily: 'inherit',
-              boxShadow: 'var(--s-forest)',
+              boxShadow: saved ? 'var(--s-accent)' : 'var(--s-ember)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -576,7 +581,7 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'rgba(14,14,13,0.45)',
+          background: 'rgba(36,31,24,0.45)',
           backdropFilter: 'blur(6px)',
         }}
       />
@@ -584,12 +589,13 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
         onClick={(e) => e.stopPropagation()}
         style={{
           position: 'relative',
-          background: 'var(--white)',
-          borderRadius: '20px 20px 0 0',
+          background: 'var(--bg)',
+          borderRadius: 'var(--r-2xl) var(--r-2xl) 0 0',
           width: '100%',
           maxWidth: 520,
           padding: '20px 20px 32px',
-          boxShadow: '0 -16px 48px rgba(14,14,13,0.18)',
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--s4)',
           animation: 'slideUp 240ms var(--ease-out) both',
           fontFamily: 'var(--font-body)',
         }}
@@ -598,7 +604,7 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
           style={{
             width: 36,
             height: 4,
-            borderRadius: 2,
+            borderRadius: 'var(--r-pill)',
             background: 'var(--bone)',
             margin: '0 auto 16px',
           }}
@@ -646,7 +652,7 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
               icon: <IcoWhatsApp />,
               label: 'WhatsApp',
               color: 'var(--forest-bright)',
-              bg: 'rgba(37,211,102,0.08)',
+              bg: 'var(--accent-light)',
               onClick: () =>
                 window.open(`https://wa.me/?text=${encodeURIComponent(full)}`, '_blank'),
             },
@@ -738,7 +744,7 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
             padding: '9px 10px 9px 14px',
             borderRadius: 'var(--r-md)',
             background: 'var(--surface)',
-            border: `1px solid ${copied ? 'rgba(45,122,85,0.4)' : 'var(--border)'}`,
+            border: `1px solid ${copied ? 'var(--accent)' : 'var(--border)'}`,
             transition: 'border-color 200ms',
           }}
         >
@@ -762,12 +768,12 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
               gap: 5,
               padding: '5px 11px',
               borderRadius: 'var(--r-sm)',
-              background: copied ? 'var(--accent-light)' : 'var(--white)',
-              border: `1px solid ${copied ? 'rgba(45,122,85,0.4)' : 'var(--border)'}`,
+              background: copied ? 'var(--accent-light)' : 'var(--bg)',
+              border: `1px solid ${copied ? 'var(--accent)' : 'var(--border)'}`,
               cursor: 'pointer',
               fontSize: 11,
               fontWeight: 600,
-              color: copied ? 'var(--green)' : 'var(--text-2)',
+              color: copied ? 'var(--accent)' : 'var(--text-2)',
               fontFamily: 'inherit',
               whiteSpace: 'nowrap',
               flexShrink: 0,
@@ -783,6 +789,318 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
 }
 
 // ── Fav card — liste ──────────────────────────────────────
+function favPhoto(fav: FavoriteRow, w = 240): string | null {
+  const ph = fav.snapshot?.fsq?.photos?.[0]
+  if (!ph) return null
+  return `${ph.prefix}${w}x${Math.round(w * (ph.height / ph.width))}${ph.suffix}`
+}
+
+const IcoUtensils = () => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M3 2v7c0 1.1.9 2 2 2h0a2 2 0 0 0 2-2V2M5 2v20M11 2v7M11 2a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3v9" />
+  </svg>
+)
+
+const IcoListPlus = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M3 6h11M3 12h8M3 18h8" />
+    <path d="M16 16h6M19 13v6" />
+  </svg>
+)
+
+const IcoDots = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+    <circle cx="5" cy="12" r="2" />
+    <circle cx="12" cy="12" r="2" />
+    <circle cx="19" cy="12" r="2" />
+  </svg>
+)
+
+// One "⋯" button → a portal menu of card actions (declutters the cards)
+function CardActionsMenu({
+  buttonRef,
+  items,
+}: {
+  buttonRef: React.RefObject<HTMLButtonElement>
+  items: { label: string; icon: React.ReactNode; onClick: () => void; danger?: boolean }[]
+}) {
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState({ top: 0, right: 0 })
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const r = buttonRef.current?.getBoundingClientRect()
+    if (r) setPos({ top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) })
+    const onDown = (e: MouseEvent) => {
+      if (menuRef.current?.contains(e.target as Node)) return
+      if (buttonRef.current?.contains(e.target as Node)) return
+      setOpen(false)
+    }
+    const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    const t = setTimeout(() => document.addEventListener('mousedown', onDown), 0)
+    document.addEventListener('keydown', onEsc)
+    return () => {
+      clearTimeout(t)
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onEsc)
+    }
+  }, [open, buttonRef])
+
+  return (
+    <>
+      <ActionBtn
+        btnRef={buttonRef}
+        icon={<IcoDots />}
+        label="Actions"
+        active={open}
+        onClick={() => setOpen((v) => !v)}
+        small
+      />
+      {open &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            ref={menuRef}
+            style={{
+              position: 'fixed',
+              top: pos.top,
+              right: pos.right,
+              zIndex: 99999,
+              background: 'var(--bg)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--r-lg)',
+              boxShadow: 'var(--s3)',
+              minWidth: 184,
+              overflow: 'hidden',
+              padding: '4px 0',
+              animation: 'scaleIn 140ms var(--ease-out) both',
+              transformOrigin: 'top right',
+              fontFamily: 'var(--font-body)',
+            }}
+          >
+            {items.map((it) => (
+              <button
+                key={it.label}
+                onClick={() => {
+                  setOpen(false)
+                  it.onClick()
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  width: '100%',
+                  padding: '10px 14px',
+                  border: 'none',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: it.danger ? 'var(--coral)' : 'var(--text)',
+                  textAlign: 'left',
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = it.danger
+                    ? 'var(--coral-pale)'
+                    : 'var(--surface)')
+                }
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                <span
+                  style={{ display: 'flex', color: it.danger ? 'var(--coral)' : 'var(--text-3)' }}
+                >
+                  {it.icon}
+                </span>
+                {it.label}
+              </button>
+            ))}
+          </div>,
+          document.body
+        )}
+    </>
+  )
+}
+
+function Checkbox({ checked, overlay }: { checked: boolean; overlay?: boolean }) {
+  return (
+    <div
+      style={{
+        width: 22,
+        height: 22,
+        borderRadius: '50%',
+        flexShrink: 0,
+        border: `2px solid ${checked ? 'var(--ember)' : overlay ? 'rgba(255,255,255,0.9)' : 'var(--border-strong)'}`,
+        background: checked ? 'var(--ember)' : overlay ? 'rgba(0,0,0,0.25)' : 'transparent',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: 'all 120ms ease',
+        marginTop: overlay ? 0 : 15,
+        boxShadow: overlay ? '0 1px 4px rgba(0,0,0,0.25)' : 'none',
+      }}
+    >
+      {checked && (
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      )}
+    </div>
+  )
+}
+
+function BulkListModal({
+  count,
+  lists,
+  busy,
+  onPick,
+  onCreateNew,
+  onClose,
+}: {
+  count: number
+  lists: HookListRow[]
+  busy: boolean
+  onPick: (listId: string) => void
+  onCreateNew: () => void
+  onClose: () => void
+}) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1000,
+        background: 'rgba(36,31,24,0.5)',
+        backdropFilter: 'blur(6px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
+        animation: 'overlayIn 180ms ease both',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: 380,
+          background: 'var(--bg)',
+          borderRadius: 'var(--r-2xl)',
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--s4)',
+          overflow: 'hidden',
+          opacity: busy ? 0.7 : 1,
+          pointerEvents: busy ? 'none' : 'auto',
+        }}
+      >
+        <div style={{ padding: '16px 18px 12px' }}>
+          <h3
+            style={{
+              margin: 0,
+              fontFamily: 'var(--font-display)',
+              fontSize: 18,
+              fontWeight: 600,
+              color: 'var(--text)',
+            }}
+          >
+            Ajouter {count} à une liste
+          </h3>
+        </div>
+        <div style={{ maxHeight: 300, overflowY: 'auto', borderTop: '1px solid var(--border)' }}>
+          {lists.length === 0 && (
+            <p
+              style={{
+                margin: 0,
+                padding: '18px',
+                fontSize: 13,
+                color: 'var(--text-3)',
+                textAlign: 'center',
+              }}
+            >
+              Aucune liste encore.
+            </p>
+          )}
+          {lists.map((list) => (
+            <button
+              key={list.id}
+              onClick={() => onPick(list.id)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%',
+                padding: '13px 18px',
+                border: 'none',
+                borderBottom: '1px solid var(--border)',
+                background: 'transparent',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+                textAlign: 'left',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            >
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                {list.name}
+              </span>
+              <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{list.item_count}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={onCreateNew}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            width: '100%',
+            padding: '14px 18px',
+            border: 'none',
+            background: 'transparent',
+            cursor: 'pointer',
+            color: 'var(--ember-text)',
+            fontFamily: 'var(--font-body)',
+            fontSize: 13,
+            fontWeight: 700,
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--ember-light)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+        >
+          <IcoListPlus /> Nouvelle liste
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function FavCardList({
   fav,
   index,
@@ -791,6 +1109,10 @@ function FavCardList({
   onOpenMap,
   onShare,
   onNote,
+  onListsChanged,
+  selectMode,
+  selected,
+  onToggleSelect,
 }: {
   fav: FavoriteRow
   index: number
@@ -799,47 +1121,88 @@ function FavCardList({
   onOpenMap: () => void
   onShare: () => void
   onNote: () => void
+  onListsChanged?: () => void
+  selectMode?: boolean
+  selected?: boolean
+  onToggleSelect?: () => void
 }) {
   const cuisine = fav.snapshot?.cuisine ?? fav.snapshot?.fsq?.categories?.[0]?.name
   const rating = fav.snapshot?.fsq?.rating
-  const meta = [cuisine, rating != null ? `★ ${rating.toFixed(1)}` : null]
-    .filter(Boolean)
-    .join(' · ')
+  const openNow = fav.snapshot?.open_now
+  const photo = favPhoto(fav)
+  const listBtnRef = useRef<HTMLButtonElement>(null)
+  const [showLists, setShowLists] = useState(false)
+  const primary = selectMode ? onToggleSelect! : onOpenMap
 
   return (
     <div
       className="anim-card-in"
+      onClick={selectMode ? onToggleSelect : undefined}
       style={{
-        background: 'var(--white)',
+        background: selected ? 'var(--ember-light)' : 'var(--bg)',
         borderRadius: 'var(--r-xl)',
         padding: 12,
         display: 'flex',
-        gap: 12,
-        alignItems: 'flex-start',
+        gap: 13,
+        alignItems: 'center',
+        border: `1px solid ${selected ? 'var(--ember)' : 'var(--border)'}`,
         boxShadow: 'var(--s1)',
         animationDelay: `${index * 35}ms`,
+        cursor: selectMode ? 'pointer' : 'default',
+        transition: 'box-shadow 160ms ease, transform 160ms ease, border-color 160ms ease',
+      }}
+      onMouseEnter={(e) => {
+        if (selectMode) return
+        e.currentTarget.style.boxShadow = 'var(--s3)'
+        e.currentTarget.style.transform = 'translateY(-2px)'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = 'var(--s1)'
+        e.currentTarget.style.transform = 'translateY(0)'
       }}
     >
-      {/* Thumbnail */}
+      {selectMode && <Checkbox checked={!!selected} />}
+
+      {/* Thumbnail — photo or warm fallback */}
       <button
         type="button"
-        onClick={onOpenMap}
-        aria-label={`Voir ${fav.name} sur la carte`}
+        onClick={primary}
+        aria-label={selectMode ? `Sélectionner ${fav.name}` : `Voir ${fav.name} sur la carte`}
         style={{
-          width: 52,
-          height: 52,
+          position: 'relative',
+          width: 68,
+          height: 68,
           borderRadius: 'var(--r-lg)',
+          overflow: 'hidden',
           background: placeGradient(fav.osm_id),
           border: 'none',
           flexShrink: 0,
           cursor: 'pointer',
+          padding: 0,
         }}
-      />
+      >
+        {photo ? (
+          <Image src={photo} alt="" fill sizes="68px" style={{ objectFit: 'cover' }} />
+        ) : (
+          <span
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'rgba(255,255,255,0.85)',
+            }}
+          >
+            <IcoUtensils />
+          </span>
+        )}
+      </button>
 
       {/* Content */}
       <button
         type="button"
-        onClick={onOpenMap}
+        onClick={primary}
         style={{
           flex: 1,
           minWidth: 0,
@@ -853,11 +1216,13 @@ function FavCardList({
       >
         <p
           style={{
-            margin: '0 0 2px',
-            fontSize: 14,
-            fontWeight: 700,
-            color: 'var(--ink)',
+            margin: '0 0 5px',
+            fontFamily: 'var(--font-display)',
+            fontSize: 16,
+            fontWeight: 600,
+            color: 'var(--text)',
             letterSpacing: '-0.01em',
+            lineHeight: 1.18,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -865,30 +1230,85 @@ function FavCardList({
         >
           {fav.name}
         </p>
-        {meta && <p style={{ margin: '0 0 6px', fontSize: 11, color: 'var(--ink-60)' }}>{meta}</p>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {rating != null && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 3,
+                fontSize: 11,
+                fontWeight: 700,
+                color: 'var(--ember-text)',
+                background: 'var(--ember-light)',
+                borderRadius: 'var(--r-pill)',
+                padding: '2px 8px',
+              }}
+            >
+              <IcoStar /> {rating.toFixed(1)}
+            </span>
+          )}
+          {cuisine && <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{cuisine}</span>}
+          {openNow != null && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                fontSize: 11,
+                fontWeight: 600,
+                color: openNow ? 'var(--open)' : 'var(--closed)',
+              }}
+            >
+              <span
+                style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }}
+              />
+              {openNow ? 'Ouvert' : 'Fermé'}
+            </span>
+          )}
+          {note && (
+            <span
+              title="Note personnelle"
+              style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }}
+            />
+          )}
+        </div>
       </button>
 
-      {/* Actions */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 0, flexShrink: 0 }}>
-        <ActionBtn
-          icon={<IcoPen />}
-          label="Note"
-          active={!!note}
-          activeColor="var(--accent)"
-          activeBg="var(--accent-light)"
-          onClick={onNote}
-          small
+      {/* Actions — single overflow menu */}
+      {!selectMode && (
+        <div style={{ flexShrink: 0 }}>
+          <CardActionsMenu
+            buttonRef={listBtnRef}
+            items={[
+              {
+                label: 'Ajouter à une liste',
+                icon: <IcoListPlus />,
+                onClick: () => setShowLists(true),
+              },
+              {
+                label: note ? 'Modifier la note' : 'Ajouter une note',
+                icon: <IcoPen />,
+                onClick: onNote,
+              },
+              { label: 'Partager', icon: <IcoShare />, onClick: onShare },
+              { label: 'Retirer', icon: <IcoTrash />, onClick: onRemove, danger: true },
+            ]}
+          />
+        </div>
+      )}
+
+      {showLists && (
+        <SaveToListPopup
+          osmId={fav.osm_id}
+          placeSnapshot={fav.snapshot as unknown as Record<string, unknown>}
+          anchorRef={listBtnRef}
+          onClose={() => {
+            setShowLists(false)
+            onListsChanged?.()
+          }}
         />
-        <ActionBtn icon={<IcoShare />} label="Partager" onClick={onShare} small />
-        <ActionBtn
-          icon={<IcoTrash />}
-          label="Retirer"
-          hoverColor="var(--coral)"
-          hoverBg="var(--coral-pale)"
-          onClick={onRemove}
-          small
-        />
-      </div>
+      )}
     </div>
   )
 }
@@ -899,59 +1319,114 @@ function FavCardGrid({
   index,
   onRemove,
   onOpenMap,
+  onListsChanged,
+  selectMode,
+  selected,
+  onToggleSelect,
 }: {
   fav: FavoriteRow
   index: number
   onRemove: () => void
   onOpenMap: () => void
+  onListsChanged?: () => void
+  selectMode?: boolean
+  selected?: boolean
+  onToggleSelect?: () => void
 }) {
   const rating = fav.snapshot?.fsq?.rating
+  const cuisine = fav.snapshot?.cuisine ?? fav.snapshot?.fsq?.categories?.[0]?.name
+  const photo = favPhoto(fav, 400)
+  const listBtnRef = useRef<HTMLButtonElement>(null)
+  const [showLists, setShowLists] = useState(false)
+  const primary = selectMode ? onToggleSelect! : onOpenMap
 
   return (
     <div
       className="anim-card-in"
+      onClick={selectMode ? onToggleSelect : undefined}
       style={{
-        background: 'var(--white)',
+        background: selected ? 'var(--ember-light)' : 'var(--bg)',
         borderRadius: 'var(--r-xl)',
         overflow: 'hidden',
+        border: `1px solid ${selected ? 'var(--ember)' : 'var(--border)'}`,
         boxShadow: 'var(--s1)',
         animationDelay: `${index * 30}ms`,
         display: 'flex',
         flexDirection: 'column',
+        cursor: selectMode ? 'pointer' : 'default',
+        transition: 'box-shadow 160ms ease, transform 160ms ease, border-color 160ms ease',
+      }}
+      onMouseEnter={(e) => {
+        if (selectMode) return
+        e.currentTarget.style.boxShadow = 'var(--s3)'
+        e.currentTarget.style.transform = 'translateY(-2px)'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = 'var(--s1)'
+        e.currentTarget.style.transform = 'translateY(0)'
       }}
     >
-      {/* Thumbnail */}
+      {/* Thumbnail — photo or warm fallback */}
       <button
         type="button"
-        onClick={onOpenMap}
-        aria-label={`Voir ${fav.name} sur la carte`}
+        onClick={primary}
+        aria-label={selectMode ? `Sélectionner ${fav.name}` : `Voir ${fav.name} sur la carte`}
         style={{
-          height: 90,
+          height: 132,
           background: placeGradient(fav.osm_id),
           border: 'none',
           cursor: 'pointer',
           width: '100%',
           position: 'relative',
           padding: 0,
+          overflow: 'hidden',
         }}
       >
+        {photo ? (
+          <Image src={photo} alt="" fill sizes="240px" style={{ objectFit: 'cover' }} />
+        ) : (
+          <span
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'rgba(255,255,255,0.85)',
+            }}
+          >
+            <IcoUtensils />
+          </span>
+        )}
+        {/* legibility scrim for the badge */}
+        <span
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.18), transparent 38%)',
+            pointerEvents: 'none',
+          }}
+        />
+        {selectMode && (
+          <span style={{ position: 'absolute', top: 10, left: 10 }}>
+            <Checkbox checked={!!selected} overlay />
+          </span>
+        )}
         {rating != null && (
           <span
             style={{
               position: 'absolute',
-              top: 8,
-              right: 8,
+              top: 10,
+              right: 10,
               display: 'inline-flex',
               alignItems: 'center',
               gap: 3,
-              padding: '3px 8px',
-              borderRadius: 999,
-              fontSize: 10,
+              padding: '3px 9px',
+              borderRadius: 'var(--r-pill)',
+              fontSize: 11,
               fontWeight: 700,
-              background: 'rgba(255,255,255,0.18)',
-              color: '#ffffff',
-              backdropFilter: 'blur(4px)',
-              border: '1px solid rgba(255,255,255,0.25)',
+              background: 'rgba(255,253,248,0.95)',
+              color: 'var(--ember-text)',
             }}
           >
             <IcoStar /> {rating.toFixed(1)}
@@ -959,10 +1434,10 @@ function FavCardGrid({
         )}
       </button>
       {/* Body */}
-      <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ padding: '11px 13px', display: 'flex', alignItems: 'center', gap: 6 }}>
         <button
           type="button"
-          onClick={onOpenMap}
+          onClick={primary}
           style={{
             flex: 1,
             minWidth: 0,
@@ -976,11 +1451,13 @@ function FavCardGrid({
         >
           <p
             style={{
-              margin: 0,
-              fontSize: 13,
-              fontWeight: 700,
-              color: 'var(--ink)',
+              margin: '0 0 2px',
+              fontFamily: 'var(--font-display)',
+              fontSize: 15,
+              fontWeight: 600,
+              color: 'var(--text)',
               letterSpacing: '-0.01em',
+              lineHeight: 1.15,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -988,16 +1465,47 @@ function FavCardGrid({
           >
             {fav.name}
           </p>
+          {cuisine && (
+            <p
+              style={{
+                margin: 0,
+                fontSize: 11.5,
+                color: 'var(--text-2)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {cuisine}
+            </p>
+          )}
         </button>
-        <ActionBtn
-          icon={<IcoTrash />}
-          label="Retirer"
-          hoverColor="var(--coral)"
-          hoverBg="var(--coral-pale)"
-          onClick={onRemove}
-          small
-        />
+        {!selectMode && (
+          <CardActionsMenu
+            buttonRef={listBtnRef}
+            items={[
+              {
+                label: 'Ajouter à une liste',
+                icon: <IcoListPlus />,
+                onClick: () => setShowLists(true),
+              },
+              { label: 'Retirer', icon: <IcoTrash />, onClick: onRemove, danger: true },
+            ]}
+          />
+        )}
       </div>
+
+      {showLists && (
+        <SaveToListPopup
+          osmId={fav.osm_id}
+          placeSnapshot={fav.snapshot as unknown as Record<string, unknown>}
+          anchorRef={listBtnRef}
+          onClose={() => {
+            setShowLists(false)
+            onListsChanged?.()
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -1013,6 +1521,7 @@ function ActionBtn({
   hoverBg,
   onClick,
   small,
+  btnRef,
 }: {
   icon: React.ReactNode
   label?: string
@@ -1023,15 +1532,17 @@ function ActionBtn({
   hoverBg?: string
   onClick: () => void
   small?: boolean
+  btnRef?: React.Ref<HTMLButtonElement>
 }) {
   const sz = small ? 28 : 30
   const bg = active ? (activeBg ?? 'var(--accent-light)') : 'var(--surface)'
   const color = active ? (activeColor ?? 'var(--accent)') : 'var(--text-3)'
   const border = active
-    ? `1px solid ${activeColor ? activeColor + '44' : 'rgba(45,122,85,0.3)'}`
+    ? `1px solid ${activeColor ? activeColor + '44' : 'var(--border-strong)'}`
     : '1px solid var(--border)'
   return (
     <button
+      ref={btnRef}
       onClick={(e) => {
         e.stopPropagation()
         onClick()
@@ -1088,7 +1599,71 @@ function FavoritesPageInner() {
   const searchParams = useSearchParams()
   const activeListId = searchParams.get('list')
 
-  const { lists, fetchLists, createList, updateList, deleteList, removeItemFromList } = useLists()
+  const {
+    lists,
+    fetchLists,
+    createList,
+    updateList,
+    deleteList,
+    removeItemFromList,
+    addItemToList,
+  } = useLists()
+
+  // ── Multi-select ──
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [showBulkList, setShowBulkList] = useState(false)
+  const [bulkCreating, setBulkCreating] = useState(false)
+  const [bulkBusy, setBulkBusy] = useState(false)
+
+  const toggleSelect = useCallback((osmId: string) => {
+    setSelectedIds((prev) => {
+      const s = new Set(prev)
+      if (s.has(osmId)) s.delete(osmId)
+      else s.add(osmId)
+      return s
+    })
+  }, [])
+  const exitSelect = useCallback(() => {
+    setSelectMode(false)
+    setSelectedIds(new Set())
+    setShowBulkList(false)
+  }, [])
+
+  const bulkRemove = async () => {
+    const ids = [...selectedIds]
+    if (ids.length === 0) return
+    setBulkBusy(true)
+    try {
+      const headers = await getAuthHeaders()
+      await Promise.all(
+        ids.map((id) =>
+          apiFetch(`/api/favorites/${encodeURIComponent(id)}`, { method: 'DELETE', headers })
+        )
+      )
+      setFavorites((prev) => prev.filter((f) => !selectedIds.has(f.osm_id)))
+    } finally {
+      setBulkBusy(false)
+      setBulkDeleteOpen(false)
+      exitSelect()
+    }
+  }
+
+  const bulkAddToList = async (listId: string) => {
+    const chosen = favorites.filter((f) => selectedIds.has(f.osm_id))
+    if (chosen.length === 0) return
+    setBulkBusy(true)
+    try {
+      for (const f of chosen) {
+        await addItemToList(listId, f.osm_id, f.snapshot as unknown as Record<string, unknown>)
+      }
+      fetchLists()
+    } finally {
+      setBulkBusy(false)
+      exitSelect()
+    }
+  }
   const [showCreateList, setShowCreateList] = useState(false)
   const [editingList, setEditingList] = useState<HookListRow | null>(null)
   const [listItems, setListItems] = useState<ListItemEntry[]>([])
@@ -1157,7 +1732,7 @@ function FavoritesPageInner() {
       <div
         style={{
           minHeight: '100vh',
-          background: 'var(--white)',
+          background: 'var(--surface)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1256,6 +1831,23 @@ function FavoritesPageInner() {
                 Tous enregistrés · {sorted.length}
               </span>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <button
+                  onClick={() => (selectMode ? exitSelect() : setSelectMode(true))}
+                  aria-pressed={selectMode}
+                  style={{
+                    padding: '5px 11px',
+                    borderRadius: 'var(--r-md)',
+                    border: `1px solid ${selectMode ? 'var(--accent)' : 'var(--border)'}`,
+                    background: selectMode ? 'var(--accent)' : 'var(--white)',
+                    color: selectMode ? '#fff' : 'var(--text-2)',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-body)',
+                  }}
+                >
+                  {selectMode ? 'Annuler' : 'Sélectionner'}
+                </button>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortKey)}
@@ -1300,7 +1892,7 @@ function FavoritesPageInner() {
                         alignItems: 'center',
                         justifyContent: 'center',
                         border: 'none',
-                        background: viewMode === m ? 'var(--ink)' : 'transparent',
+                        background: viewMode === m ? 'var(--accent)' : 'transparent',
                         color: viewMode === m ? 'white' : 'var(--text-2)',
                         cursor: 'pointer',
                         transition: 'all 120ms',
@@ -1427,7 +2019,7 @@ function FavoritesPageInner() {
                     style={{
                       padding: '7px 14px',
                       borderRadius: 'var(--r-md)',
-                      border: '1px solid rgba(217,79,61,0.3)',
+                      border: '1px solid var(--border)',
                       background: 'var(--coral-pale)',
                       cursor: 'pointer',
                       fontSize: 12,
@@ -1557,7 +2149,7 @@ function FavoritesPageInner() {
           )}
 
           {/* Skeleton */}
-          {loading && (
+          {loading && !activeListId && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[1, 2, 3].map((i) => (
                 <div
@@ -1582,7 +2174,7 @@ function FavoritesPageInner() {
                 style={{
                   padding: '8px 18px',
                   borderRadius: 'var(--r-pill)',
-                  border: '1px solid rgba(217,79,61,0.3)',
+                  border: '1px solid var(--border)',
                   background: 'var(--coral-pale)',
                   color: 'var(--coral)',
                   fontSize: 12,
@@ -1597,7 +2189,7 @@ function FavoritesPageInner() {
           )}
 
           {/* Empty */}
-          {!loading && !favorites.length && (
+          {!loading && !activeListId && !favorites.length && (
             <div
               className="anim-fade-up"
               style={{
@@ -1605,11 +2197,15 @@ function FavoritesPageInner() {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '80px 24px',
+                padding: '72px 24px',
                 textAlign: 'center',
+                background: 'var(--bg)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--r-2xl)',
+                boxShadow: 'var(--s1)',
               }}
             >
-              {/* SVG map pin with heart */}
+              {/* SVG map pin with terracotta heart */}
               <svg
                 width="72"
                 height="72"
@@ -1628,8 +2224,8 @@ function FavoritesPageInner() {
                   fill="var(--accent)"
                 />
                 <path
-                  d="M33 30.5c0-1.657 1.343-3 3-3s3 1.343 3 3c0 .88-.38 1.67-.984 2.22L36 35l-2.016-2.28A2.99 2.99 0 0 1 33 30.5z"
-                  fill="white"
+                  d="M36 27.6c-1.2-1.45-3.1-1.96-4.6-.97-1.5.99-1.9 3.04-.93 4.5.62.95 2.46 2.7 4.13 4.2.6.55 1.2.55 1.8 0 1.67-1.5 3.51-3.25 4.13-4.2.97-1.46.57-3.51-.93-4.5-1.5-.99-3.4-.48-4.6.97z"
+                  fill="var(--ember)"
                 />
               </svg>
               <h2
@@ -1639,36 +2235,31 @@ function FavoritesPageInner() {
                   fontSize: 22,
                   fontWeight: 400,
                   letterSpacing: '-0.03em',
+                  color: 'var(--text)',
                 }}
               >
-                Aucun lieu enregistré
+                Vos coups de cœur vous attendent
               </h2>
               <p
                 style={{
                   margin: '0 0 28px',
-                  color: 'var(--text-3)',
-                  fontSize: 13,
+                  color: 'var(--text-2)',
+                  fontSize: 13.5,
                   lineHeight: 1.7,
+                  maxWidth: 320,
                 }}
               >
-                Appuyez sur ♡ sur n&apos;importe quel restaurant
+                Touchez le cœur sur n&apos;importe quel restaurant
                 <br />
-                pour le sauvegarder ici.
+                pour le garder précieusement ici.
               </p>
               <Link
                 href="/"
+                className="btn-ember"
                 style={{
                   display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '11px 24px',
-                  borderRadius: 'var(--r-md)',
-                  background: 'var(--accent)',
-                  color: 'white',
+                  width: 'auto',
                   textDecoration: 'none',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  boxShadow: 'var(--s-forest)',
                 }}
               >
                 Explorer la carte →
@@ -1676,51 +2267,165 @@ function FavoritesPageInner() {
             </div>
           )}
 
-          {/* Liste */}
-          {viewMode === 'list' ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {sorted.map((fav, i) => (
-                <FavCardList
-                  key={fav.id}
-                  fav={fav}
-                  index={i}
-                  note={notes[fav.osm_id] ?? ''}
-                  onRemove={() => setToDelete(fav)}
-                  onOpenMap={() =>
-                    router.push(
-                      `/?select=${encodeURIComponent(fav.osm_id)}&lat=${fav.lat}&lon=${fav.lon}`
-                    )
-                  }
-                  onShare={() => setShareTarget(fav)}
-                  onNote={() => setNoteTarget(fav)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill,minmax(200px,1fr))',
-                gap: 12,
-              }}
-            >
-              {sorted.map((fav, i) => (
-                <FavCardGrid
-                  key={fav.id}
-                  fav={fav}
-                  index={i}
-                  onRemove={() => setToDelete(fav)}
-                  onOpenMap={() =>
-                    router.push(
-                      `/?select=${encodeURIComponent(fav.osm_id)}&lat=${fav.lat}&lon=${fav.lon}`
-                    )
-                  }
-                />
-              ))}
-            </div>
-          )}
+          {/* Liste — masquée quand une liste est ouverte (sinon les enregistrés
+              sans liste s'affichaient sous les items de la liste) */}
+          {!activeListId &&
+            (viewMode === 'list' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {sorted.map((fav, i) => (
+                  <FavCardList
+                    key={fav.id}
+                    fav={fav}
+                    index={i}
+                    note={notes[fav.osm_id] ?? ''}
+                    onRemove={() => setToDelete(fav)}
+                    onOpenMap={() =>
+                      router.push(
+                        `/?select=${encodeURIComponent(fav.osm_id)}&lat=${fav.lat}&lon=${fav.lon}`
+                      )
+                    }
+                    onShare={() => setShareTarget(fav)}
+                    onNote={() => setNoteTarget(fav)}
+                    onListsChanged={fetchLists}
+                    selectMode={selectMode}
+                    selected={selectedIds.has(fav.osm_id)}
+                    onToggleSelect={() => toggleSelect(fav.osm_id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill,minmax(200px,1fr))',
+                  gap: 12,
+                }}
+              >
+                {sorted.map((fav, i) => (
+                  <FavCardGrid
+                    key={fav.id}
+                    fav={fav}
+                    index={i}
+                    onRemove={() => setToDelete(fav)}
+                    onOpenMap={() =>
+                      router.push(
+                        `/?select=${encodeURIComponent(fav.osm_id)}&lat=${fav.lat}&lon=${fav.lon}`
+                      )
+                    }
+                    onListsChanged={fetchLists}
+                    selectMode={selectMode}
+                    selected={selectedIds.has(fav.osm_id)}
+                    onToggleSelect={() => toggleSelect(fav.osm_id)}
+                  />
+                ))}
+              </div>
+            ))}
         </div>
       </main>
+
+      {/* Selection action bar */}
+      {selectMode && (
+        <div
+          style={{
+            position: 'fixed',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            bottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom) + 12px)' : 24,
+            zIndex: 800,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            background: 'var(--text)',
+            color: 'var(--bg)',
+            borderRadius: 'var(--r-pill)',
+            padding: '8px 8px 8px 18px',
+            boxShadow: 'var(--s4)',
+            animation: 'fadeUp 200ms var(--ease-out) both',
+            maxWidth: 'calc(100vw - 24px)',
+          }}
+        >
+          <span style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>
+            {selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}
+          </span>
+          <button
+            onClick={() => selectedIds.size && setShowBulkList(true)}
+            disabled={!selectedIds.size}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '8px 14px',
+              borderRadius: 'var(--r-pill)',
+              border: 'none',
+              background: 'var(--ember)',
+              color: '#fff',
+              fontSize: 12.5,
+              fontWeight: 700,
+              fontFamily: 'var(--font-body)',
+              cursor: selectedIds.size ? 'pointer' : 'default',
+              opacity: selectedIds.size ? 1 : 0.45,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <IcoListPlus /> Ajouter à une liste
+          </button>
+          <button
+            onClick={() => selectedIds.size && setBulkDeleteOpen(true)}
+            disabled={!selectedIds.size}
+            aria-label="Supprimer la sélection"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '8px 12px',
+              borderRadius: 'var(--r-pill)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              background: 'rgba(255,255,255,0.08)',
+              color: '#ff9a9a',
+              fontSize: 12.5,
+              fontWeight: 700,
+              fontFamily: 'var(--font-body)',
+              cursor: selectedIds.size ? 'pointer' : 'default',
+              opacity: selectedIds.size ? 1 : 0.45,
+            }}
+          >
+            <IcoTrash />
+          </button>
+        </div>
+      )}
+
+      {bulkDeleteOpen && (
+        <DeleteModal
+          name={`${selectedIds.size} enregistré${selectedIds.size > 1 ? 's' : ''}`}
+          onConfirm={bulkRemove}
+          onCancel={() => setBulkDeleteOpen(false)}
+        />
+      )}
+
+      {showBulkList && (
+        <BulkListModal
+          count={selectedIds.size}
+          lists={lists}
+          busy={bulkBusy}
+          onPick={bulkAddToList}
+          onCreateNew={() => {
+            setShowBulkList(false)
+            setBulkCreating(true)
+          }}
+          onClose={() => setShowBulkList(false)}
+        />
+      )}
+
+      {bulkCreating && (
+        <CreateListModal
+          onSave={async (name, desc, pub) => {
+            const created = await createList(name, desc, pub)
+            setBulkCreating(false)
+            await bulkAddToList(created.id)
+          }}
+          onClose={() => setBulkCreating(false)}
+        />
+      )}
 
       {toDelete && (
         <DeleteModal
