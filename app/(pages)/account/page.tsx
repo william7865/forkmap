@@ -104,7 +104,7 @@ const IcoTrash = () => (
   </svg>
 )
 const IcoHeart = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="var(--forest-mid)" stroke="none">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none">
     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
   </svg>
 )
@@ -210,10 +210,10 @@ function Card({ children, style }: { children?: React.ReactNode; style?: React.C
   return (
     <div
       style={{
-        background: 'var(--white)',
-        borderRadius: 20,
-        border: '1px solid var(--ink-10)',
-        boxShadow: '0 1px 6px rgba(14,14,13,0.06)',
+        background: 'var(--bg)',
+        borderRadius: 'var(--r-2xl)',
+        border: '1px solid var(--border)',
+        boxShadow: 'var(--s1)',
         overflow: 'hidden',
         ...style,
       }}
@@ -226,27 +226,27 @@ function CardHeader({ label, sub }: { label: string; sub?: string }) {
   return (
     <div
       style={{
-        padding: '14px 20px 12px',
-        borderBottom: '1px solid var(--ink-10)',
+        padding: '15px 20px 13px',
+        borderBottom: '1px solid var(--border)',
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
+        gap: 9,
       }}
     >
-      <span style={{ display: 'block', width: 10, height: 1.5, background: 'var(--forest-mid)' }} />
+      <span style={{ display: 'block', width: 16, height: 1.5, background: 'var(--accent)' }} />
       <span
         style={{
-          fontSize: 9.5,
+          fontSize: 10,
           fontWeight: 700,
-          letterSpacing: '0.12em',
+          letterSpacing: '0.14em',
           textTransform: 'uppercase' as const,
-          color: 'var(--forest-mid)',
+          color: 'var(--accent)',
         }}
       >
         {label}
       </span>
       {sub && (
-        <span style={{ fontSize: 10, color: 'var(--ink-40)', marginLeft: 'auto' }}>{sub}</span>
+        <span style={{ fontSize: 10.5, color: 'var(--text-3)', marginLeft: 'auto' }}>{sub}</span>
       )}
     </div>
   )
@@ -279,7 +279,7 @@ function DeleteModal({
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'rgba(14,14,13,0.5)',
+          background: 'rgba(36,31,24,0.5)',
           backdropFilter: 'blur(8px)',
         }}
       />
@@ -287,12 +287,13 @@ function DeleteModal({
         onClick={(e) => e.stopPropagation()}
         style={{
           position: 'relative',
-          background: 'var(--white)',
-          borderRadius: 20,
+          background: 'var(--bg)',
+          borderRadius: 'var(--r-2xl)',
           padding: 28,
           maxWidth: 380,
           width: '100%',
-          boxShadow: '0 32px 80px rgba(14,14,13,0.22)',
+          boxShadow: 'var(--s4)',
+          border: '1px solid var(--border)',
           fontFamily: 'var(--font-body)',
         }}
       >
@@ -300,7 +301,7 @@ function DeleteModal({
           style={{
             width: 48,
             height: 48,
-            borderRadius: 14,
+            borderRadius: 'var(--r-lg)',
             background: 'var(--coral-pale)',
             display: 'flex',
             alignItems: 'center',
@@ -315,14 +316,15 @@ function DeleteModal({
           style={{
             margin: '0 0 8px',
             fontFamily: 'var(--font-display)',
-            fontSize: 18,
-            fontWeight: 400,
-            letterSpacing: '-0.03em',
+            fontSize: 19,
+            fontWeight: 600,
+            letterSpacing: '-0.02em',
+            color: 'var(--text)',
           }}
         >
           Supprimer le compte ?
         </h3>
-        <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--ink-60)', lineHeight: 1.65 }}>
+        <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--text-2)', lineHeight: 1.65 }}>
           Action irréversible — toutes vos données seront supprimées.
         </p>
         <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, color: 'var(--ink-80)' }}>
@@ -334,14 +336,14 @@ function DeleteModal({
           placeholder={email}
           style={{
             width: '100%',
-            padding: '9px 12px',
-            borderRadius: 10,
-            border: '1.5px solid var(--ink-10)',
-            background: 'var(--off-white)',
+            padding: '10px 12px',
+            borderRadius: 'var(--r-md)',
+            border: '1.5px solid var(--border-strong)',
+            background: 'var(--surface)',
             fontSize: 13,
             fontFamily: 'monospace',
             outline: 'none',
-            color: 'var(--ink)',
+            color: 'var(--text)',
             marginBottom: 16,
             boxSizing: 'border-box' as const,
           }}
@@ -352,8 +354,8 @@ function DeleteModal({
             style={{
               flex: 1,
               padding: '10px',
-              borderRadius: 10,
-              border: '1px solid var(--ink-10)',
+              borderRadius: 'var(--r-md)',
+              border: '1px solid var(--border-strong)',
               background: 'transparent',
               cursor: 'pointer',
               fontSize: 13,
@@ -370,13 +372,13 @@ function DeleteModal({
             style={{
               flex: 1,
               padding: '10px',
-              borderRadius: 10,
+              borderRadius: 'var(--r-md)',
               border: 'none',
-              background: input === email ? 'var(--coral)' : 'var(--cream)',
+              background: input === email ? 'var(--closed)' : 'var(--surface-2)',
               cursor: input === email ? 'pointer' : 'not-allowed',
               fontSize: 13,
               fontWeight: 600,
-              color: input === email ? 'white' : 'var(--ink-40)',
+              color: input === email ? '#fff' : 'var(--text-3)',
               fontFamily: 'inherit',
               transition: 'all 150ms',
             }}
@@ -391,7 +393,7 @@ function DeleteModal({
 
 function BarChart({
   data,
-  color = 'var(--forest-mid)',
+  color = 'var(--accent)',
   valueSuffix = '',
   labelWidth = 88,
 }: {
@@ -425,8 +427,8 @@ function BarChart({
             style={{
               flex: 1,
               height: 24,
-              background: 'var(--off-white)',
-              borderRadius: 6,
+              background: 'var(--surface)',
+              borderRadius: 'var(--r-sm)',
               overflow: 'hidden',
               position: 'relative',
             }}
@@ -439,7 +441,7 @@ function BarChart({
                 bottom: 0,
                 width: `${(d.value / max) * 100}%`,
                 background: color,
-                borderRadius: 6,
+                borderRadius: 'var(--r-sm)',
                 transition: 'width 600ms var(--ease-out)',
               }}
             />
@@ -463,7 +465,7 @@ function BarChart({
             <span
               style={{
                 fontSize: 10,
-                color: 'var(--ink-40)',
+                color: 'var(--text-3)',
                 whiteSpace: 'nowrap' as const,
                 flexShrink: 0,
               }}
@@ -495,7 +497,7 @@ function MonthlyChart({ data }: { data: { month: string; count: number; spent: n
     .join(' ')
   const areaD = `${pathD} L${pts[pts.length - 1].x},${H} L${pts[0].x},${H} Z`
   const [hov, setHov] = useState<number | null>(null)
-  const color = tab === 'visits' ? 'var(--forest-mid)' : 'var(--coral)'
+  const color = tab === 'visits' ? 'var(--accent)' : 'var(--ember)'
   const fmtM = (m: string) => {
     const [y, mo] = m.split('-')
     return new Date(+y, +mo - 1).toLocaleDateString('fr-FR', { month: 'short' })
@@ -506,7 +508,7 @@ function MonthlyChart({ data }: { data: { month: string; count: number; spent: n
         style={{
           margin: 0,
           fontSize: 12,
-          color: 'var(--ink-40)',
+          color: 'var(--text-3)',
           textAlign: 'center' as const,
           padding: '20px 0',
         }}
@@ -517,29 +519,36 @@ function MonthlyChart({ data }: { data: { month: string; count: number; spent: n
   return (
     <div>
       <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-        {[
-          ['visits', 'Visites'],
-          ['spent', 'Dépenses €'],
-        ].map(([k, l]) => (
-          <button
-            key={k}
-            onClick={() => setTab(k as 'visits' | 'spent')}
-            style={{
-              padding: '4px 11px',
-              borderRadius: 'var(--r-pill)',
-              fontSize: 11,
-              fontWeight: 600,
-              cursor: 'pointer',
-              border: `1px solid ${tab === k ? 'var(--forest-mid)' : 'var(--ink-10)'}`,
-              background: tab === k ? 'var(--forest-pale)' : 'transparent',
-              color: tab === k ? 'var(--forest)' : 'var(--ink-60)',
-              fontFamily: 'inherit',
-              transition: 'all 120ms',
-            }}
-          >
-            {l}
-          </button>
-        ))}
+        {(
+          [
+            ['visits', 'Visites'],
+            ['spent', 'Dépenses €'],
+          ] as const
+        ).map(([k, l]) => {
+          const activeBg = k === 'visits' ? 'var(--accent-light)' : 'var(--ember-light)'
+          const activeBorder = k === 'visits' ? 'var(--accent)' : 'var(--ember)'
+          const activeText = k === 'visits' ? 'var(--accent)' : 'var(--ember-text)'
+          return (
+            <button
+              key={k}
+              onClick={() => setTab(k)}
+              style={{
+                padding: '5px 12px',
+                borderRadius: 'var(--r-pill)',
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: 'pointer',
+                border: `1px solid ${tab === k ? activeBorder : 'var(--border)'}`,
+                background: tab === k ? activeBg : 'transparent',
+                color: tab === k ? activeText : 'var(--text-2)',
+                fontFamily: 'inherit',
+                transition: 'all 120ms',
+              }}
+            >
+              {l}
+            </button>
+          )
+        })}
       </div>
       <svg
         width="100%"
@@ -568,7 +577,7 @@ function MonthlyChart({ data }: { data: { month: string; count: number; spent: n
               cx={p.x}
               cy={p.y}
               r={hov === i ? 5 : 3}
-              fill={hov === i ? color : 'var(--white)'}
+              fill={hov === i ? color : 'var(--bg)'}
               stroke={color}
               strokeWidth="2"
             />
@@ -580,8 +589,8 @@ function MonthlyChart({ data }: { data: { month: string; count: number; spent: n
                   width={60}
                   height={20}
                   rx={5}
-                  fill="var(--ink)"
-                  opacity="0.88"
+                  fill="var(--text)"
+                  opacity="0.9"
                 />
                 <text
                   x={p.x}
@@ -610,7 +619,7 @@ function MonthlyChart({ data }: { data: { month: string; count: number; spent: n
               y={H + 10}
               textAnchor="middle"
               fontSize="8"
-              fill="var(--ink-40)"
+              fill="var(--text-3)"
               fontFamily="var(--font-body)"
             >
               {fmtM(p.month)}
@@ -636,7 +645,7 @@ function DonutChart({
         style={{
           margin: 0,
           fontSize: 12,
-          color: 'var(--ink-40)',
+          color: 'var(--text-3)',
           textAlign: 'center' as const,
           padding: '20px 0',
         }}
@@ -689,21 +698,21 @@ function DonutChart({
         ))}
         <text
           x={cx}
-          y={cy - 4}
+          y={cy - 3}
           textAnchor="middle"
-          fontSize="14"
+          fontSize="16"
           fontWeight="700"
-          fill="var(--ink)"
-          fontFamily="var(--font-body)"
+          fill="var(--ember)"
+          fontFamily="var(--font-display)"
         >
           {total}
         </text>
         <text
           x={cx}
-          y={cy + 10}
+          y={cy + 11}
           textAnchor="middle"
           fontSize="8"
-          fill="var(--ink-40)"
+          fill="var(--text-3)"
           fontFamily="var(--font-body)"
         >
           visites
@@ -725,11 +734,11 @@ function DonutChart({
             onMouseLeave={() => setHov(null)}
           >
             <div
-              style={{ width: 8, height: 8, borderRadius: 2, background: s.color, flexShrink: 0 }}
+              style={{ width: 9, height: 9, borderRadius: 3, background: s.color, flexShrink: 0 }}
             />
             <span
               style={{
-                fontSize: 10,
+                fontSize: 10.5,
                 color: 'var(--ink-80)',
                 flex: 1,
                 overflow: 'hidden',
@@ -739,7 +748,9 @@ function DonutChart({
             >
               {s.label}
             </span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-60)', flexShrink: 0 }}>
+            <span
+              style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-2)', flexShrink: 0 }}
+            >
               {Math.round(s.pct * 100)}%
             </span>
           </div>
@@ -754,7 +765,7 @@ function Spinner() {
     <div
       style={{
         minHeight: '100vh',
-        background: 'var(--white)',
+        background: 'var(--surface)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -764,8 +775,8 @@ function Spinner() {
         style={{
           width: 32,
           height: 32,
-          border: '2px solid var(--bone)',
-          borderTop: '2px solid var(--forest-mid)',
+          border: '2px solid var(--border)',
+          borderTop: '2px solid var(--accent)',
           borderRadius: '50%',
           animation: 'spin 0.7s linear infinite',
         }}
@@ -916,8 +927,8 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
     <div
       style={{
         minHeight: '100vh',
-        background: 'var(--off-white)',
-        color: 'var(--ink)',
+        background: 'var(--surface)',
+        color: 'var(--text)',
         fontFamily: 'var(--font-body)',
         display: 'flex',
         flexDirection: 'column',
@@ -939,19 +950,20 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
               gap: 6,
               padding: '7px 13px',
               borderRadius: 'var(--r-md)',
-              border: '1px solid rgba(217,79,61,0.3)',
-              background: 'transparent',
+              border: '1px solid var(--coral-pale)',
+              background: 'var(--coral-pale)',
               cursor: signingOut ? 'not-allowed' : 'pointer',
               fontSize: 11,
-              fontWeight: 600,
+              fontWeight: 700,
               color: 'var(--coral)',
               fontFamily: 'inherit',
+              transition: 'background 120ms ease',
             }}
             onMouseEnter={(e) => {
-              ;(e.currentTarget as HTMLElement).style.background = 'var(--coral-pale)'
+              ;(e.currentTarget as HTMLElement).style.background = 'var(--closed-bg)'
             }}
             onMouseLeave={(e) => {
-              ;(e.currentTarget as HTMLElement).style.background = 'transparent'
+              ;(e.currentTarget as HTMLElement).style.background = 'var(--coral-pale)'
             }}
           >
             <IcoLogOut /> {signingOut ? 'Déconnexion…' : 'Se déconnecter'}
@@ -978,7 +990,8 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
             alignItems: 'center',
             gap: 6,
             fontSize: 14,
-            color: 'var(--ink-60)',
+            fontWeight: 600,
+            color: 'var(--text-2)',
             textDecoration: 'none',
             marginBottom: 16,
           }}
@@ -991,7 +1004,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
           <div
             style={{
               height: 4,
-              background: 'linear-gradient(90deg,var(--forest),var(--forest-bright))',
+              background: 'linear-gradient(90deg,var(--accent),var(--ember))',
             }}
           />
           <div
@@ -1002,13 +1015,13 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                 style={{
                   width: 64,
                   height: 64,
-                  borderRadius: 18,
+                  borderRadius: 'var(--r-xl)',
                   overflow: 'hidden',
-                  background: 'var(--forest-mid)',
+                  background: 'var(--accent)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: 'var(--s2)',
+                  boxShadow: 'var(--s-accent)',
                   transition: 'box-shadow 150ms ease',
                 }}
               >
@@ -1032,13 +1045,13 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                     right: -3,
                     width: 20,
                     height: 20,
-                    borderRadius: 7,
-                    background: 'white',
-                    border: '2px solid white',
+                    borderRadius: 'var(--r-xs)',
+                    background: '#fff',
+                    border: '2px solid var(--bg)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: '0 2px 6px rgba(14,14,13,0.12)',
+                    boxShadow: 'var(--s1)',
                   }}
                 >
                   <IcoGoogle />
@@ -1050,9 +1063,10 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                 style={{
                   margin: '0 0 3px',
                   fontFamily: 'var(--font-display)',
-                  fontSize: 20,
-                  fontWeight: 400,
-                  letterSpacing: '-0.03em',
+                  fontSize: 22,
+                  fontWeight: 600,
+                  letterSpacing: '-0.025em',
+                  color: 'var(--text)',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap' as const,
@@ -1063,8 +1077,8 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
               <p
                 style={{
                   margin: '0 0 10px',
-                  fontSize: 12,
-                  color: 'var(--ink-60)',
+                  fontSize: 12.5,
+                  color: 'var(--text-2)',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap' as const,
@@ -1080,11 +1094,11 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                     gap: 4,
                     fontSize: 10,
                     fontWeight: 700,
-                    padding: '3px 9px',
-                    borderRadius: 999,
-                    background: isGoogle ? 'var(--sky-pale)' : 'var(--off-white)',
-                    color: isGoogle ? 'var(--sky)' : 'var(--ink-60)',
-                    border: `1px solid ${isGoogle ? 'var(--sky-border)' : 'var(--ink-10)'}`,
+                    padding: '4px 10px',
+                    borderRadius: 'var(--r-pill)',
+                    background: isGoogle ? 'var(--sky-pale)' : 'var(--surface)',
+                    color: isGoogle ? 'var(--sky)' : 'var(--text-2)',
+                    border: `1px solid ${isGoogle ? 'var(--sky-border)' : 'var(--border)'}`,
                   }}
                 >
                   {isGoogle ? <IcoGoogle /> : <IcoShield />} {isGoogle ? 'Google' : 'Email'}
@@ -1096,11 +1110,11 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                     gap: 4,
                     fontSize: 10,
                     fontWeight: 700,
-                    padding: '3px 9px',
-                    borderRadius: 999,
-                    background: 'var(--off-white)',
-                    color: 'var(--ink-60)',
-                    border: '1px solid var(--ink-10)',
+                    padding: '4px 10px',
+                    borderRadius: 'var(--r-pill)',
+                    background: 'var(--surface)',
+                    color: 'var(--text-2)',
+                    border: '1px solid var(--border)',
                   }}
                 >
                   <IcoCalendar /> {joined}
@@ -1113,7 +1127,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
             style={{
               display: 'grid',
               gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)',
-              borderTop: '1px solid var(--ink-10)',
+              borderTop: '1px solid var(--border)',
               marginTop: 16,
             }}
           >
@@ -1123,28 +1137,28 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                 error: favError,
                 val: favorites.length,
                 label: 'Favoris',
-                color: 'var(--forest-mid)',
+                color: 'var(--accent)',
               },
               {
                 loading: statsLoading,
                 error: statsError,
                 val: stats?.total_visits ?? 0,
                 label: 'Visites',
-                color: 'var(--amber)',
+                color: 'var(--ember)',
               },
               {
                 loading: statsLoading,
                 error: statsError,
                 val: stats?.total_spent ? `${Math.round(stats.total_spent)}€` : '0€',
                 label: 'Dépensé',
-                color: 'var(--coral)',
+                color: 'var(--ember)',
               },
               {
                 loading: favLoading,
                 error: favError,
                 val: cuisines.length || '—',
                 label: 'Cuisines',
-                color: 'var(--sky)',
+                color: 'var(--accent)',
               },
             ].map((s, i) => (
               <div
@@ -1154,12 +1168,12 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                   textAlign: 'center' as const,
                   borderRight: isMobile
                     ? i % 2 === 0
-                      ? '1px solid var(--ink-10)'
+                      ? '1px solid var(--border)'
                       : 'none'
                     : i < 3
-                      ? '1px solid var(--ink-10)'
+                      ? '1px solid var(--border)'
                       : 'none',
-                  borderBottom: isMobile && i < 2 ? '1px solid var(--ink-10)' : 'none',
+                  borderBottom: isMobile && i < 2 ? '1px solid var(--border)' : 'none',
                 }}
               >
                 {s.loading ? (
@@ -1169,8 +1183,8 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                       height: 20,
                       width: 40,
                       margin: '0 auto 3px',
-                      borderRadius: 4,
-                      background: 'var(--bone)',
+                      borderRadius: 'var(--r-xs)',
+                      background: 'var(--surface-2)',
                     }}
                   />
                 ) : s.error ? (
@@ -1179,12 +1193,12 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                   <div
                     style={{
                       fontFamily: 'var(--font-display)',
-                      fontSize: 20,
-                      fontWeight: 400,
+                      fontSize: 22,
+                      fontWeight: 600,
                       letterSpacing: '-0.04em',
                       color: s.color,
                       lineHeight: 1,
-                      marginBottom: 3,
+                      marginBottom: 4,
                     }}
                   >
                     {s.val}
@@ -1194,8 +1208,8 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                   style={{
                     fontSize: 9.5,
                     fontWeight: 600,
-                    color: 'var(--ink-40)',
-                    letterSpacing: '0.06em',
+                    color: 'var(--text-3)',
+                    letterSpacing: '0.07em',
                     textTransform: 'uppercase' as const,
                   }}
                 >
@@ -1211,10 +1225,10 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
             <div
               style={{
-                padding: '6px 12px',
+                padding: '6px 13px',
                 borderRadius: 'var(--r-pill)',
-                background: 'var(--forest-pale)',
-                color: 'var(--forest)',
+                background: 'var(--accent-light)',
+                color: 'var(--accent)',
                 fontSize: 12,
                 fontWeight: 700,
                 fontFamily: 'var(--font-body)',
@@ -1225,10 +1239,10 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
             {avgSpend && (
               <div
                 style={{
-                  padding: '6px 12px',
+                  padding: '6px 13px',
                   borderRadius: 'var(--r-pill)',
-                  background: 'var(--forest-pale)',
-                  color: 'var(--forest)',
+                  background: 'var(--ember-light)',
+                  color: 'var(--ember-text)',
                   fontSize: 12,
                   fontWeight: 700,
                   fontFamily: 'var(--font-body)',
@@ -1240,10 +1254,10 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
             {topRestaurant && (
               <div
                 style={{
-                  padding: '6px 12px',
+                  padding: '6px 13px',
                   borderRadius: 'var(--r-pill)',
-                  background: 'var(--forest-pale)',
-                  color: 'var(--forest)',
+                  background: 'var(--accent-light)',
+                  color: 'var(--accent)',
                   fontSize: 12,
                   fontWeight: 700,
                   fontFamily: 'var(--font-body)',
@@ -1259,11 +1273,12 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
         <div
           style={{
             display: 'flex',
-            gap: 2,
-            background: 'var(--off-white)',
-            borderRadius: 'var(--r-md)',
+            gap: 3,
+            background: 'var(--surface-2)',
+            borderRadius: 'var(--r-lg)',
             padding: 3,
             marginBottom: 20,
+            border: '1px solid var(--border)',
           }}
         >
           {(['stats', 'visites'] as const).map((t) => (
@@ -1272,13 +1287,13 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
               onClick={() => setActiveTab(t)}
               style={{
                 flex: 1,
-                padding: '8px 16px',
-                borderRadius: 'var(--r-sm)',
+                padding: '9px 16px',
+                borderRadius: 'var(--r-md)',
                 fontSize: 13,
-                fontWeight: 600,
-                background: activeTab === t ? 'var(--white)' : 'transparent',
-                border: activeTab === t ? '1px solid var(--ink-10)' : '1px solid transparent',
-                color: activeTab === t ? 'var(--ink)' : 'var(--ink-40)',
+                fontWeight: 700,
+                background: activeTab === t ? 'var(--bg)' : 'transparent',
+                border: activeTab === t ? '1px solid var(--border)' : '1px solid transparent',
+                color: activeTab === t ? 'var(--text)' : 'var(--text-3)',
                 cursor: 'pointer',
                 fontFamily: 'var(--font-body)',
                 boxShadow: activeTab === t ? 'var(--s1)' : 'none',
@@ -1307,20 +1322,20 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
         {activeTab === 'stats' && statsError && (
           <Card style={{ animation: 'fadeUp 280ms var(--ease-out) both' }}>
             <div style={{ padding: '24px 20px', textAlign: 'center' as const }}>
-              <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--ink-60)' }}>
+              <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--text-2)' }}>
                 Impossible de charger les données
               </p>
               <button
                 onClick={loadData}
                 style={{
-                  padding: '7px 14px',
+                  padding: '8px 16px',
                   borderRadius: 'var(--r-md)',
-                  border: '1px solid var(--ink-10)',
-                  background: 'transparent',
+                  border: '1px solid var(--border-strong)',
+                  background: 'var(--surface)',
                   cursor: 'pointer',
                   fontSize: 12,
-                  fontWeight: 600,
-                  color: 'var(--forest-mid)',
+                  fontWeight: 700,
+                  color: 'var(--accent)',
                   fontFamily: 'inherit',
                 }}
               >
@@ -1343,7 +1358,11 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                 <div
                   key={i}
                   className="shimmer-bar"
-                  style={{ height: 44, borderRadius: 8, background: 'var(--bone)' }}
+                  style={{
+                    height: 44,
+                    borderRadius: 'var(--r-sm)',
+                    background: 'var(--surface-2)',
+                  }}
                 />
               ))}
             </div>
@@ -1425,7 +1444,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                         label: MOOD_LABELS[m.mood] ?? m.mood,
                         value: m.count,
                       }))}
-                      colors={['#1d5d40', '#bb5e2e', '#1d65c8', '#d94f3d', '#7c3aed']}
+                      colors={CUISINE_COLORS}
                     />
                   </div>
                 </Card>
@@ -1441,9 +1460,10 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                     style={{
                       margin: '0 0 8px',
                       fontFamily: 'var(--font-display)',
-                      fontSize: 18,
-                      fontWeight: 400,
+                      fontSize: 19,
+                      fontWeight: 600,
                       letterSpacing: '-0.02em',
+                      color: 'var(--text)',
                     }}
                   >
                     Vos statistiques apparaîtront ici
@@ -1452,7 +1472,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                     style={{
                       margin: '0 0 20px',
                       fontSize: 13,
-                      color: 'var(--ink-60)',
+                      color: 'var(--text-2)',
                       lineHeight: 1.65,
                     }}
                   >
@@ -1465,14 +1485,14 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 6,
-                      padding: '11px 22px',
-                      borderRadius: 'var(--r-md)',
-                      background: 'var(--forest-mid)',
-                      color: 'white',
+                      padding: '12px 22px',
+                      borderRadius: 'var(--r-lg)',
+                      background: 'var(--ember)',
+                      color: '#fff',
                       textDecoration: 'none',
                       fontSize: 13,
-                      fontWeight: 600,
-                      boxShadow: 'var(--s-forest)',
+                      fontWeight: 700,
+                      boxShadow: 'var(--s-ember)',
                     }}
                   >
                     Explorer les restaurants →
@@ -1493,9 +1513,11 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                 placeholder="Rechercher…"
                 style={{
                   flex: 1,
-                  padding: '7px 10px',
+                  padding: '8px 12px',
                   borderRadius: 'var(--r-md)',
-                  border: '1px solid var(--ink-10)',
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg)',
+                  color: 'var(--text)',
                   fontSize: 12,
                   fontFamily: 'var(--font-body)',
                   outline: 'none',
@@ -1505,12 +1527,13 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                 value={visitSort}
                 onChange={(e) => setVisitSort(e.target.value as typeof visitSort)}
                 style={{
-                  padding: '7px 10px',
+                  padding: '8px 12px',
                   borderRadius: 'var(--r-md)',
-                  border: '1px solid var(--ink-10)',
+                  border: '1px solid var(--border)',
                   fontSize: 12,
                   fontFamily: 'var(--font-body)',
-                  background: 'var(--off-white)',
+                  color: 'var(--text)',
+                  background: 'var(--bg)',
                   cursor: 'pointer',
                 }}
               >
@@ -1541,26 +1564,30 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                     <div
                       key={i}
                       className="shimmer-bar"
-                      style={{ height: 44, borderRadius: 8, background: 'var(--bone)' }}
+                      style={{
+                        height: 44,
+                        borderRadius: 'var(--r-sm)',
+                        background: 'var(--surface-2)',
+                      }}
                     />
                   ))}
                 </div>
               ) : visitsError ? (
                 <div style={{ padding: '24px 20px', textAlign: 'center' as const }}>
-                  <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--ink-60)' }}>
+                  <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--text-2)' }}>
                     Impossible de charger les données
                   </p>
                   <button
                     onClick={fetchVisits}
                     style={{
-                      padding: '7px 14px',
+                      padding: '8px 16px',
                       borderRadius: 'var(--r-md)',
-                      border: '1px solid var(--ink-10)',
-                      background: 'transparent',
+                      border: '1px solid var(--border-strong)',
+                      background: 'var(--surface)',
                       cursor: 'pointer',
                       fontSize: 12,
-                      fontWeight: 600,
-                      color: 'var(--forest-mid)',
+                      fontWeight: 700,
+                      color: 'var(--accent)',
                       fontFamily: 'inherit',
                     }}
                   >
@@ -1570,7 +1597,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
               ) : sortedVisits.length === 0 ? (
                 <div style={{ padding: '28px 20px', textAlign: 'center' as const }}>
                   <div style={{ fontSize: 32, marginBottom: 10 }}>🍽</div>
-                  <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-40)' }}>
+                  <p style={{ margin: 0, fontSize: 13, color: 'var(--text-3)' }}>
                     Aucune visite enregistrée
                   </p>
                 </div>
@@ -1595,25 +1622,24 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                           display: 'flex',
                           alignItems: 'center',
                           gap: 12,
-                          padding: '12px 16px',
+                          padding: '13px 18px',
                           borderBottom:
-                            i < sortedVisits.length - 1 ? '1px solid var(--ink-10)' : 'none',
+                            i < sortedVisits.length - 1 ? '1px solid var(--border)' : 'none',
                           transition: 'background 100ms',
                           animationDelay: `${i * 40}ms`,
                         }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background = 'var(--off-white)')
-                        }
+                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface)')}
                         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                       >
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p
                             style={{
                               margin: '0 0 3px',
-                              fontSize: 13,
-                              fontWeight: 700,
+                              fontSize: 13.5,
+                              fontWeight: 600,
                               fontFamily: 'var(--font-display)',
-                              color: 'var(--ink)',
+                              letterSpacing: '-0.01em',
+                              color: 'var(--text)',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap' as const,
@@ -1629,7 +1655,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                               flexWrap: 'wrap' as const,
                             }}
                           >
-                            <span style={{ fontSize: 11, color: 'var(--ink-60)' }}>{dateStr}</span>
+                            <span style={{ fontSize: 11, color: 'var(--text-2)' }}>{dateStr}</span>
                             {visit.personal_rating && visit.personal_rating > 0 && (
                               <span style={{ display: 'flex', gap: 1 }}>
                                 {[1, 2, 3, 4, 5].map((s) => (
@@ -1639,8 +1665,8 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                                       fontSize: 11,
                                       color:
                                         s <= (visit.personal_rating ?? 0)
-                                          ? '#f59e0b'
-                                          : 'var(--ink-20)',
+                                          ? 'var(--ember)'
+                                          : 'var(--text-4)',
                                     }}
                                   >
                                     ★
@@ -1651,13 +1677,17 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                             {moodEmoji && <span style={{ fontSize: 11 }}>{moodEmoji}</span>}
                             {visit.amount_spent != null && (
                               <span
-                                style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-60)' }}
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  color: 'var(--ember-text)',
+                                }}
                               >
                                 {visit.amount_spent}€
                               </span>
                             )}
                             {visit.people_count > 1 && (
-                              <span style={{ fontSize: 11, color: 'var(--ink-40)' }}>
+                              <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
                                 {visit.people_count} pers.
                               </span>
                             )}
@@ -1667,7 +1697,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                               style={{
                                 margin: '3px 0 0',
                                 fontSize: 11,
-                                color: 'var(--ink-60)',
+                                color: 'var(--text-2)',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap' as const,
@@ -1691,9 +1721,9 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                             width: 30,
                             height: 30,
                             borderRadius: 'var(--r-sm)',
-                            border: '1px solid var(--ink-10)',
-                            background: 'var(--off-white)',
-                            color: 'var(--ink-60)',
+                            border: '1px solid var(--border)',
+                            background: 'var(--surface)',
+                            color: 'var(--text-2)',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
@@ -1702,10 +1732,13 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                             transition: 'all 120ms',
                           }}
                           onMouseEnter={(e) => {
-                            ;(e.currentTarget as HTMLElement).style.background = 'var(--bone)'
+                            ;(e.currentTarget as HTMLElement).style.background =
+                              'var(--accent-light)'
+                            ;(e.currentTarget as HTMLElement).style.color = 'var(--accent)'
                           }}
                           onMouseLeave={(e) => {
-                            ;(e.currentTarget as HTMLElement).style.background = 'var(--off-white)'
+                            ;(e.currentTarget as HTMLElement).style.background = 'var(--surface)'
+                            ;(e.currentTarget as HTMLElement).style.color = 'var(--text-2)'
                           }}
                           title="Modifier la visite"
                         >
@@ -1732,26 +1765,26 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                   display: 'flex',
                   alignItems: 'center',
                   gap: 14,
-                  padding: '12px 20px',
-                  borderBottom: i < recentFavs.length - 1 ? '1px solid var(--ink-10)' : 'none',
+                  padding: '13px 20px',
+                  borderBottom: i < recentFavs.length - 1 ? '1px solid var(--border)' : 'none',
                   textDecoration: 'none',
                   transition: 'background 100ms',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--off-white)')}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
                 <div
                   style={{
                     width: 36,
                     height: 36,
-                    borderRadius: 11,
-                    background: 'var(--forest-pale)',
-                    border: '1px solid rgba(45,122,85,0.15)',
+                    borderRadius: 'var(--r-md)',
+                    background: 'var(--accent-light)',
+                    border: '1px solid var(--border)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
-                    color: 'var(--forest-mid)',
+                    color: 'var(--accent)',
                   }}
                 >
                   <IcoHeart />
@@ -1762,7 +1795,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                       margin: '0 0 2px',
                       fontSize: 13,
                       fontWeight: 600,
-                      color: 'var(--ink)',
+                      color: 'var(--text)',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap' as const,
@@ -1770,9 +1803,9 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                   >
                     {fav.name}
                   </p>
-                  <p style={{ margin: 0, fontSize: 11, color: 'var(--ink-60)' }}>
+                  <p style={{ margin: 0, fontSize: 11, color: 'var(--text-2)' }}>
                     {fav.snapshot?.cuisine && (
-                      <span style={{ marginRight: 6, color: 'var(--forest-mid)', fontWeight: 600 }}>
+                      <span style={{ marginRight: 6, color: 'var(--accent)', fontWeight: 600 }}>
                         {fav.snapshot.cuisine as string}
                       </span>
                     )}
@@ -1791,15 +1824,15 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 6,
-                padding: '12px 20px',
+                padding: '13px 20px',
                 fontSize: 12,
                 fontWeight: 700,
-                color: 'var(--forest-mid)',
+                color: 'var(--accent)',
                 textDecoration: 'none',
                 transition: 'background 100ms',
-                borderTop: '1px solid var(--ink-10)',
+                borderTop: '1px solid var(--border)',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--forest-pale)')}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--accent-light)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
               Voir tous mes favoris <IcoArrow />
@@ -1817,16 +1850,17 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                 alignItems: 'center',
                 gap: 14,
                 padding: '14px 20px',
-                borderBottom: '1px solid var(--ink-10)',
+                borderBottom: '1px solid var(--border)',
               }}
             >
               <div
                 style={{
                   width: 36,
                   height: 36,
-                  borderRadius: 11,
-                  background: 'var(--off-white)',
-                  border: '1px solid var(--ink-10)',
+                  borderRadius: 'var(--r-md)',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-2)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1837,7 +1871,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p
-                  style={{ margin: '0 0 1px', fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}
+                  style={{ margin: '0 0 1px', fontSize: 13, fontWeight: 600, color: 'var(--text)' }}
                 >
                   Email
                 </p>
@@ -1845,7 +1879,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                   style={{
                     margin: 0,
                     fontSize: 11,
-                    color: 'var(--ink-60)',
+                    color: 'var(--text-2)',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap' as const,
@@ -1871,7 +1905,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                 transition: 'background 100ms',
               }}
               onMouseEnter={(e) => {
-                ;(e.currentTarget as HTMLElement).style.background = 'rgba(217,79,61,0.03)'
+                ;(e.currentTarget as HTMLElement).style.background = 'var(--coral-pale)'
               }}
               onMouseLeave={(e) => {
                 ;(e.currentTarget as HTMLElement).style.background = 'transparent'
@@ -1881,9 +1915,9 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                 style={{
                   width: 36,
                   height: 36,
-                  borderRadius: 11,
-                  background: 'rgba(217,79,61,0.06)',
-                  border: '1px solid rgba(217,79,61,0.15)',
+                  borderRadius: 'var(--r-md)',
+                  background: 'var(--coral-pale)',
+                  border: '1px solid var(--coral-pale)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1904,7 +1938,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                 >
                   Supprimer le compte
                 </p>
-                <p style={{ margin: 0, fontSize: 11, color: 'var(--ink-60)' }}>
+                <p style={{ margin: 0, fontSize: 11, color: 'var(--text-2)' }}>
                   Suppression définitive de toutes vos données
                 </p>
               </div>

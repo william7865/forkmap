@@ -11,6 +11,7 @@
 // ============================================================
 
 import type { PlaceCard } from '@/types'
+import { tasteBoost, type TasteProfile } from '@/lib/taste'
 
 export type Mood = 'comfort' | 'healthy' | 'festive' | 'fast' | 'discovery'
 
@@ -266,4 +267,42 @@ export function pickSurprise(
   }
 
   return { place: chosen, reasons: buildReasons(chosen, opts) }
+}
+
+/**
+ * Rank a whole deck for the swipe / spotlight experience.
+ *
+ * Same filtering as pickSurprise, then orders every survivor by
+ * composite weight + taste bias (from the user's save/pass history) +
+ * a tiny jitter so the deck varies between openings without losing
+ * relevance. Returns each place with its reason chips.
+ *
+ * @param rng injectable [0,1) source — pass a constant in tests for
+ *            deterministic ordering by weight.
+ */
+export function rankDeck(
+  places: PlaceCard[],
+  opts: SurpriseOptions = {},
+  profile?: TasteProfile | null,
+  rng: () => number = Math.random
+): SurpriseResult[] {
+  const exclude = toSet(opts.exclude)
+
+  let pool = places.filter((p) => !exclude.has(p.osm_id))
+  if (opts.openNow) pool = pool.filter((p) => p.open_now === true)
+  if (opts.maxPrice != null) {
+    pool = pool.filter((p) => p.fsq?.price == null || p.fsq.price <= opts.maxPrice!)
+  }
+  if (opts.maxDistance != null) {
+    pool = pool.filter((p) => p.distance == null || p.distance <= opts.maxDistance!)
+  }
+
+  return pool
+    .map((p) => {
+      const taste = profile ? tasteBoost(profile, p) : 0
+      const jitter = rng() * 0.06
+      return { place: p, weight: candidateWeight(p, opts) + taste + jitter }
+    })
+    .sort((a, b) => b.weight - a.weight)
+    .map((s) => ({ place: s.place, reasons: buildReasons(s.place, opts) }))
 }
