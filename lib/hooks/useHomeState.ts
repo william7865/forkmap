@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback, useMemo, useRef } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import type { PlaceCard, FilterState, FavoriteRow } from '@/types'
 import { useRestaurants } from '@/lib/hooks/useRestaurants'
 import { useLists } from '@/lib/hooks/useLists'
@@ -360,6 +360,13 @@ export function useHomeState() {
     },
     [userLocation, routeMode, doRoute, isMobile]
   )
+
+  // Flux "chercher → choisir → itinéraire" : le point de départ est défini
+  // depuis la fiche d'un lieu déjà ouvert → calculer l'itinéraire automatiquement.
+  useEffect(() => {
+    if (userLocation && selectedPlace) doRoute(selectedPlace, routeMode)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userLocation])
 
   // ── Nearby places ─────────────────────────────────────────
   const nearbyPlaces = useMemo(() => {

@@ -7,7 +7,6 @@ import { useHomeState, UNLISTED } from '@/lib/hooks/useHomeState'
 import SuggestionsPanel from '@/components/place/SuggestionsPanel'
 import PlaceList from '@/components/place/PlaceList'
 import PlaceCardSkeleton from '@/components/place/PlaceCardSkeleton'
-import StartPanel from '@/components/location/StartPanel'
 import ToastStack from '@/components/ui/ToastStack'
 import BottomSheet from '@/components/ui/BottomSheet'
 import { ErrorBoundary } from '@/components/states/ErrorBoundary'
@@ -625,24 +624,12 @@ export default function HomePage() {
               flexShrink: 0,
             }}
           >
-            <StartPanel
-              userLocation={userLocation}
-              locationLabel={locationLabel}
-              onLocationChange={handleLocationChange}
-              onLocateMe={locate}
-              locating={locating}
-              locateError={locateError}
-            />
-
             {/* Stats row */}
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
-                marginTop: 10,
-                paddingTop: 10,
-                borderTop: '1px solid var(--border)',
               }}
             >
               <span
@@ -661,28 +648,31 @@ export default function HomePage() {
                     : `${visiblePlaces.length} ${visiblePlaces.length !== 1 ? tr('places') : tr('place')}`}
               </span>
               <div style={{ flex: 1 }} />
-              <button
-                onClick={togglePinDrop}
-                title="Définir un point de départ"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  padding: '5px 10px',
-                  borderRadius: 8,
-                  cursor: 'pointer',
-                  fontSize: 11,
-                  fontWeight: 500,
-                  fontFamily: 'var(--font-body)',
-                  background: pinDropActive ? 'var(--accent-light)' : 'transparent',
-                  border: `1px solid ${pinDropActive ? 'rgba(187,94,46,0.3)' : 'var(--border)'}`,
-                  color: pinDropActive ? 'var(--accent)' : 'var(--text-2)',
-                  transition: 'all 150ms ease',
-                }}
-              >
-                <MapPin size={13} strokeWidth={1.75} />
-                {pinDropActive ? tr('clicking') : tr('departure_point')}
-              </button>
+              {/* Pin-drop départ — uniquement quand un lieu est sélectionné (flux chercher → choisir → itinéraire) */}
+              {selectedPlace && (
+                <button
+                  onClick={togglePinDrop}
+                  title="Définir un point de départ"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    padding: '5px 10px',
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                    fontSize: 11,
+                    fontWeight: 500,
+                    fontFamily: 'var(--font-body)',
+                    background: pinDropActive ? 'var(--accent-light)' : 'transparent',
+                    border: `1px solid ${pinDropActive ? 'rgba(187,94,46,0.3)' : 'var(--border)'}`,
+                    color: pinDropActive ? 'var(--accent)' : 'var(--text-2)',
+                    transition: 'all 150ms ease',
+                  }}
+                >
+                  <MapPin size={13} strokeWidth={1.75} />
+                  {pinDropActive ? tr('clicking') : tr('departure_point')}
+                </button>
+              )}
             </div>
 
             {/* Collection tabs in saved mode, else discovery quick chips */}
@@ -951,6 +941,11 @@ export default function HomePage() {
             hasUserLocation={!!userLocation}
             onTransportChange={handleTransportChange}
             onCuisineFilter={handleCuisineFilter}
+            onLocationChange={handleLocationChange}
+            onLocateMe={locate}
+            locating={locating}
+            locateError={locateError}
+            locationLabel={locationLabel}
           />
         </div>
       )}
@@ -978,14 +973,6 @@ export default function HomePage() {
             Je ne sais pas quoi manger
           </button>
           {savedOnly && savedListTabs}
-          <StartPanel
-            userLocation={userLocation}
-            locationLabel={locationLabel}
-            onLocationChange={handleLocationChange}
-            onLocateMe={locate}
-            locating={locating}
-            locateError={locateError}
-          />
           <PlaceList
             places={visiblePlaces}
             selectedId={selectedPlace?.osm_id}
@@ -1030,6 +1017,11 @@ export default function HomePage() {
             hasUserLocation={!!userLocation}
             onTransportChange={handleTransportChange}
             onCuisineFilter={handleCuisineFilter}
+            onLocationChange={handleLocationChange}
+            onLocateMe={locate}
+            locating={locating}
+            locateError={locateError}
+            locationLabel={locationLabel}
           />
         </div>
       )}

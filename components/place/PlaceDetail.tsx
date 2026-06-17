@@ -5,6 +5,7 @@ import ShareModal from '@/components/place/ShareModal'
 import VisitModal from '@/components/place/VisitModal'
 import NoteModal, { getNote } from '@/components/place/NoteModal'
 import HeartButton from '@/components/ui/HeartButton'
+import StartPanel from '@/components/location/StartPanel'
 import type { PlaceCard, FoursquarePhoto } from '@/types'
 import {
   IcoWalk,
@@ -65,6 +66,12 @@ interface Props {
   hasUserLocation?: boolean
   onTransportChange?: (mode: TransportMode) => void
   onCuisineFilter?: (cuisine: string) => void
+  // Point de départ — révélé ici quand un lieu est sélectionné (flux: chercher → choisir → itinéraire)
+  onLocationChange?: (lat: number, lon: number, label: string) => void
+  onLocateMe?: () => void
+  locating?: boolean
+  locateError?: boolean
+  locationLabel?: string | null
 }
 
 const MODES: { id: TransportMode; icon: React.ReactNode; label: string; gmaps: string }[] = [
@@ -268,6 +275,11 @@ export default function PlaceDetail({
   hasUserLocation,
   onTransportChange,
   onCuisineFilter,
+  onLocationChange,
+  onLocateMe,
+  locating,
+  locateError,
+  locationLabel,
 }: Props) {
   interface VisitRow {
     id: string
@@ -829,19 +841,36 @@ export default function PlaceDetail({
           {!hasUserLocation ? (
             <div
               style={{
-                padding: '14px',
                 borderRadius: 12,
-                background: 'rgba(28,25,23,0.03)',
-                border: '1px solid rgba(28,25,23,0.07)',
-                fontSize: 12,
-                color: 'var(--ink-60)',
-                textAlign: 'center',
-                lineHeight: 1.6,
+                overflow: 'hidden',
+                border: '1px solid rgba(28,25,23,0.08)',
               }}
             >
-              Définissez un point de départ
-              <br />
-              pour voir les itinéraires
+              {onLocationChange && onLocateMe ? (
+                <StartPanel
+                  userLocation={null}
+                  locationLabel={locationLabel ?? null}
+                  onLocationChange={onLocationChange}
+                  onLocateMe={onLocateMe}
+                  locating={!!locating}
+                  locateError={!!locateError}
+                />
+              ) : (
+                <div
+                  style={{
+                    padding: '14px',
+                    background: 'rgba(28,25,23,0.03)',
+                    fontSize: 12,
+                    color: 'var(--ink-60)',
+                    textAlign: 'center',
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Définissez un point de départ
+                  <br />
+                  pour voir les itinéraires
+                </div>
+              )}
             </div>
           ) : (
             <div
