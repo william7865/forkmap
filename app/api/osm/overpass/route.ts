@@ -16,7 +16,7 @@ const QuerySchema = z.object({
   types: z
     .string()
     .optional()
-    .default('restaurant')
+    .default('restaurant,fast_food,cafe,bar')
     .transform((s) => s.split(',') as Array<'restaurant' | 'cafe' | 'bar' | 'fast_food'>),
 })
 

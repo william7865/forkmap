@@ -1,36 +1,34 @@
 // ============================================================
-// lib/foursquare.ts — Foursquare Places API v3 client
+// lib/foursquare.ts — Foursquare Places API (nouvelle plateforme)
 // ============================================================
-// Uses FSQ Places API v3 (free tier: 1000 req/day).
-// Docs: https://docs.foursquare.com/developer/reference/place-search
+// Migré depuis l'API v3 legacy (sunset). Base places-api.foursquare.com,
+// auth Bearer + header de version. On n'utilise QUE les champs GRATUITS
+// (free tier) : catégories + adresse + géo. Les champs riches (rating,
+// price, photos, hours) sont "Premium" (payants) → volontairement non
+// demandés. L'app reste gratuite ; notes/photos viennent d'OSM/Wikidata.
+// Docs: https://docs.foursquare.com/developer/reference
 // ============================================================
 
-import type {
-  PlaceBase,
-  PlaceCard,
-  FoursquareData,
-  FoursquareCategory,
-  FoursquarePhoto,
-} from '@/types'
-import { cacheGet, cacheSet, buildFsqKey, buildFsqSearchKey } from './cache'
+import type { PlaceBase, PlaceCard, FoursquareData, FoursquareCategory } from '@/types'
+import { cacheGet, cacheSet, buildFsqSearchKey } from './cache'
 
-const FSQ_BASE = 'https://api.foursquare.com/v3'
+const FSQ_BASE = 'https://places-api.foursquare.com'
 const FSQ_API_KEY = process.env.FOURSQUARE_API_KEY ?? ''
+const FSQ_VERSION = '2025-06-17'
 
-// Sentinel value stored in cache to represent "searched FSQ, found no match"
+// Stored in cache to represent "searched FSQ, found no match"
 const NEGATIVE_SENTINEL = '__no_fsq_match__'
 
-// Fields to request — keep minimal to save quota
-const SEARCH_FIELDS = 'fsq_id,name,geocodes,location,categories'
-const DETAIL_FIELDS =
-  'fsq_id,name,geocodes,location,categories,rating,stats,price,description,hours,website,tel,verified,photos'
+// Free-tier fields only (rating/price/photos/hours are Premium → omitted)
+const SEARCH_FIELDS = 'fsq_place_id,name,latitude,longitude,categories,location'
 
 // ---------- Helpers ----------
 
 function fsqHeaders(): HeadersInit {
   return {
-    Accept: 'application/json',
-    Authorization: FSQ_API_KEY,
+    accept: 'application/json',
+    Authorization: `Bearer ${FSQ_API_KEY}`,
+    'X-Places-Api-Version': FSQ_VERSION,
   }
 }
 
@@ -52,39 +50,38 @@ async function fsqGet<T>(path: string, params: Record<string, string> = {}): Pro
   return res.json() as Promise<T>
 }
 
-// ---------- Types from FSQ API ----------
+// ---------- Types from the new FSQ API ----------
 
 interface FsqSearchResult {
   results: FsqVenue[]
 }
 
-interface FsqVenue {
-  fsq_id: string
+interface FsqCategory {
+  fsq_category_id: string
   name: string
-  geocodes: { main: { latitude: number; longitude: number } }
-  location?: { formatted_address?: string }
-  categories?: Array<{ id: number; name: string; icon: { prefix: string; suffix: string } }>
-  rating?: number
-  stats?: { total_ratings?: number; total_photos?: number }
-  price?: number
-  description?: string
-  hours?: {
-    open_now?: boolean
-    display?: string
-    regular?: Array<{ day: number; open: string; close: string }>
+  short_name?: string
+  plural_name?: string
+  icon?: { prefix: string; suffix: string }
+}
+
+interface FsqVenue {
+  fsq_place_id: string
+  name: string
+  latitude?: number
+  longitude?: number
+  categories?: FsqCategory[]
+  location?: {
+    address?: string
+    locality?: string
+    region?: string
+    postcode?: string
+    country?: string
+    formatted_address?: string
   }
-  website?: string
-  tel?: string
-  verified?: boolean
-  photos?: Array<{ id: string; prefix: string; suffix: string; width: number; height: number }>
 }
 
 // ---------- Fuzzy name matching ----------
 
-/**
- * Levenshtein distance (simple implementation).
- * Used to fuzzy-match OSM name vs FSQ name.
- */
 function levenshtein(a: string, b: string): number {
   const m = a.length,
     n = b.length
@@ -110,79 +107,57 @@ function nameSimilarity(a: string, b: string): number {
   return 1 - levenshtein(na, nb) / maxLen
 }
 
-// ---------- Normalizer ----------
+// ---------- Normalizer (free fields only) ----------
 
 function normalizeFsqVenue(venue: FsqVenue): FoursquareData {
   const categories: FoursquareCategory[] = (venue.categories ?? []).map((c) => ({
-    id: c.id,
-    name: c.name,
+    id: 0, // new API uses a string category id; unused by the UI (name only)
+    name: c.short_name ?? c.name,
     icon: c.icon,
   }))
 
-  const photos: FoursquarePhoto[] = (venue.photos ?? []).slice(0, 3).map((p) => ({
-    id: p.id,
-    prefix: p.prefix,
-    suffix: p.suffix,
-    width: p.width,
-    height: p.height,
-  }))
-
+  // Only free fields are populated. rating/price/photos/hours stay undefined
+  // (they are Premium on the new platform) — the UI degrades gracefully.
   return {
-    fsq_id: venue.fsq_id,
-    rating: venue.rating,
-    price: venue.price as 1 | 2 | 3 | 4 | undefined,
-    total_ratings: venue.stats?.total_ratings,
-    categories,
-    photos: photos.length > 0 ? photos : undefined,
-    description: venue.description,
-    hours: venue.hours
-      ? {
-          open_now: venue.hours.open_now,
-          display: venue.hours.display,
-          regular: venue.hours.regular,
-        }
-      : undefined,
-    website: venue.website,
-    tel: venue.tel,
-    verified: venue.verified,
+    fsq_id: venue.fsq_place_id,
+    categories: categories.length > 0 ? categories : undefined,
   }
 }
 
 // ---------- Search + match ----------
 
-const RADIUS_M = 100 // Search radius for FSQ match (meters)
-const MIN_NAME_SIMILARITY = 0.6 // Threshold to consider a match valid
+const RADIUS_M = 120 // Search radius for FSQ match (meters)
+const MIN_NAME_SIMILARITY = 0.6
+
+interface FsqMatch {
+  fsq: FoursquareData
+  address?: string
+}
 
 /**
- * Search FSQ for a single place by lat/lon + name.
- * Returns the best matching FSQ venue or null.
+ * Search FSQ for a single place by lat/lon + name (free fields only).
+ * Returns the best matching venue's free data + formatted address, or null.
  */
-async function searchFsqVenue(place: PlaceBase): Promise<FoursquareData | null> {
-  if (!FSQ_API_KEY) {
-    console.warn('FOURSQUARE_API_KEY not set — skipping enrichment')
-    return null
-  }
+async function searchFsqVenue(place: PlaceBase): Promise<FsqMatch | null> {
+  if (!FSQ_API_KEY) return null
 
   const cacheKey = buildFsqSearchKey(place.lat, place.lon, place.name)
-  const raw = cacheGet<FoursquareData | string>(cacheKey)
-  if (raw === NEGATIVE_SENTINEL) return null // explicitly cached as "no match"
-  if (raw !== null) return raw as FoursquareData // cached positive result
-  // raw === null means cache miss → fall through to API call
+  const raw = cacheGet<FsqMatch | string>(cacheKey)
+  if (raw === NEGATIVE_SENTINEL) return null
+  if (raw !== null) return raw as FsqMatch
 
   try {
     const data = await fsqGet<FsqSearchResult>('/places/search', {
       ll: `${place.lat},${place.lon}`,
       radius: String(RADIUS_M),
-      name: place.name,
+      query: place.name,
       fields: SEARCH_FIELDS,
       limit: '5',
     })
 
-    // Find best name match from results
     const results = data.results ?? []
     let bestMatch: FsqVenue | null = null
     let bestScore = 0
-
     for (const venue of results) {
       const sim = nameSimilarity(place.name, venue.name)
       if (sim > bestScore && sim >= MIN_NAME_SIMILARITY) {
@@ -192,35 +167,18 @@ async function searchFsqVenue(place: PlaceBase): Promise<FoursquareData | null> 
     }
 
     if (!bestMatch) {
-      cacheSet(cacheKey, NEGATIVE_SENTINEL, 3600) // Cache negative result for 1h
+      cacheSet(cacheKey, NEGATIVE_SENTINEL, 3600)
       return null
     }
 
-    // Fetch full details
-    const detail = await getFsqDetails(bestMatch.fsq_id)
-    if (detail) cacheSet(cacheKey, detail, 3600)
-    return detail
+    const match: FsqMatch = {
+      fsq: normalizeFsqVenue(bestMatch),
+      address: bestMatch.location?.formatted_address,
+    }
+    cacheSet(cacheKey, match, 3600)
+    return match
   } catch (err) {
     console.warn(`FSQ search failed for "${place.name}":`, err)
-    return null
-  }
-}
-
-/**
- * Fetch full FSQ venue details by fsq_id (with caching).
- */
-async function getFsqDetails(fsq_id: string): Promise<FoursquareData | null> {
-  const cacheKey = buildFsqKey(fsq_id)
-  const cached = cacheGet<FoursquareData>(cacheKey)
-  if (cached) return cached
-
-  try {
-    const venue = await fsqGet<FsqVenue>(`/places/${fsq_id}`, { fields: DETAIL_FIELDS })
-    const data = normalizeFsqVenue(venue)
-    cacheSet(cacheKey, data, 3600) // Cache 1h
-    return data
-  } catch (err) {
-    console.warn(`FSQ details failed for ${fsq_id}:`, err)
     return null
   }
 }
@@ -228,8 +186,8 @@ async function getFsqDetails(fsq_id: string): Promise<FoursquareData | null> {
 // ---------- Batch enrichment ----------
 
 /**
- * Enrich a batch of PlaceBase with Foursquare data.
- * Processes concurrently with rate-limiting (max 5 at a time).
+ * Enrich a batch of PlaceBase with Foursquare free-tier data
+ * (standardized categories + address fallback). Concurrency-limited.
  */
 export async function enrichPlaces(places: PlaceBase[]): Promise<PlaceCard[]> {
   const CONCURRENCY = 5
@@ -239,12 +197,10 @@ export async function enrichPlaces(places: PlaceBase[]): Promise<PlaceCard[]> {
     const batch = places.slice(i, i + CONCURRENCY)
     const enriched = await Promise.all(
       batch.map(async (place) => {
-        const fsq = await searchFsqVenue(place)
-        const card: PlaceCard = { ...place, fsq: fsq ?? undefined }
-        // Prefer FSQ open_now over OSM parsing
-        if (fsq?.hours?.open_now !== undefined) {
-          card.open_now = fsq.hours.open_now
-        }
+        const match = await searchFsqVenue(place)
+        const card: PlaceCard = { ...place, fsq: match?.fsq ?? undefined }
+        // Fill address from FSQ only if OSM didn't provide one
+        if (!card.address && match?.address) card.address = match.address
         return card
       })
     )
@@ -254,7 +210,7 @@ export async function enrichPlaces(places: PlaceBase[]): Promise<PlaceCard[]> {
   return results
 }
 
-// ---------- Photo URL helper ----------
+// ---------- Photo URL helper (kept for compatibility) ----------
 
 export function getFsqPhotoUrl(
   photo: { prefix: string; suffix: string },

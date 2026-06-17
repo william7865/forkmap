@@ -61,9 +61,12 @@ const DISTANCES: { value: number | null; label: string }[] = [
 
 function placePhotos(p: PlaceCard): string[] {
   const w = 900
-  return (p.fsq?.photos ?? [])
+  const fsq = (p.fsq?.photos ?? [])
     .slice(0, 5)
     .map((ph) => `${ph.prefix}${w}x${Math.round(w * (ph.height / ph.width))}${ph.suffix}`)
+  if (fsq.length) return fsq
+  // Free fallback: Wikidata/Wikimedia image
+  return p.wikidata?.image_url ? [p.wikidata.image_url] : []
 }
 
 function walkTime(m?: number): string | null {

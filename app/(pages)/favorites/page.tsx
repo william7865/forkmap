@@ -791,8 +791,9 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
 // ── Fav card — liste ──────────────────────────────────────
 function favPhoto(fav: FavoriteRow, w = 240): string | null {
   const ph = fav.snapshot?.fsq?.photos?.[0]
-  if (!ph) return null
-  return `${ph.prefix}${w}x${Math.round(w * (ph.height / ph.width))}${ph.suffix}`
+  if (ph) return `${ph.prefix}${w}x${Math.round(w * (ph.height / ph.width))}${ph.suffix}`
+  // Free fallback: Wikidata/Wikimedia image
+  return fav.snapshot?.wikidata?.image_url ?? null
 }
 
 const IcoUtensils = () => (
