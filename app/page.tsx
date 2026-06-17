@@ -505,9 +505,9 @@ export default function HomePage() {
                   <button
                     key={p.osm_id}
                     onMouseDown={() => {
-                      setNameQuery(p.name)
                       saveSearch(p.name)
                       setSearchFocused(false)
+                      handleMarkerClick(p)
                     }}
                     style={{
                       display: 'flex',
