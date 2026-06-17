@@ -331,7 +331,7 @@ export default function PlaceDetail({
       const address = [place.address, place.osm_enriched?.city].filter(Boolean).join(', ')
       await Share.share({
         title: place.name,
-        text: address ? `${place.name} — ${address}` : place.name,
+        text: address ? `${place.name}, ${address}` : place.name,
         url: `https://forkmap.vercel.app`,
         dialogTitle: 'Partager ce restaurant',
       })

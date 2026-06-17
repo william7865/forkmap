@@ -556,7 +556,7 @@ function NoteDrawer({
 function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }) {
   const [copied, setCopied] = useState(false)
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fav.name)}&query_place_id=${fav.lat},${fav.lon}`
-  const text = `🍴 ${fav.name}${fav.snapshot?.cuisine ? ` · ${fav.snapshot.cuisine}` : ''} — trouvé sur Forkmap`
+  const text = `🍴 ${fav.name}${fav.snapshot?.cuisine ? ` · ${fav.snapshot.cuisine}` : ''}, repéré sur Forkmap`
   const full = `${text}\n${mapsUrl}`
 
   const copy = async () => {
@@ -1766,6 +1766,14 @@ function FavoritesPageInner() {
 
   const activeList = activeListId ? lists.find((l) => l.id === activeListId) : null
 
+  // Featured "coup de cœur" — best-rated saved spot (editorial hero)
+  const featured =
+    !activeListId && favorites.length > 0
+      ? [...favorites].sort(
+          (a, b) => (b.snapshot?.fsq?.rating ?? 0) - (a.snapshot?.fsq?.rating ?? 0)
+        )[0]
+      : null
+
   return (
     <div
       style={{
@@ -1808,6 +1816,143 @@ function FavoritesPageInner() {
                 : `${favorites.length} restaurant${favorites.length !== 1 ? 's' : ''} · ${lists.length} liste${lists.length !== 1 ? 's' : ''}`}
             </p>
           </div>
+
+          {/* Hero — coup de cœur (editorial) */}
+          {featured &&
+            !loading &&
+            (() => {
+              const photo = favPhoto(featured, 800)
+              const rating = featured.snapshot?.fsq?.rating
+              const cuisine =
+                featured.snapshot?.cuisine ?? featured.snapshot?.fsq?.categories?.[0]?.name
+              const michelin =
+                featured.snapshot?.osm_enriched?.michelin ??
+                featured.snapshot?.wikidata?.michelin_stars ??
+                0
+              return (
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push(
+                      `/?select=${encodeURIComponent(featured.osm_id)}&lat=${featured.lat}&lon=${featured.lon}`
+                    )
+                  }
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    height: 210,
+                    borderRadius: 'var(--r-2xl)',
+                    overflow: 'hidden',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    marginBottom: 28,
+                    boxShadow: 'var(--s3)',
+                    backgroundImage: photo ? `url("${photo}")` : undefined,
+                    background: photo ? undefined : placeGradient(featured.osm_id),
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    animation: 'fadeUp 320ms var(--ease-out) both',
+                  }}
+                >
+                  <span
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background:
+                        'linear-gradient(105deg, rgba(15,11,8,0.5), transparent 55%), linear-gradient(transparent 38%, rgba(15,11,8,0.86))',
+                    }}
+                  />
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: 14,
+                      left: 14,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      fontSize: 10.5,
+                      fontWeight: 800,
+                      letterSpacing: '0.04em',
+                      padding: '5px 11px',
+                      borderRadius: 'var(--r-pill)',
+                      background: 'rgba(255,253,248,0.95)',
+                      color: 'var(--ember-text)',
+                    }}
+                  >
+                    ✦ Ton top
+                  </span>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: 18,
+                      right: 18,
+                      bottom: 16,
+                      textAlign: 'left',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        fontStyle: 'italic',
+                        fontSize: 12.5,
+                        color: 'rgba(255,253,248,0.85)',
+                        marginBottom: 5,
+                      }}
+                    >
+                      Le coup de cœur de ta collection
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        fontWeight: 600,
+                        fontSize: 26,
+                        letterSpacing: '-0.015em',
+                        color: '#fff',
+                        lineHeight: 1.1,
+                        textShadow: '0 2px 14px rgba(0,0,0,0.4)',
+                      }}
+                    >
+                      {featured.name}
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        marginTop: 7,
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      {rating != null && (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3,
+                            fontWeight: 700,
+                            fontSize: 13,
+                            color: '#ffd9b8',
+                          }}
+                        >
+                          <IcoStar /> {rating.toFixed(1)}
+                        </span>
+                      )}
+                      {michelin > 0 && (
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#ffd9b8' }}>
+                          {'⭐'.repeat(michelin)} Michelin
+                        </span>
+                      )}
+                      {cuisine && (
+                        <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.82)' }}>
+                          {cuisine}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              )
+            })()}
 
           {/* Controls */}
           {!loading && !activeListId && (

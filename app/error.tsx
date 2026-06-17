@@ -81,7 +81,7 @@ export default function GlobalError({ error, reset }: Props) {
             </h2>
 
             <p style={{ margin: '0 0 20px', fontSize: 13, color: '#78716c', lineHeight: 1.65 }}>
-              Une erreur inattendue s’est produite. Recharger la page suffit généralement — vos
+              Une erreur inattendue s’est produite. Recharger la page suffit le plus souvent. Vos
               lieux enregistrés sont en sécurité.
             </p>
 

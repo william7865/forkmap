@@ -2,6 +2,7 @@
 import { useState, useCallback, useMemo, useRef } from 'react'
 import type { PlaceCard, FilterState, FavoriteRow } from '@/types'
 import { useRestaurants } from '@/lib/hooks/useRestaurants'
+import { useLists } from '@/lib/hooks/useLists'
 import { useRouteCache, type TransportMode } from '@/lib/hooks/useRouteCache'
 import { useAuth, getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { apiFetch } from '@/lib/api'
@@ -11,6 +12,9 @@ import { useIsMobile } from '@/lib/hooks/useMediaQuery'
 import { useLanguage } from '@/lib/i18n/useLanguage'
 import type { MapViewHandle } from '@/components/map/MapView'
 import { getCurrentPosition } from '@/lib/native/geolocation'
+
+// Sentinel collection tab: saved places that belong to no list.
+export const UNLISTED = '__unlisted__'
 
 export function useHomeState() {
   const auth = useAuth()
@@ -49,6 +53,9 @@ export function useHomeState() {
   const [savedOnly, setSavedOnly] = useState(false)
   const [favoritesData, setFavoritesData] = useState<FavoriteRow[]>([])
   const [favoritesLoading, setFavoritesLoading] = useState(false)
+  const [activeSavedList, setActiveSavedList] = useState<string | null>(null)
+  const [savedListMembers, setSavedListMembers] = useState<Set<string> | null>(null)
+  const { lists: savedLists, fetchLists: fetchSavedLists } = useLists()
   const [sharePlace, setSharePlace] = useState<PlaceCard | null>(null)
   const [searchFocused, setSearchFocused] = useState(false)
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
@@ -111,16 +118,77 @@ export function useHomeState() {
         const snap = row.snapshot ?? ({} as PlaceCard)
         const lat = snap.lat ?? row.lat
         const lon = snap.lon ?? row.lon
-        const p: PlaceCard = { ...snap, lat, lon, name: snap.name ?? row.name, is_favorite: true }
+        const p: PlaceCard = {
+          ...snap,
+          // Trust the DB column for the id: snapshots may predate it, and the
+          // map keys markers by osm_id (a missing id collapses them to one pin).
+          osm_id: row.osm_id ?? snap.osm_id,
+          lat,
+          lon,
+          name: snap.name ?? row.name,
+          is_favorite: true,
+        }
         if (center) p.distance = haversineDistance(center.centerLat, center.centerLon, lat, lon)
         return p
       })
       .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
   }, [favoritesData])
 
-  // What the map + list show: favorites layer in saved-only mode, else the
+  // Saved view, optionally narrowed to the active list (collection tab).
+  const savedView = useMemo<PlaceCard[]>(() => {
+    if (activeSavedList === UNLISTED && savedListMembers) {
+      // Favorites that belong to no list = complement of the union of all list members.
+      return favoritePlaces.filter((p) => !savedListMembers.has(p.osm_id))
+    }
+    if (activeSavedList && savedListMembers) {
+      return favoritePlaces.filter((p) => savedListMembers.has(p.osm_id))
+    }
+    return favoritePlaces
+  }, [favoritePlaces, activeSavedList, savedListMembers])
+
+  // What the map + list show: saved layer in saved-only mode, else the
   // normal (filtered) discovery results.
-  const mapPlaces = savedOnly ? favoritePlaces : filteredPlaces
+  const mapPlaces = savedOnly ? savedView : filteredPlaces
+
+  // Select a collection tab inside saved mode (null = all saved).
+  const selectSavedList = useCallback(
+    async (listId: string | null) => {
+      setActiveSavedList(listId)
+      if (!listId) {
+        setSavedListMembers(null)
+        return
+      }
+      try {
+        const sb = getSupabaseBrowserClient()
+        const {
+          data: { session },
+        } = await sb.auth.getSession()
+        const headers: Record<string, string> = session?.access_token
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : {}
+        const fetchMembers = async (id: string): Promise<string[]> => {
+          try {
+            const res = await apiFetch(`/api/lists/${id}/items`, { headers })
+            if (!res.ok) return []
+            const data = await res.json()
+            return (data.data ?? []).map((it: { osm_id: string }) => it.osm_id)
+          } catch {
+            return []
+          }
+        }
+        // "Sans liste" tab: members = union of every list, savedView takes the complement.
+        if (listId === UNLISTED) {
+          const all = await Promise.all(savedLists.map((l) => fetchMembers(l.id)))
+          setSavedListMembers(new Set<string>(all.flat()))
+          return
+        }
+        setSavedListMembers(new Set<string>(await fetchMembers(listId)))
+      } catch {
+        setSavedListMembers(new Set())
+      }
+    },
+    [savedLists]
+  )
 
   // ── Name filter ───────────────────────────────────────────
   const visiblePlaces = useMemo(
@@ -182,6 +250,8 @@ export function useHomeState() {
   const toggleSavedOnly = useCallback(async () => {
     if (savedOnly) {
       setSavedOnly(false)
+      setActiveSavedList(null)
+      setSavedListMembers(null)
       return
     }
     if (!auth.user) {
@@ -196,11 +266,14 @@ export function useHomeState() {
     }
     setSavedOnly(true)
     setShowSearchHere(false)
+    setActiveSavedList(null)
+    setSavedListMembers(null)
+    fetchSavedLists()
     const pts = rows
       .map((r) => [r.snapshot?.lat ?? r.lat, r.snapshot?.lon ?? r.lon] as [number, number])
       .filter(([la, lo]) => la != null && lo != null)
     if (pts.length) setTimeout(() => mapRef.current?.fitBounds(pts), 60)
-  }, [savedOnly, auth.user, fetchFavoritesData, toast])
+  }, [savedOnly, auth.user, fetchFavoritesData, fetchSavedLists, toast])
 
   // ── Location ──────────────────────────────────────────────
   const handleLocationChange = useCallback((lat: number, lon: number, label: string) => {
@@ -385,6 +458,9 @@ export function useHomeState() {
     savedOnly,
     toggleSavedOnly,
     favoritesLoading,
+    savedLists,
+    activeSavedList,
+    selectSavedList,
     routeLoading,
     routeResult,
     // state

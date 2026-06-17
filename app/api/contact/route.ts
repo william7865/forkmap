@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
           from: 'Forkmap Contact <noreply@forkmap.app>',
           to: [toEmail],
           replyTo: email,
-          subject: `[Forkmap] ${topic} — from ${name}`,
+          subject: `[Forkmap] ${topic} · ${name}`,
           text: [`From: ${name} <${email}>`, `Topic: ${topic}`, '', message].join('\n'),
           html: `
             <p><strong>From:</strong> ${name} &lt;${email}&gt;</p>

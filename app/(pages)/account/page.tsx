@@ -233,7 +233,6 @@ function CardHeader({ label, sub }: { label: string; sub?: string }) {
         gap: 9,
       }}
     >
-      <span style={{ display: 'block', width: 16, height: 1.5, background: 'var(--accent)' }} />
       <span
         style={{
           fontSize: 10,
@@ -325,7 +324,7 @@ function DeleteModal({
           Supprimer le compte ?
         </h3>
         <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--text-2)', lineHeight: 1.65 }}>
-          Action irréversible — toutes vos données seront supprimées.
+          Action irréversible. Toutes vos données seront supprimées.
         </p>
         <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, color: 'var(--ink-80)' }}>
           Tapez <strong>{email}</strong> pour confirmer :

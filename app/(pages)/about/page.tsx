@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { InfoPage } from '@/components/ui/PageLayout'
 
 export const metadata: Metadata = {
-  title: 'À propos — Forkmap',
+  title: 'À propos · Forkmap',
   description: "Ce qu'est Forkmap, comment ça marche et qui l'a créé.",
 }
 
@@ -59,10 +59,9 @@ export default function AboutPage() {
             maxWidth: 580,
           }}
         >
-          Forkmap est une application de découverte de restaurants fondée sur des données ouvertes.
-          Elle associe la richesse d&apos;OpenStreetMap aux notes de Foursquare pour vous offrir une
-          vision vraie et impartiale de ce qui vous entoure — avec des itinéraires intelligents, des
-          filtres et une carte que vous gardez sous contrôle.
+          Forkmap aide à trouver où manger, à partir de données ouvertes. Les lieux viennent
+          d&apos;OpenStreetMap, les notes de Foursquare. Avec ça : une carte, des filtres et le
+          calcul d&apos;itinéraire.
         </p>
       </div>
 
@@ -140,16 +139,15 @@ export default function AboutPage() {
       {/* Data sources */}
       <Section title="Sources de données">
         <p style={{ fontSize: 14, color: 'var(--ink-80)', lineHeight: 1.75, marginBottom: 20 }}>
-          Forkmap repose sur un ensemble de fournisseurs de données ouvertes de confiance. Nous ne
-          possédons ni ne créons les données des restaurants — nous les agrégeons, les enrichissons
-          et les affichons.
+          Forkmap s&apos;appuie sur des sources de données ouvertes. Nous ne possédons ni ne créons
+          les données des restaurants : nous les rassemblons, les enrichissons et les affichons.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {[
             {
               name: 'OpenStreetMap',
               badge: 'ODbL',
-              desc: "Les emplacements des restaurants, les noms, adresses, horaires d'ouverture, cuisines et numéros de téléphone proviennent de la base de données OpenStreetMap — une carte du monde sous licence ouverte, maintenue par sa communauté.",
+              desc: "Emplacements, noms, adresses, horaires d'ouverture, cuisines et numéros de téléphone proviennent d'OpenStreetMap, une carte du monde sous licence ouverte, maintenue par sa communauté.",
               href: 'https://www.openstreetmap.org',
             },
             {

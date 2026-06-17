@@ -7,7 +7,7 @@ import { InfoPage } from '@/components/ui/PageLayout'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Politique de confidentialité — Forkmap',
+  title: 'Politique de confidentialité · Forkmap',
   description: 'Comment Forkmap collecte, utilise et protège vos données.',
 }
 
@@ -107,7 +107,7 @@ export default function PrivacyPage() {
           .
         </p>
         <p>
-          <strong>OSRM :</strong> Calculs d&apos;itinéraires — seules les coordonnées sont
+          <strong>OSRM :</strong> Calculs d&apos;itinéraires. Seules les coordonnées sont
           transmises, aucune donnée personnelle.
         </p>
       </Section>
