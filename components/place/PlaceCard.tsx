@@ -94,7 +94,9 @@ const PlaceCard = memo(function PlaceCard({
         gap: 12,
         textAlign: 'left',
         fontFamily: 'inherit',
-        width: '100%',
+        // pas de width:100% : avec les marges horizontales (0 12px) ça
+        // débordait de 24px à droite (carte rognée). Le bloc flex remplit
+        // déjà la largeur dispo moins les marges.
       }}
       onMouseEnter={onHover}
       onMouseLeave={onLeave}
