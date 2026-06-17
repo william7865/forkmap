@@ -335,7 +335,7 @@ export default function SuggestionsPanel({
                       width: 24,
                       height: 24,
                       borderRadius: 'var(--r-sm)',
-                      border: `1px solid ${isFav ? 'rgba(45,122,85,0.3)' : 'var(--ink-10)'}`,
+                      border: `1px solid ${isFav ? 'rgba(187,94,46,0.3)' : 'var(--ink-10)'}`,
                       background: isFav ? 'var(--forest-pale)' : 'var(--off-white)',
                       color: isFav ? 'var(--forest-mid)' : 'var(--ink-40)',
                       cursor: 'pointer',

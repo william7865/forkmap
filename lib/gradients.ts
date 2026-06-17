@@ -1,10 +1,11 @@
+// Camaïeux chauds terracotta → encre uniquement (accent unique, pas de bariolage)
 export const PLACE_GRADIENTS: [string, string][] = [
-  ['#1c3a28', '#4a8c5c'], // forest green
-  ['#3a1c1c', '#8c4a4a'], // terracotta red
-  ['#1c2a3a', '#4a5c8c'], // navy blue
-  ['#3a2d1c', '#8c6c3a'], // warm amber
-  ['#2d1c3a', '#6c4a8c'], // purple
-  ['#1c3a3a', '#3a8c8c'], // teal
+  ['#bb5e2e', '#5c2c14'], // terracotta → brun profond
+  ['#a8521f', '#2a1c12'], // clay → encre
+  ['#8c4a2a', '#3f2316'], // terre cuite sombre
+  ['#9f4d22', '#241f18'], // terre brûlée → encre
+  ['#8a7253', '#3f372c'], // taupe chaud → encre
+  ['#6b5d4a', '#2c241b'], // pierre chaude → encre
 ]
 
 export function placeGradient(id: string): string {

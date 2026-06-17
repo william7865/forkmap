@@ -74,7 +74,7 @@ export default function PrivacyPage() {
             href="https://opendatacommons.org/licenses/odbl/"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: '#e05a1e' }}
+            style={{ color: 'var(--accent)' }}
           >
             licence ODbL
           </a>
@@ -87,7 +87,7 @@ export default function PrivacyPage() {
             href="https://foursquare.com/legal/privacy"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: '#e05a1e' }}
+            style={{ color: 'var(--accent)' }}
           >
             politique de confidentialité de Foursquare
           </a>
@@ -100,7 +100,7 @@ export default function PrivacyPage() {
             href="https://supabase.com/privacy"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: '#e05a1e' }}
+            style={{ color: 'var(--accent)' }}
           >
             politique de confidentialité de Supabase
           </a>
@@ -115,7 +115,7 @@ export default function PrivacyPage() {
         <p>
           Nous conservons vos données jusqu&apos;à ce que vous supprimiez votre compte. Vous pouvez
           le faire à tout moment depuis les{' '}
-          <Link href="/settings" style={{ color: '#e05a1e' }}>
+          <Link href="/settings" style={{ color: 'var(--accent)' }}>
             Paramètres
           </Link>
           .
@@ -124,11 +124,11 @@ export default function PrivacyPage() {
       <Section title="Vos droits">
         <p>
           Vous pouvez accéder à vos données, les rectifier ou les supprimer à tout moment. Écrivez à{' '}
-          <a href="mailto:privacy@forkmap.app" style={{ color: '#e05a1e' }}>
+          <a href="mailto:privacy@forkmap.app" style={{ color: 'var(--accent)' }}>
             privacy@forkmap.app
           </a>{' '}
           ou utilisez la{' '}
-          <Link href="/contact" style={{ color: '#e05a1e' }}>
+          <Link href="/contact" style={{ color: 'var(--accent)' }}>
             page Contact
           </Link>
           .
@@ -143,7 +143,7 @@ export default function PrivacyPage() {
       <Section title="Contact">
         <p>
           Des questions sur cette politique ? Écrivez à{' '}
-          <a href="mailto:privacy@forkmap.app" style={{ color: '#e05a1e' }}>
+          <a href="mailto:privacy@forkmap.app" style={{ color: 'var(--accent)' }}>
             privacy@forkmap.app
           </a>
           .

@@ -124,7 +124,7 @@ export default function NoteModal({ place, onClose, onSaved }: Props) {
               height: 38,
               borderRadius: 'var(--r-md)',
               background: 'var(--forest-pale)',
-              border: '1px solid rgba(45,122,85,0.2)',
+              border: '1px solid rgba(187,94,46,0.2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

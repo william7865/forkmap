@@ -1939,8 +1939,20 @@ function FavoritesPageInner() {
                         </span>
                       )}
                       {michelin > 0 && (
-                        <span style={{ fontSize: 12, fontWeight: 700, color: '#ffd9b8' }}>
-                          {'⭐'.repeat(michelin)} Michelin
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 2,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: '#ffd9b8',
+                          }}
+                        >
+                          {Array.from({ length: michelin }).map((_, i) => (
+                            <IcoStar key={i} />
+                          ))}{' '}
+                          Michelin
                         </span>
                       )}
                       {cuisine && (

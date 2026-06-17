@@ -20,7 +20,6 @@ import {
 } from '@/lib/surprise'
 import { emptyProfile, recordSave, recordPass, isMadeForYou, type TasteProfile } from '@/lib/taste'
 import {
-  Sparkles,
   X,
   Heart,
   MapPin,
@@ -32,7 +31,24 @@ import {
   Undo2,
   Navigation,
   Bookmark,
+  Soup,
+  Salad,
+  Wine,
+  Zap,
+  Compass,
 } from 'lucide-react'
+import { SigSparkle } from '@/components/icons/signature'
+import type { LucideProps } from 'lucide-react'
+import type { ComponentType } from 'react'
+
+// Humeurs food du deck → icônes lucide (remplace les emojis 🍝🥗🥂⚡🧭)
+const MOOD_ICONS: Record<string, ComponentType<LucideProps>> = {
+  comfort: Soup,
+  healthy: Salad,
+  festive: Wine,
+  fast: Zap,
+  discovery: Compass,
+}
 import { heavyTap, lightTap } from '@/lib/native/haptics'
 
 interface Props {
@@ -365,7 +381,7 @@ export default function SurpriseSheet({
               textTransform: 'uppercase',
             }}
           >
-            <Sparkles size={13} strokeWidth={2} /> Surprends-moi
+            <SigSparkle size={13} /> Surprends-moi
           </div>
           <h2
             style={{
@@ -409,6 +425,7 @@ export default function SurpriseSheet({
       >
         {MOODS.map((m) => {
           const active = mood === m.id
+          const MoodIcon = MOOD_ICONS[m.id]
           return (
             <button
               key={m.id}
@@ -416,9 +433,11 @@ export default function SurpriseSheet({
               aria-pressed={active}
               style={chip(active)}
             >
-              <span aria-hidden style={{ marginRight: 5 }}>
-                {m.emoji}
-              </span>
+              {MoodIcon && (
+                <span aria-hidden style={{ marginRight: 6, display: 'inline-flex' }}>
+                  <MoodIcon size={14} strokeWidth={2} />
+                </span>
+              )}
               {m.label}
             </button>
           )
@@ -905,7 +924,7 @@ function DeckCard({
             zIndex: 4,
           }}
         >
-          <Sparkles size={11} strokeWidth={2.5} /> Fait pour toi
+          <SigSparkle size={12} /> Fait pour toi
         </span>
       )}
 
@@ -961,7 +980,7 @@ function DeckCard({
               marginBottom: 6,
             }}
           >
-            <Sparkles size={11} strokeWidth={2.5} /> {madeReason}
+            <SigSparkle size={12} /> {madeReason}
           </div>
         )}
         <h3

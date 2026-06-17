@@ -5,6 +5,7 @@ import ShareModal from '@/components/place/ShareModal'
 import VisitModal from '@/components/place/VisitModal'
 import NoteModal, { getNote } from '@/components/place/NoteModal'
 import HeartButton from '@/components/ui/HeartButton'
+import StartPanel from '@/components/location/StartPanel'
 import type { PlaceCard, FoursquarePhoto } from '@/types'
 import {
   IcoWalk,
@@ -65,6 +66,12 @@ interface Props {
   hasUserLocation?: boolean
   onTransportChange?: (mode: TransportMode) => void
   onCuisineFilter?: (cuisine: string) => void
+  // Point de départ — révélé ici quand un lieu est sélectionné (flux: chercher → choisir → itinéraire)
+  onLocationChange?: (lat: number, lon: number, label: string) => void
+  onLocateMe?: () => void
+  locating?: boolean
+  locateError?: boolean
+  locationLabel?: string | null
 }
 
 const MODES: { id: TransportMode; icon: React.ReactNode; label: string; gmaps: string }[] = [
@@ -268,6 +275,11 @@ export default function PlaceDetail({
   hasUserLocation,
   onTransportChange,
   onCuisineFilter,
+  onLocationChange,
+  onLocateMe,
+  locating,
+  locateError,
+  locationLabel,
 }: Props) {
   interface VisitRow {
     id: string
@@ -503,7 +515,7 @@ export default function PlaceDetail({
                       borderRadius: 'var(--r-pill)',
                       fontSize: 10,
                       fontWeight: 600,
-                      background: place.open_now ? 'rgba(45,122,85,0.85)' : 'rgba(180,40,40,0.75)',
+                      background: place.open_now ? 'var(--open)' : 'var(--closed)',
                       color: 'white',
                     }}
                   >
@@ -659,7 +671,7 @@ export default function PlaceDetail({
               height: 34,
               padding: '0 12px',
               borderRadius: 'var(--r-sm)',
-              border: `1px solid ${note ? 'rgba(45,122,85,0.35)' : 'var(--ink-10)'}`,
+              border: `1px solid ${note ? 'rgba(187,94,46,0.35)' : 'var(--ink-10)'}`,
               background: note ? 'var(--forest-pale)' : 'var(--off-white)',
               color: note ? 'var(--forest-mid)' : 'var(--ink-60)',
               cursor: 'pointer',
@@ -674,12 +686,12 @@ export default function PlaceDetail({
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'var(--forest-pale)'
-              e.currentTarget.style.borderColor = 'rgba(45,122,85,0.3)'
+              e.currentTarget.style.borderColor = 'rgba(187,94,46,0.3)'
               e.currentTarget.style.color = 'var(--forest-mid)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = note ? 'var(--forest-pale)' : 'var(--off-white)'
-              e.currentTarget.style.borderColor = note ? 'rgba(45,122,85,0.35)' : 'var(--ink-10)'
+              e.currentTarget.style.borderColor = note ? 'rgba(187,94,46,0.35)' : 'var(--ink-10)'
               e.currentTarget.style.color = note ? 'var(--forest-mid)' : 'var(--ink-60)'
             }}
           >
@@ -829,19 +841,36 @@ export default function PlaceDetail({
           {!hasUserLocation ? (
             <div
               style={{
-                padding: '14px',
                 borderRadius: 12,
-                background: 'rgba(28,25,23,0.03)',
-                border: '1px solid rgba(28,25,23,0.07)',
-                fontSize: 12,
-                color: 'var(--ink-60)',
-                textAlign: 'center',
-                lineHeight: 1.6,
+                overflow: 'hidden',
+                border: '1px solid rgba(28,25,23,0.08)',
               }}
             >
-              Définissez un point de départ
-              <br />
-              pour voir les itinéraires
+              {onLocationChange && onLocateMe ? (
+                <StartPanel
+                  userLocation={null}
+                  locationLabel={locationLabel ?? null}
+                  onLocationChange={onLocationChange}
+                  onLocateMe={onLocateMe}
+                  locating={!!locating}
+                  locateError={!!locateError}
+                />
+              ) : (
+                <div
+                  style={{
+                    padding: '14px',
+                    background: 'rgba(28,25,23,0.03)',
+                    fontSize: 12,
+                    color: 'var(--ink-60)',
+                    textAlign: 'center',
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Définissez un point de départ
+                  <br />
+                  pour voir les itinéraires
+                </div>
+              )}
             </div>
           ) : (
             <div
@@ -1446,7 +1475,7 @@ export default function PlaceDetail({
               gap: 9,
               padding: '10px 12px',
               background: 'var(--forest-pale)',
-              border: '1px solid rgba(45,122,85,0.2)',
+              border: '1px solid rgba(187,94,46,0.2)',
               borderLeft: '3px solid var(--forest-mid)',
               borderRadius: 'var(--r-md)',
               cursor: 'pointer',
@@ -1544,7 +1573,7 @@ export default function PlaceDetail({
                       year: 'numeric',
                     })}
                     {v.personal_rating != null && (
-                      <span style={{ marginLeft: 8, color: '#f59e0b' }}>
+                      <span style={{ marginLeft: 8, color: 'var(--accent)' }}>
                         {'★'.repeat(v.personal_rating)}
                       </span>
                     )}
@@ -1651,7 +1680,7 @@ export default function PlaceDetail({
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background = 'var(--forest-pale)'
-                      e.currentTarget.style.borderColor = 'rgba(45,122,85,0.25)'
+                      e.currentTarget.style.borderColor = 'rgba(187,94,46,0.25)'
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = 'var(--off-white)'

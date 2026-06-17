@@ -15,13 +15,13 @@ import { tasteBoost, type TasteProfile } from '@/lib/taste'
 
 export type Mood = 'comfort' | 'healthy' | 'festive' | 'fast' | 'discovery'
 
-/** UI metadata for the mood chips (French labels + emoji). */
-export const MOODS: { id: Mood; label: string; emoji: string }[] = [
-  { id: 'comfort', label: 'Réconfort', emoji: '🍝' },
-  { id: 'healthy', label: 'Healthy', emoji: '🥗' },
-  { id: 'festive', label: 'Festif', emoji: '🥂' },
-  { id: 'fast', label: 'Rapide', emoji: '⚡' },
-  { id: 'discovery', label: 'Découverte', emoji: '🧭' },
+/** UI metadata for the mood chips (libellés FR ; icônes mappées dans SurpriseSheet). */
+export const MOODS: { id: Mood; label: string }[] = [
+  { id: 'comfort', label: 'Réconfort' },
+  { id: 'healthy', label: 'Healthy' },
+  { id: 'festive', label: 'Festif' },
+  { id: 'fast', label: 'Rapide' },
+  { id: 'discovery', label: 'Découverte' },
 ]
 
 export interface SurpriseOptions {

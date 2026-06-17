@@ -69,7 +69,7 @@ type MState = 'default' | 'hover' | 'selected' | 'favorite'
 // ── Marqueurs — design exact du brandbook ─────────────────
 // Default: teardrop ink + cercle blanc
 // Avec note: teardrop ink + cercle blanc + texte note
-// Favori: teardrop forest-mid + cercle blanc + ♥
+// Favori: teardrop accent + cercle blanc + coeur SVG
 // Sélectionné: teardrop blanc + bordure ink + cercle ink + point blanc
 // Inactif: teardrop bone/stone + cercle stone
 function markerHTML(state: MState, rating?: number): string {
@@ -119,12 +119,13 @@ function markerHTML(state: MState, rating?: number): string {
       `<circle cx="${size / 2}" cy="${cy}" r="${r}" fill="white" opacity=".95"/>` +
       `<text x="${size / 2}" y="${cy + 4}" text-anchor="middle" font-size="9" font-weight="700" fill="#241f18" font-family="Hanken Grotesk,system-ui">${rating.toFixed(1)}</text>`
   } else if (isFav) {
-    // Favori — cercle blanc + ♥
+    // Favori — cercle blanc + coeur SVG
     const cy = Math.round(size * 0.44)
     const r = Math.round(size * 0.3)
+    const hs = Math.round(size * 0.32)
     inner =
       `<circle cx="${size / 2}" cy="${cy}" r="${r}" fill="white" opacity=".95"/>` +
-      `<text x="${size / 2}" y="${cy + 5}" text-anchor="middle" font-size="11" fill="#bb5e2e" font-family="Georgia,serif">♥</text>`
+      `<path transform="translate(${size / 2 - hs / 2} ${cy - hs / 2}) scale(${hs / 24})" fill="#bb5e2e" d="M12 21s-7-5.7-7-11a5 5 0 019-3 5 5 0 019 3c0 5.3-7 11-7 11z"/>`
   } else {
     // Default — cercle blanc
     const cy = Math.round(size * 0.44)
@@ -141,7 +142,7 @@ function markerHTML(state: MState, rating?: number): string {
 
   // Pulse ring for selected (behind the marker)
   const ring = isSelected
-    ? `<div style="position:absolute;inset:-10px;border-radius:50%;border:2.5px solid rgba(29,93,64,0.32);animation:pulse-ring 1.8s ease-out infinite;pointer-events:none;bottom:auto;top:5px;left:-3px;right:-3px;height:${size + 6}px"></div>`
+    ? `<div style="position:absolute;inset:-10px;border-radius:50%;border:2.5px solid rgba(187,94,46,0.32);animation:pulse-ring 1.8s ease-out infinite;pointer-events:none;bottom:auto;top:5px;left:-3px;right:-3px;height:${size + 6}px"></div>`
     : ''
 
   return `
@@ -200,8 +201,8 @@ function clusterIconHTML(count: number): string {
 function userDotHTML(): string {
   return `
     <div style="position:relative;width:18px;height:18px">
-      <div style="position:absolute;inset:-6px;border-radius:50%;background:rgba(29,101,200,0.15);animation:pulse-ring 2.4s ease-out infinite"></div>
-      <div style="width:18px;height:18px;border-radius:50%;background:#1d65c8;border:2.5px solid white;box-shadow:0 2px 8px rgba(29,101,200,0.4)"></div>
+      <div style="position:absolute;inset:-6px;border-radius:50%;background:rgba(36,31,24,0.12);animation:pulse-ring 2.4s ease-out infinite"></div>
+      <div style="width:18px;height:18px;border-radius:50%;background:#241f18;border:2.5px solid white;box-shadow:0 2px 8px rgba(36,31,24,0.35)"></div>
     </div>`
 }
 
@@ -209,10 +210,10 @@ function userDotHTML(): string {
 function startDotHTML(): string {
   return `
     <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-      <div style="width:20px;height:20px;border-radius:50%;background:#16a34a;border:2.5px solid white;box-shadow:0 2px 8px rgba(22,163,74,0.4);display:flex;align-items:center;justify-content:center">
+      <div style="width:20px;height:20px;border-radius:50%;background:#bb5e2e;border:2.5px solid white;box-shadow:0 2px 8px rgba(187,94,46,0.4);display:flex;align-items:center;justify-content:center">
         <div style="width:7px;height:7px;border-radius:50%;background:white"></div>
       </div>
-      <div style="background:rgba(22,100,74,0.88);color:white;font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;white-space:nowrap;letter-spacing:0.03em">Start</div>
+      <div style="background:rgba(36,31,24,0.88);color:white;font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;white-space:nowrap;letter-spacing:0.03em">Départ</div>
     </div>`
 }
 
@@ -277,7 +278,7 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
       }
       map.flyToBounds(L.latLngBounds(points), { padding: [64, 64], maxZoom: 16, duration: 0.7 })
     },
-    drawRoute(coords, color = '#1d5d40') {
+    drawRoute(coords, color = '#bb5e2e') {
       const L: A = (window as A).L
       const map = mapRef.current
       if (!L || !map) return

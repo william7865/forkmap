@@ -233,11 +233,10 @@ describe('rankDeck', () => {
 // ---------- MOODS metadata ----------
 
 describe('MOODS', () => {
-  it('exposes 5 moods with labels and emoji', () => {
+  it('exposes 5 moods with labels', () => {
     expect(MOODS).toHaveLength(5)
     for (const m of MOODS) {
       expect(m.label.length).toBeGreaterThan(0)
-      expect(m.emoji.length).toBeGreaterThan(0)
     }
   })
 })
