@@ -26,7 +26,7 @@ const CONFIG = {
   'no-favorites': {
     Icon: UtensilsCrossed,
     title: "Rien d'enregistré",
-    desc: () => "Appuyez sur ♡ sur un restaurant pour l'enregistrer ici",
+    desc: () => "Appuyez sur le marque-page d'un restaurant pour l'enregistrer ici",
     cta: 'Explorer la carte',
   },
   'no-area': {

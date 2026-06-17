@@ -6,6 +6,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { IcoCheck } from '@/components/icons'
 import type { AuthState } from '@/lib/hooks/useAuth'
 
 interface Props {
@@ -267,7 +268,7 @@ export default function AuthModal({ onClose, auth, onSuccess, onError }: Props) 
     } else {
       err = await auth.signUpWithEmail(email, password, name)
       if (!err) {
-        onSuccess?.('Compte créé ! Bienvenue 🎉')
+        onSuccess?.('Compte créé ! Bienvenue')
         onClose()
         setBusy(false)
         return
@@ -395,7 +396,16 @@ export default function AuthModal({ onClose, auth, onSuccess, onError }: Props) 
                     textAlign: 'center',
                   }}
                 >
-                  <div style={{ fontSize: 28, marginBottom: 8 }}>📬</div>
+                  <div
+                    style={{
+                      marginBottom: 8,
+                      display: 'flex',
+                      justifyContent: 'center',
+                      color: '#1b7f4f',
+                    }}
+                  >
+                    <IcoCheck size={28} />
+                  </div>
                   <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 700, color: '#1b7f4f' }}>
                     Vérifiez votre boîte mail
                   </p>

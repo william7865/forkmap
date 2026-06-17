@@ -16,8 +16,8 @@ export default function AttributionPage() {
     {
       name: 'OpenStreetMap',
       badge: 'ODbL',
-      badgeColor: '#1a56c4',
-      badgeBg: 'rgba(66,133,244,0.08)',
+      badgeColor: 'var(--accent)',
+      badgeBg: 'var(--accent-light)',
       desc: 'Les emplacements, noms, adresses, horaires d’ouverture, types de cuisine et numéros de téléphone des restaurants proviennent d’OpenStreetMap, une carte du monde maintenue par la communauté.',
       credit: '© les contributeurs d’OpenStreetMap',
       licence: 'Licence Open Database (ODbL)',
@@ -27,7 +27,6 @@ export default function AttributionPage() {
     {
       name: 'Wikidata / Wikipedia',
       url: 'https://www.wikidata.org',
-      icon: '🌐',
       desc: 'Descriptions, étoiles Michelin, extraits Wikipédia et distinctions via l’API SPARQL de Wikidata et l’API REST de Wikipédia. Libre, ouvert et illimité.',
       credit: 'Wikimedia Foundation',
       licence: 'CC0 / CC BY-SA',
@@ -35,8 +34,8 @@ export default function AttributionPage() {
     {
       name: 'Foursquare Places',
       badge: 'API',
-      badgeColor: '#0f6c52',
-      badgeBg: 'rgba(15,108,82,0.08)',
+      badgeColor: 'var(--accent)',
+      badgeBg: 'var(--accent-light)',
       desc: 'Les notes, le nombre d’avis, les niveaux de prix et les catégories sont enrichis via l’API Foursquare Places.',
       credit: 'Foursquare',
       licence: 'Conditions d’utilisation de Foursquare',
@@ -46,8 +45,8 @@ export default function AttributionPage() {
     {
       name: 'OSRM',
       badge: 'Itinéraires',
-      badgeColor: '#7c3aed',
-      badgeBg: 'rgba(124,58,237,0.07)',
+      badgeColor: 'var(--accent)',
+      badgeBg: 'var(--accent-light)',
       desc: 'Les calculs d’itinéraire (à pied, à vélo, en voiture) sont assurés par l’Open Source Routing Machine, basé sur les données routières d’OpenStreetMap.',
       credit: '© les contributeurs d’OSRM',
       licence: 'BSD 2-Clause',
@@ -57,8 +56,8 @@ export default function AttributionPage() {
     {
       name: 'Nominatim',
       badge: 'Géocodage',
-      badgeColor: '#92400e',
-      badgeBg: 'rgba(146,64,14,0.07)',
+      badgeColor: 'var(--accent)',
+      badgeBg: 'var(--accent-light)',
       desc: 'La conversion d’adresse en coordonnées (géocodage) utilise Nominatim, un géocodeur open source basé sur les données d’OpenStreetMap.',
       credit: '© Nominatim / les contributeurs d’OpenStreetMap',
       licence: 'ODbL',
@@ -68,8 +67,8 @@ export default function AttributionPage() {
     {
       name: 'Leaflet',
       badge: 'Bibliothèque cartographique',
-      badgeColor: '#166534',
-      badgeBg: 'rgba(22,101,52,0.07)',
+      badgeColor: 'var(--accent)',
+      badgeBg: 'var(--accent-light)',
       desc: 'La carte interactive est affichée avec Leaflet, une bibliothèque cartographique JavaScript open source.',
       credit: '© les contributeurs de Leaflet',
       licence: 'BSD 2-Clause',
@@ -114,7 +113,7 @@ export default function AttributionPage() {
           height="16"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="#1a56c4"
+          stroke="var(--accent)"
           strokeWidth="2"
           strokeLinecap="round"
           style={{ flexShrink: 0, marginTop: 1 }}

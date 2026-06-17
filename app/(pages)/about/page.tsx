@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { InfoPage } from '@/components/ui/PageLayout'
+import { IcoMap, IcoStar, IcoRoute, IcoHeart, IcoMapPin, IcoSearch } from '@/components/icons'
 
 export const metadata: Metadata = {
   title: 'À propos · Forkmap',
@@ -76,32 +77,32 @@ export default function AboutPage() {
         >
           {[
             {
-              icon: '🗺',
+              Icon: IcoMap,
               title: 'Explorez la carte',
               desc: 'Parcourez les restaurants sur une carte interactive. Déplacez-vous, zoomez et découvrez ce qui se trouve dans chaque quartier.',
             },
             {
-              icon: '⭐',
+              Icon: IcoStar,
               title: 'Filtrez par qualité',
               desc: "Filtrez par note, prix, cuisine et horaires d'ouverture. Triez par distance, score ou nom.",
             },
             {
-              icon: '🧭',
+              Icon: IcoRoute,
               title: "Obtenez l'itinéraire",
               desc: "Calculez votre trajet à pied, à vélo, en transports ou en voiture jusqu'à n'importe quel restaurant, directement depuis l'application.",
             },
             {
-              icon: '❤️',
+              Icon: IcoHeart,
               title: 'Enregistrez vos favoris',
               desc: 'Gardez les adresses que vous aimez ou que vous voulez visiter. Votre liste se synchronise sur tous vos appareils.',
             },
             {
-              icon: '📍',
+              Icon: IcoMapPin,
               title: 'Définissez votre position',
               desc: 'Utilisez votre GPS, saisissez une adresse ou placez un repère où vous voulez sur la carte comme point de départ.',
             },
             {
-              icon: '🔍',
+              Icon: IcoSearch,
               title: 'Recherchez instantanément',
               desc: 'Cherchez par nom ou type de cuisine. Les résultats se mettent à jour en temps réel pendant que vous tapez.',
             },
@@ -116,7 +117,9 @@ export default function AboutPage() {
                 boxShadow: '0 1px 4px rgba(28,25,23,0.05)',
               }}
             >
-              <div style={{ fontSize: 24, marginBottom: 10 }}>{item.icon}</div>
+              <div style={{ marginBottom: 10, color: 'var(--accent)' }}>
+                <item.Icon size={24} />
+              </div>
               <h3
                 style={{
                   margin: '0 0 6px',

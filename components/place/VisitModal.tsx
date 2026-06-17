@@ -8,6 +8,14 @@ import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import type { PlaceCard } from '@/types'
 import { friendlyError } from '@/lib/api-errors'
 import { apiFetch } from '@/lib/api'
+import {
+  IcoMoodSolo,
+  IcoMoodCouple,
+  IcoMoodFriends,
+  IcoMoodFamily,
+  IcoMoodWork,
+} from '@/components/icons'
+import type { LucideProps } from 'lucide-react'
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   try {
@@ -39,12 +47,12 @@ interface Props {
   onSaved: () => void
 }
 
-const MOODS = [
-  { id: 'solo', label: 'Solo', emoji: '🧍' },
-  { id: 'couple', label: 'En couple', emoji: '👫' },
-  { id: 'friends', label: 'Amis', emoji: '👯' },
-  { id: 'family', label: 'Famille', emoji: '👨‍👩‍👧' },
-  { id: 'work', label: 'Travail', emoji: '💼' },
+const MOODS: { id: string; label: string; Icon: (p: LucideProps) => React.ReactElement }[] = [
+  { id: 'solo', label: 'Solo', Icon: IcoMoodSolo },
+  { id: 'couple', label: 'En couple', Icon: IcoMoodCouple },
+  { id: 'friends', label: 'Amis', Icon: IcoMoodFriends },
+  { id: 'family', label: 'Famille', Icon: IcoMoodFamily },
+  { id: 'work', label: 'Travail', Icon: IcoMoodWork },
 ]
 
 const IcoX = () => (
@@ -363,7 +371,7 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
           {/* Date */}
           <div>
             <label htmlFor="visit-date" style={labelStyle}>
-              <span aria-hidden="true">📅</span> Date de la visite
+              Date de la visite
             </label>
             <input
               id="visit-date"
@@ -379,7 +387,7 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label htmlFor="visit-amount" style={labelStyle}>
-                <span aria-hidden="true">💶</span> Montant total (€)
+                Montant total (€)
               </label>
               <div style={{ position: 'relative' }}>
                 <input
@@ -422,7 +430,7 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
             </div>
             <div>
               <label htmlFor="visit-people" style={labelStyle}>
-                <span aria-hidden="true">👥</span> Nombre de personnes
+                Nombre de personnes
               </label>
               <div id="visit-people" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <button
@@ -457,7 +465,7 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
           {/* Rating personnel */}
           <div>
             <label id="visit-rating-label" style={labelStyle}>
-              <span aria-hidden="true">⭐</span> Ma note personnelle
+              <IcoStar filled /> Ma note personnelle
             </label>
             <div style={{ display: 'flex', gap: 6 }}>
               {[1, 2, 3, 4, 5].map((s) => (
@@ -471,7 +479,7 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
                     border: 'none',
                     cursor: 'pointer',
                     padding: '2px',
-                    color: (hoverStar || rating) >= s ? '#f59e0b' : 'var(--ink-20)',
+                    color: (hoverStar || rating) >= s ? 'var(--accent)' : 'var(--ink-20)',
                     transition: 'color 100ms,transform 100ms',
                     transform: (hoverStar || rating) >= s ? 'scale(1.15)' : 'scale(1)',
                   }}
@@ -497,7 +505,7 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
           {/* Mood */}
           <div>
             <label htmlFor="visit-mood" style={labelStyle}>
-              <span aria-hidden="true">🎭</span> Contexte
+              Contexte
             </label>
             <div id="visit-mood" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {MOODS.map((m) => (
@@ -521,7 +529,7 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
                     gap: 5,
                   }}
                 >
-                  <span aria-hidden="true">{m.emoji}</span> {m.label}
+                  <m.Icon size={15} aria-hidden="true" /> {m.label}
                 </button>
               ))}
             </div>
@@ -530,7 +538,7 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
           {/* Note */}
           <div>
             <label htmlFor="visit-note" style={labelStyle}>
-              <span aria-hidden="true">📝</span> Note (optionnel)
+              Note (optionnel)
             </label>
             <textarea
               id="visit-note"

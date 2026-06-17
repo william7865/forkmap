@@ -10,6 +10,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { IcoAlert } from '@/components/icons'
 
 interface Props {
   error: Error & { digest?: string }
@@ -62,10 +63,10 @@ export default function GlobalError({ error, reset }: Props) {
                 alignItems: 'center',
                 justifyContent: 'center',
                 marginBottom: 18,
-                fontSize: 24,
+                color: 'var(--accent)',
               }}
             >
-              🍽️
+              <IcoAlert size={24} />
             </div>
 
             <h2

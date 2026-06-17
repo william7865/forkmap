@@ -13,6 +13,25 @@ import VisitModal from '@/components/place/VisitModal'
 import Image from 'next/image'
 import { apiFetch } from '@/lib/api'
 import { useIsMobile } from '@/lib/hooks/useMediaQuery'
+import {
+  IcoTrophy,
+  IcoFork,
+  IcoStats,
+  IcoMoodSolo,
+  IcoMoodCouple,
+  IcoMoodFriends,
+  IcoMoodFamily,
+  IcoMoodWork,
+} from '@/components/icons'
+import type { LucideProps } from 'lucide-react'
+
+const MOOD_ICONS: Record<string, (p: LucideProps) => React.ReactElement> = {
+  solo: IcoMoodSolo,
+  couple: IcoMoodCouple,
+  friends: IcoMoodFriends,
+  family: IcoMoodFamily,
+  work: IcoMoodWork,
+}
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   try {
@@ -188,22 +207,23 @@ interface VisitRow {
   snapshot?: Record<string, unknown>
 }
 
+// Gamme chaude monochrome (camaïeu terracotta → neutres) — pas de bariolage
 const CUISINE_COLORS = [
-  '#1d5d40',
   '#bb5e2e',
-  '#c47c2b',
-  '#1d65c8',
-  '#d94f3d',
-  '#7c3aed',
-  '#0891b2',
-  '#065f46',
+  '#9f4d22',
+  '#c47c52',
+  '#7a3a1a',
+  '#8a7253',
+  '#a8521f',
+  '#6b5d4a',
+  '#d4a07a',
 ]
 const MOOD_LABELS: Record<string, string> = {
-  solo: 'Solo 🧍',
-  couple: 'Couple 👫',
-  friends: 'Amis 👯',
-  family: 'Famille 👨‍👩‍👧',
-  work: 'Travail 💼',
+  solo: 'Solo',
+  couple: 'Couple',
+  friends: 'Amis',
+  family: 'Famille',
+  work: 'Travail',
 }
 
 function Card({ children, style }: { children?: React.ReactNode; style?: React.CSSProperties }) {
@@ -892,14 +912,6 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
 
   const hasStats = !statsLoading && stats && stats.total_visits > 0
 
-  const MOOD_EMOJIS: Record<string, string> = {
-    solo: '🧍',
-    couple: '👫',
-    friends: '👯',
-    family: '👨‍👩‍👧',
-    work: '💼',
-  }
-
   const totalVisites = visits.length
   const avgSpend =
     visits.filter((v) => v.amount_spent).length > 0
@@ -1262,7 +1274,11 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                   fontFamily: 'var(--font-body)',
                 }}
               >
-                🏆 {topRestaurant}
+                <span
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, lineHeight: 1 }}
+                >
+                  <IcoTrophy size={14} /> {topRestaurant}
+                </span>
               </div>
             )}
           </div>
@@ -1403,7 +1419,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                       .map((r) => ({
                         label: r.name,
                         value: Math.round(r.total_spent),
-                        sublabel: r.avg_rating > 0 ? `⭐ ${r.avg_rating.toFixed(1)}` : undefined,
+                        sublabel: r.avg_rating > 0 ? `★ ${r.avg_rating.toFixed(1)}` : undefined,
                       }))}
                     color="var(--coral)"
                     valueSuffix="€"
@@ -1454,7 +1470,16 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
             {!statsLoading && (!stats || stats.total_visits === 0) && (
               <Card style={{ animation: 'fadeUp 280ms var(--ease-out) 60ms both' }}>
                 <div style={{ padding: '32px 24px', textAlign: 'center' as const }}>
-                  <div style={{ fontSize: 40, marginBottom: 16 }}>📊</div>
+                  <div
+                    style={{
+                      marginBottom: 16,
+                      display: 'flex',
+                      justifyContent: 'center',
+                      color: 'var(--text-4)',
+                    }}
+                  >
+                    <IcoStats size={40} />
+                  </div>
                   <h3
                     style={{
                       margin: '0 0 8px',
@@ -1595,7 +1620,16 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                 </div>
               ) : sortedVisits.length === 0 ? (
                 <div style={{ padding: '28px 20px', textAlign: 'center' as const }}>
-                  <div style={{ fontSize: 32, marginBottom: 10 }}>🍽</div>
+                  <div
+                    style={{
+                      marginBottom: 10,
+                      display: 'flex',
+                      justifyContent: 'center',
+                      color: 'var(--text-4)',
+                    }}
+                  >
+                    <IcoFork size={32} />
+                  </div>
                   <p style={{ margin: 0, fontSize: 13, color: 'var(--text-3)' }}>
                     Aucune visite enregistrée
                   </p>
@@ -1608,7 +1642,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                       month: 'short',
                       year: 'numeric',
                     })
-                    const moodEmoji = visit.mood ? MOOD_EMOJIS[visit.mood] : null
+                    const MoodIcon = visit.mood ? MOOD_ICONS[visit.mood] : null
                     const notePreview =
                       visit.note && visit.note.length > 60
                         ? visit.note.slice(0, 60) + '…'
@@ -1673,7 +1707,14 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                                 ))}
                               </span>
                             )}
-                            {moodEmoji && <span style={{ fontSize: 11 }}>{moodEmoji}</span>}
+                            {MoodIcon && (
+                              <span
+                                style={{ display: 'inline-flex', color: 'var(--text-3)' }}
+                                aria-hidden="true"
+                              >
+                                <MoodIcon size={12} />
+                              </span>
+                            )}
                             {visit.amount_spent != null && (
                               <span
                                 style={{

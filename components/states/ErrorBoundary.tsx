@@ -24,6 +24,7 @@
 'use client'
 
 import { Component, type ReactNode, type ErrorInfo } from 'react'
+import { IcoAlert } from '@/components/icons'
 
 interface Props {
   children: ReactNode
@@ -120,16 +121,16 @@ export class ErrorBoundary extends Component<Props, State> {
                 width: 52,
                 height: 52,
                 borderRadius: 16,
-                background: 'rgba(45,122,85,0.08)',
-                border: '1px solid rgba(45,122,85,0.16)',
+                background: 'var(--accent-light)',
+                border: '1px solid var(--border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 marginBottom: 18,
-                fontSize: 24,
+                color: 'var(--accent)',
               }}
             >
-              🗺️
+              <IcoAlert size={24} />
             </div>
 
             {/* Heading */}

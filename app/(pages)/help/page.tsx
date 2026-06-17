@@ -31,7 +31,7 @@ const FAQS: FAQItem[] = [
   {
     category: 'Favoris',
     q: 'Comment enregistrer un restaurant dans mes favoris ?',
-    a: "Cliquez sur l'icône cœur ♡ sur n'importe quelle fiche de restaurant dans la barre latérale ou dans le panneau de détails. Le cœur devient orange une fois enregistré. Vous devez être connecté pour que vos favoris soient conservés. Sinon ils sont perdus au rechargement de la page.",
+    a: "Cliquez sur l'icône marque-page sur n'importe quelle fiche de restaurant dans la barre latérale ou dans le panneau de détails. Le marque-page se remplit une fois le lieu enregistré. Vous devez être connecté pour que vos favoris soient conservés. Sinon ils sont perdus au rechargement de la page.",
   },
   {
     category: 'Favoris',

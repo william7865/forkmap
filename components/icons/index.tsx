@@ -37,6 +37,12 @@ import {
   ChevronDown,
   Check,
   AlertCircle,
+  Heart,
+  Users,
+  UsersRound,
+  Briefcase,
+  Trophy,
+  Sparkles,
 } from 'lucide-react'
 
 const DEFAULTS: Partial<LucideProps> = { size: 16, strokeWidth: 1.75 }
@@ -80,3 +86,12 @@ export const IcoTrash = (p: LucideProps) => <Trash2 {...DEFAULTS} size={15} {...
 export const IcoExternal = (p: LucideProps) => <ExternalLink {...DEFAULTS} size={13} {...p} />
 export const IcoCheck = (p: LucideProps) => <Check {...DEFAULTS} size={14} {...p} />
 export const IcoAlert = (p: LucideProps) => <AlertCircle {...DEFAULTS} size={14} {...p} />
+export const IcoSparkle = (p: LucideProps) => <Sparkles {...DEFAULTS} {...p} />
+export const IcoTrophy = (p: LucideProps) => <Trophy {...DEFAULTS} {...p} />
+
+// Humeurs de visite — famille unifiée (remplace les emojis 🧍👫👯👨‍👩‍👧💼)
+export const IcoMoodSolo = (p: LucideProps) => <User {...DEFAULTS} size={20} {...p} />
+export const IcoMoodCouple = (p: LucideProps) => <Heart {...DEFAULTS} size={20} {...p} />
+export const IcoMoodFriends = (p: LucideProps) => <Users {...DEFAULTS} size={20} {...p} />
+export const IcoMoodFamily = (p: LucideProps) => <UsersRound {...DEFAULTS} size={20} {...p} />
+export const IcoMoodWork = (p: LucideProps) => <Briefcase {...DEFAULTS} size={20} {...p} />

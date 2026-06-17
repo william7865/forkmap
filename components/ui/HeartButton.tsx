@@ -25,7 +25,7 @@ function Particles({ active }: { active: boolean }) {
     { tx: '-10px', ty: '16px' },
   ]
 
-  const colors = ['var(--accent)', 'var(--accent-hover)', 'var(--green)', 'var(--sky)']
+  const colors = ['var(--accent)', 'var(--accent-hover)', 'var(--accent-text)', 'var(--accent)']
 
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>

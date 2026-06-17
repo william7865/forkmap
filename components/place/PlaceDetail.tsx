@@ -1544,7 +1544,7 @@ export default function PlaceDetail({
                       year: 'numeric',
                     })}
                     {v.personal_rating != null && (
-                      <span style={{ marginLeft: 8, color: '#f59e0b' }}>
+                      <span style={{ marginLeft: 8, color: 'var(--accent)' }}>
                         {'★'.repeat(v.personal_rating)}
                       </span>
                     )}
