@@ -17,7 +17,6 @@ import {
   Clock,
   ArrowRight,
   Route,
-  Utensils,
   Bike,
   Car,
   Footprints,
@@ -37,13 +36,18 @@ import {
   ChevronDown,
   Check,
   AlertCircle,
-  Heart,
-  Users,
-  UsersRound,
-  Briefcase,
-  Trophy,
-  Sparkles,
 } from 'lucide-react'
+import {
+  SigSparkle,
+  SigTrophy,
+  SigFork,
+  SigNear,
+  SigMoodSolo,
+  SigMoodCouple,
+  SigMoodFriends,
+  SigMoodFamily,
+  SigMoodWork,
+} from './signature'
 
 const DEFAULTS: Partial<LucideProps> = { size: 16, strokeWidth: 1.75 }
 
@@ -67,7 +71,7 @@ export const IcoGlobe = (p: LucideProps) => <Globe {...DEFAULTS} size={14} {...p
 export const IcoClock = (p: LucideProps) => <Clock {...DEFAULTS} size={13} {...p} />
 export const IcoArrow = (p: LucideProps) => <ArrowRight {...DEFAULTS} size={13} {...p} />
 export const IcoRoute = (p: LucideProps) => <Route {...DEFAULTS} size={14} {...p} />
-export const IcoFork = (p: LucideProps) => <Utensils {...DEFAULTS} size={36} {...p} />
+export const IcoFork = (p: LucideProps) => <SigFork size={36} {...p} />
 export const IcoPin = (p: LucideProps) => <MapPin {...DEFAULTS} size={13} {...p} />
 export const IcoMap = (p: LucideProps) => <Map {...DEFAULTS} size={13} {...p} />
 export const IcoWalk = (p: LucideProps) => <Footprints {...DEFAULTS} size={15} {...p} />
@@ -86,12 +90,14 @@ export const IcoTrash = (p: LucideProps) => <Trash2 {...DEFAULTS} size={15} {...
 export const IcoExternal = (p: LucideProps) => <ExternalLink {...DEFAULTS} size={13} {...p} />
 export const IcoCheck = (p: LucideProps) => <Check {...DEFAULTS} size={14} {...p} />
 export const IcoAlert = (p: LucideProps) => <AlertCircle {...DEFAULTS} size={14} {...p} />
-export const IcoSparkle = (p: LucideProps) => <Sparkles {...DEFAULTS} {...p} />
-export const IcoTrophy = (p: LucideProps) => <Trophy {...DEFAULTS} {...p} />
+// Icônes signature dessinées main (style éditorial Forkmap)
+export const IcoSparkle = (p: LucideProps) => <SigSparkle size={16} {...p} />
+export const IcoTrophy = (p: LucideProps) => <SigTrophy size={16} {...p} />
+export const IcoNear = (p: LucideProps) => <SigNear size={16} {...p} />
 
-// Humeurs de visite — famille unifiée (remplace les emojis 🧍👫👯👨‍👩‍👧💼)
-export const IcoMoodSolo = (p: LucideProps) => <User {...DEFAULTS} size={20} {...p} />
-export const IcoMoodCouple = (p: LucideProps) => <Heart {...DEFAULTS} size={20} {...p} />
-export const IcoMoodFriends = (p: LucideProps) => <Users {...DEFAULTS} size={20} {...p} />
-export const IcoMoodFamily = (p: LucideProps) => <UsersRound {...DEFAULTS} size={20} {...p} />
-export const IcoMoodWork = (p: LucideProps) => <Briefcase {...DEFAULTS} size={20} {...p} />
+// Humeurs de visite — silhouettes signature (remplace les emojis 🧍👫👯👨‍👩‍👧💼)
+export const IcoMoodSolo = (p: LucideProps) => <SigMoodSolo size={20} {...p} />
+export const IcoMoodCouple = (p: LucideProps) => <SigMoodCouple size={20} {...p} />
+export const IcoMoodFriends = (p: LucideProps) => <SigMoodFriends size={20} {...p} />
+export const IcoMoodFamily = (p: LucideProps) => <SigMoodFamily size={20} {...p} />
+export const IcoMoodWork = (p: LucideProps) => <SigMoodWork size={20} {...p} />
