@@ -365,7 +365,10 @@ export default function PlaceDetail({
       {/* ── Photo banner with overlay ── */}
       {(() => {
         const firstPhoto = photos[0]
-        const photoUrl = firstPhoto ? buildPhotoUrl(firstPhoto, 600) : null
+        // Free photo fallback: Wikidata/Wikimedia image when no Foursquare photo
+        const photoUrl = firstPhoto
+          ? buildPhotoUrl(firstPhoto, 600)
+          : (place.wikidata?.image_url ?? null)
 
         const glassBtnStyle: React.CSSProperties = {
           width: 36,
