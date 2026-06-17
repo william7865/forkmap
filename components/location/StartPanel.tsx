@@ -33,21 +33,6 @@ const IcoGps = () => (
     <circle cx="12" cy="12" r="9" strokeWidth="1.4" opacity="0.35" />
   </svg>
 )
-const IcoSearch = () => (
-  <svg
-    width="13"
-    height="13"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.7"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="11" cy="11" r="8" />
-    <path d="m21 21-4.35-4.35" />
-  </svg>
-)
 const IcoPin = () => (
   <svg
     width="11"
@@ -165,7 +150,7 @@ export default function StartPanel({
             gap: 4,
           }}
         >
-          <IcoPin /> Starting point
+          <IcoPin /> Point de départ
         </span>
         {hasLocation && (
           <span
@@ -178,7 +163,7 @@ export default function StartPanel({
               color: 'var(--green)',
             }}
           >
-            <IcoCheck /> Set
+            <IcoCheck /> Défini
           </span>
         )}
       </div>
@@ -212,14 +197,14 @@ export default function StartPanel({
                 }}
               />
             ) : (
-              <IcoSearch />
+              <IcoPin />
             )}
           </span>
 
           <input
             ref={inputRef}
             type="text"
-            placeholder={hasGpsLocation ? 'Current location (GPS)' : 'Search address…'}
+            placeholder={hasGpsLocation ? 'Position actuelle (GPS)' : 'Rechercher une adresse…'}
             value={query}
             onChange={(e) => handleInput(e.target.value)}
             onFocus={() => suggestions.length > 0 && setShowSugg(true)}
@@ -235,7 +220,7 @@ export default function StartPanel({
               padding: '7px 26px 7px 28px',
               borderRadius: 'var(--r-md)',
               border: `1px solid ${hasLocation ? 'rgba(27,127,79,0.3)' : 'var(--b2)'}`,
-              background: hasGpsLocation ? '#dcfce7' : 'var(--off-white)',
+              background: hasGpsLocation ? 'var(--open-bg)' : 'var(--off-white)',
               color: 'var(--ink)',
               fontSize: 12,
               fontWeight: 500,
@@ -250,7 +235,9 @@ export default function StartPanel({
             }}
             onBlurCapture={(e) => {
               e.currentTarget.style.borderColor = hasLocation ? 'rgba(27,127,79,0.3)' : 'var(--b2)'
-              e.currentTarget.style.background = hasGpsLocation ? '#dcfce7' : 'var(--off-white)'
+              e.currentTarget.style.background = hasGpsLocation
+                ? 'var(--open-bg)'
+                : 'var(--off-white)'
               e.currentTarget.style.boxShadow = 'none'
             }}
           />
@@ -361,7 +348,7 @@ export default function StartPanel({
             background: locateError
               ? 'var(--coral-pale)'
               : hasGpsLocation
-                ? '#dcfce7'
+                ? 'var(--open-bg)'
                 : 'var(--off-white)',
             color: locateError ? 'var(--coral)' : hasGpsLocation ? 'var(--green)' : 'var(--ink-80)',
             cursor: locating ? 'wait' : 'pointer',

@@ -18,10 +18,9 @@ import {
   MapPin,
   ChevronLeft,
   ChevronRight,
-  Navigation,
-  Sparkles,
   Bookmark,
 } from 'lucide-react'
+import { SigSparkle } from '@/components/icons/signature'
 
 const MapView = dynamic(() => import('@/components/map/MapView'), { ssr: false })
 const PlaceDetail = dynamic(() => import('@/components/place/PlaceDetail'), { ssr: false })
@@ -403,28 +402,6 @@ export default function HomePage() {
                 {activeCount}
               </span>
             )}
-          </button>
-
-          {/* Locate button */}
-          <button
-            onClick={locate}
-            title="Me localiser"
-            aria-label="Me localiser"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 8,
-              borderRadius: 8,
-              cursor: 'pointer',
-              background: 'none',
-              border: 'none',
-              color: locating ? 'var(--accent)' : 'var(--text-2)',
-              flexShrink: 0,
-              transition: 'color 120ms ease',
-            }}
-          >
-            <Navigation size={15} strokeWidth={1.75} />
           </button>
 
           {/* Saved-only toggle */}
@@ -898,7 +875,7 @@ export default function HomePage() {
             e.currentTarget.style.transform = 'translateX(-50%)'
           }}
         >
-          <Sparkles size={17} strokeWidth={2} />
+          <SigSparkle size={17} />
           Surprends-moi
         </button>
       )}
@@ -997,7 +974,7 @@ export default function HomePage() {
             className="btn-ember"
             style={{ margin: '4px 0 12px' }}
           >
-            <Sparkles size={16} strokeWidth={2} />
+            <SigSparkle size={16} />
             Je ne sais pas quoi manger
           </button>
           {savedOnly && savedListTabs}
