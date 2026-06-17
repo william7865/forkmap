@@ -178,6 +178,5 @@ Tailwind est configuré mais la plupart des composants utilisent des **styles in
 ## CI / Automatisation (`.github/workflows/`)
 
 - `ci.yml` — au push/PR vers `master` : lint · type-check · build.
-- `claude-audit.yml` — au push vers `master` : génère un rapport d'audit statique (`scripts/claude-audit.mjs`, **sans aucune clé API** — ESLint + tsc + npm audit) et le committe sous `audits/`.
 
 Aucune étape `npm test` ne tourne encore dans `ci.yml` — lancer Vitest en local.
