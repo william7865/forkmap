@@ -1,6 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 import { useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useHomeState, UNLISTED } from '@/lib/hooks/useHomeState'
@@ -783,6 +784,41 @@ export default function HomePage() {
               onResetFilters={() => handleFilters({ sortBy: 'score' })}
               onShare={setSharePlace}
             />
+          </div>
+
+          {/* Footer liens secondaires — la carte n'a pas d'autre footer */}
+          <div
+            style={{
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 14,
+              padding: '10px 16px',
+              borderTop: '1px solid var(--border)',
+            }}
+          >
+            {[
+              { href: '/help', label: 'Aide' },
+              { href: '/about', label: 'À propos' },
+              { href: '/contact', label: 'Contact' },
+            ].map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                style={{
+                  fontSize: 11,
+                  color: 'var(--text-3)',
+                  textDecoration: 'none',
+                  fontFamily: 'var(--font-body)',
+                  transition: 'color 120ms ease',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-3)')}
+              >
+                {l.label}
+              </Link>
+            ))}
           </div>
         </div>
       )}
