@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import { useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { useHomeState } from '@/lib/hooks/useHomeState'
+import { useHomeState, UNLISTED } from '@/lib/hooks/useHomeState'
 import SuggestionsPanel from '@/components/place/SuggestionsPanel'
 import PlaceList from '@/components/place/PlaceList'
 import PlaceCardSkeleton from '@/components/place/PlaceCardSkeleton'
@@ -63,6 +63,9 @@ export default function HomePage() {
     favoriteIds,
     savedOnly,
     toggleSavedOnly,
+    savedLists,
+    activeSavedList,
+    selectSavedList,
     routeLoading,
     routeResult,
     selectedPlace,
@@ -116,6 +119,52 @@ export default function HomePage() {
 
   const sidebarW = 380
   const searchLeft = isMobile ? 12 : sidebarCollapsed ? 12 : sidebarW + 12
+
+  // Collection tabs shown in saved mode (Tous + user's lists)
+  const savedListTabs =
+    savedOnly && savedLists.length > 0 ? (
+      <div
+        style={{
+          display: 'flex',
+          gap: 6,
+          overflowX: 'auto',
+          paddingBottom: 2,
+          scrollbarWidth: 'none',
+          marginTop: 8,
+        }}
+      >
+        {[
+          { id: null as string | null, name: 'Tous' },
+          { id: UNLISTED, name: 'Sans liste' },
+          ...savedLists,
+        ].map((l) => {
+          const active = activeSavedList === l.id
+          return (
+            <button
+              key={l.id ?? 'all'}
+              onClick={() => selectSavedList(l.id)}
+              aria-pressed={active}
+              style={{
+                flexShrink: 0,
+                padding: '4px 12px',
+                borderRadius: 999,
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer',
+                border: `1px solid ${active ? 'var(--ember)' : 'var(--border)'}`,
+                background: active ? 'var(--ember)' : 'var(--surface)',
+                color: active ? '#fff' : 'var(--text-2)',
+                fontFamily: 'var(--font-body)',
+                transition: 'all 120ms ease',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {l.name}
+            </button>
+          )
+        })}
+      </div>
+    ) : null
 
   return (
     <div
@@ -659,67 +708,70 @@ export default function HomePage() {
               </button>
             </div>
 
-            {/* Quick filter chips */}
-            {(() => {
-              type ChipDef = { id: string; label: string; active: boolean; onToggle: () => void }
-              const chips: ChipDef[] = [
-                {
-                  id: 'open',
-                  label: 'Ouvert',
-                  active: !!filters.openNow,
-                  onToggle: () => setFilters((f) => ({ ...f, openNow: !f.openNow })),
-                },
-                {
-                  id: 'rating4',
-                  label: '8+ / 10',
-                  active: (filters.minRating ?? 0) >= 8,
-                  onToggle: () =>
-                    setFilters((f) => ({ ...f, minRating: (f.minRating ?? 0) >= 8 ? 0 : 8 })),
-                },
-                ...topCuisines.map((c) => ({
-                  id: `cuisine-${c}`,
-                  label: c,
-                  active: filters.cuisine === c,
-                  onToggle: () => setFilters((f) => ({ ...f, cuisine: f.cuisine === c ? '' : c })),
-                })),
-              ]
-              return (
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: 6,
-                    overflowX: 'auto',
-                    paddingBottom: 2,
-                    scrollbarWidth: 'none',
-                    marginTop: 8,
-                  }}
-                >
-                  {chips.map((chip) => (
-                    <button
-                      key={chip.id}
-                      onClick={chip.onToggle}
-                      aria-pressed={chip.active}
-                      style={{
-                        flexShrink: 0,
-                        padding: '4px 10px',
-                        borderRadius: 999,
-                        fontSize: 11,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        border: `1px solid ${chip.active ? 'var(--accent)' : 'var(--border)'}`,
-                        background: chip.active ? 'var(--accent)' : 'var(--surface)',
-                        color: chip.active ? 'white' : 'var(--text-2)',
-                        fontFamily: 'var(--font-body)',
-                        transition: 'all 120ms ease',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {chip.label}
-                    </button>
-                  ))}
-                </div>
-              )
-            })()}
+            {/* Collection tabs in saved mode, else discovery quick chips */}
+            {savedOnly && savedListTabs}
+            {!savedOnly &&
+              (() => {
+                type ChipDef = { id: string; label: string; active: boolean; onToggle: () => void }
+                const chips: ChipDef[] = [
+                  {
+                    id: 'open',
+                    label: 'Ouvert',
+                    active: !!filters.openNow,
+                    onToggle: () => setFilters((f) => ({ ...f, openNow: !f.openNow })),
+                  },
+                  {
+                    id: 'rating4',
+                    label: '8+ / 10',
+                    active: (filters.minRating ?? 0) >= 8,
+                    onToggle: () =>
+                      setFilters((f) => ({ ...f, minRating: (f.minRating ?? 0) >= 8 ? 0 : 8 })),
+                  },
+                  ...topCuisines.map((c) => ({
+                    id: `cuisine-${c}`,
+                    label: c,
+                    active: filters.cuisine === c,
+                    onToggle: () =>
+                      setFilters((f) => ({ ...f, cuisine: f.cuisine === c ? '' : c })),
+                  })),
+                ]
+                return (
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: 6,
+                      overflowX: 'auto',
+                      paddingBottom: 2,
+                      scrollbarWidth: 'none',
+                      marginTop: 8,
+                    }}
+                  >
+                    {chips.map((chip) => (
+                      <button
+                        key={chip.id}
+                        onClick={chip.onToggle}
+                        aria-pressed={chip.active}
+                        style={{
+                          flexShrink: 0,
+                          padding: '4px 10px',
+                          borderRadius: 999,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          border: `1px solid ${chip.active ? 'var(--accent)' : 'var(--border)'}`,
+                          background: chip.active ? 'var(--accent)' : 'var(--surface)',
+                          color: chip.active ? 'white' : 'var(--text-2)',
+                          fontFamily: 'var(--font-body)',
+                          transition: 'all 120ms ease',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {chip.label}
+                      </button>
+                    ))}
+                  </div>
+                )
+              })()}
           </div>
 
           {/* Skeletons */}
@@ -731,8 +783,8 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Suggestions */}
-          {favoriteIds.size > 0 && visiblePlaces.length > 0 && !loading && (
+          {/* Suggestions (discovery only — not when browsing saved places) */}
+          {!savedOnly && favoriteIds.size > 0 && visiblePlaces.length > 0 && !loading && (
             <SuggestionsPanel
               places={visiblePlaces}
               favoriteIds={favoriteIds}
@@ -742,7 +794,10 @@ export default function HomePage() {
           )}
 
           {/* List */}
-          <div style={{ flex: 1, overflow: 'hidden' }}>
+          {/* minHeight:0 lets this flex child shrink below its content so the
+              inner PlaceList can actually scroll (default min-height:auto would
+              pin it to content height and only the first window would show). */}
+          <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
             <PlaceList
               places={visiblePlaces}
               selectedId={selectedPlace?.osm_id}
@@ -945,6 +1000,7 @@ export default function HomePage() {
             <Sparkles size={16} strokeWidth={2} />
             Je ne sais pas quoi manger
           </button>
+          {savedOnly && savedListTabs}
           <StartPanel
             userLocation={userLocation}
             locationLabel={locationLabel}

@@ -14,12 +14,12 @@ const FAQS: FAQItem[] = [
   {
     category: 'Pour commencer',
     q: 'Comment rechercher des restaurants ?',
-    a: 'Saisissez un nom de restaurant ou un type de cuisine dans la barre de recherche en haut de la carte. Les résultats se filtrent en temps réel au fur et à mesure que vous tapez. Vous pouvez aussi explorer la carte en la déplaçant et en zoomant — la liste de la barre latérale se met à jour automatiquement pour afficher ce qui se trouve dans la vue actuelle.',
+    a: 'Saisissez un nom de restaurant ou un type de cuisine dans la barre de recherche en haut de la carte. Les résultats se filtrent en temps réel au fur et à mesure que vous tapez. Vous pouvez aussi explorer la carte en la déplaçant et en zoomant : la liste de la barre latérale se met à jour automatiquement pour afficher ce qui se trouve dans la vue actuelle.',
   },
   {
     category: 'Pour commencer',
     q: 'Comment définir mon point de départ ?',
-    a: "Il existe trois façons : (1) Cliquez sur « Me localiser » dans la barre latérale — Forkmap utilisera le GPS de votre appareil. (2) Saisissez une adresse dans le champ du point de départ et choisissez une suggestion. (3) Cliquez sur « Placer le départ » dans l'en-tête, puis cliquez n'importe où sur la carte.",
+    a: "Il existe trois façons : (1) Cliquez sur « Me localiser » dans la barre latérale, Forkmap utilisera le GPS de votre appareil. (2) Saisissez une adresse dans le champ du point de départ et choisissez une suggestion. (3) Cliquez sur « Placer le départ » dans l'en-tête, puis cliquez n'importe où sur la carte.",
   },
   {
     category: 'Pour commencer',
@@ -31,7 +31,7 @@ const FAQS: FAQItem[] = [
   {
     category: 'Favoris',
     q: 'Comment enregistrer un restaurant dans mes favoris ?',
-    a: "Cliquez sur l'icône cœur ♡ sur n'importe quelle fiche de restaurant dans la barre latérale ou dans le panneau de détails. Le cœur devient orange une fois enregistré. Vous devez être connecté pour que vos favoris soient conservés — sinon ils sont perdus au rechargement de la page.",
+    a: "Cliquez sur l'icône cœur ♡ sur n'importe quelle fiche de restaurant dans la barre latérale ou dans le panneau de détails. Le cœur devient orange une fois enregistré. Vous devez être connecté pour que vos favoris soient conservés. Sinon ils sont perdus au rechargement de la page.",
   },
   {
     category: 'Favoris',
@@ -41,7 +41,7 @@ const FAQS: FAQItem[] = [
   {
     category: 'Favoris',
     q: 'Puis-je ouvrir un restaurant enregistré sur la carte ?',
-    a: "Oui. Sur la page Lieux enregistrés, cliquez sur n'importe quelle fiche de restaurant — la carte se centrera sur ce restaurant et ouvrira son panneau de détails.",
+    a: "Oui. Sur la page Lieux enregistrés, cliquez sur n'importe quelle fiche de restaurant : la carte se centrera sur ce restaurant et ouvrira son panneau de détails.",
   },
 
   // Itinéraire
@@ -53,14 +53,14 @@ const FAQS: FAQItem[] = [
   {
     category: 'Itinéraire',
     q: "Pourquoi l'itinéraire ne s'affiche-t-il pas ?",
-    a: "Les itinéraires nécessitent un point de départ. Assurez-vous d'en avoir défini un via la barre latérale (GPS ou adresse) ou avec le bouton « Placer le départ ». Si l'itinéraire ne s'affiche toujours pas, le service de calcul d'itinéraire est peut-être temporairement indisponible — réessayez dans un instant.",
+    a: "Les itinéraires nécessitent un point de départ. Assurez-vous d'en avoir défini un via la barre latérale (GPS ou adresse) ou avec le bouton « Placer le départ ». Si l'itinéraire ne s'affiche toujours pas, le service de calcul d'itinéraire est peut-être temporairement indisponible. Réessayez dans un instant.",
   },
 
   // Filtres
   {
     category: 'Filtres',
     q: 'Comment utiliser les filtres ?',
-    a: "Cliquez sur « Filtres » dans l'en-tête pour ouvrir le panneau de filtres. Vous pouvez filtrer par note minimale, nombre d'avis, niveau de prix, type de cuisine et selon qu'un établissement est actuellement ouvert. Les filtres s'appliquent immédiatement — la liste et la carte se mettent à jour en temps réel.",
+    a: "Cliquez sur « Filtres » dans l'en-tête pour ouvrir le panneau de filtres. Vous pouvez filtrer par note minimale, nombre d'avis, niveau de prix, type de cuisine et selon qu'un établissement est actuellement ouvert. Les filtres s'appliquent immédiatement : la liste et la carte se mettent à jour en temps réel.",
   },
   {
     category: 'Filtres',
@@ -89,12 +89,12 @@ const FAQS: FAQItem[] = [
   {
     category: 'Données & fiabilité',
     q: "D'où proviennent les données sur les restaurants ?",
-    a: "Les emplacements, noms, adresses, horaires d'ouverture et types de cuisine des restaurants proviennent d'OpenStreetMap — une carte maintenue par la communauté et sous licence libre. Les notes et le nombre d'avis sont enrichis depuis Foursquare.",
+    a: "Les emplacements, noms, adresses, horaires d'ouverture et types de cuisine des restaurants proviennent d'OpenStreetMap, une carte maintenue par la communauté et sous licence libre. Les notes et le nombre d'avis sont enrichis depuis Foursquare.",
   },
   {
     category: 'Données & fiabilité',
     q: "Les données d'un restaurant sont erronées. Que puis-je faire ?",
-    a: "Les données d'OpenStreetMap sont modifiées par des bénévoles. Si vous trouvez une erreur, vous pouvez la corriger directement sur openstreetmap.org — votre correction apparaîtra dans Forkmap sous quelques jours. Vous pouvez aussi nous contacter via la page Contact.",
+    a: "Les données d'OpenStreetMap sont modifiées par des bénévoles. Si vous trouvez une erreur, vous pouvez la corriger directement sur openstreetmap.org, votre correction apparaîtra dans Forkmap sous quelques jours. Vous pouvez aussi nous contacter via la page Contact.",
   },
 ]
 

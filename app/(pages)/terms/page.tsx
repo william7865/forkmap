@@ -7,7 +7,7 @@ import { InfoPage } from '@/components/ui/PageLayout'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Conditions d’utilisation — Forkmap',
+  title: 'Conditions d’utilisation · Forkmap',
   description: 'Conditions d’utilisation de Forkmap.',
 }
 

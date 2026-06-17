@@ -863,12 +863,35 @@ function DeckCard({
         </div>
       )}
 
-      {/* Made-for-you badge */}
-      {madeForYou && (
+      {/* Already-saved badge */}
+      {p.is_favorite && (
         <span
           style={{
             position: 'absolute',
             top: hasCarousel ? 24 : 16,
+            left: 16,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            fontSize: 10.5,
+            fontWeight: 700,
+            padding: '5px 11px',
+            borderRadius: 'var(--r-pill)',
+            background: 'var(--ember)',
+            color: '#fff',
+            zIndex: 4,
+          }}
+        >
+          <Heart size={11} strokeWidth={2.5} fill="#fff" /> Déjà enregistré
+        </span>
+      )}
+
+      {/* Made-for-you badge (sits below the saved badge when both show) */}
+      {madeForYou && (
+        <span
+          style={{
+            position: 'absolute',
+            top: (hasCarousel ? 24 : 16) + (p.is_favorite ? 32 : 0),
             left: 16,
             display: 'inline-flex',
             alignItems: 'center',

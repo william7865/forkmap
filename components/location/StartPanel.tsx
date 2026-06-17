@@ -348,7 +348,7 @@ export default function StartPanel({
           onClick={onLocateMe}
           title={
             locateError
-              ? 'Localisation refusée — saisissez une adresse'
+              ? 'Localisation refusée, saisissez une adresse'
               : 'Utiliser ma position actuelle'
           }
           aria-label="Utiliser ma position actuelle"
@@ -404,7 +404,7 @@ export default function StartPanel({
           }}
         >
           <IcoCheck />
-          {locationLabel ?? 'GPS location'} — distances updated
+          {locationLabel ?? 'Position GPS'} · distances à jour
         </p>
       )}
       {locateError && !hasLocation && (

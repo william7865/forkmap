@@ -238,7 +238,7 @@ export default function ShareModal({ place, onClose }: Props) {
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}&query_place_id=${place.lat},${place.lon}`
 
   const shareText = rating
-    ? `🍴 ${place.name}${cuisine ? ` · ${cuisine}` : ''} — noté ${rating.toFixed(1)}/10 sur Forkmap`
+    ? `🍴 ${place.name}${cuisine ? ` · ${cuisine}` : ''}, noté ${rating.toFixed(1)}/10 sur Forkmap`
     : `🍴 Je t'ai trouvé ce restaurant sur Forkmap : ${place.name}${cuisine ? ` (${cuisine})` : ''}`
 
   const fullShareText = `${shareText}\n${mapsUrl}`
@@ -276,7 +276,7 @@ export default function ShareModal({ place, onClose }: Props) {
   const handleEmail = () => {
     const subject = encodeURIComponent(`Restaurant recommandé : ${place.name}`)
     const body = encodeURIComponent(
-      `Salut !\n\nJe t'ai trouvé un super restaurant :\n\n${place.name}${cuisine ? ` (${cuisine})` : ''}${rating ? ` — ${rating.toFixed(1)}/10` : ''}\n\nVoir sur Google Maps : ${mapsUrl}\n\nTrouvé avec Forkmap 🗺️`
+      `Salut !\n\nJe t'ai trouvé un resto sympa :\n\n${place.name}${cuisine ? ` (${cuisine})` : ''}${rating ? `, ${rating.toFixed(1)}/10` : ''}\n\nVoir sur Google Maps : ${mapsUrl}\n\nTrouvé avec Forkmap 🗺️`
     )
     window.open(`mailto:?subject=${subject}&body=${body}`, '_blank')
   }

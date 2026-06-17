@@ -3,11 +3,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect, useMemo } from 'react'
 import { useAuth, getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
-import { Map, Bookmark, User, MoreHorizontal, LogOut } from 'lucide-react'
+import { Map, User, MoreHorizontal, LogOut } from 'lucide-react'
 
 const TABS = [
   { href: '/', Icon: Map, label: 'Carte' },
-  { href: '/favorites', Icon: Bookmark, label: 'Enregistré' },
   { href: '/account', Icon: User, label: 'Compte' },
 ]
 

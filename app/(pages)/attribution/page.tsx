@@ -7,7 +7,7 @@ import type { Metadata } from 'next'
 import { InfoPage } from '@/components/ui/PageLayout'
 
 export const metadata: Metadata = {
-  title: 'Attribution des données — Forkmap',
+  title: 'Attribution des données · Forkmap',
   description: 'Attribution des sources de données utilisées par Forkmap.',
 }
 

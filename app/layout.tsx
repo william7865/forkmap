@@ -10,9 +10,9 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Forkmap — Trouvez des restaurants exceptionnels près de vous',
+  title: 'Forkmap · Trouver un restaurant près de chez soi',
   description:
-    'Découvrez les meilleurs restaurants près de chez vous. Données réelles, cartes interactives, itinéraires intelligents.',
+    'Trouvez où manger près de chez vous. Vraies données, carte interactive, itinéraires.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

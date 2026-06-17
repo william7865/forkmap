@@ -470,6 +470,9 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
 
     const toAdd: A[] = []
     for (const place of places) {
+      // Skip entries without a usable id or coordinates: a NaN/undefined
+      // L.marker throws and would abort the rest of the loop (dropping pins).
+      if (!place.osm_id || !Number.isFinite(place.lat) || !Number.isFinite(place.lon)) continue
       const isFav = !!place.is_favorite
       const state = markerState(place.osm_id, selIdRef.current, hovIdRef.current, isFav)
       const rating = place.fsq?.rating ?? undefined
