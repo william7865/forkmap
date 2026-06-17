@@ -503,7 +503,7 @@ export default function PlaceDetail({
                       borderRadius: 'var(--r-pill)',
                       fontSize: 10,
                       fontWeight: 600,
-                      background: place.open_now ? 'rgba(45,122,85,0.85)' : 'rgba(180,40,40,0.75)',
+                      background: place.open_now ? 'var(--open)' : 'var(--closed)',
                       color: 'white',
                     }}
                   >
@@ -659,7 +659,7 @@ export default function PlaceDetail({
               height: 34,
               padding: '0 12px',
               borderRadius: 'var(--r-sm)',
-              border: `1px solid ${note ? 'rgba(45,122,85,0.35)' : 'var(--ink-10)'}`,
+              border: `1px solid ${note ? 'rgba(187,94,46,0.35)' : 'var(--ink-10)'}`,
               background: note ? 'var(--forest-pale)' : 'var(--off-white)',
               color: note ? 'var(--forest-mid)' : 'var(--ink-60)',
               cursor: 'pointer',
@@ -674,12 +674,12 @@ export default function PlaceDetail({
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'var(--forest-pale)'
-              e.currentTarget.style.borderColor = 'rgba(45,122,85,0.3)'
+              e.currentTarget.style.borderColor = 'rgba(187,94,46,0.3)'
               e.currentTarget.style.color = 'var(--forest-mid)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = note ? 'var(--forest-pale)' : 'var(--off-white)'
-              e.currentTarget.style.borderColor = note ? 'rgba(45,122,85,0.35)' : 'var(--ink-10)'
+              e.currentTarget.style.borderColor = note ? 'rgba(187,94,46,0.35)' : 'var(--ink-10)'
               e.currentTarget.style.color = note ? 'var(--forest-mid)' : 'var(--ink-60)'
             }}
           >
@@ -1446,7 +1446,7 @@ export default function PlaceDetail({
               gap: 9,
               padding: '10px 12px',
               background: 'var(--forest-pale)',
-              border: '1px solid rgba(45,122,85,0.2)',
+              border: '1px solid rgba(187,94,46,0.2)',
               borderLeft: '3px solid var(--forest-mid)',
               borderRadius: 'var(--r-md)',
               cursor: 'pointer',
@@ -1651,7 +1651,7 @@ export default function PlaceDetail({
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background = 'var(--forest-pale)'
-                      e.currentTarget.style.borderColor = 'rgba(45,122,85,0.25)'
+                      e.currentTarget.style.borderColor = 'rgba(187,94,46,0.25)'
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = 'var(--off-white)'

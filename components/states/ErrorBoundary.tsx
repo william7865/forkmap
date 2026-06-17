@@ -111,7 +111,10 @@ export class ErrorBoundary extends Component<Props, State> {
         >
           {/* Top accent */}
           <div
-            style={{ height: 3, background: 'linear-gradient(90deg,var(--forest-mid),#c47c2b)' }}
+            style={{
+              height: 3,
+              background: 'linear-gradient(90deg,var(--accent),var(--accent-hover))',
+            }}
           />
 
           <div style={{ padding: '28px 28px 24px' }}>

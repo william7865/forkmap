@@ -51,7 +51,12 @@ export default function GlobalError({ error, reset }: Props) {
             overflow: 'hidden',
           }}
         >
-          <div style={{ height: 3, background: 'linear-gradient(90deg,#e05a1e,#d4880a)' }} />
+          <div
+            style={{
+              height: 3,
+              background: 'linear-gradient(90deg,#bb5e2e,#9f4d22)',
+            }}
+          />
           <div style={{ padding: '28px 28px 24px' }}>
             <div
               style={{
@@ -63,7 +68,7 @@ export default function GlobalError({ error, reset }: Props) {
                 alignItems: 'center',
                 justifyContent: 'center',
                 marginBottom: 18,
-                color: 'var(--accent)',
+                color: '#bb5e2e',
               }}
             >
               <IcoAlert size={24} />
@@ -113,7 +118,7 @@ export default function GlobalError({ error, reset }: Props) {
                   padding: '11px 16px',
                   borderRadius: 12,
                   border: 'none',
-                  background: '#e05a1e',
+                  background: '#bb5e2e',
                   color: 'white',
                   fontSize: 13,
                   fontWeight: 700,

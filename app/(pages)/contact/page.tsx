@@ -253,7 +253,7 @@ export default function ContactPage() {
             fontSize: 14,
             fontWeight: 600,
             fontFamily: 'inherit',
-            boxShadow: valid ? '0 4px 16px rgba(45,122,85,0.15)' : 'none',
+            boxShadow: valid ? '0 4px 16px rgba(187,94,46,0.15)' : 'none',
             transition: 'all 150ms ease',
             display: 'flex',
             alignItems: 'center',
@@ -343,7 +343,7 @@ const inputStyle: React.CSSProperties = {
 }
 const focusStyle: React.CSSProperties = {
   borderColor: 'var(--forest-mid)',
-  boxShadow: '0 0 0 3px rgba(45,122,85,0.15)',
+  boxShadow: '0 0 0 3px rgba(187,94,46,0.15)',
 }
 const blurStyle: React.CSSProperties = {
   borderColor: 'rgba(28,25,23,0.12)',

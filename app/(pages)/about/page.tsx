@@ -18,8 +18,8 @@ export default function AboutPage() {
             display: 'inline-flex',
             alignItems: 'center',
             gap: 6,
-            background: 'rgba(45,122,85,0.15)',
-            border: '1px solid rgba(45,122,85,0.15)',
+            background: 'rgba(187,94,46,0.15)',
+            border: '1px solid rgba(187,94,46,0.15)',
             borderRadius: 999,
             padding: '4px 14px',
             marginBottom: 18,
@@ -261,9 +261,8 @@ export default function AboutPage() {
       <div
         style={{
           marginTop: 48,
-          background:
-            'linear-gradient(135deg, rgba(45,122,85,0.15) 0%, rgba(212,136,10,0.05) 100%)',
-          border: '1px solid rgba(45,122,85,0.15)',
+          background: 'linear-gradient(135deg, rgba(187,94,46,0.15) 0%, rgba(187,94,46,0.04) 100%)',
+          border: '1px solid rgba(187,94,46,0.15)',
           borderRadius: 18,
           padding: '28px 28px',
           display: 'flex',
@@ -299,7 +298,7 @@ export default function AboutPage() {
             textDecoration: 'none',
             fontSize: 13,
             fontWeight: 600,
-            boxShadow: '0 4px 16px rgba(45,122,85,0.15)',
+            boxShadow: '0 4px 16px rgba(187,94,46,0.15)',
             flexShrink: 0,
             transition: 'background 120ms',
           }}

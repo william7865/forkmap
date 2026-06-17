@@ -170,7 +170,7 @@ export default function SettingsPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 16px rgba(45,122,85,0.15)',
+              boxShadow: '0 4px 16px rgba(187,94,46,0.15)',
             }}
           >
             {avatarUrl ? (

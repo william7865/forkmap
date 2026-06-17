@@ -65,7 +65,7 @@ export default function TermsPage() {
             href="https://opendatacommons.org/licenses/odbl/"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: '#e05a1e' }}
+            style={{ color: 'var(--accent)' }}
           >
             licence ODbL
           </a>
@@ -84,7 +84,7 @@ export default function TermsPage() {
           Nous nous réservons le droit de suspendre ou de résilier votre compte à tout moment en cas
           de violation des présentes conditions. Vous pouvez supprimer votre compte à tout moment
           depuis les{' '}
-          <Link href="/settings" style={{ color: '#e05a1e' }}>
+          <Link href="/settings" style={{ color: 'var(--accent)' }}>
             Paramètres
           </Link>
           .
@@ -99,11 +99,11 @@ export default function TermsPage() {
       <Section title="Contact">
         <p>
           Des questions ? Utilisez la{' '}
-          <Link href="/contact" style={{ color: '#e05a1e' }}>
+          <Link href="/contact" style={{ color: 'var(--accent)' }}>
             page Contact
           </Link>{' '}
           ou écrivez à{' '}
-          <a href="mailto:hello@forkmap.app" style={{ color: '#e05a1e' }}>
+          <a href="mailto:hello@forkmap.app" style={{ color: 'var(--accent)' }}>
             hello@forkmap.app
           </a>
           .

@@ -178,7 +178,7 @@ export default function HelpPage() {
           }}
           onFocus={(e) => {
             e.currentTarget.style.borderColor = 'var(--forest-mid)'
-            e.currentTarget.style.boxShadow = '0 0 0 3px rgba(45,122,85,0.15)'
+            e.currentTarget.style.boxShadow = '0 0 0 3px rgba(187,94,46,0.15)'
           }}
           onBlur={(e) => {
             e.currentTarget.style.borderColor = 'rgba(28,25,23,0.12)'
@@ -197,7 +197,7 @@ export default function HelpPage() {
               padding: '5px 13px',
               borderRadius: 999,
               border: cat === c ? '1.5px solid var(--forest-mid)' : '1.5px solid var(--b2)',
-              background: cat === c ? 'rgba(45,122,85,0.15)' : 'transparent',
+              background: cat === c ? 'rgba(187,94,46,0.15)' : 'transparent',
               color: cat === c ? 'var(--forest)' : 'var(--ink-60)',
               fontSize: 11,
               fontWeight: 600,
@@ -227,7 +227,7 @@ export default function HelpPage() {
                 key={faq.q}
                 style={{
                   background: 'var(--white)',
-                  border: `1px solid ${isOpen ? 'rgba(45,122,85,0.15)' : 'var(--b1)'}`,
+                  border: `1px solid ${isOpen ? 'rgba(187,94,46,0.15)' : 'var(--b1)'}`,
                   borderRadius: 12,
                   overflow: 'hidden',
                   boxShadow: isOpen ? '0 4px 16px var(--b1)' : '0 1px 3px rgba(28,25,23,0.04)',
@@ -259,7 +259,7 @@ export default function HelpPage() {
                         letterSpacing: '0.06em',
                         textTransform: 'uppercase',
                         color: 'var(--forest)',
-                        background: 'rgba(45,122,85,0.15)',
+                        background: 'rgba(187,94,46,0.15)',
                         padding: '2px 7px',
                         borderRadius: 999,
                         flexShrink: 0,
