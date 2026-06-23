@@ -361,6 +361,9 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
         zoom: 15,
         zoomControl: false,
         preferCanvas: false,
+        // Attribution retirée de la carte → relayée par le lien "Attribution"
+        // des footers (conformité ODbL/CARTO conservée, page /attribution).
+        attributionControl: false,
       })
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {

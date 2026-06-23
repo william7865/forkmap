@@ -25,6 +25,17 @@ export default function AttributionPage() {
       href: 'https://www.openstreetmap.org',
     },
     {
+      name: 'CARTO',
+      badge: 'Fond de carte',
+      badgeColor: 'var(--accent)',
+      badgeBg: 'var(--accent-light)',
+      desc: 'Le fond de carte (tuiles « Voyager ») est fourni par CARTO, à partir des données d’OpenStreetMap.',
+      credit: '© CARTO, © les contributeurs d’OpenStreetMap',
+      licence: 'Conditions d’utilisation de CARTO',
+      licenceUrl: 'https://carto.com/legal/',
+      href: 'https://carto.com/attributions',
+    },
+    {
       name: 'Wikidata / Wikipedia',
       url: 'https://www.wikidata.org',
       desc: 'Descriptions, étoiles Michelin, extraits Wikipédia et distinctions via l’API SPARQL de Wikidata et l’API REST de Wikipédia. Libre, ouvert et illimité.',

@@ -1,31 +1,39 @@
+// ============================================================
+// app/(pages)/settings/page.tsx — Paramètres
+// Registre éditorial, aligné sur la page Compte : en-tête
+// typographique, lignes numérotées label/contenu séparées par
+// des filets. Pas de hero marketing ni de grille de cartes SaaS.
+// ============================================================
 'use client'
 
 import { useState, useRef } from 'react'
 import Image from 'next/image'
-import { InfoPage } from '@/components/ui/PageLayout'
+import { PageHeader, GlobalFooter } from '@/components/ui/PageLayout'
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
 import { useRouter } from 'next/navigation'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
+import { useIsMobile } from '@/lib/hooks/useMediaQuery'
 import { apiFetch } from '@/lib/api'
-import { Check, Eye, EyeOff, LogOut, Trash2, Mail } from 'lucide-react'
+import { Check, Eye, EyeOff, LogOut, Trash2 } from 'lucide-react'
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
 export default function SettingsPage() {
   const { isReady, auth } = useAuthGuard()
   const router = useRouter()
+  const isMobile = useIsMobile()
   const sb = getSupabaseBrowserClient()
 
   const [displayName, setDisplayName] = useState('')
   const [nameState, setNameState] = useState<SaveState>('idle')
 
-  const [_currentPw, setCurrentPw] = useState('')
   const [newPw, setNewPw] = useState('')
   const [confirmPw, setConfirmPw] = useState('')
   const [pwState, setPwState] = useState<SaveState>('idle')
   const [pwError, setPwError] = useState('')
   const [showPw, setShowPw] = useState(false)
 
+  const [avatarBroken, setAvatarBroken] = useState(false)
   const [deleteModal, setDeleteModal] = useState(false)
   const [deleteEmail, setDeleteEmail] = useState('')
   const [deleting, setDeleting] = useState(false)
@@ -40,44 +48,50 @@ export default function SettingsPage() {
 
   if (!isReady) {
     return (
-      <InfoPage headerLabel="Paramètres">
+      <div
+        style={{
+          minHeight: '100vh',
+          background: 'var(--surface)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         <div
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '80px 0',
+            width: 32,
+            height: 32,
+            border: '2px solid var(--border)',
+            borderTop: '2px solid var(--accent)',
+            borderRadius: '50%',
+            animation: 'spin 0.7s linear infinite',
           }}
-        >
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              border: '3px solid var(--surface-2)',
-              borderTop: '3px solid var(--accent)',
-              borderRadius: '50%',
-              animation: 'spin 0.7s linear infinite',
-            }}
-          />
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        </div>
-      </InfoPage>
+        />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
     )
   }
 
   const user = auth.user!
   const avatarUrl = user.user_metadata?.avatar_url
+  const showAvatar = avatarUrl && !avatarBroken
   const currentName = user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? ''
-  const initials = currentName
-    .split(' ')
-    .map((w: string) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
+  const initials =
+    currentName
+      .split(' ')
+      .map((w: string) => w[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() || '·'
   const isGoogleUser = user.app_metadata?.provider === 'google'
+  const nameChanged = displayName.trim() !== '' && displayName !== currentName
+  const joinedShort = new Date(user.created_at).toLocaleDateString('fr-FR', {
+    month: 'long',
+    year: 'numeric',
+  })
 
   const saveName = async () => {
-    if (!displayName.trim() || displayName === currentName) return
+    if (!nameChanged) return
     setNameState('saving')
     const { error } = await sb.auth.updateUser({ data: { full_name: displayName.trim() } })
     setNameState(error ? 'error' : 'saved')
@@ -101,7 +115,6 @@ export default function SettingsPage() {
       setPwState('error')
     } else {
       setPwState('saved')
-      setCurrentPw('')
       setNewPw('')
       setConfirmPw('')
     }
@@ -118,7 +131,6 @@ export default function SettingsPage() {
     if (deleteEmail !== user.email) return
     setDeleting(true)
     try {
-      const sb = getSupabaseBrowserClient()
       const {
         data: { session },
       } = await sb.auth.getSession()
@@ -140,277 +152,310 @@ export default function SettingsPage() {
     }
   }
 
+  const saveBtn = (state: SaveState, label: string, onClick: () => void, disabled: boolean) => (
+    <button
+      onClick={onClick}
+      disabled={disabled || state === 'saving'}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 7,
+        padding: '10px 18px',
+        borderRadius: 'var(--r-md)',
+        border: 'none',
+        background: state === 'saved' ? 'var(--open)' : 'var(--accent)',
+        color: '#fff',
+        fontSize: 13,
+        fontWeight: 700,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        fontFamily: 'inherit',
+        opacity: disabled ? 0.4 : 1,
+        boxShadow: state === 'saved' ? 'none' : 'var(--s-accent)',
+        transition: 'background 150ms, opacity 150ms, transform 80ms',
+        whiteSpace: 'nowrap' as const,
+      }}
+      onMouseDown={(e) => !disabled && (e.currentTarget.style.transform = 'scale(0.97)')}
+      onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+      onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+    >
+      {state === 'saved' ? (
+        <>
+          <Check size={14} strokeWidth={2.5} /> Enregistré
+        </>
+      ) : state === 'saving' ? (
+        'Enregistrement…'
+      ) : (
+        label
+      )}
+    </button>
+  )
+
   return (
-    <InfoPage headerLabel="Paramètres" maxWidth={640}>
-      <h1
+    <div
+      style={{
+        minHeight: '100vh',
+        background: 'var(--surface)',
+        color: 'var(--text)',
+        fontFamily: 'var(--font-body)',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <PageHeader current="Paramètres" />
+
+      <main
         style={{
-          margin: '0 0 4px',
-          fontSize: 28,
-          fontWeight: 600,
-          letterSpacing: '-0.04em',
-          color: 'var(--text)',
+          maxWidth: 760,
+          margin: '0 auto',
+          padding: isMobile ? '28px 20px 110px' : '52px 32px 96px',
+          width: '100%',
+          boxSizing: 'border-box',
         }}
       >
-        Paramètres
-      </h1>
-      <p style={{ margin: '0 0 36px', fontSize: 14, color: 'var(--text-3)' }}>
-        Gérez votre profil et les préférences de votre compte.
-      </p>
-
-      {/* Photo de profil */}
-      <Card title="Photo de profil">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+        {/* ── En-tête éditorial ── */}
+        <header
+          style={{
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: 16,
+            animation: 'fadeUp 360ms var(--ease-out) both',
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <Eyebrow>Réglages</Eyebrow>
+            <h1
+              style={{
+                margin: '14px 0 7px',
+                fontFamily: 'var(--font-display)',
+                fontSize: isMobile ? 32 : 44,
+                fontWeight: 600,
+                letterSpacing: '-0.035em',
+                lineHeight: 1,
+                color: 'var(--text)',
+              }}
+            >
+              Votre compte
+            </h1>
+            <p
+              style={{
+                margin: 0,
+                fontSize: 13,
+                color: 'var(--text-3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 9,
+                flexWrap: 'wrap' as const,
+              }}
+            >
+              <span>Membre depuis {joinedShort}</span>
+              <span
+                style={{
+                  width: 3,
+                  height: 3,
+                  borderRadius: '50%',
+                  background: 'var(--text-4)',
+                  flexShrink: 0,
+                }}
+              />
+              <span>{isGoogleUser ? 'Connexion Google' : 'Connexion e-mail'}</span>
+            </p>
+          </div>
           <div
             style={{
-              width: 72,
-              height: 72,
-              borderRadius: 20,
+              flexShrink: 0,
+              width: isMobile ? 48 : 56,
+              height: isMobile ? 48 : 56,
+              borderRadius: '50%',
               overflow: 'hidden',
-              background: 'linear-gradient(135deg, var(--accent-hover), var(--accent))',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 16px rgba(187,94,46,0.15)',
+              background: 'var(--accent-light)',
+              color: 'var(--accent)',
+              boxShadow: '0 0 0 1px var(--border)',
             }}
           >
-            {avatarUrl ? (
+            {showAvatar ? (
               <Image
                 src={avatarUrl}
                 alt={currentName}
-                width={72}
-                height={72}
-                style={{ objectFit: 'cover' }}
+                width={56}
+                height={56}
+                onError={() => setAvatarBroken(true)}
+                style={{ objectFit: 'cover', width: '100%', height: '100%' }}
               />
             ) : (
-              <span style={{ fontSize: 22, fontWeight: 600, color: 'white' }}>{initials}</span>
-            )}
-          </div>
-          <div>
-            <p style={{ margin: '0 0 6px', fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-              {currentName}
-            </p>
-            <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--text-3)' }}>
-              {isGoogleUser ? 'Photo gérée par Google' : 'Avatar généré depuis vos initiales'}
-            </p>
-            {isGoogleUser && (
               <span
                 style={{
-                  fontSize: 11,
-                  background: 'var(--surface-2)',
-                  color: 'var(--text-2)',
-                  border: '1px solid var(--border)',
-                  padding: '3px 10px',
-                  borderRadius: 999,
+                  fontFamily: 'var(--font-display)',
+                  fontSize: isMobile ? 19 : 22,
                   fontWeight: 600,
+                  letterSpacing: '-0.02em',
                 }}
               >
-                Compte Google
+                {initials}
               </span>
             )}
           </div>
-        </div>
-      </Card>
+        </header>
 
-      {/* Nom affiché */}
-      <Card title="Nom affiché">
-        <div style={{ display: 'flex', gap: 10 }}>
-          <input
-            type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Votre nom"
-            aria-label="Nom affiché"
-            style={inputStyle}
-            onFocus={(e) => Object.assign(e.currentTarget.style, focusStyle)}
-            onBlur={(e) => Object.assign(e.currentTarget.style, blurStyle)}
-          />
-          <button
-            onClick={saveName}
-            disabled={!displayName.trim() || displayName === currentName || nameState === 'saving'}
-            style={{
-              padding: '10px 18px',
-              borderRadius: 10,
-              border: 'none',
-              background: nameState === 'saved' ? 'var(--open)' : 'var(--accent)',
-              color: 'white',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              flexShrink: 0,
-              transition: 'background 150ms',
-              opacity: !displayName.trim() || displayName === currentName ? 0.4 : 1,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
+        {/* ── Registre ── */}
+        <div style={{ marginTop: isMobile ? 36 : 52 }}>
+          {/* 01 — Identité */}
+          <Row
+            n="01"
+            title="Identité"
+            sub="Le nom affiché dans l’app."
+            isMobile={isMobile}
+            delay={60}
           >
-            {nameState === 'saved' ? (
-              <>
-                <Check size={13} strokeWidth={2.5} /> Enregistré
-              </>
-            ) : nameState === 'saving' ? (
-              'Enregistrement…'
-            ) : (
-              'Enregistrer'
-            )}
-          </button>
-        </div>
-        {nameState === 'error' && (
-          <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--coral)' }}>
-            Échec de l&apos;enregistrement. Réessayez.
-          </p>
-        )}
-      </Card>
-
-      {/* Adresse e-mail */}
-      <Card title="Adresse e-mail">
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '10px 14px',
-            background: 'var(--surface)',
-            borderRadius: 10,
-            border: '1px solid var(--border)',
-          }}
-        >
-          <Mail size={14} strokeWidth={2} color="var(--text-3)" />
-          <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>{user.email}</span>
-        </div>
-        <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--text-3)' }}>
-          {isGoogleUser
-            ? "L'adresse e-mail est gérée par votre compte Google et ne peut pas être modifiée ici."
-            : 'Pour changer votre e-mail, contactez le support.'}
-        </p>
-      </Card>
-
-      {/* Mot de passe */}
-      {!isGoogleUser && (
-        <Card title="Changer le mot de passe">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <PwField
-              label="Nouveau mot de passe"
-              value={newPw}
-              onChange={setNewPw}
-              show={showPw}
-              onToggle={() => setShowPw((v) => !v)}
-              placeholder="Min. 8 caractères"
-            />
-            <PwField
-              label="Confirmer le nouveau mot de passe"
-              value={confirmPw}
-              onChange={setConfirmPw}
-              show={showPw}
-              onToggle={() => setShowPw((v) => !v)}
-              placeholder="Répétez le nouveau mot de passe"
-            />
-            {pwError && (
-              <p style={{ margin: 0, fontSize: 12, color: 'var(--coral)', fontWeight: 600 }}>
-                {pwError}
+            <label style={fieldLabel}>Nom affiché</label>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const }}>
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Votre nom"
+                aria-label="Nom affiché"
+                style={{ ...inputStyle, flex: 1, minWidth: 180 }}
+                onFocus={(e) => Object.assign(e.currentTarget.style, focusStyle)}
+                onBlur={(e) => Object.assign(e.currentTarget.style, blurStyle)}
+              />
+              {saveBtn(nameState, 'Enregistrer', saveName, !nameChanged)}
+            </div>
+            {nameState === 'error' && (
+              <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--coral)' }}>
+                Échec de l’enregistrement. Réessayez.
               </p>
             )}
-            <button
-              onClick={changePassword}
-              disabled={!newPw || !confirmPw || pwState === 'saving'}
+          </Row>
+
+          {/* 02 — Accès */}
+          <Row n="02" title="Accès" sub="E-mail et mot de passe." isMobile={isMobile} delay={100}>
+            <label style={fieldLabel}>Adresse e-mail</label>
+            <div
               style={{
-                alignSelf: 'flex-start',
-                padding: '10px 20px',
-                borderRadius: 10,
-                border: 'none',
-                background: pwState === 'saved' ? 'var(--open)' : 'var(--accent)',
-                color: 'white',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                opacity: !newPw || !confirmPw ? 0.4 : 1,
-                transition: 'background 150ms',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
+                justifyContent: 'space-between',
+                gap: 12,
+                padding: '11px 14px',
+                background: 'var(--surface)',
+                borderRadius: 'var(--r-md)',
+                border: '1px solid var(--border)',
               }}
             >
-              {pwState === 'saved' ? (
-                <>
-                  <Check size={13} strokeWidth={2.5} /> Mot de passe mis à jour
-                </>
-              ) : pwState === 'saving' ? (
-                'Mise à jour…'
-              ) : (
-                'Mettre à jour'
-              )}
-            </button>
-          </div>
-        </Card>
-      )}
-
-      {/* Actions du compte */}
-      <Card title="Actions du compte" danger>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <button
-            onClick={signOut}
-            disabled={signingOut}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '13px 16px',
-              background: 'transparent',
-              border: '1.5px solid var(--border-strong)',
-              borderRadius: 10,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              textAlign: 'left',
-              transition: 'background 100ms',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-          >
-            <LogOut size={14} strokeWidth={2} color="var(--text-2)" />
-            <div>
-              <p style={{ margin: '0 0 1px', fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-                {signingOut ? 'Déconnexion…' : 'Se déconnecter'}
-              </p>
-              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-3)' }}>
-                Se déconnecter sur cet appareil
-              </p>
-            </div>
-          </button>
-
-          <button
-            onClick={() => setDeleteModal(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '13px 16px',
-              background: 'transparent',
-              border: '1.5px solid rgba(197,48,48,0.2)',
-              borderRadius: 10,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              textAlign: 'left',
-              transition: 'background 100ms',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--coral-pale)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-          >
-            <Trash2 size={14} strokeWidth={2} color="var(--coral)" />
-            <div>
-              <p
-                style={{ margin: '0 0 1px', fontSize: 13, fontWeight: 600, color: 'var(--coral)' }}
+              <span
+                style={{
+                  fontSize: 13.5,
+                  color: 'var(--text)',
+                  fontWeight: 500,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap' as const,
+                }}
               >
-                Supprimer le compte
-              </p>
-              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-3)' }}>
-                Supprimer définitivement votre compte et toutes vos données
-              </p>
+                {user.email}
+              </span>
+              <span
+                style={{
+                  flexShrink: 0,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase' as const,
+                  color: 'var(--text-4)',
+                }}
+              >
+                {isGoogleUser ? 'Google' : 'Vérifiée'}
+              </span>
             </div>
-          </button>
+            <p style={{ margin: '9px 0 0', fontSize: 12, color: 'var(--text-3)', lineHeight: 1.6 }}>
+              {isGoogleUser
+                ? 'Gérée par votre compte Google — non modifiable ici.'
+                : 'Pour changer votre e-mail, contactez le support.'}
+            </p>
+
+            {!isGoogleUser && (
+              <div
+                style={{
+                  marginTop: 22,
+                  paddingTop: 22,
+                  borderTop: '1px dashed var(--border)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 14,
+                }}
+              >
+                <PwField
+                  label="Nouveau mot de passe"
+                  value={newPw}
+                  onChange={setNewPw}
+                  show={showPw}
+                  onToggle={() => setShowPw((v) => !v)}
+                  placeholder="Min. 8 caractères"
+                />
+                <PwField
+                  label="Confirmer le mot de passe"
+                  value={confirmPw}
+                  onChange={setConfirmPw}
+                  show={showPw}
+                  onToggle={() => setShowPw((v) => !v)}
+                  placeholder="Répétez le mot de passe"
+                />
+                {pwError && (
+                  <p style={{ margin: 0, fontSize: 12, color: 'var(--coral)', fontWeight: 600 }}>
+                    {pwError}
+                  </p>
+                )}
+                <div>{saveBtn(pwState, 'Mettre à jour', changePassword, !newPw || !confirmPw)}</div>
+              </div>
+            )}
+          </Row>
+
+          {/* 03 — Session */}
+          <Row
+            n="03"
+            title="Session"
+            sub="Fermer votre session sur cet appareil."
+            isMobile={isMobile}
+            delay={140}
+          >
+            <button
+              onClick={signOut}
+              disabled={signingOut}
+              className="set-quiet"
+              style={quietAction}
+            >
+              <LogOut size={16} strokeWidth={2} color="var(--text-2)" />
+              <span style={{ fontWeight: 600 }}>
+                {signingOut ? 'Déconnexion…' : 'Se déconnecter'}
+              </span>
+            </button>
+          </Row>
+
+          {/* 04 — Zone sensible */}
+          <Row
+            n="04"
+            title="Suppression"
+            sub="Effacer définitivement votre compte et vos données."
+            isMobile={isMobile}
+            delay={180}
+            danger
+          >
+            <button
+              onClick={() => setDeleteModal(true)}
+              className="set-danger"
+              style={{ ...quietAction, borderColor: 'var(--coral-pale)' }}
+            >
+              <Trash2 size={16} strokeWidth={2} color="var(--coral)" />
+              <span style={{ fontWeight: 600, color: 'var(--coral)' }}>Supprimer le compte</span>
+            </button>
+          </Row>
         </div>
-      </Card>
+      </main>
 
       {/* Modal suppression */}
       {deleteModal && (
@@ -430,8 +475,8 @@ export default function SettingsPage() {
             style={{
               position: 'absolute',
               inset: 0,
-              background: 'rgba(0,0,0,0.4)',
-              backdropFilter: 'blur(4px)',
+              background: 'rgba(36,31,24,0.5)',
+              backdropFilter: 'blur(8px)',
             }}
           />
           <div
@@ -439,44 +484,49 @@ export default function SettingsPage() {
             style={{
               position: 'relative',
               background: 'var(--bg)',
-              borderRadius: 20,
-              padding: '28px 28px 24px',
+              borderRadius: 'var(--r-2xl)',
+              padding: 28,
               maxWidth: 380,
               width: '100%',
               boxShadow: 'var(--s4)',
+              border: '1px solid var(--border)',
               animation: 'scaleIn 200ms cubic-bezier(0.16,1,0.3,1) both',
             }}
           >
             <div
               style={{
-                width: 44,
-                height: 44,
-                borderRadius: 14,
+                width: 48,
+                height: 48,
+                borderRadius: 'var(--r-lg)',
                 background: 'var(--coral-pale)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 marginBottom: 16,
+                color: 'var(--coral)',
               }}
             >
-              <Trash2 size={20} strokeWidth={2} color="var(--coral)" />
+              <Trash2 size={20} strokeWidth={2} />
             </div>
             <h3
               style={{
-                margin: '0 0 6px',
-                fontSize: 16,
+                margin: '0 0 8px',
+                fontFamily: 'var(--font-display)',
+                fontSize: 19,
                 fontWeight: 600,
-                letterSpacing: '-0.03em',
+                letterSpacing: '-0.02em',
                 color: 'var(--text)',
               }}
             >
               Supprimer votre compte ?
             </h3>
             <p
-              style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--text-3)', lineHeight: 1.6 }}
+              style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--text-2)', lineHeight: 1.65 }}
             >
-              Cette action supprime définitivement votre compte et tous vos lieux enregistrés. Elle
-              est irréversible. Tapez votre e-mail pour confirmer :
+              Action irréversible — votre compte et tous vos lieux enregistrés seront supprimés.
+            </p>
+            <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, color: 'var(--ink-80)' }}>
+              Tapez <strong>{user.email}</strong> pour confirmer :
             </p>
             <input
               type="email"
@@ -484,9 +534,19 @@ export default function SettingsPage() {
               onChange={(e) => setDeleteEmail(e.target.value)}
               placeholder={user.email ?? 'votre@email.com'}
               aria-label="Confirmer l'e-mail pour supprimer le compte"
-              style={{ ...inputStyle, marginBottom: 14 }}
-              onFocus={(e) => Object.assign(e.currentTarget.style, focusStyle)}
-              onBlur={(e) => Object.assign(e.currentTarget.style, blurStyle)}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 'var(--r-md)',
+                border: '1.5px solid var(--border-strong)',
+                background: 'var(--surface)',
+                fontSize: 13,
+                fontFamily: 'monospace',
+                outline: 'none',
+                color: 'var(--text)',
+                marginBottom: 16,
+                boxSizing: 'border-box' as const,
+              }}
             />
             <div style={{ display: 'flex', gap: 8 }}>
               <button
@@ -497,13 +557,13 @@ export default function SettingsPage() {
                 style={{
                   flex: 1,
                   padding: '10px',
-                  borderRadius: 10,
-                  border: '1.5px solid var(--border-strong)',
+                  borderRadius: 'var(--r-md)',
+                  border: '1px solid var(--border-strong)',
                   background: 'transparent',
                   cursor: 'pointer',
                   fontSize: 13,
                   fontWeight: 600,
-                  color: 'var(--text)',
+                  color: 'var(--ink-80)',
                   fontFamily: 'inherit',
                 }}
               >
@@ -515,10 +575,10 @@ export default function SettingsPage() {
                 style={{
                   flex: 1,
                   padding: '10px',
-                  borderRadius: 10,
+                  borderRadius: 'var(--r-md)',
                   border: 'none',
-                  background: deleteEmail === user.email ? 'var(--coral)' : 'var(--surface-2)',
-                  color: deleteEmail === user.email ? 'white' : 'var(--text-3)',
+                  background: deleteEmail === user.email ? 'var(--closed)' : 'var(--surface-2)',
+                  color: deleteEmail === user.email ? '#fff' : 'var(--text-3)',
                   cursor: deleteEmail === user.email ? 'pointer' : 'not-allowed',
                   fontSize: 13,
                   fontWeight: 600,
@@ -533,48 +593,112 @@ export default function SettingsPage() {
         </div>
       )}
 
+      <GlobalFooter />
       <style>{`
-        @keyframes spin    { to { transform: rotate(360deg); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes scaleIn { from{opacity:0;transform:scale(0.94)} to{opacity:1;transform:scale(1)} }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+        .set-quiet { transition: background 140ms ease, border-color 140ms ease; }
+        .set-quiet:hover:not(:disabled) { background: var(--surface); border-color: var(--border-strong); }
+        .set-danger { transition: background 140ms ease, border-color 140ms ease; }
+        .set-danger:hover { background: var(--coral-pale); }
       `}</style>
-    </InfoPage>
+    </div>
   )
 }
 
-function Card({
+// Filet de section + label numéroté à gauche, contenu à droite.
+function Row({
+  n,
   title,
-  children,
+  sub,
   danger,
+  isMobile,
+  delay = 0,
+  children,
 }: {
+  n: string
   title: string
-  children: React.ReactNode
+  sub?: string
   danger?: boolean
+  isMobile: boolean
+  delay?: number
+  children: React.ReactNode
 }) {
   return (
-    <div style={{ marginBottom: 20 }}>
-      <h2
-        style={{
-          margin: '0 0 12px',
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          color: danger ? 'var(--coral)' : 'var(--text-3)',
-        }}
-      >
-        {title}
-      </h2>
-      <div
-        style={{
-          background: 'var(--bg)',
-          border: `1px solid ${danger ? 'rgba(197,48,48,0.12)' : 'var(--border)'}`,
-          borderRadius: 12,
-          padding: '18px 20px',
-          boxShadow: 'var(--s1)',
-        }}
-      >
-        {children}
+    <section
+      style={{
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? 14 : 36,
+        paddingTop: isMobile ? 26 : 32,
+        marginTop: isMobile ? 26 : 32,
+        borderTop: '1px solid var(--border)',
+        animation: `fadeUp 360ms var(--ease-out) ${delay}ms both`,
+      }}
+    >
+      <div style={{ width: isMobile ? 'auto' : 188, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+          <span
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--text-4)',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {n}
+          </span>
+          <h2
+            style={{
+              margin: 0,
+              fontFamily: 'var(--font-display)',
+              fontSize: 18,
+              fontWeight: 600,
+              letterSpacing: '-0.02em',
+              color: danger ? 'var(--coral)' : 'var(--text)',
+            }}
+          >
+            {title}
+          </h2>
+        </div>
+        {sub && (
+          <p
+            style={{
+              margin: '7px 0 0',
+              paddingLeft: isMobile ? 0 : 22,
+              fontSize: 12.5,
+              color: 'var(--text-3)',
+              lineHeight: 1.55,
+              maxWidth: 170,
+            }}
+          >
+            {sub}
+          </p>
+        )}
       </div>
+      <div style={{ flex: 1, minWidth: 0, paddingBottom: isMobile ? 2 : 6 }}>{children}</div>
+    </section>
+  )
+}
+
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: '0.18em',
+        textTransform: 'uppercase' as const,
+        color: 'var(--accent)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+      }}
+    >
+      <span style={{ width: 18, height: 1.5, background: 'var(--accent)', flexShrink: 0 }} />
+      {children}
     </div>
   )
 }
@@ -596,17 +720,7 @@ function PwField({
 }) {
   return (
     <div>
-      <label
-        style={{
-          display: 'block',
-          fontSize: 12,
-          fontWeight: 600,
-          color: 'var(--text-3)',
-          marginBottom: 5,
-        }}
-      >
-        {label}
-      </label>
+      <label style={fieldLabel}>{label}</label>
       <div style={{ position: 'relative' }}>
         <input
           type={show ? 'text' : 'password'}
@@ -614,7 +728,7 @@ function PwField({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           aria-label={label}
-          style={{ ...inputStyle, paddingRight: 38 }}
+          style={{ ...inputStyle, paddingRight: 40 }}
           onFocus={(e) => Object.assign(e.currentTarget.style, focusStyle)}
           onBlur={(e) => Object.assign(e.currentTarget.style, blurStyle)}
         />
@@ -624,7 +738,7 @@ function PwField({
           aria-label={show ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
           style={{
             position: 'absolute',
-            right: 10,
+            right: 12,
             top: '50%',
             transform: 'translateY(-50%)',
             background: 'none',
@@ -635,29 +749,58 @@ function PwField({
             padding: 2,
           }}
         >
-          {show ? <EyeOff size={14} strokeWidth={2} /> : <Eye size={14} strokeWidth={2} />}
+          {show ? <EyeOff size={15} strokeWidth={2} /> : <Eye size={15} strokeWidth={2} />}
         </button>
       </div>
     </div>
   )
 }
 
+const fieldLabel: React.CSSProperties = {
+  display: 'block',
+  fontSize: 10,
+  fontWeight: 700,
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase',
+  color: 'var(--text-3)',
+  marginBottom: 8,
+}
+
 const inputStyle: React.CSSProperties = {
   width: '100%',
   boxSizing: 'border-box',
-  padding: '10px 14px',
-  borderRadius: 10,
+  padding: '11px 14px',
+  borderRadius: 'var(--r-md)',
   border: '1.5px solid var(--border-strong)',
-  background: 'var(--bg)',
+  background: 'var(--surface)',
   color: 'var(--text)',
-  fontSize: 13,
+  fontSize: 13.5,
   fontWeight: 500,
   fontFamily: 'inherit',
   outline: 'none',
-  transition: 'border-color 120ms, box-shadow 120ms',
+  transition: 'border-color 150ms, box-shadow 150ms, background 150ms',
 }
 const focusStyle: React.CSSProperties = {
   borderColor: 'var(--accent)',
+  background: 'var(--bg)',
   boxShadow: 'var(--s-focus)',
 }
-const blurStyle: React.CSSProperties = { borderColor: 'var(--border-strong)', boxShadow: 'none' }
+const blurStyle: React.CSSProperties = {
+  borderColor: 'var(--border-strong)',
+  background: 'var(--surface)',
+  boxShadow: 'none',
+}
+
+const quietAction: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 10,
+  padding: '11px 18px',
+  borderRadius: 'var(--r-md)',
+  border: '1px solid var(--border)',
+  background: 'transparent',
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  fontSize: 13.5,
+  color: 'var(--text)',
+}

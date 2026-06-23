@@ -1,8 +1,11 @@
 // ============================================================
-// app/(pages)/account/page.tsx — Mon compte + statistiques visites
+// app/(pages)/account/page.tsx — Mon compte
+// Parti pris éditorial « à plat » : une seule colonne sur papier,
+// pas de cartes, pas de grille de stats, pas d'onglets. Identité
+// typographique, chiffres en gros titres, rubriques en registre.
 // ============================================================
 'use client'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
@@ -14,7 +17,6 @@ import Image from 'next/image'
 import { apiFetch } from '@/lib/api'
 import { useIsMobile } from '@/lib/hooks/useMediaQuery'
 import {
-  IcoTrophy,
   IcoFork,
   IcoStats,
   IcoMoodSolo,
@@ -62,25 +64,10 @@ const IcoLogOut = () => (
     <line x1="21" y1="12" x2="9" y2="12" />
   </svg>
 )
-const IcoMail = () => (
-  <svg
-    width="13"
-    height="13"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.7"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <rect x="2" y="4" width="20" height="16" rx="2" />
-    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-  </svg>
-)
 const IcoCalendar = () => (
   <svg
-    width="13"
-    height="13"
+    width="12"
+    height="12"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -94,8 +81,8 @@ const IcoCalendar = () => (
 )
 const IcoShield = () => (
   <svg
-    width="13"
-    height="13"
+    width="12"
+    height="12"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -122,15 +109,10 @@ const IcoTrash = () => (
     <path d="M10 11v6M14 11v6" />
   </svg>
 )
-const IcoHeart = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-  </svg>
-)
 const IcoArrow = () => (
   <svg
-    width="11"
-    height="11"
+    width="13"
+    height="13"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -156,7 +138,7 @@ const IcoPencil = () => (
   </svg>
 )
 const IcoGoogle = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24">
+  <svg width="13" height="13" viewBox="0 0 24 24">
     <path
       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
       fill="#4285F4"
@@ -220,57 +202,11 @@ const CUISINE_COLORS = [
 ]
 const MOOD_LABELS: Record<string, string> = {
   solo: 'Solo',
-  couple: 'Couple',
-  friends: 'Amis',
-  family: 'Famille',
+  couple: 'En couple',
+  friends: 'Entre amis',
+  family: 'En famille',
   work: 'Travail',
 }
-
-function Card({ children, style }: { children?: React.ReactNode; style?: React.CSSProperties }) {
-  return (
-    <div
-      style={{
-        background: 'var(--bg)',
-        borderRadius: 'var(--r-2xl)',
-        border: '1px solid var(--border)',
-        boxShadow: 'var(--s1)',
-        overflow: 'hidden',
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  )
-}
-function CardHeader({ label, sub }: { label: string; sub?: string }) {
-  return (
-    <div
-      style={{
-        padding: '15px 20px 13px',
-        borderBottom: '1px solid var(--border)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 9,
-      }}
-    >
-      <span
-        style={{
-          fontSize: 10,
-          fontWeight: 700,
-          letterSpacing: '0.14em',
-          textTransform: 'uppercase' as const,
-          color: 'var(--accent)',
-        }}
-      >
-        {label}
-      </span>
-      {sub && (
-        <span style={{ fontSize: 10.5, color: 'var(--text-3)', marginLeft: 'auto' }}>{sub}</span>
-      )}
-    </div>
-  )
-}
-
 function DeleteModal({
   email,
   onConfirm,
@@ -446,7 +382,7 @@ function BarChart({
             style={{
               flex: 1,
               height: 24,
-              background: 'var(--surface)',
+              background: 'var(--surface-2)',
               borderRadius: 'var(--r-sm)',
               overflow: 'hidden',
               position: 'relative',
@@ -516,58 +452,46 @@ function MonthlyChart({ data }: { data: { month: string; count: number; spent: n
     .join(' ')
   const areaD = `${pathD} L${pts[pts.length - 1].x},${H} L${pts[0].x},${H} Z`
   const [hov, setHov] = useState<number | null>(null)
-  const color = tab === 'visits' ? 'var(--accent)' : 'var(--ember)'
+  const color = 'var(--accent)'
   const fmtM = (m: string) => {
     const [y, mo] = m.split('-')
     return new Date(+y, +mo - 1).toLocaleDateString('fr-FR', { month: 'short' })
   }
   if (!data.length)
     return (
-      <p
-        style={{
-          margin: 0,
-          fontSize: 12,
-          color: 'var(--text-3)',
-          textAlign: 'center' as const,
-          padding: '20px 0',
-        }}
-      >
+      <p style={{ margin: 0, fontSize: 12, color: 'var(--text-3)', padding: '12px 0' }}>
         Pas encore de données
       </p>
     )
   return (
     <div>
-      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+      <div style={{ display: 'flex', gap: 18, marginBottom: 16 }}>
         {(
           [
             ['visits', 'Visites'],
-            ['spent', 'Dépenses €'],
+            ['spent', 'Dépenses'],
           ] as const
-        ).map(([k, l]) => {
-          const activeBg = k === 'visits' ? 'var(--accent-light)' : 'var(--ember-light)'
-          const activeBorder = k === 'visits' ? 'var(--accent)' : 'var(--ember)'
-          const activeText = k === 'visits' ? 'var(--accent)' : 'var(--ember-text)'
-          return (
-            <button
-              key={k}
-              onClick={() => setTab(k)}
-              style={{
-                padding: '5px 12px',
-                borderRadius: 'var(--r-pill)',
-                fontSize: 11,
-                fontWeight: 700,
-                cursor: 'pointer',
-                border: `1px solid ${tab === k ? activeBorder : 'var(--border)'}`,
-                background: tab === k ? activeBg : 'transparent',
-                color: tab === k ? activeText : 'var(--text-2)',
-                fontFamily: 'inherit',
-                transition: 'all 120ms',
-              }}
-            >
-              {l}
-            </button>
-          )
-        })}
+        ).map(([k, l]) => (
+          <button
+            key={k}
+            onClick={() => setTab(k)}
+            style={{
+              padding: '0 0 4px',
+              background: 'none',
+              border: 'none',
+              borderBottom: `2px solid ${tab === k ? 'var(--accent)' : 'transparent'}`,
+              cursor: 'pointer',
+              fontSize: 11.5,
+              fontWeight: 700,
+              letterSpacing: '0.02em',
+              color: tab === k ? 'var(--text)' : 'var(--text-3)',
+              fontFamily: 'var(--font-body)',
+              transition: 'color 120ms, border-color 120ms',
+            }}
+          >
+            {l}
+          </button>
+        ))}
       </div>
       <svg
         width="100%"
@@ -649,132 +573,133 @@ function MonthlyChart({ data }: { data: { month: string; count: number; spent: n
   )
 }
 
-function DonutChart({
-  data,
-  colors,
-}: {
-  data: { label: string; value: number }[]
-  colors: string[]
-}) {
+// Empreinte de goût — barre camaïeu horizontale + légende en chips
+function TasteBar({ data }: { data: { label: string; value: number }[] }) {
   const [hov, setHov] = useState<number | null>(null)
-  const total = data.reduce((s, d) => s + d.value, 0)
-  if (!total)
-    return (
-      <p
-        style={{
-          margin: 0,
-          fontSize: 12,
-          color: 'var(--text-3)',
-          textAlign: 'center' as const,
-          padding: '20px 0',
-        }}
-      >
-        Pas encore de données
-      </p>
-    )
-  const R = 38,
-    cx = 48,
-    cy = 48,
-    sw = 16,
-    circ = 2 * Math.PI * R
-  let off = -Math.PI / 2
-  const slices = data.map((d, i) => {
-    const pct = d.value / total,
-      angle = pct * 2 * Math.PI,
-      start = off
-    off += angle
-    return {
-      ...d,
-      pct,
-      color: colors[i % colors.length],
-      dashArray: `${(pct * circ).toFixed(2)} ${circ.toFixed(2)}`,
-      dashOffset: -((start / (2 * Math.PI)) * circ),
-    }
-  })
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+  const top = data.slice(0, 7)
+  const total = top.reduce((s, d) => s + d.value, 0)
+  if (!total) return null
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-      <svg
-        width={cx * 2}
-        height={cy * 2}
-        viewBox={`0 0 ${cx * 2} ${cy * 2}`}
-        style={{ flexShrink: 0 }}
+    <div>
+      <div
+        style={{
+          display: 'flex',
+          height: 22,
+          borderRadius: 'var(--r-pill)',
+          overflow: 'hidden',
+          boxShadow: 'inset 0 0 0 1px var(--border)',
+          background: 'var(--surface-2)',
+        }}
+        onMouseLeave={() => setHov(null)}
       >
-        {slices.map((s, i) => (
-          <circle
-            key={i}
-            cx={cx}
-            cy={cy}
-            r={R}
-            fill="none"
-            stroke={s.color}
-            strokeWidth={hov === i ? sw + 3 : sw}
-            strokeDasharray={s.dashArray}
-            strokeDashoffset={s.dashOffset}
-            style={{ transition: 'stroke-width 150ms', cursor: 'pointer' }}
-            onMouseEnter={() => setHov(i)}
-            onMouseLeave={() => setHov(null)}
-          />
-        ))}
-        <text
-          x={cx}
-          y={cy - 3}
-          textAnchor="middle"
-          fontSize="16"
-          fontWeight="700"
-          fill="var(--ember)"
-          fontFamily="var(--font-display)"
-        >
-          {total}
-        </text>
-        <text
-          x={cx}
-          y={cy + 11}
-          textAnchor="middle"
-          fontSize="8"
-          fill="var(--text-3)"
-          fontFamily="var(--font-body)"
-        >
-          visites
-        </text>
-      </svg>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
-        {slices.slice(0, 5).map((s, i) => (
+        {top.map((d, i) => (
           <div
             key={i}
+            title={`${d.label} · ${d.value}`}
+            onMouseEnter={() => setHov(i)}
             style={{
-              display: 'flex',
+              width: mounted ? `${(d.value / total) * 100}%` : '0%',
+              background: CUISINE_COLORS[i % CUISINE_COLORS.length],
+              opacity: hov !== null && hov !== i ? 0.42 : 1,
+              transition: 'width 800ms var(--ease-out), opacity 150ms',
+              transitionDelay: `${i * 70}ms`,
+            }}
+          />
+        ))}
+      </div>
+      <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap' as const, gap: '10px 20px' }}>
+        {top.map((d, i) => (
+          <span
+            key={i}
+            onMouseEnter={() => setHov(i)}
+            onMouseLeave={() => setHov(null)}
+            style={{
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: 6,
-              opacity: hov !== null && hov !== i ? 0.4 : 1,
+              gap: 7,
+              fontSize: 12,
+              opacity: hov !== null && hov !== i ? 0.42 : 1,
               transition: 'opacity 150ms',
               cursor: 'default',
             }}
-            onMouseEnter={() => setHov(i)}
-            onMouseLeave={() => setHov(null)}
           >
-            <div
-              style={{ width: 9, height: 9, borderRadius: 3, background: s.color, flexShrink: 0 }}
-            />
             <span
               style={{
-                fontSize: 10.5,
-                color: 'var(--ink-80)',
-                flex: 1,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap' as const,
+                width: 9,
+                height: 9,
+                borderRadius: 3,
+                background: CUISINE_COLORS[i % CUISINE_COLORS.length],
+                flexShrink: 0,
               }}
-            >
-              {s.label}
+            />
+            <span style={{ color: 'var(--text)', fontWeight: 500 }}>{d.label}</span>
+            <span style={{ color: 'var(--text-3)', fontWeight: 700 }}>
+              {Math.round((d.value / total) * 100)}%
             </span>
-            <span
-              style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-2)', flexShrink: 0 }}
-            >
-              {Math.round(s.pct * 100)}%
-            </span>
-          </div>
+          </span>
         ))}
       </div>
+    </div>
+  )
+}
+
+// « Avec qui » — rangées icône + barre proportionnelle
+function MoodStrip({ data }: { data: { mood: string; count: number }[] }) {
+  const rows = [...data].sort((a, b) => b.count - a.count)
+  const max = Math.max(...rows.map((r) => r.count), 1)
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+      {rows.map((m, i) => {
+        const Icon = MOOD_ICONS[m.mood]
+        return (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+            <span
+              style={{ color: 'var(--accent)', flexShrink: 0, display: 'inline-flex' }}
+              aria-hidden="true"
+            >
+              {Icon ? <Icon size={15} /> : null}
+            </span>
+            <span
+              style={{
+                width: 78,
+                fontSize: 12.5,
+                fontWeight: 600,
+                color: 'var(--text)',
+                flexShrink: 0,
+              }}
+            >
+              {MOOD_LABELS[m.mood] ?? m.mood}
+            </span>
+            <div
+              style={{
+                flex: 1,
+                height: 8,
+                background: 'var(--surface-2)',
+                borderRadius: 'var(--r-pill)',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  width: `${(m.count / max) * 100}%`,
+                  background: 'var(--accent)',
+                  borderRadius: 'var(--r-pill)',
+                  transition: 'width 700ms var(--ease-out)',
+                }}
+              />
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', flexShrink: 0 }}>
+              {m.count}
+            </span>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -805,6 +730,336 @@ function Spinner() {
   )
 }
 
+// ── Briques éditoriales partagées ──
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: '0.18em',
+        textTransform: 'uppercase' as const,
+        color: 'var(--accent)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+      }}
+    >
+      <span style={{ width: 18, height: 1.5, background: 'var(--accent)', flexShrink: 0 }} />
+      {children}
+    </div>
+  )
+}
+
+// Compteur animé (0 → valeur) — donne vie aux chiffres au chargement
+function CountUp({ value, suffix = '' }: { value: number; suffix?: string }) {
+  const [n, setN] = useState(0)
+  useEffect(() => {
+    if (value <= 0) {
+      setN(0)
+      return
+    }
+    let raf = 0
+    let startedAt = 0
+    const dur = 900
+    const tick = (t: number) => {
+      if (!startedAt) startedAt = t
+      const p = Math.min((t - startedAt) / dur, 1)
+      const eased = 1 - Math.pow(1 - p, 3)
+      setN(Math.round(value * eased))
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [value])
+  return (
+    <>
+      {n}
+      {suffix}
+    </>
+  )
+}
+
+// Cuisine OSM → libellé court pour le chapô « palais »
+const CUISINE_SHORT: Record<string, string> = {
+  italian: 'Italien',
+  french: 'Français',
+  japanese: 'Japonais',
+  chinese: 'Chinois',
+  indian: 'Indien',
+  thai: 'Thaï',
+  mexican: 'Mexicain',
+  korean: 'Coréen',
+  vietnamese: 'Vietnamien',
+  lebanese: 'Libanais',
+  spanish: 'Espagnol',
+  greek: 'Grec',
+  turkish: 'Turc',
+  american: 'Américain',
+  mediterranean: 'Méditerranéen',
+  asian: 'Asiatique',
+  pizza: 'Pizza',
+  burger: 'Burger',
+  sushi: 'Sushi',
+  kebab: 'Kebab',
+  seafood: 'Fruits de mer',
+  vegetarian: 'Végétarien',
+  vegan: 'Vegan',
+  regional: 'Régional',
+}
+function cuisineShort(raw: string): string {
+  const k = raw.trim().toLowerCase()
+  return CUISINE_SHORT[k] ?? raw.charAt(0).toUpperCase() + raw.slice(1)
+}
+
+// Barres mensuelles verticales (dépenses)
+function MonthBars({ data }: { data: { month: string; value: number }[] }) {
+  const [hov, setHov] = useState<number | null>(null)
+  const max = Math.max(...data.map((d) => d.value), 1)
+  const fmt = (m: string) => {
+    const [y, mo] = m.split('-')
+    return new Date(+y, +mo - 1).toLocaleDateString('fr-FR', { month: 'short' })
+  }
+  return (
+    <div
+      style={{ display: 'flex', alignItems: 'flex-end', gap: data.length > 8 ? 4 : 9 }}
+      onMouseLeave={() => setHov(null)}
+    >
+      {data.map((d, i) => (
+        <div
+          key={i}
+          onMouseEnter={() => setHov(i)}
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            cursor: 'default',
+          }}
+        >
+          <div
+            style={{
+              height: 130,
+              width: '100%',
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+              position: 'relative',
+            }}
+          >
+            {hov === i && d.value > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  transform: 'translateY(-100%)',
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: 'var(--text)',
+                  whiteSpace: 'nowrap' as const,
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {Math.round(d.value)}€
+              </span>
+            )}
+            <div
+              style={{
+                width: '100%',
+                maxWidth: 32,
+                height: `${Math.max((d.value / max) * 100, d.value > 0 ? 3 : 1.5)}%`,
+                background:
+                  d.value > 0
+                    ? hov === i
+                      ? 'var(--accent-hover)'
+                      : 'var(--accent)'
+                    : 'var(--surface-2)',
+                borderRadius: '5px 5px 0 0',
+                transition: 'height 600ms var(--ease-out), background 150ms',
+              }}
+            />
+          </div>
+          <span
+            style={{
+              marginTop: 8,
+              fontSize: 9,
+              fontWeight: hov === i ? 700 : 500,
+              color: hov === i ? 'var(--text)' : 'var(--text-3)',
+              whiteSpace: 'nowrap' as const,
+            }}
+          >
+            {fmt(d.month)}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+type Period = '6m' | '12m' | '24m' | 'all'
+
+// Explorateur de dépenses — choisir le restaurant + la période → total + courbe mensuelle
+function SpendingExplorer({ visits }: { visits: VisitRow[] }) {
+  const [period, setPeriod] = useState<Period>('12m')
+  const [resto, setResto] = useState<string>('all')
+
+  const spentVisits = useMemo(
+    () => visits.filter((v) => v.amount_spent != null && v.amount_spent > 0),
+    [visits]
+  )
+
+  const restos = useMemo(() => {
+    const m = new Map<string, string>()
+    spentVisits.forEach((v) => {
+      if (!m.has(v.osm_id)) m.set(v.osm_id, v.name)
+    })
+    return [...m.entries()]
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [spentVisits])
+
+  const { months, total, count } = useMemo(() => {
+    const now = new Date()
+    const back = period === '6m' ? 6 : period === '12m' ? 12 : period === '24m' ? 24 : null
+    const cutoff = back ? new Date(now.getFullYear(), now.getMonth() - (back - 1), 1) : null
+    const filtered = spentVisits.filter((v) => {
+      if (resto !== 'all' && v.osm_id !== resto) return false
+      if (cutoff && new Date(v.visited_at) < cutoff) return false
+      return true
+    })
+    const bucket = new Map<string, number>()
+    filtered.forEach((v) => {
+      const d = new Date(v.visited_at)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      bucket.set(key, (bucket.get(key) ?? 0) + (v.amount_spent ?? 0))
+    })
+    let start: Date
+    if (cutoff) {
+      start = cutoff
+    } else {
+      const earliest = filtered.reduce<Date>((min, v) => {
+        const d = new Date(v.visited_at)
+        return d < min ? d : min
+      }, now)
+      start = new Date(earliest.getFullYear(), earliest.getMonth(), 1)
+    }
+    const list: { month: string; value: number }[] = []
+    const cur = new Date(start.getFullYear(), start.getMonth(), 1)
+    const end = new Date(now.getFullYear(), now.getMonth(), 1)
+    let guard = 0
+    while (cur <= end && guard < 48) {
+      const key = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}`
+      list.push({ month: key, value: bucket.get(key) ?? 0 })
+      cur.setMonth(cur.getMonth() + 1)
+      guard++
+    }
+    return {
+      months: list,
+      total: filtered.reduce((s, v) => s + (v.amount_spent ?? 0), 0),
+      count: filtered.length,
+    }
+  }, [spentVisits, period, resto])
+
+  const periods: [Period, string][] = [
+    ['6m', '6 mois'],
+    ['12m', '12 mois'],
+    ['24m', '24 mois'],
+    ['all', 'Tout'],
+  ]
+
+  const ctrl: React.CSSProperties = {
+    padding: '7px 2px',
+    border: 'none',
+    borderBottom: '1.5px solid var(--border)',
+    background: 'transparent',
+    fontSize: 12.5,
+    fontWeight: 600,
+    fontFamily: 'var(--font-body)',
+    color: 'var(--text)',
+    outline: 'none',
+  }
+
+  return (
+    <div>
+      {/* Contrôles */}
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap' as const,
+          alignItems: 'center',
+          gap: '12px 18px',
+          marginBottom: 4,
+        }}
+      >
+        <select
+          value={resto}
+          onChange={(e) => setResto(e.target.value)}
+          aria-label="Restaurant"
+          style={{ ...ctrl, cursor: 'pointer', maxWidth: 200 }}
+        >
+          <option value="all">Tous les restaurants</option>
+          {restos.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.name}
+            </option>
+          ))}
+        </select>
+        <div style={{ display: 'flex', gap: 14, marginLeft: 'auto' }}>
+          {periods.map(([k, l]) => (
+            <button
+              key={k}
+              onClick={() => setPeriod(k)}
+              style={{
+                padding: '0 0 3px',
+                background: 'none',
+                border: 'none',
+                borderBottom: `2px solid ${period === k ? 'var(--accent)' : 'transparent'}`,
+                cursor: 'pointer',
+                fontSize: 11.5,
+                fontWeight: 700,
+                color: period === k ? 'var(--text)' : 'var(--text-3)',
+                fontFamily: 'var(--font-body)',
+                transition: 'color 120ms, border-color 120ms',
+              }}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Total */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, margin: '20px 0 22px' }}>
+        <span
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 34,
+            fontWeight: 600,
+            letterSpacing: '-0.04em',
+            color: 'var(--text)',
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {Math.round(total)} €
+        </span>
+        <span style={{ fontSize: 12.5, color: 'var(--text-3)' }}>
+          {count} visite{count !== 1 ? 's' : ''}
+          {count > 0 ? ` · ${Math.round(total / count)} € en moyenne` : ''}
+        </span>
+      </div>
+
+      {count > 0 ? (
+        <MonthBars data={months} />
+      ) : (
+        <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-3)', padding: '10px 0' }}>
+          Aucune dépense sur cette période.
+        </p>
+      )}
+    </div>
+  )
+}
+
 export default function AccountPage() {
   const { isReady, auth } = useAuthGuard()
   if (!isReady) return <Spinner />
@@ -828,7 +1083,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
   )
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
-  const [activeTab, setActiveTab] = useState<'stats' | 'visites'>('stats')
+  const [avatarBroken, setAvatarBroken] = useState(false)
   const [visitSort, setVisitSort] = useState<'date' | 'rating' | 'amount'>('date')
   const [visitSearch, setVisitSearch] = useState('')
 
@@ -892,39 +1147,20 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
   if (!user) return null
 
   const displayName = user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? 'Utilisateur'
-  const initials = displayName
-    .split(' ')
-    .map((w: string) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
   const avatarUrl = user.user_metadata?.avatar_url
+  const showAvatar = avatarUrl && !avatarBroken
   const isGoogle = (user.app_metadata?.provider ?? 'email') === 'google'
-  const joined = new Date(user.created_at).toLocaleDateString('fr-FR', {
-    day: 'numeric',
+  const joinedShort = new Date(user.created_at).toLocaleDateString('fr-FR', {
     month: 'long',
     year: 'numeric',
   })
   const cuisines = [...new Set(favorites.map((f) => f.snapshot?.cuisine).filter(Boolean))]
   const recentFavs = [...favorites]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 3)
+    .slice(0, 4)
 
-  const hasStats = !statsLoading && stats && stats.total_visits > 0
-
-  const totalVisites = visits.length
-  const avgSpend =
-    visits.filter((v) => v.amount_spent).length > 0
-      ? Math.round(
-          visits.filter((v) => v.amount_spent).reduce((s, v) => s + (v.amount_spent ?? 0), 0) /
-            visits.filter((v) => v.amount_spent).length
-        )
-      : null
-  const topRestaurant = (() => {
-    const freq = new Map<string, number>()
-    visits.forEach((v) => freq.set(v.name, (freq.get(v.name) ?? 0) + 1))
-    return [...freq.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
-  })()
+  const hasStats = !statsLoading && !statsError && stats && stats.total_visits > 0
+  const hasSpending = visits.some((v) => v.amount_spent != null && v.amount_spent > 0)
 
   const sortedVisits = [...visits]
     .filter((v) => !visitSearch || v.name.toLowerCase().includes(visitSearch.toLowerCase()))
@@ -933,6 +1169,137 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
       if (visitSort === 'amount') return (b.amount_spent ?? 0) - (a.amount_spent ?? 0)
       return new Date(b.visited_at).getTime() - new Date(a.visited_at).getTime()
     })
+
+  // Chiffres de tête
+  const figures: {
+    num: number
+    suffix?: string
+    label: string
+    loading: boolean
+    error: boolean
+    zeroDash?: boolean
+  }[] = [
+    { num: stats?.total_visits ?? 0, label: 'Visites', loading: statsLoading, error: statsError },
+    { num: favorites.length, label: 'Favoris', loading: favLoading, error: favError },
+    {
+      num: stats?.total_spent ? Math.round(stats.total_spent) : 0,
+      suffix: '€',
+      label: 'Dépensé',
+      loading: statsLoading,
+      error: statsError,
+    },
+    {
+      num: cuisines.length,
+      label: 'Cuisines',
+      loading: favLoading,
+      error: favError,
+      zeroDash: true,
+    },
+  ]
+
+  // Rubriques statistiques disponibles → registre numéroté sans trou
+  type StatSection = { title: string; sub?: string; node: React.ReactNode }
+  const statSections: StatSection[] = []
+  if (hasStats && stats!.visits_by_month.length > 1) {
+    statSections.push({
+      title: 'Votre rythme',
+      sub: `${stats!.avg_spent_per_meal.toFixed(0)} € en moyenne par repas`,
+      node: <MonthlyChart data={stats!.visits_by_month} />,
+    })
+  }
+  if (hasSpending) {
+    statSections.push({
+      title: 'Vos dépenses',
+      sub: 'Choisissez un restaurant et une période',
+      node: <SpendingExplorer visits={visits} />,
+    })
+  }
+  if (hasStats && stats!.top_restaurants.length > 0) {
+    statSections.push({
+      title: 'Vos tables',
+      sub: 'les plus revisitées',
+      node: (
+        <BarChart
+          data={stats!.top_restaurants.slice(0, 7).map((r) => ({
+            label: r.name,
+            value: r.count,
+            sublabel: r.total_spent > 0 ? `${r.total_spent.toFixed(0)}€` : undefined,
+          }))}
+          color="var(--accent)"
+          valueSuffix=" fois"
+          labelWidth={isMobile ? 70 : 96}
+        />
+      ),
+    })
+  }
+  if (hasStats && stats!.mood_breakdown.length > 0) {
+    statSections.push({ title: 'Avec qui', node: <MoodStrip data={stats!.mood_breakdown} /> })
+  }
+
+  // Registre : label (gauche) + contenu (droite), séparés par un filet
+  const Ledger = ({
+    n,
+    title,
+    sub,
+    control,
+    children,
+    delay = 0,
+  }: {
+    n?: string
+    title: string
+    sub?: string
+    control?: React.ReactNode
+    children: React.ReactNode
+    delay?: number
+  }) => (
+    <section
+      style={{
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? 14 : 32,
+        paddingTop: isMobile ? 28 : 34,
+        borderTop: '1px solid var(--border)',
+        animation: `fadeUp 360ms var(--ease-out) ${delay}ms both`,
+      }}
+    >
+      <div style={{ width: isMobile ? 'auto' : 180, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
+          {n && (
+            <span
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 13,
+                fontWeight: 700,
+                color: 'var(--accent)',
+                letterSpacing: '0.04em',
+              }}
+            >
+              {n}
+            </span>
+          )}
+          <h2
+            style={{
+              margin: 0,
+              fontFamily: 'var(--font-display)',
+              fontSize: 18,
+              fontWeight: 600,
+              letterSpacing: '-0.02em',
+              color: 'var(--text)',
+            }}
+          >
+            {title}
+          </h2>
+        </div>
+        {sub && (
+          <p style={{ margin: '6px 0 0', fontSize: 11.5, color: 'var(--text-3)', lineHeight: 1.5 }}>
+            {sub}
+          </p>
+        )}
+        {control}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
+    </section>
+  )
 
   return (
     <div
@@ -945,6 +1312,20 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
         flexDirection: 'column',
       }}
     >
+      {/* Grain papier — texture tactile très discrète */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: 'none',
+          opacity: 0.05,
+          mixBlendMode: 'multiply' as const,
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+        }}
+      />
       <PageHeader
         current="Mon compte"
         actions={
@@ -984,112 +1365,95 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
 
       <div
         style={{
-          maxWidth: 640,
+          maxWidth: 920,
           margin: '0 auto',
-          padding: isMobile ? '16px 16px 100px' : '32px 20px 80px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 14,
+          padding: isMobile ? '20px 20px 100px' : '44px 40px 90px',
           width: '100%',
+          position: 'relative',
+          zIndex: 1,
         }}
       >
-        <Link
-          href="/"
-          aria-label="Retour à la carte"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            fontSize: 14,
-            fontWeight: 600,
-            color: 'var(--text-2)',
-            textDecoration: 'none',
-            marginBottom: 16,
-          }}
-        >
-          ← Carte
-        </Link>
-
-        {/* Hero */}
-        <Card style={{ animation: 'fadeUp 280ms var(--ease-out) both' }}>
+        {/* ── Masthead : identité typographique ── */}
+        <header style={{ position: 'relative', animation: 'fadeUp 360ms var(--ease-out) both' }}>
+          {/* lueur chaude discrète */}
           <div
+            aria-hidden="true"
             style={{
-              height: 4,
-              background: 'linear-gradient(90deg,var(--accent),var(--ember))',
+              position: 'absolute',
+              top: -70,
+              left: -90,
+              width: 320,
+              height: 320,
+              background: 'radial-gradient(circle, rgba(187,94,46,0.07), transparent 68%)',
+              pointerEvents: 'none',
             }}
           />
           <div
-            style={{ padding: '22px 24px 0', display: 'flex', alignItems: 'flex-start', gap: 16 }}
+            style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              gap: 16,
+            }}
           >
-            <div style={{ position: 'relative', flexShrink: 0 }}>
+            <div style={{ minWidth: 0 }}>
               <div
                 style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 'var(--r-xl)',
-                  overflow: 'hidden',
-                  background: 'var(--accent)',
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase' as const,
+                  color: 'var(--text-3)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: 'var(--s-accent)',
-                  transition: 'box-shadow 150ms ease',
+                  gap: 10,
+                  flexWrap: 'wrap' as const,
+                  marginBottom: 14,
                 }}
               >
-                {avatarUrl ? (
-                  <Image
-                    src={avatarUrl}
-                    alt={displayName}
-                    width={64}
-                    height={64}
-                    style={{ objectFit: 'cover' }}
-                  />
-                ) : (
-                  <span style={{ fontSize: 22, fontWeight: 600, color: 'white' }}>{initials}</span>
-                )}
-              </div>
-              {isGoogle && (
-                <div
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <IcoCalendar /> Membre depuis {joinedShort}
+                </span>
+                <span
                   style={{
-                    position: 'absolute',
-                    bottom: -3,
-                    right: -3,
-                    width: 20,
-                    height: 20,
-                    borderRadius: 'var(--r-xs)',
-                    background: '#fff',
-                    border: '2px solid var(--bg)',
-                    display: 'flex',
+                    width: 3,
+                    height: 3,
+                    borderRadius: '50%',
+                    background: 'var(--text-4)',
+                    flexShrink: 0,
+                  }}
+                />
+                <span
+                  style={{
+                    display: 'inline-flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: 'var(--s1)',
+                    gap: 5,
+                    color: 'var(--text-2)',
                   }}
                 >
-                  <IcoGoogle />
-                </div>
-              )}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
+                  {isGoogle ? <IcoGoogle /> : <IcoShield />} {isGoogle ? 'Google' : 'Email'}
+                </span>
+              </div>
               <h1
                 style={{
-                  margin: '0 0 3px',
+                  margin: '0 0 5px',
                   fontFamily: 'var(--font-display)',
-                  fontSize: 22,
+                  fontSize: isMobile ? 32 : 44,
                   fontWeight: 600,
-                  letterSpacing: '-0.025em',
+                  letterSpacing: '-0.035em',
+                  lineHeight: 1,
                   color: 'var(--text)',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap' as const,
+                  overflowWrap: 'anywhere' as const,
                 }}
               >
                 {displayName}
               </h1>
               <p
                 style={{
-                  margin: '0 0 10px',
-                  fontSize: 12.5,
-                  color: 'var(--text-2)',
+                  margin: 0,
+                  fontSize: 13,
+                  color: 'var(--text-3)',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap' as const,
@@ -1097,894 +1461,699 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
               >
                 {user.email}
               </p>
-              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                <span
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: '4px 10px',
-                    borderRadius: 'var(--r-pill)',
-                    background: isGoogle ? 'var(--sky-pale)' : 'var(--surface)',
-                    color: isGoogle ? 'var(--sky)' : 'var(--text-2)',
-                    border: `1px solid ${isGoogle ? 'var(--sky-border)' : 'var(--border)'}`,
-                  }}
-                >
-                  {isGoogle ? <IcoGoogle /> : <IcoShield />} {isGoogle ? 'Google' : 'Email'}
-                </span>
-                <span
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: '4px 10px',
-                    borderRadius: 'var(--r-pill)',
-                    background: 'var(--surface)',
-                    color: 'var(--text-2)',
-                    border: '1px solid var(--border)',
-                  }}
-                >
-                  <IcoCalendar /> {joined}
-                </span>
-              </div>
             </div>
-          </div>
-          {/* Stats row */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)',
-              borderTop: '1px solid var(--border)',
-              marginTop: 16,
-            }}
-          >
-            {[
-              {
-                loading: favLoading,
-                error: favError,
-                val: favorites.length,
-                label: 'Favoris',
-                color: 'var(--accent)',
-              },
-              {
-                loading: statsLoading,
-                error: statsError,
-                val: stats?.total_visits ?? 0,
-                label: 'Visites',
-                color: 'var(--ember)',
-              },
-              {
-                loading: statsLoading,
-                error: statsError,
-                val: stats?.total_spent ? `${Math.round(stats.total_spent)}€` : '0€',
-                label: 'Dépensé',
-                color: 'var(--ember)',
-              },
-              {
-                loading: favLoading,
-                error: favError,
-                val: cuisines.length || '—',
-                label: 'Cuisines',
-                color: 'var(--accent)',
-              },
-            ].map((s, i) => (
-              <div
-                key={i}
-                style={{
-                  padding: '12px 8px',
-                  textAlign: 'center' as const,
-                  borderRight: isMobile
-                    ? i % 2 === 0
-                      ? '1px solid var(--border)'
-                      : 'none'
-                    : i < 3
-                      ? '1px solid var(--border)'
-                      : 'none',
-                  borderBottom: isMobile && i < 2 ? '1px solid var(--border)' : 'none',
-                }}
-              >
-                {s.loading ? (
-                  <div
-                    className="shimmer-bar"
-                    style={{
-                      height: 20,
-                      width: 40,
-                      margin: '0 auto 3px',
-                      borderRadius: 'var(--r-xs)',
-                      background: 'var(--surface-2)',
-                    }}
-                  />
-                ) : s.error ? (
-                  <div style={{ fontSize: 11, color: 'var(--coral)', fontWeight: 600 }}>—</div>
-                ) : (
-                  <div
-                    style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: 22,
-                      fontWeight: 600,
-                      letterSpacing: '-0.04em',
-                      color: s.color,
-                      lineHeight: 1,
-                      marginBottom: 4,
-                    }}
-                  >
-                    {s.val}
-                  </div>
-                )}
-                <div
-                  style={{
-                    fontSize: 9.5,
-                    fontWeight: 600,
-                    color: 'var(--text-3)',
-                    letterSpacing: '0.07em',
-                    textTransform: 'uppercase' as const,
-                  }}
-                >
-                  {s.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Key stats pills */}
-        {totalVisites > 0 && (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-            <div
-              style={{
-                padding: '6px 13px',
-                borderRadius: 'var(--r-pill)',
-                background: 'var(--accent-light)',
-                color: 'var(--accent)',
-                fontSize: 12,
-                fontWeight: 700,
-                fontFamily: 'var(--font-body)',
-              }}
-            >
-              {totalVisites} visite{totalVisites > 1 ? 's' : ''}
-            </div>
-            {avgSpend && (
+            {showAvatar && (
               <div
                 style={{
-                  padding: '6px 13px',
-                  borderRadius: 'var(--r-pill)',
-                  background: 'var(--ember-light)',
-                  color: 'var(--ember-text)',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  fontFamily: 'var(--font-body)',
+                  flexShrink: 0,
+                  width: isMobile ? 46 : 54,
+                  height: isMobile ? 46 : 54,
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  boxShadow: '0 0 0 1px var(--border), var(--s1)',
                 }}
               >
-                {avgSpend}€ moy.
-              </div>
-            )}
-            {topRestaurant && (
-              <div
-                style={{
-                  padding: '6px 13px',
-                  borderRadius: 'var(--r-pill)',
-                  background: 'var(--accent-light)',
-                  color: 'var(--accent)',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  fontFamily: 'var(--font-body)',
-                }}
-              >
-                <span
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, lineHeight: 1 }}
-                >
-                  <IcoTrophy size={14} /> {topRestaurant}
-                </span>
+                <Image
+                  src={avatarUrl}
+                  alt={displayName}
+                  width={54}
+                  height={54}
+                  onError={() => setAvatarBroken(true)}
+                  style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                />
               </div>
             )}
           </div>
-        )}
+        </header>
 
-        {/* Tab switcher */}
+        {/* ── Chiffres de tête (sans cadre, baseline alignée) ── */}
         <div
           style={{
             display: 'flex',
-            gap: 3,
-            background: 'var(--surface-2)',
-            borderRadius: 'var(--r-lg)',
-            padding: 3,
-            marginBottom: 20,
-            border: '1px solid var(--border)',
+            flexWrap: 'wrap' as const,
+            gap: isMobile ? '22px 32px' : '0 52px',
+            margin: isMobile ? '28px 0 36px' : '40px 0 8px',
+            animation: 'fadeUp 360ms var(--ease-out) 60ms both',
           }}
         >
-          {(['stats', 'visites'] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setActiveTab(t)}
-              style={{
-                flex: 1,
-                padding: '9px 16px',
-                borderRadius: 'var(--r-md)',
-                fontSize: 13,
-                fontWeight: 700,
-                background: activeTab === t ? 'var(--bg)' : 'transparent',
-                border: activeTab === t ? '1px solid var(--border)' : '1px solid transparent',
-                color: activeTab === t ? 'var(--text)' : 'var(--text-3)',
-                cursor: 'pointer',
-                fontFamily: 'var(--font-body)',
-                boxShadow: activeTab === t ? 'var(--s1)' : 'none',
-                transition: 'background 150ms ease, color 150ms ease, box-shadow 150ms ease',
-              }}
-            >
-              {t === 'stats' ? 'Statistiques' : 'Mes visites'}
-            </button>
-          ))}
-        </div>
-
-        {/* Graphique mensuel */}
-        {activeTab === 'stats' && !statsLoading && stats && stats.visits_by_month.length > 1 && (
-          <Card style={{ animation: 'fadeUp 280ms var(--ease-out) 40ms both' }}>
-            <CardHeader
-              label="Activité"
-              sub={`${stats.total_visits} visite${stats.total_visits > 1 ? 's' : ''} · moy. ${stats.avg_spent_per_meal.toFixed(0)}€/repas`}
-            />
-            <div style={{ padding: '16px 20px' }}>
-              <MonthlyChart data={stats.visits_by_month} />
-            </div>
-          </Card>
-        )}
-
-        {/* Stats tab content */}
-        {activeTab === 'stats' && statsError && (
-          <Card style={{ animation: 'fadeUp 280ms var(--ease-out) both' }}>
-            <div style={{ padding: '24px 20px', textAlign: 'center' as const }}>
-              <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--text-2)' }}>
-                Impossible de charger les données
-              </p>
-              <button
-                onClick={loadData}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 'var(--r-md)',
-                  border: '1px solid var(--border-strong)',
-                  background: 'var(--surface)',
-                  cursor: 'pointer',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--accent)',
-                  fontFamily: 'inherit',
-                }}
-              >
-                Réessayer
-              </button>
-            </div>
-          </Card>
-        )}
-        {activeTab === 'stats' && statsLoading && (
-          <Card style={{ animation: 'fadeUp 280ms var(--ease-out) both' }}>
-            <div
-              style={{
-                padding: '16px 20px',
-                display: 'flex',
-                flexDirection: 'column' as const,
-                gap: 10,
-              }}
-            >
-              {[1, 2, 3].map((i) => (
+          {figures.map((f, i) => (
+            <div key={i} style={{ minWidth: isMobile ? 64 : 'auto' }}>
+              {f.loading ? (
                 <div
-                  key={i}
                   className="shimmer-bar"
                   style={{
-                    height: 44,
-                    borderRadius: 'var(--r-sm)',
+                    height: 34,
+                    width: 52,
+                    marginBottom: 7,
+                    borderRadius: 'var(--r-xs)',
                     background: 'var(--surface-2)',
                   }}
                 />
-              ))}
-            </div>
-          </Card>
-        )}
-        {activeTab === 'stats' && !statsLoading && !statsError && (
-          <>
-            {/* Top restaurants — visites */}
-            {hasStats && stats!.top_restaurants.length > 0 && (
-              <Card style={{ animation: 'fadeUp 280ms var(--ease-out) 60ms both' }}>
-                <CardHeader label="Restaurants les plus visités" />
-                <div style={{ padding: '16px 20px' }}>
-                  <BarChart
-                    data={stats!.top_restaurants.slice(0, 7).map((r) => ({
-                      label: r.name,
-                      value: r.count,
-                      sublabel: r.total_spent > 0 ? `${r.total_spent.toFixed(0)}€` : undefined,
-                    }))}
-                    color="var(--forest-mid)"
-                    valueSuffix=" fois"
-                    labelWidth={isMobile ? 64 : 88}
-                  />
+              ) : (
+                <div
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: isMobile ? 34 : 42,
+                    fontWeight: 600,
+                    letterSpacing: '-0.045em',
+                    lineHeight: 0.95,
+                    color: f.error ? 'var(--text-4)' : 'var(--text)',
+                    fontVariantNumeric: 'tabular-nums',
+                    marginBottom: 7,
+                  }}
+                >
+                  {f.error ? (
+                    '—'
+                  ) : f.zeroDash && f.num === 0 ? (
+                    '—'
+                  ) : (
+                    <CountUp value={f.num} suffix={f.suffix} />
+                  )}
                 </div>
-              </Card>
-            )}
-
-            {/* Dépenses par restaurant */}
-            {hasStats && stats!.top_restaurants.filter((r) => r.total_spent > 0).length > 0 && (
-              <Card style={{ animation: 'fadeUp 280ms var(--ease-out) 80ms both' }}>
-                <CardHeader
-                  label="Dépenses par restaurant"
-                  sub={`Moy. ${stats!.avg_spent_per_meal.toFixed(0)}€/repas`}
-                />
-                <div style={{ padding: '16px 20px' }}>
-                  <BarChart
-                    data={stats!.top_restaurants
-                      .filter((r) => r.total_spent > 0)
-                      .slice(0, 7)
-                      .map((r) => ({
-                        label: r.name,
-                        value: Math.round(r.total_spent),
-                        sublabel: r.avg_rating > 0 ? `★ ${r.avg_rating.toFixed(1)}` : undefined,
-                      }))}
-                    color="var(--coral)"
-                    valueSuffix="€"
-                    labelWidth={isMobile ? 64 : 88}
-                  />
-                </div>
-              </Card>
-            )}
-
-            {/* Cuisine + Mood */}
-            {hasStats && (
+              )}
               <div
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-                  gap: 14,
-                  animation: 'fadeUp 280ms var(--ease-out) 100ms both',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase' as const,
+                  color: 'var(--text-3)',
                 }}
               >
-                <Card>
-                  <CardHeader label="Cuisines" />
-                  <div style={{ padding: '14px 16px' }}>
-                    <DonutChart
-                      data={stats!.cuisine_breakdown.map((c) => ({
-                        label: c.cuisine,
-                        value: c.count,
-                      }))}
-                      colors={CUISINE_COLORS}
-                    />
-                  </div>
-                </Card>
-                <Card>
-                  <CardHeader label="Avec qui" />
-                  <div style={{ padding: '14px 16px' }}>
-                    <DonutChart
-                      data={stats!.mood_breakdown.map((m) => ({
-                        label: MOOD_LABELS[m.mood] ?? m.mood,
-                        value: m.count,
-                      }))}
-                      colors={CUISINE_COLORS}
-                    />
-                  </div>
-                </Card>
+                {f.label}
               </div>
-            )}
+            </div>
+          ))}
+        </div>
 
-            {/* Invite à logger si aucune visite */}
-            {!statsLoading && (!stats || stats.total_visits === 0) && (
-              <Card style={{ animation: 'fadeUp 280ms var(--ease-out) 60ms both' }}>
-                <div style={{ padding: '32px 24px', textAlign: 'center' as const }}>
-                  <div
+        {/* ── Empreinte de goût ── */}
+        {hasStats && stats!.cuisine_breakdown.length > 0 && (
+          <section
+            style={{
+              marginTop: isMobile ? 8 : 24,
+              paddingTop: isMobile ? 28 : 34,
+              borderTop: '1px solid var(--border)',
+              animation: 'fadeUp 360ms var(--ease-out) 90ms both',
+            }}
+          >
+            <Eyebrow>Votre palais</Eyebrow>
+            {(() => {
+              const sorted = [...stats!.cuisine_breakdown].sort((a, b) => b.count - a.count)
+              const dom = sorted[0]
+              const total = sorted.reduce((s, c) => s + c.count, 0)
+              const pct = total ? Math.round((dom.count / total) * 100) : 0
+              return (
+                <div
+                  style={{
+                    margin: '16px 0 20px',
+                    display: 'flex',
+                    alignItems: 'baseline',
+                    gap: 12,
+                    flexWrap: 'wrap' as const,
+                  }}
+                >
+                  <span
                     style={{
-                      marginBottom: 16,
-                      display: 'flex',
-                      justifyContent: 'center',
-                      color: 'var(--text-4)',
-                    }}
-                  >
-                    <IcoStats size={40} />
-                  </div>
-                  <h3
-                    style={{
-                      margin: '0 0 8px',
                       fontFamily: 'var(--font-display)',
-                      fontSize: 19,
+                      fontSize: isMobile ? 24 : 28,
                       fontWeight: 600,
-                      letterSpacing: '-0.02em',
+                      letterSpacing: '-0.03em',
                       color: 'var(--text)',
                     }}
                   >
-                    Vos statistiques apparaîtront ici
-                  </h3>
-                  <p
-                    style={{
-                      margin: '0 0 20px',
-                      fontSize: 13,
-                      color: 'var(--text-2)',
-                      lineHeight: 1.65,
-                    }}
-                  >
-                    Commencez à logger vos visites en cliquant sur le bouton ✓ dans la fiche
-                    d&apos;un restaurant.
-                  </p>
-                  <Link
-                    href="/"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      padding: '12px 22px',
-                      borderRadius: 'var(--r-lg)',
-                      background: 'var(--ember)',
-                      color: '#fff',
-                      textDecoration: 'none',
-                      fontSize: 13,
-                      fontWeight: 700,
-                      boxShadow: 'var(--s-ember)',
-                    }}
-                  >
-                    Explorer les restaurants →
-                  </Link>
+                    {cuisineShort(dom.cuisine)}
+                  </span>
+                  <span style={{ fontSize: 13, color: 'var(--text-3)', fontWeight: 500 }}>
+                    {pct}% de vos sorties
+                  </span>
                 </div>
-              </Card>
-            )}
-          </>
+              )
+            })()}
+            <TasteBar
+              data={stats!.cuisine_breakdown.map((c) => ({ label: c.cuisine, value: c.count }))}
+            />
+          </section>
         )}
 
-        {/* Visites tab content */}
-        {activeTab === 'visites' && (
-          <>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        {/* ── États stats (chargement / erreur / vide) ── */}
+        {statsLoading && (
+          <div
+            style={{
+              marginTop: 34,
+              paddingTop: 34,
+              borderTop: '1px solid var(--border)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+            }}
+          >
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="shimmer-bar"
+                style={{ height: 40, borderRadius: 'var(--r-sm)', background: 'var(--surface-2)' }}
+              />
+            ))}
+          </div>
+        )}
+        {!statsLoading && statsError && (
+          <div style={{ marginTop: 34, paddingTop: 34, borderTop: '1px solid var(--border)' }}>
+            <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--text-2)' }}>
+              Impossible de charger vos statistiques.
+            </p>
+            <button
+              onClick={loadData}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 'var(--r-md)',
+                border: '1px solid var(--border-strong)',
+                background: 'transparent',
+                cursor: 'pointer',
+                fontSize: 12,
+                fontWeight: 700,
+                color: 'var(--accent)',
+                fontFamily: 'inherit',
+              }}
+            >
+              Réessayer
+            </button>
+          </div>
+        )}
+        {!statsLoading && !statsError && !hasStats && (
+          <div
+            style={{
+              marginTop: isMobile ? 32 : 40,
+              paddingTop: isMobile ? 36 : 48,
+              borderTop: '1px solid var(--border)',
+              textAlign: 'center' as const,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                color: 'var(--text-4)',
+                marginBottom: 16,
+              }}
+            >
+              <IcoStats size={38} />
+            </div>
+            <h3
+              style={{
+                margin: '0 0 8px',
+                fontFamily: 'var(--font-display)',
+                fontSize: 20,
+                fontWeight: 600,
+                letterSpacing: '-0.02em',
+                color: 'var(--text)',
+              }}
+            >
+              Vos statistiques s’écriront ici
+            </h3>
+            <p
+              style={{
+                margin: '0 auto 22px',
+                fontSize: 13,
+                color: 'var(--text-2)',
+                lineHeight: 1.65,
+                maxWidth: 360,
+              }}
+            >
+              Consignez une visite depuis la fiche d’un restaurant et cette page prend vie.
+            </p>
+            <Link
+              href="/"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 7,
+                padding: '12px 22px',
+                borderRadius: 'var(--r-lg)',
+                background: 'var(--accent)',
+                color: '#fff',
+                textDecoration: 'none',
+                fontSize: 13,
+                fontWeight: 700,
+                boxShadow: 'var(--s-accent)',
+              }}
+            >
+              Explorer les restaurants <IcoArrow />
+            </Link>
+          </div>
+        )}
+
+        {/* ── Registre des rubriques stats ── */}
+        {statSections.map((s, i) => (
+          <Ledger
+            key={s.title}
+            n={String(i + 1).padStart(2, '0')}
+            title={s.title}
+            sub={s.sub}
+            delay={120 + i * 40}
+          >
+            {s.node}
+          </Ledger>
+        ))}
+
+        {/* ── Mes visites ── */}
+        <section
+          style={{
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: isMobile ? 14 : 32,
+            paddingTop: isMobile ? 28 : 34,
+            marginTop: isMobile ? 28 : 34,
+            borderTop: '1px solid var(--border)',
+            animation: 'fadeUp 360ms var(--ease-out) 260ms both',
+          }}
+        >
+          <div style={{ width: isMobile ? 'auto' : 180, flexShrink: 0 }}>
+            <h2
+              style={{
+                margin: 0,
+                fontFamily: 'var(--font-display)',
+                fontSize: 18,
+                fontWeight: 600,
+                letterSpacing: '-0.02em',
+                color: 'var(--text)',
+              }}
+            >
+              Mes visites
+            </h2>
+            {!visitsLoading && (
+              <p style={{ margin: '6px 0 0', fontSize: 11.5, color: 'var(--text-3)' }}>
+                {sortedVisits.length} visite{sortedVisits.length !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', gap: 16, marginBottom: 6, alignItems: 'center' }}>
               <input
                 value={visitSearch}
                 onChange={(e) => setVisitSearch(e.target.value)}
-                placeholder="Rechercher…"
+                placeholder="Rechercher une table…"
                 style={{
                   flex: 1,
-                  padding: '8px 12px',
-                  borderRadius: 'var(--r-md)',
-                  border: '1px solid var(--border)',
-                  background: 'var(--bg)',
+                  padding: '7px 2px',
+                  border: 'none',
+                  borderBottom: '1.5px solid var(--border)',
+                  background: 'transparent',
                   color: 'var(--text)',
-                  fontSize: 12,
+                  fontSize: 13,
                   fontFamily: 'var(--font-body)',
                   outline: 'none',
                 }}
+                onFocus={(e) => (e.currentTarget.style.borderBottomColor = 'var(--accent)')}
+                onBlur={(e) => (e.currentTarget.style.borderBottomColor = 'var(--border)')}
               />
               <select
                 value={visitSort}
                 onChange={(e) => setVisitSort(e.target.value as typeof visitSort)}
                 style={{
-                  padding: '8px 12px',
-                  borderRadius: 'var(--r-md)',
-                  border: '1px solid var(--border)',
-                  fontSize: 12,
+                  padding: '7px 2px',
+                  border: 'none',
+                  borderBottom: '1.5px solid var(--border)',
+                  background: 'transparent',
+                  fontSize: 12.5,
+                  fontWeight: 600,
                   fontFamily: 'var(--font-body)',
-                  color: 'var(--text)',
-                  background: 'var(--bg)',
+                  color: 'var(--text-2)',
                   cursor: 'pointer',
+                  outline: 'none',
                 }}
               >
-                <option value="date">Date</option>
-                <option value="rating">Note</option>
-                <option value="amount">Montant</option>
+                <option value="date">Par date</option>
+                <option value="rating">Par note</option>
+                <option value="amount">Par montant</option>
               </select>
             </div>
-            <Card style={{ animation: 'fadeUp 280ms var(--ease-out) 110ms both' }}>
-              <CardHeader
-                label="Mes visites"
-                sub={
-                  !visitsLoading
-                    ? `${sortedVisits.length} visite${sortedVisits.length !== 1 ? 's' : ''}`
-                    : undefined
-                }
-              />
-              {visitsLoading ? (
-                <div
+
+            {visitsLoading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="shimmer-bar"
+                    style={{
+                      height: 40,
+                      borderRadius: 'var(--r-sm)',
+                      background: 'var(--surface-2)',
+                    }}
+                  />
+                ))}
+              </div>
+            ) : visitsError ? (
+              <div style={{ padding: '20px 0' }}>
+                <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--text-2)' }}>
+                  Impossible de charger vos visites.
+                </p>
+                <button
+                  onClick={fetchVisits}
                   style={{
-                    padding: '16px 20px',
-                    display: 'flex',
-                    flexDirection: 'column' as const,
-                    gap: 10,
+                    padding: '8px 16px',
+                    borderRadius: 'var(--r-md)',
+                    border: '1px solid var(--border-strong)',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: 'var(--accent)',
+                    fontFamily: 'inherit',
                   }}
                 >
-                  {[1, 2, 3].map((i) => (
+                  Réessayer
+                </button>
+              </div>
+            ) : sortedVisits.length === 0 ? (
+              <div style={{ padding: '28px 0', textAlign: 'center' as const }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    color: 'var(--text-4)',
+                    marginBottom: 10,
+                  }}
+                >
+                  <IcoFork size={30} />
+                </div>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--text-3)' }}>
+                  Aucune visite enregistrée
+                </p>
+              </div>
+            ) : (
+              <div style={{ marginTop: 4 }}>
+                {sortedVisits.map((visit) => {
+                  const dateStr = new Date(visit.visited_at).toLocaleDateString('fr-FR', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })
+                  const MoodIcon = visit.mood ? MOOD_ICONS[visit.mood] : null
+                  const notePreview =
+                    visit.note && visit.note.length > 60
+                      ? visit.note.slice(0, 60) + '…'
+                      : visit.note
+                  return (
                     <div
-                      key={i}
-                      className="shimmer-bar"
+                      key={visit.id}
+                      className="acct-row"
                       style={{
-                        height: 44,
-                        borderRadius: 'var(--r-sm)',
-                        background: 'var(--surface-2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        borderBottom: '1px solid var(--border)',
                       }}
-                    />
-                  ))}
-                </div>
-              ) : visitsError ? (
-                <div style={{ padding: '24px 20px', textAlign: 'center' as const }}>
-                  <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--text-2)' }}>
-                    Impossible de charger les données
-                  </p>
-                  <button
-                    onClick={fetchVisits}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: 'var(--r-md)',
-                      border: '1px solid var(--border-strong)',
-                      background: 'var(--surface)',
-                      cursor: 'pointer',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: 'var(--accent)',
-                      fontFamily: 'inherit',
-                    }}
-                  >
-                    Réessayer
-                  </button>
-                </div>
-              ) : sortedVisits.length === 0 ? (
-                <div style={{ padding: '28px 20px', textAlign: 'center' as const }}>
-                  <div
-                    style={{
-                      marginBottom: 10,
-                      display: 'flex',
-                      justifyContent: 'center',
-                      color: 'var(--text-4)',
-                    }}
-                  >
-                    <IcoFork size={32} />
-                  </div>
-                  <p style={{ margin: 0, fontSize: 13, color: 'var(--text-3)' }}>
-                    Aucune visite enregistrée
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  {sortedVisits.map((visit, i) => {
-                    const dateStr = new Date(visit.visited_at).toLocaleDateString('fr-FR', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })
-                    const MoodIcon = visit.mood ? MOOD_ICONS[visit.mood] : null
-                    const notePreview =
-                      visit.note && visit.note.length > 60
-                        ? visit.note.slice(0, 60) + '…'
-                        : visit.note
-                    return (
-                      <div
-                        key={visit.id}
-                        className="anim-card-in"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 12,
-                          padding: '13px 18px',
-                          borderBottom:
-                            i < sortedVisits.length - 1 ? '1px solid var(--border)' : 'none',
-                          transition: 'background 100ms',
-                          animationDelay: `${i * 40}ms`,
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                      >
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                    >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p
+                          className="acct-row-name"
+                          style={{
+                            margin: '0 0 3px',
+                            fontSize: 14,
+                            fontWeight: 600,
+                            fontFamily: 'var(--font-display)',
+                            letterSpacing: '-0.015em',
+                            color: 'var(--text)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap' as const,
+                          }}
+                        >
+                          {visit.name}
+                        </p>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            flexWrap: 'wrap' as const,
+                          }}
+                        >
+                          <span style={{ fontSize: 11, color: 'var(--text-2)' }}>{dateStr}</span>
+                          {visit.personal_rating && visit.personal_rating > 0 && (
+                            <span style={{ display: 'flex', gap: 1 }}>
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <span
+                                  key={s}
+                                  style={{
+                                    fontSize: 11,
+                                    color:
+                                      s <= (visit.personal_rating ?? 0)
+                                        ? 'var(--accent)'
+                                        : 'var(--text-4)',
+                                  }}
+                                >
+                                  ★
+                                </span>
+                              ))}
+                            </span>
+                          )}
+                          {MoodIcon && (
+                            <span
+                              style={{ display: 'inline-flex', color: 'var(--text-3)' }}
+                              aria-hidden="true"
+                            >
+                              <MoodIcon size={12} />
+                            </span>
+                          )}
+                          {visit.amount_spent != null && (
+                            <span
+                              style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-text)' }}
+                            >
+                              {visit.amount_spent}€
+                            </span>
+                          )}
+                          {visit.people_count > 1 && (
+                            <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                              {visit.people_count} pers.
+                            </span>
+                          )}
+                        </div>
+                        {notePreview && (
                           <p
                             style={{
-                              margin: '0 0 3px',
-                              fontSize: 13.5,
-                              fontWeight: 600,
-                              fontFamily: 'var(--font-display)',
-                              letterSpacing: '-0.01em',
-                              color: 'var(--text)',
+                              margin: '3px 0 0',
+                              fontSize: 11,
+                              color: 'var(--text-2)',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap' as const,
                             }}
                           >
-                            {visit.name}
+                            {notePreview}
                           </p>
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 8,
-                              flexWrap: 'wrap' as const,
-                            }}
-                          >
-                            <span style={{ fontSize: 11, color: 'var(--text-2)' }}>{dateStr}</span>
-                            {visit.personal_rating && visit.personal_rating > 0 && (
-                              <span style={{ display: 'flex', gap: 1 }}>
-                                {[1, 2, 3, 4, 5].map((s) => (
-                                  <span
-                                    key={s}
-                                    style={{
-                                      fontSize: 11,
-                                      color:
-                                        s <= (visit.personal_rating ?? 0)
-                                          ? 'var(--ember)'
-                                          : 'var(--text-4)',
-                                    }}
-                                  >
-                                    ★
-                                  </span>
-                                ))}
-                              </span>
-                            )}
-                            {MoodIcon && (
-                              <span
-                                style={{ display: 'inline-flex', color: 'var(--text-3)' }}
-                                aria-hidden="true"
-                              >
-                                <MoodIcon size={12} />
-                              </span>
-                            )}
-                            {visit.amount_spent != null && (
-                              <span
-                                style={{
-                                  fontSize: 11,
-                                  fontWeight: 700,
-                                  color: 'var(--ember-text)',
-                                }}
-                              >
-                                {visit.amount_spent}€
-                              </span>
-                            )}
-                            {visit.people_count > 1 && (
-                              <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
-                                {visit.people_count} pers.
-                              </span>
-                            )}
-                          </div>
-                          {notePreview && (
-                            <p
-                              style={{
-                                margin: '3px 0 0',
-                                fontSize: 11,
-                                color: 'var(--text-2)',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap' as const,
-                              }}
-                            >
-                              {notePreview}
-                            </p>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => {
-                            const place = (visit.snapshot ?? {
-                              osm_id: visit.osm_id,
-                              name: visit.name,
-                              lat: 0,
-                              lon: 0,
-                            }) as unknown as PlaceCard
-                            setEditingVisit({ visit, place })
-                          }}
-                          style={{
-                            width: 30,
-                            height: 30,
-                            borderRadius: 'var(--r-sm)',
-                            border: '1px solid var(--border)',
-                            background: 'var(--surface)',
-                            color: 'var(--text-2)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                            transition: 'all 120ms',
-                          }}
-                          onMouseEnter={(e) => {
-                            ;(e.currentTarget as HTMLElement).style.background =
-                              'var(--accent-light)'
-                            ;(e.currentTarget as HTMLElement).style.color = 'var(--accent)'
-                          }}
-                          onMouseLeave={(e) => {
-                            ;(e.currentTarget as HTMLElement).style.background = 'var(--surface)'
-                            ;(e.currentTarget as HTMLElement).style.color = 'var(--text-2)'
-                          }}
-                          title="Modifier la visite"
-                        >
-                          <IcoPencil />
-                        </button>
+                        )}
                       </div>
-                    )
-                  })}
-                </div>
-              )}
-            </Card>
-          </>
-        )}
+                      <button
+                        onClick={() => {
+                          const place = (visit.snapshot ?? {
+                            osm_id: visit.osm_id,
+                            name: visit.name,
+                            lat: 0,
+                            lon: 0,
+                          }) as unknown as PlaceCard
+                          setEditingVisit({ visit, place })
+                        }}
+                        aria-label="Modifier la visite"
+                        title="Modifier la visite"
+                        style={{
+                          width: 30,
+                          height: 30,
+                          borderRadius: 'var(--r-sm)',
+                          border: '1px solid var(--border)',
+                          background: 'transparent',
+                          color: 'var(--text-3)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          transition: 'all 120ms',
+                        }}
+                        onMouseEnter={(e) => {
+                          ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'
+                          ;(e.currentTarget as HTMLElement).style.color = 'var(--accent)'
+                        }}
+                        onMouseLeave={(e) => {
+                          ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'
+                          ;(e.currentTarget as HTMLElement).style.color = 'var(--text-3)'
+                        }}
+                      >
+                        <IcoPencil />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </section>
 
-        {/* Récents favoris */}
+        {/* ── Favoris récents ── */}
         {!favLoading && recentFavs.length > 0 && (
-          <Card style={{ animation: 'fadeUp 280ms var(--ease-out) 120ms both' }}>
-            <CardHeader label="Derniers favoris" />
-            {recentFavs.map((fav, i) => (
-              <Link
-                key={fav.id}
-                href={`/?select=${encodeURIComponent(fav.osm_id)}&lat=${fav.lat}&lon=${fav.lon}`}
+          <section
+            style={{
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: isMobile ? 14 : 32,
+              paddingTop: isMobile ? 28 : 34,
+              marginTop: isMobile ? 28 : 34,
+              borderTop: '1px solid var(--border)',
+              animation: 'fadeUp 360ms var(--ease-out) 300ms both',
+            }}
+          >
+            <div style={{ width: isMobile ? 'auto' : 180, flexShrink: 0 }}>
+              <h2
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 14,
-                  padding: '13px 20px',
-                  borderBottom: i < recentFavs.length - 1 ? '1px solid var(--border)' : 'none',
-                  textDecoration: 'none',
-                  transition: 'background 100ms',
+                  margin: 0,
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 18,
+                  fontWeight: 600,
+                  letterSpacing: '-0.02em',
+                  color: 'var(--text)',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
-                <div
+                Favoris récents
+              </h2>
+              <Link
+                href="/favorites"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  margin: '8px 0 0',
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  color: 'var(--accent)',
+                  textDecoration: 'none',
+                }}
+              >
+                Tout voir <IcoArrow />
+              </Link>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {recentFavs.map((fav, i) => (
+                <Link
+                  key={fav.id}
+                  className="acct-row"
+                  href={`/?select=${encodeURIComponent(fav.osm_id)}&lat=${fav.lat}&lon=${fav.lon}`}
                   style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 'var(--r-md)',
-                    background: 'var(--accent-light)',
-                    border: '1px solid var(--border)',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    color: 'var(--accent)',
+                    gap: 12,
+                    borderBottom: i < recentFavs.length - 1 ? '1px solid var(--border)' : 'none',
+                    textDecoration: 'none',
                   }}
                 >
-                  <IcoHeart />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p
-                    style={{
-                      margin: '0 0 2px',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: 'var(--text)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap' as const,
-                    }}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p
+                      className="acct-row-name"
+                      style={{
+                        margin: '0 0 2px',
+                        fontSize: 14,
+                        fontWeight: 600,
+                        fontFamily: 'var(--font-display)',
+                        letterSpacing: '-0.015em',
+                        color: 'var(--text)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap' as const,
+                      }}
+                    >
+                      {fav.name}
+                    </p>
+                    <p style={{ margin: 0, fontSize: 11, color: 'var(--text-2)' }}>
+                      {fav.snapshot?.cuisine && (
+                        <span style={{ marginRight: 6, color: 'var(--accent)', fontWeight: 600 }}>
+                          {fav.snapshot.cuisine as string}
+                        </span>
+                      )}
+                      {new Date(fav.created_at).toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'short',
+                      })}
+                    </p>
+                  </div>
+                  <span
+                    className="acct-row-arrow"
+                    style={{ color: 'var(--text-4)', flexShrink: 0 }}
                   >
-                    {fav.name}
-                  </p>
-                  <p style={{ margin: 0, fontSize: 11, color: 'var(--text-2)' }}>
-                    {fav.snapshot?.cuisine && (
-                      <span style={{ marginRight: 6, color: 'var(--accent)', fontWeight: 600 }}>
-                        {fav.snapshot.cuisine as string}
-                      </span>
-                    )}
-                    {new Date(fav.created_at).toLocaleDateString('fr-FR', {
-                      day: 'numeric',
-                      month: 'short',
-                    })}
-                  </p>
-                </div>
-              </Link>
-            ))}
-            <Link
-              href="/favorites"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                padding: '13px 20px',
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--accent)',
-                textDecoration: 'none',
-                transition: 'background 100ms',
-                borderTop: '1px solid var(--border)',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--accent-light)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-            >
-              Voir tous mes favoris <IcoArrow />
-            </Link>
-          </Card>
+                    <IcoArrow />
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
         )}
 
-        {/* Compte */}
-        <Card style={{ animation: 'fadeUp 280ms var(--ease-out) 140ms both' }}>
-          <CardHeader label="Compte" />
-          <div style={{ padding: '2px 0' }}>
-            <div
+        {/* ── Compte ── */}
+        <section
+          style={{
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: isMobile ? 14 : 32,
+            paddingTop: isMobile ? 28 : 34,
+            marginTop: isMobile ? 28 : 34,
+            borderTop: '1px solid var(--border)',
+            animation: 'fadeUp 360ms var(--ease-out) 340ms both',
+          }}
+        >
+          <div style={{ width: isMobile ? 'auto' : 180, flexShrink: 0 }}>
+            <h2
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-                padding: '14px 20px',
-                borderBottom: '1px solid var(--border)',
+                margin: 0,
+                fontFamily: 'var(--font-display)',
+                fontSize: 18,
+                fontWeight: 600,
+                letterSpacing: '-0.02em',
+                color: 'var(--text)',
               }}
             >
-              <div
+              Compte
+            </h2>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
+              <p
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 'var(--r-md)',
-                  background: 'var(--surface)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
+                  margin: '0 0 2px',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase' as const,
+                  color: 'var(--text-3)',
                 }}
               >
-                <IcoMail />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p
-                  style={{ margin: '0 0 1px', fontSize: 13, fontWeight: 600, color: 'var(--text)' }}
-                >
-                  Email
-                </p>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: 11,
-                    color: 'var(--text-2)',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap' as const,
-                  }}
-                >
-                  {user.email}
-                </p>
-              </div>
+                Adresse email
+              </p>
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--text)', fontWeight: 500 }}>
+                {user.email}
+              </p>
             </div>
             <button
               onClick={() => setShowDeleteModal(true)}
               style={{
-                width: '100%',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: 14,
-                padding: '14px 20px',
+                gap: 8,
+                marginTop: 16,
+                padding: 0,
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                textAlign: 'left' as const,
                 fontFamily: 'inherit',
-                transition: 'background 100ms',
-              }}
-              onMouseEnter={(e) => {
-                ;(e.currentTarget as HTMLElement).style.background = 'var(--coral-pale)'
-              }}
-              onMouseLeave={(e) => {
-                ;(e.currentTarget as HTMLElement).style.background = 'transparent'
+                color: 'var(--coral)',
+                fontSize: 13,
+                fontWeight: 700,
               }}
             >
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 'var(--r-md)',
-                  background: 'var(--coral-pale)',
-                  border: '1px solid var(--coral-pale)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--coral)',
-                  flexShrink: 0,
-                }}
-              >
-                <IcoTrash />
-              </div>
-              <div style={{ flex: 1 }}>
-                <p
-                  style={{
-                    margin: '0 0 1px',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: 'var(--coral)',
-                  }}
-                >
-                  Supprimer le compte
-                </p>
-                <p style={{ margin: 0, fontSize: 11, color: 'var(--text-2)' }}>
-                  Suppression définitive de toutes vos données
-                </p>
-              </div>
+              <IcoTrash /> Supprimer mon compte
             </button>
+            <p style={{ margin: '6px 0 0', fontSize: 11, color: 'var(--text-3)' }}>
+              Suppression définitive de toutes vos données.
+            </p>
           </div>
-        </Card>
+        </section>
       </div>
 
       {editingVisit && (
@@ -2010,7 +2179,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
         />
       )}
       <GlobalFooter />
-      <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}} @keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}} @keyframes spin{to{transform:rotate(360deg)}} .acct-row{padding:13px 0;transition:padding-left 200ms var(--ease-out)} .acct-row:hover{padding-left:8px} .acct-row:hover .acct-row-name{color:var(--accent)} .acct-row-name{transition:color 160ms ease} .acct-row-arrow{transition:color 160ms ease,transform 160ms var(--ease-out)} .acct-row:hover .acct-row-arrow{color:var(--accent);transform:translateX(3px)} @media (prefers-reduced-motion: reduce){.acct-row,.acct-row:hover{padding-left:0}}`}</style>
     </div>
   )
 }

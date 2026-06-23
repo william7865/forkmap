@@ -32,7 +32,37 @@ function fsqHeaders(): HeadersInit {
   }
 }
 
+// ---------- Circuit breaker ----------
+// When FSQ runs out of credits (429) or auth fails (401/403), every venue in
+// every batch would otherwise fire a doomed request + log a full stack trace.
+// We trip a breaker for a cooldown window: subsequent calls short-circuit to
+// null with no network round-trip and no log noise. It self-recovers after the
+// cooldown (e.g. once billing/credits are restored).
+const FSQ_BREAKER_COOLDOWN_MS = 10 * 60 * 1000 // 10 min
+let fsqBreakerUntil = 0
+
+function fsqBreakerOpen(): boolean {
+  return Date.now() < fsqBreakerUntil
+}
+
+function tripFsqBreaker(status: number, body: string): void {
+  const firstTrip = !fsqBreakerOpen()
+  fsqBreakerUntil = Date.now() + FSQ_BREAKER_COOLDOWN_MS
+  if (firstTrip) {
+    const reason = status === 429 ? 'out of API credits / rate-limited' : `auth error (${status})`
+    console.warn(
+      `Foursquare ${reason} — pausing FSQ enrichment for ${FSQ_BREAKER_COOLDOWN_MS / 60000} min. ${body.slice(0, 120)}`
+    )
+  }
+}
+
+// Sentinel error thrown when the breaker is open or trips, so callers can
+// distinguish "FSQ unavailable, expected" from genuine per-venue failures.
+class FsqUnavailableError extends Error {}
+
 async function fsqGet<T>(path: string, params: Record<string, string> = {}): Promise<T> {
+  if (fsqBreakerOpen()) throw new FsqUnavailableError('FSQ breaker open')
+
   const url = new URL(`${FSQ_BASE}${path}`)
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
 
@@ -44,6 +74,11 @@ async function fsqGet<T>(path: string, params: Record<string, string> = {}): Pro
 
   if (!res.ok) {
     const body = await res.text().catch(() => '')
+    // Quota/auth failures are account-wide, not venue-specific → trip the breaker.
+    if (res.status === 429 || res.status === 401 || res.status === 403) {
+      tripFsqBreaker(res.status, body)
+      throw new FsqUnavailableError(`FSQ ${res.status}`)
+    }
     throw new Error(`FSQ ${res.status}: ${body.slice(0, 200)}`)
   }
 
@@ -139,7 +174,7 @@ interface FsqMatch {
  * Returns the best matching venue's free data + formatted address, or null.
  */
 async function searchFsqVenue(place: PlaceBase): Promise<FsqMatch | null> {
-  if (!FSQ_API_KEY) return null
+  if (!FSQ_API_KEY || fsqBreakerOpen()) return null
 
   const cacheKey = buildFsqSearchKey(place.lat, place.lon, place.name)
   const raw = cacheGet<FsqMatch | string>(cacheKey)
@@ -178,7 +213,10 @@ async function searchFsqVenue(place: PlaceBase): Promise<FsqMatch | null> {
     cacheSet(cacheKey, match, 3600)
     return match
   } catch (err) {
-    console.warn(`FSQ search failed for "${place.name}":`, err)
+    // FsqUnavailableError = account-wide (breaker already logged once); stay quiet.
+    if (!(err instanceof FsqUnavailableError)) {
+      console.warn(`FSQ search failed for "${place.name}":`, err)
+    }
     return null
   }
 }

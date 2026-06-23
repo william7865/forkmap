@@ -15,6 +15,7 @@ const MORE_LINKS = [
   { href: '/help', label: 'Aide' },
   { href: '/about', label: 'À propos' },
   { href: '/contact', label: 'Contact' },
+  { href: '/attribution', label: 'Attribution' },
 ]
 
 export default function BottomNav() {
