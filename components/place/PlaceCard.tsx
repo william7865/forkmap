@@ -3,6 +3,7 @@ import { memo, useState, useCallback, useEffect } from 'react'
 import { getNote } from '@/components/place/NoteModal'
 import type { PlaceCard as T } from '@/types'
 import { Bookmark, MapPin, Utensils } from 'lucide-react'
+import { frCuisine } from '@/lib/cuisine'
 
 interface Props {
   place: T
@@ -199,7 +200,7 @@ const PlaceCard = memo(function PlaceCard({
                 maxWidth: 110,
               }}
             >
-              {cuisine.charAt(0).toUpperCase() + cuisine.slice(1).toLowerCase()}
+              {frCuisine(cuisine)}
             </span>
           )}
           {cuisine && (price != null || place.distance != null) && (

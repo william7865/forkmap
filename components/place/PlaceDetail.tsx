@@ -45,6 +45,7 @@ import {
 } from 'lucide-react'
 import type { TransportMode } from '@/lib/hooks/useRouteCache'
 import { apiFetch } from '@/lib/api'
+import { frCuisine } from '@/lib/cuisine'
 import { Capacitor } from '@capacitor/core'
 import { Share } from '@capacitor/share'
 
@@ -560,7 +561,7 @@ export default function PlaceDetail({
                       letterSpacing: '0.05em',
                     }}
                   >
-                    {cuisine}
+                    {frCuisine(cuisine)}
                   </span>
                 )}
               </div>
@@ -779,7 +780,7 @@ export default function PlaceDetail({
           {cuisine && onCuisineFilter && (
             <button
               onClick={() => onCuisineFilter(cuisine)}
-              aria-label={`Filtrer par cuisine : ${cuisine}`}
+              aria-label={`Filtrer par cuisine : ${frCuisine(cuisine)}`}
               style={{
                 cursor: 'pointer',
                 background: 'none',
@@ -792,7 +793,7 @@ export default function PlaceDetail({
                 height: 34,
               }}
             >
-              {cuisine}
+              {frCuisine(cuisine)}
             </button>
           )}
         </div>
@@ -1742,7 +1743,7 @@ export default function PlaceDetail({
                               color: 'var(--forest-mid)',
                             }}
                           >
-                            {c}
+                            {frCuisine(c)}
                           </span>
                         )}
                         {d && <span>{d}</span>}
