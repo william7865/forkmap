@@ -48,6 +48,23 @@ import { apiFetch } from '@/lib/api'
 import { frCuisine } from '@/lib/cuisine'
 import { Capacitor } from '@capacitor/core'
 import { Share } from '@capacitor/share'
+import { isNativeRuntime } from '@/lib/native/platform'
+
+// dirflg Apple Maps : w=marche, d=voiture (vélo retombe sur voiture)
+const APPLE_FLAG: Record<string, string> = { walking: 'w', bicycling: 'd', driving: 'd' }
+
+function openDirections(lat: number, lon: number, gmapsMode: string) {
+  if (isNativeRuntime()) {
+    const flag = APPLE_FLAG[gmapsMode] ?? 'd'
+    // Apple Maps (iOS). Android maps via geo: is a later iteration.
+    window.open(`maps://?daddr=${lat},${lon}&dirflg=${flag}`, '_system')
+    return
+  }
+  window.open(
+    `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=${gmapsMode}`,
+    '_blank'
+  )
+}
 
 interface RouteResult {
   duration: number
@@ -581,10 +598,9 @@ export default function PlaceDetail({
           flexShrink: 0,
         }}
       >
-        <a
-          href={`https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}&travelmode=walking`}
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          type="button"
+          onClick={() => openDirections(place.lat, place.lon, 'walking')}
           style={{
             flex: 1,
             display: 'flex',
@@ -595,14 +611,15 @@ export default function PlaceDetail({
             borderRadius: 10,
             background: 'var(--forest-mid)',
             color: 'white',
-            textDecoration: 'none',
+            border: 'none',
+            cursor: 'pointer',
             fontSize: 12,
             fontWeight: 700,
             whiteSpace: 'nowrap',
           }}
         >
           <IcoRoute /> Itinéraire
-        </a>
+        </button>
         {(place.fsq?.tel ?? place.phone) && (
           <a
             href={`tel:${place.fsq?.tel ?? place.phone}`}
@@ -1030,11 +1047,10 @@ export default function PlaceDetail({
                       Trajet sur la carte
                     </div>
 
-                    {/* Google Maps CTA */}
-                    <a
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}&travelmode=${currentMode.gmaps}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    {/* Maps CTA — ouvre Plans natif en natif, Google Maps en web */}
+                    <button
+                      type="button"
+                      onClick={() => openDirections(place.lat, place.lon, currentMode.gmaps)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -1044,7 +1060,8 @@ export default function PlaceDetail({
                         borderRadius: 10,
                         background: 'var(--forest-mid)',
                         color: 'white',
-                        textDecoration: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
                         fontSize: 12.5,
                         fontWeight: 700,
                         letterSpacing: '-0.01em',
@@ -1054,8 +1071,8 @@ export default function PlaceDetail({
                       onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--forest)')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--forest-mid)')}
                     >
-                      Ouvrir dans Google Maps <IcoArrow />
-                    </a>
+                      Ouvrir dans Maps <IcoArrow />
+                    </button>
                   </>
                 ) : (
                   <p
