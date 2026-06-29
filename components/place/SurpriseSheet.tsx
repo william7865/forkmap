@@ -139,6 +139,13 @@ export default function SurpriseSheet({
   const [openNow, setOpenNow] = useState(false)
   const [refine, setRefine] = useState(false)
   const [tasteReset, setTasteReset] = useState(false)
+  const tasteResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(
+    () => () => {
+      if (tasteResetTimerRef.current) clearTimeout(tasteResetTimerRef.current)
+    },
+    []
+  )
 
   const [deck, setDeck] = useState<SurpriseResult[]>([])
   const [index, setIndex] = useState(0)
@@ -407,7 +414,8 @@ export default function SurpriseSheet({
             profileRef.current = emptyProfile()
             persist()
             setTasteReset(true)
-            window.setTimeout(() => setTasteReset(false), 1500)
+            if (tasteResetTimerRef.current) clearTimeout(tasteResetTimerRef.current)
+            tasteResetTimerRef.current = setTimeout(() => setTasteReset(false), 1500)
           }}
           style={{
             background: 'none',
