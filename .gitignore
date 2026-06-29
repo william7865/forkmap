@@ -58,3 +58,6 @@ supabase/.temp/
 
 # Superpowers brainstorming
 .superpowers/
+
+# Claude planning artifacts (specs/plans) — local only, never tracked
+docs/superpowers/
