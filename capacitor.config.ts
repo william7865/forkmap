@@ -21,10 +21,13 @@ const config: CapacitorConfig = {
       overlaysWebView: false,
     },
     SplashScreen: {
-      launchShowDuration: 0,
-      backgroundColor: '#f6efe1',
-      showSpinner: false,
+      // Show the branded splash immediately on launch and keep it covering the
+      // WebView until the app is ready — CapacitorInit calls hide() after a
+      // short minimum (no grey WebView flash between launch and first paint).
+      launchShowDuration: 3000,
       launchAutoHide: false,
+      backgroundColor: '#fffdf8',
+      showSpinner: false,
     },
   },
 }

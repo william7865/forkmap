@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Map, User, Settings } from 'lucide-react'
+import { LogoMark } from '@/components/icons/Logo'
 
 const NAV = [
   { href: '/', Icon: Map, label: 'Carte' },
@@ -41,14 +42,7 @@ export default function NavRail() {
             justifyContent: 'center',
           }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M9 4v8c0 2.5 1 4 3 4.5V21M15 4v5c0 1-.7 1.5-1.5 1.5S12 10 12 9V4M15 9.5c0 2 1.5 3 3 3V21"
-              stroke="white"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-            />
-          </svg>
+          <LogoMark size={18} color="white" />
         </div>
       </Link>
 

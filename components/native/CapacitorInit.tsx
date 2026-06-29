@@ -24,6 +24,9 @@ export default function CapacitorInit() {
       await StatusBar.setBackgroundColor({ color: '#fffdf8' })
       try {
         const { SplashScreen } = await import('@capacitor/splash-screen')
+        // Keep the logo splash visible briefly so it reads even on fast cold
+        // starts (Insta/YouTube-style), then reveal the app.
+        await new Promise((r) => setTimeout(r, 800))
         await SplashScreen.hide()
       } catch {
         // plugin absent — ignore
