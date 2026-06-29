@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       console.error('[POST /api/contact] Network error:', err)
       return NextResponse.json(
-        { error: 'Failed to send message. Please try again.' },
+        { error: "Échec de l'envoi du message. Réessayez plus tard." },
         { status: 502 }
       )
     }
