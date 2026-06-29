@@ -168,6 +168,35 @@ export function useRestaurants() {
       setLoading(false)
       setEnriching(true)
 
+      // ── Throttled publishing ──
+      // The 3-layer enrichment streams ~17 batches; publishing React state on
+      // every batch caused a re-render + re-sort storm (list flicker, and the
+      // map "freezing" right after a pan triggers a fetch). Coalesce updates to
+      // ~1 per 350ms (+ a forced final flush): results still stream in, but
+      // smoothly. placesRef is always kept fresh synchronously so other reads
+      // (e.g. toggleFavorite) stay correct.
+      let publishTimer: ReturnType<typeof setTimeout> | null = null
+      let lastPublishAt = 0
+      const PUBLISH_MS = 350
+      const publish = (next: PlaceCard[], force = false) => {
+        if (fetchCount.current !== myFetch) return
+        placesRef.current = next
+        if (publishTimer) {
+          clearTimeout(publishTimer)
+          publishTimer = null
+        }
+        const flush = () => {
+          publishTimer = null
+          if (fetchCount.current !== myFetch) return
+          setPlaces(next)
+          setFilteredPlaces(applyFilters(next, currentFilters.current))
+          lastPublishAt = Date.now()
+        }
+        const elapsed = Date.now() - lastPublishAt
+        if (force || elapsed >= PUBLISH_MS) flush()
+        else publishTimer = setTimeout(flush, PUBLISH_MS - elapsed)
+      }
+
       // ── Step 1: OSM deep enrichment (free, fast — opening hours, features, etc.)
       // Run for all places immediately since it's free and instant
       const OSM_BATCH = 30
@@ -206,9 +235,7 @@ export function useRestaurants() {
           ...p,
           is_favorite: favoriteIdsRef.current.has(p.osm_id),
         }))
-        placesRef.current = withFavOsm
-        setPlaces(withFavOsm)
-        setFilteredPlaces(applyFilters(withFavOsm, currentFilters.current))
+        publish(withFavOsm)
       }
 
       // ── Step 2: Foursquare enrichment (ratings, photos, categories)
@@ -266,10 +293,11 @@ export function useRestaurants() {
           ...p,
           is_favorite: favoriteIdsRef.current.has(p.osm_id),
         }))
-        placesRef.current = withFav
-        setPlaces(withFav)
-        setFilteredPlaces(applyFilters(withFav, currentFilters.current))
+        publish(withFav)
       }
+
+      // Final flush — publish the fully-enriched state immediately.
+      publish(placesRef.current, true)
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return // cancelled, not an error
       if (fetchCount.current === myFetch) {

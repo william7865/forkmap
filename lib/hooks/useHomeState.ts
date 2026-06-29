@@ -371,30 +371,27 @@ export function useHomeState() {
   // ── Nearby places ─────────────────────────────────────────
   const nearbyPlaces = useMemo(() => {
     if (!selectedPlace) return []
+    const selLat = selectedPlace.lat
+    const selLon = selectedPlace.lon
+    const cosLat = Math.cos((selLat * Math.PI) / 180)
     return places
       .filter((p) => p.osm_id !== selectedPlace.osm_id)
-      .filter((p) => {
-        const selLat = selectedPlace.lat
-        const selLon = selectedPlace.lon
-        const dx = (p.lon - selLon) * Math.cos((selLat * Math.PI) / 180) * 111320
+      .map((p) => {
+        const dx = (p.lon - selLon) * cosLat * 111320
         const dy = (p.lat - selLat) * 111320
-        const dist = Math.sqrt(dx * dx + dy * dy)
+        return { place: p, dist: Math.sqrt(dx * dx + dy * dy) }
+      })
+      .filter(({ place, dist }) => {
         const sameCuisine = !!(
-          p.cuisine &&
+          place.cuisine &&
           selectedPlace.cuisine &&
-          p.cuisine.toLowerCase() === selectedPlace.cuisine.toLowerCase()
+          place.cuisine.toLowerCase() === selectedPlace.cuisine.toLowerCase()
         )
         return dist < 600 || sameCuisine
       })
-      .map((p) => {
-        const selLat = selectedPlace.lat
-        const selLon = selectedPlace.lon
-        const dx = (p.lon - selLon) * Math.cos((selLat * Math.PI) / 180) * 111320
-        const dy = (p.lat - selLat) * 111320
-        return { ...p, distance: Math.round(Math.sqrt(dx * dx + dy * dy)) }
-      })
-      .sort((a, b) => (a.distance ?? 9999) - (b.distance ?? 9999))
+      .sort((a, b) => a.dist - b.dist)
       .slice(0, 4)
+      .map(({ place, dist }) => ({ ...place, distance: Math.round(dist) }))
   }, [selectedPlace, places])
 
   const handleTransportChange = useCallback(
