@@ -12,6 +12,8 @@ import {
 } from '@/lib/db'
 
 export async function GET(req: NextRequest) {
+  const limited = rateLimit(req, { limit: 60, windowMs: 60_000 })
+  if (limited) return limited
   const auth = await requireUser(req)
   if (auth.error) return auth.error
   try {

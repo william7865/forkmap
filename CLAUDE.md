@@ -49,6 +49,8 @@ Exécuter les fichiers SQL dans l'éditeur SQL de Supabase **dans cet ordre** :
 1. `sql/schema.sql` — tables `favorites`, `osm_fsq_mapping`, `visits` + RLS.
 2. `sql/lists.sql` — tables `lists`, `list_items` + RLS.
 3. `sql/push_tokens.sql` — table `push_tokens` + RLS (push mobile).
+4. `sql/profiles.sql` — table `profiles` + RLS (profils publics).
+5. `sql/avatars-storage.sql` — bucket Storage `avatars` + politiques d'accès.
 
 Pour l'OAuth Google, activer le provider Google dans Supabase Auth et ajouter la redirection vers `/auth/callback`.
 

@@ -19,6 +19,9 @@ export default function FriendsPage() {
   // Web: social features are app-only.
   if (!native) return <CenteredMsg>Disponible dans l&apos;application Forkmap.</CenteredMsg>
 
+  // Auth session not yet resolved — avoid flashing AuthModal on native cold start.
+  if (auth.loading) return <CenteredMsg>Chargement…</CenteredMsg>
+
   // Not signed in → show auth modal.
   if (!auth.user)
     return (

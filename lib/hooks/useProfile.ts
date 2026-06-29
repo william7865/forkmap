@@ -33,6 +33,19 @@ export function useProfile() {
     load()
   }, [load])
 
+  // Re-sync whenever the authenticated user changes (e.g. log-in after landing
+  // on /friends while logged out — without this the hook never reloads and an
+  // existing user is wrongly shown ProfileOnboarding).
+  useEffect(() => {
+    const sb = getSupabaseBrowserClient()
+    const {
+      data: { subscription },
+    } = sb.auth.onAuthStateChange(() => {
+      load()
+    })
+    return () => subscription.unsubscribe()
+  }, [load])
+
   const checkUsername = useCallback(async (u: string) => {
     const res = await apiFetch(`/api/profile/check-username?u=${encodeURIComponent(u)}`, {
       headers: await authHeaders(),
