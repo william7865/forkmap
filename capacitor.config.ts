@@ -5,8 +5,10 @@ const config: CapacitorConfig = {
   appId: 'com.forkmap.app',
   appName: 'Forkmap',
   webDir: 'out',
+  // Embedded mode: the app loads the bundled `out/` build from the device
+  // (instant launch, native feel) instead of fetching the hosted website.
+  // Data still comes from the hosted API via NEXT_PUBLIC_API_URL (see lib/api.ts).
   server: {
-    url: 'https://forkmap.vercel.app',
     androidScheme: 'https',
   },
   plugins: {

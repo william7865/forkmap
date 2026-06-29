@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:mobile": "NEXT_EXPORT=true next build",
+    "build:mobile": "node scripts/build-mobile.mjs",
     "start": "next start",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
