@@ -3,7 +3,8 @@
 // ============================================================
 
 import { createClient } from '@supabase/supabase-js'
-import type { FavoriteRow, OsmFsqMapping, PlaceCard } from '@/types'
+import type { FavoriteRow, OsmFsqMapping, PlaceCard, Profile } from '@/types'
+import { canChangeUsername } from '@/lib/username'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -433,4 +434,88 @@ export async function savePushToken(
       { onConflict: 'user_id,token' }
     )
   if (error) throw error
+}
+
+// ---------- Profiles ----------
+
+export class UsernameLockedError extends Error {
+  nextChangeAt: string
+  constructor(nextChangeAt: string) {
+    super('username_locked')
+    this.name = 'UsernameLockedError'
+    this.nextChangeAt = nextChangeAt
+  }
+}
+
+export async function getProfile(userId: string): Promise<Profile | null> {
+  const { data, error } = await db.from('profiles').select('*').eq('id', userId).maybeSingle()
+  if (error) throw error
+  return (data as Profile) ?? null
+}
+
+export async function getProfileByUsername(username: string): Promise<Profile | null> {
+  const { data, error } = await db
+    .from('profiles')
+    .select('*')
+    .eq('username', username.toLowerCase())
+    .maybeSingle()
+  if (error) throw error
+  return (data as Profile) ?? null
+}
+
+export async function isUsernameAvailable(username: string): Promise<boolean> {
+  const { data, error } = await db
+    .from('profiles')
+    .select('id')
+    .eq('username', username.toLowerCase())
+    .maybeSingle()
+  if (error) throw error
+  return data == null
+}
+
+export async function createProfile(
+  userId: string,
+  p: { username: string; display_name: string; avatar_url: string | null }
+): Promise<Profile> {
+  const { data, error } = await db
+    .from('profiles')
+    .insert({
+      id: userId,
+      username: p.username.toLowerCase(),
+      display_name: p.display_name,
+      avatar_url: p.avatar_url,
+    })
+    .select('*')
+    .single()
+  if (error) throw error
+  return data as Profile
+}
+
+export async function updateProfile(
+  userId: string,
+  patch: { display_name?: string; avatar_url?: string | null; username?: string }
+): Promise<Profile> {
+  const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  if (patch.display_name !== undefined) update.display_name = patch.display_name
+  if (patch.avatar_url !== undefined) update.avatar_url = patch.avatar_url
+
+  if (patch.username !== undefined) {
+    const current = await getProfile(userId)
+    if (!current) throw new Error('no_profile')
+    if (patch.username.toLowerCase() !== current.username) {
+      const gate = canChangeUsername(current.username_changed_at, Date.now())
+      if (!gate.ok) throw new UsernameLockedError(gate.nextChangeAt)
+      update.username = patch.username.toLowerCase()
+      update.username_changed_at = new Date().toISOString()
+    }
+  }
+
+  const { data, error } = await db
+    .from('profiles')
+    .update(update)
+    .eq('id', userId)
+    .select('*')
+    .single()
+  if (error) throw error
+  return data as Profile
 }
