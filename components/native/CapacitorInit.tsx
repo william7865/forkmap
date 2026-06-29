@@ -17,9 +17,17 @@ export default function CapacitorInit() {
     if (!Capacitor.isNativePlatform()) return
 
     async function initNative() {
+      document.documentElement.classList.add('native-app')
       const { StatusBar, Style } = await import('@capacitor/status-bar')
-      await StatusBar.setStyle({ style: Style.Default })
-      await StatusBar.setBackgroundColor({ color: '#ffffff' })
+      // Cream paper background + dark content (dark text/icons on light bg)
+      await StatusBar.setStyle({ style: Style.Light })
+      await StatusBar.setBackgroundColor({ color: '#fffdf8' })
+      try {
+        const { SplashScreen } = await import('@capacitor/splash-screen')
+        await SplashScreen.hide()
+      } catch {
+        // plugin absent — ignore
+      }
     }
 
     initNative()

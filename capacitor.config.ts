@@ -16,12 +16,15 @@ const config: CapacitorConfig = {
       presentationOptions: ['badge', 'sound', 'alert'],
     },
     StatusBar: {
-      style: 'Default',
-      backgroundColor: '#ffffff',
+      style: 'Light',
+      backgroundColor: '#fffdf8',
       overlaysWebView: false,
     },
     SplashScreen: {
       launchShowDuration: 0,
+      backgroundColor: '#f6efe1',
+      showSpinner: false,
+      launchAutoHide: false,
     },
   },
 }
