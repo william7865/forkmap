@@ -58,5 +58,9 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Forkmap utilise l'appareil photo pour votre photo de profil.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Forkmap accède à vos photos pour votre photo de profil.</string>
 </dict>
 </plist>

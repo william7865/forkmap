@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Map, Heart, User } from 'lucide-react'
+import { Map, Heart, Users, User } from 'lucide-react'
 import { IcoSparkle } from '@/components/icons'
 import { lightTap } from '@/lib/native/haptics'
 
@@ -30,6 +30,12 @@ const TABS: Tab[] = [
     icon: (active) => <Heart size={22} strokeWidth={active ? 2 : 1.75} />,
     label: 'Favoris',
     match: (p) => p.startsWith('/favorites'),
+  },
+  {
+    href: '/friends',
+    icon: (active) => <Users size={22} strokeWidth={active ? 2 : 1.75} />,
+    label: 'Amis',
+    match: (p) => p.startsWith('/friends'),
   },
   {
     href: '/account',
