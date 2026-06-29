@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useLanguage } from '@/lib/i18n/useLanguage'
 import type { PlaceCard, FavoriteRow } from '@/types'
+import { frCuisine } from '@/lib/cuisine'
 
 interface Props {
   places: PlaceCard[]
@@ -307,7 +308,7 @@ export default function SuggestionsPanel({
                       color: 'var(--forest-mid)',
                     }}
                   >
-                    {p.cuisine}
+                    {frCuisine(p.cuisine)}
                   </p>
                 )}
                 <div

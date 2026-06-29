@@ -40,6 +40,7 @@ import {
 import { SigSparkle } from '@/components/icons/signature'
 import type { LucideProps } from 'lucide-react'
 import type { ComponentType } from 'react'
+import { frCuisine } from '@/lib/cuisine'
 
 // Humeurs food du deck → icônes lucide (remplace les emojis 🍝🥗🥂⚡🧭)
 const MOOD_ICONS: Record<string, ComponentType<LucideProps>> = {
@@ -304,7 +305,7 @@ export default function SurpriseSheet({
 
   const madeForYou = current ? isMadeForYou(profileRef.current, current.place) : false
   const madeReason = current?.place.cuisine
-    ? `Tu aimes ${current.place.cuisine.toLowerCase()}`
+    ? `Tu aimes ${frCuisine(current.place.cuisine)}`
     : 'Dans tes goûts'
   const topPhotos = current ? placePhotos(current.place) : []
 
@@ -784,7 +785,7 @@ function DeckCard({
               fontWeight: 500,
             }}
           >
-            {cuisine ?? 'À découvrir'}
+            {cuisine ? frCuisine(cuisine) : 'À découvrir'}
           </span>
         </div>
       )}
@@ -1027,7 +1028,9 @@ function DeckCard({
             </span>
           )}
           {cuisine && (
-            <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.82)' }}>{cuisine}</span>
+            <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.82)' }}>
+              {frCuisine(cuisine)}
+            </span>
           )}
           {price != null && (
             <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.7)' }}>

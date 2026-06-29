@@ -21,6 +21,7 @@ import { ListCard, NewListCard } from '@/components/lists/ListCard'
 import { CreateListModal } from '@/components/lists/CreateListModal'
 import { SaveToListPopup } from '@/components/lists/SaveToListPopup'
 import { placeGradient } from '@/lib/gradients'
+import { frCuisine } from '@/lib/cuisine'
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   try {
@@ -1249,7 +1250,9 @@ function FavCardList({
               <IcoStar /> {rating.toFixed(1)}
             </span>
           )}
-          {cuisine && <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{cuisine}</span>}
+          {cuisine && (
+            <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{frCuisine(cuisine)}</span>
+          )}
           {openNow != null && (
             <span
               style={{
@@ -1477,7 +1480,7 @@ function FavCardGrid({
                 whiteSpace: 'nowrap',
               }}
             >
-              {cuisine}
+              {frCuisine(cuisine)}
             </p>
           )}
         </button>
@@ -1957,7 +1960,7 @@ function FavoritesPageInner() {
                       )}
                       {cuisine && (
                         <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.82)' }}>
-                          {cuisine}
+                          {frCuisine(cuisine)}
                         </span>
                       )}
                     </div>

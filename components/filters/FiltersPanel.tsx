@@ -3,6 +3,7 @@
 import type { FilterState, PlaceCard } from '@/types'
 import { extractCuisines } from '@/lib/scoring'
 import { extractDistricts } from '@/lib/districts'
+import { frCuisine } from '@/lib/cuisine'
 
 const FALLBACK_CUISINES = [
   'Italian',
@@ -276,7 +277,7 @@ export default function FiltersPanel({ filters, onChange, places = [], horizonta
       <option value="">Toutes</option>
       {cuisines.map((c) => (
         <option key={c} value={c}>
-          {c}
+          {frCuisine(c)}
         </option>
       ))}
     </>
@@ -406,7 +407,7 @@ export default function FiltersPanel({ filters, onChange, places = [], horizonta
         <option value="">Toutes les cuisines</option>
         {cuisines.map((c) => (
           <option key={c} value={c}>
-            {c}
+            {frCuisine(c)}
           </option>
         ))}
       </PillSelect>
