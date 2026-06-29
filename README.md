@@ -55,6 +55,8 @@ Exécuter, **dans l'ordre**, dans l'éditeur SQL Supabase :
 1. `sql/schema.sql` — `favorites`, `osm_fsq_mapping`, `visits`
 2. `sql/lists.sql` — `lists`, `list_items`
 3. `sql/push_tokens.sql` — `push_tokens`
+4. `sql/profiles.sql` — `profiles` (RLS)
+5. `sql/avatars-storage.sql` — `avatars` Storage bucket + policies
 
 Pour Google OAuth : activer le provider Google dans Supabase Auth (redirection `/auth/callback`).
 

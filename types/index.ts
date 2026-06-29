@@ -187,3 +187,12 @@ export interface EnrichApiResponse extends ApiResponse<PlaceCard[]> {
   enriched_count?: number
   cached_count?: number
 }
+
+export interface Profile {
+  id: string
+  username: string
+  display_name: string
+  avatar_url: string | null
+  username_changed_at: string | null
+  created_at: string
+}
