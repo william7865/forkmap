@@ -138,6 +138,7 @@ export default function SurpriseSheet({
   const [maxDistance, setMaxDistance] = useState<number | null>(null)
   const [openNow, setOpenNow] = useState(false)
   const [refine, setRefine] = useState(false)
+  const [tasteReset, setTasteReset] = useState(false)
 
   const [deck, setDeck] = useState<SurpriseResult[]>([])
   const [index, setIndex] = useState(0)
@@ -312,7 +313,8 @@ export default function SurpriseSheet({
   const photoNav = useCallback(
     (dir: -1 | 1) => {
       if (movedRef.current) return
-      setPhotoIdx((i) => Math.min(topPhotos.length - 1, Math.max(0, i + dir)))
+      if (topPhotos.length === 0) return
+      setPhotoIdx((i) => (((i + dir) % topPhotos.length) + topPhotos.length) % topPhotos.length)
     },
     [topPhotos.length]
   )
@@ -400,6 +402,27 @@ export default function SurpriseSheet({
               : 'Trouvons ton resto'}
           </h2>
         </div>
+        <button
+          onClick={() => {
+            profileRef.current = emptyProfile()
+            persist()
+            setTasteReset(true)
+            window.setTimeout(() => setTasteReset(false), 1500)
+          }}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: 11,
+            color: tasteReset ? '#7ee0a8' : 'rgba(255,253,248,0.45)',
+            fontFamily: 'var(--font-body)',
+            whiteSpace: 'nowrap',
+            padding: '4px 2px',
+            transition: 'color 200ms ease',
+          }}
+        >
+          {tasteReset ? 'Goûts réinitialisés ✓' : 'Réinitialiser mes goûts'}
+        </button>
         <button
           onClick={() => setRefine((v) => !v)}
           aria-label="Affiner"

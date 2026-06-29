@@ -111,6 +111,7 @@ export default function HomePage() {
     setSearchFocused,
     recentSearches,
     setRecentSearches,
+    clearRecentSearches,
     activeCount,
     visiblePlaces,
     topCuisines,
@@ -556,13 +557,38 @@ export default function HomePage() {
                 <div
                   style={{
                     padding: '8px 14px 4px',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: 'var(--text-3)',
-                    letterSpacing: '0.08em',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
                   }}
                 >
-                  RÉCENTS
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: 'var(--text-3)',
+                      letterSpacing: '0.08em',
+                    }}
+                  >
+                    RÉCENTS
+                  </span>
+                  <button
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      clearRecentSearches()
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: 11,
+                      color: 'var(--text-3)',
+                      padding: '0 2px',
+                      fontFamily: 'var(--font-body)',
+                    }}
+                  >
+                    Tout effacer
+                  </button>
                 </div>
                 {recentSearches.map((s) => (
                   <div

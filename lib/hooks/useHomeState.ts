@@ -107,6 +107,11 @@ export function useHomeState() {
     })
   }, [])
 
+  const clearRecentSearches = useCallback(() => {
+    setRecentSearches([])
+    localStorage.setItem('forkmap_recent_searches', JSON.stringify([]))
+  }, [])
+
   // ── Saved-only layer ──────────────────────────────────────
   // Favorites are rendered from their DB snapshots, so they appear on the
   // map regardless of the current viewport (NOT limited to the loaded OSM
@@ -307,12 +312,18 @@ export function useHomeState() {
     else mapRef.current?.disablePinDrop()
   }, [pinDropActive])
 
-  const handlePinDrop = useCallback((lat: number, lon: number) => {
-    setUserLocation([lat, lon])
-    setLocationLabel('Point sélectionné')
-    setPinDropActive(false)
-    mapRef.current?.disablePinDrop()
-  }, [])
+  const handlePinDrop = useCallback(
+    (lat: number, lon: number) => {
+      setUserLocation([lat, lon])
+      setLocationLabel('Point sélectionné')
+      setPinDropActive(false)
+      mapRef.current?.disablePinDrop()
+      if (!selectedPlace) {
+        toast.info("Choisissez un restaurant pour voir l'itinéraire")
+      }
+    },
+    [selectedPlace, toast]
+  )
 
   // ── Map move ──────────────────────────────────────────────
   const handleMoveEnd = useCallback(
@@ -497,6 +508,7 @@ export function useHomeState() {
     setSearchFocused,
     recentSearches,
     setRecentSearches,
+    clearRecentSearches,
     // derived
     activeCount,
     visiblePlaces,
