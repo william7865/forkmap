@@ -16,6 +16,7 @@ import VisitModal from '@/components/place/VisitModal'
 import Image from 'next/image'
 import { apiFetch } from '@/lib/api'
 import { useIsMobile } from '@/lib/hooks/useMediaQuery'
+import { useIsNative } from '@/lib/native/platform'
 import {
   IcoFork,
   IcoStats,
@@ -1069,6 +1070,7 @@ export default function AccountPage() {
 function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['auth'] }) {
   const router = useRouter()
   const isMobile = useIsMobile()
+  const isNative = useIsNative()
   const [favorites, setFavorites] = useState<FavoriteRow[]>([])
   const [favLoading, setFavLoading] = useState(true)
   const [favError, setFavError] = useState(false)
@@ -2154,6 +2156,44 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
             </p>
           </div>
         </section>
+
+        {isNative && (
+          <section
+            style={{
+              margin: '24px 16px calc(var(--safe-bottom) + 80px)',
+              background: 'var(--bg)',
+              borderRadius: 'var(--r-lg)',
+              border: '1px solid var(--border)',
+              overflow: 'hidden',
+            }}
+          >
+            {(
+              [
+                { href: '/settings', label: 'Paramètres' },
+                { href: '/help', label: 'Aide' },
+                { href: '/about', label: 'À propos' },
+                { href: '/contact', label: 'Contact' },
+                { href: '/attribution', label: 'Attribution' },
+              ] as { href: string; label: string }[]
+            ).map((l, i) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                style={{
+                  display: 'block',
+                  padding: '15px 18px',
+                  fontSize: 15,
+                  color: 'var(--text)',
+                  textDecoration: 'none',
+                  fontFamily: 'var(--font-body)',
+                  borderTop: i === 0 ? 'none' : '1px solid var(--border)',
+                }}
+              >
+                {l.label}
+              </Link>
+            ))}
+          </section>
+        )}
       </div>
 
       {editingVisit && (
