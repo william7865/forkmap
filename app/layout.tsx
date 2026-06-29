@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import ErrorBoundary from '@/components/states/ErrorBoundary'
 import { LanguageProvider } from '@/lib/i18n/useLanguage'
-import NavWrapper from '@/components/ui/NavWrapper'
+import AppChrome from '@/components/ui/AppChrome'
 import CapacitorInit from '@/components/native/CapacitorInit'
 
 export const viewport: Viewport = {
@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LanguageProvider>
           <ErrorBoundary>
             <CapacitorInit />
-            <NavWrapper />
+            <AppChrome />
             {/* Push content right on desktop, up on mobile */}
             <div className="main-content-offset">{children}</div>
             <style>{`
