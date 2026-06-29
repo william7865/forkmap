@@ -46,6 +46,22 @@ function AuthRequiredWatcher({ onOpen }: { onOpen: () => void }) {
   return null
 }
 
+function SurpriseParamWatcher({ onOpen }: { onOpen: () => void }) {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  useEffect(() => {
+    if (searchParams.get('surprise') !== '1') return
+    onOpen()
+    // Clean the param so re-tapping the tab (which appends ?surprise=1)
+    // triggers a fresh open rather than being silently ignored.
+    const params = new URLSearchParams(Array.from(searchParams.entries()))
+    params.delete('surprise')
+    const qs = params.toString()
+    router.replace(qs ? `/?${qs}` : '/', { scroll: false })
+  }, [searchParams, onOpen, router])
+  return null
+}
+
 export default function HomePage() {
   const {
     auth,
@@ -1065,6 +1081,7 @@ export default function HomePage() {
 
       <Suspense>
         <AuthRequiredWatcher onOpen={() => setShowAuthModal(true)} />
+        <SurpriseParamWatcher onOpen={() => setShowSurprise(true)} />
       </Suspense>
 
       {showSurprise && (
