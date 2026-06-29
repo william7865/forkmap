@@ -56,13 +56,19 @@ export default function ProfileOnboarding({ onDone }: Props) {
   const [avatarBusy, setAvatarBusy] = useState(false)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Generation counter — each new check bumps this; stale async results are discarded
+  const checkGenRef = useRef(0)
 
-  // Clean up debounce timer on unmount
+  // Clean up debounce timer on unmount and invalidate any in-flight check
   useEffect(() => {
     return () => {
       if (debounceRef.current !== null) {
         clearTimeout(debounceRef.current)
       }
+      // Intentional: we always want to increment the CURRENT counter at unmount,
+      // not a snapshot captured when the effect ran. Rule targets DOM node refs.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      checkGenRef.current++
     }
   }, [])
 
@@ -81,10 +87,13 @@ export default function ProfileOnboarding({ onDone }: Props) {
       return
     }
 
+    // Capture generation before scheduling — any earlier in-flight call becomes stale
+    const gen = ++checkGenRef.current
     setUsernameStatus({ state: 'checking' })
     debounceRef.current = setTimeout(async () => {
       try {
         const result = await checkUsername(stripped)
+        if (checkGenRef.current !== gen) return
         if (result.available) {
           setUsernameStatus({ state: 'available' })
         } else {
@@ -94,6 +103,7 @@ export default function ProfileOnboarding({ onDone }: Props) {
           })
         }
       } catch {
+        if (checkGenRef.current !== gen) return
         setUsernameStatus({ state: 'unavailable', reason: 'Erreur lors de la vérification.' })
       }
     }, 400)
@@ -109,8 +119,7 @@ export default function ProfileOnboarding({ onDone }: Props) {
     }
   }
 
-  const isSubmitDisabled =
-    busy || usernameStatus.state !== 'available' || !displayName.trim() || !username.trim()
+  const isSubmitDisabled = busy || usernameStatus.state !== 'available' || !displayName.trim()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
