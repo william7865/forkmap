@@ -46,9 +46,8 @@ import {
 import type { TransportMode } from '@/lib/hooks/useRouteCache'
 import { apiFetch } from '@/lib/api'
 import { frCuisine } from '@/lib/cuisine'
-import { Capacitor } from '@capacitor/core'
-import { Share } from '@capacitor/share'
 import { isNativeRuntime } from '@/lib/native/platform'
+import { nativeShare } from '@/lib/native/share'
 
 // dirflg Apple Maps : w=marche, d=voiture (vélo retombe sur voiture)
 const APPLE_FLAG: Record<string, string> = { walking: 'w', bicycling: 'd', driving: 'd' }
@@ -357,17 +356,17 @@ export default function PlaceDetail({
   }, [place.osm_id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleShare = async () => {
-    if (Capacitor.isNativePlatform()) {
-      const address = [place.address, place.osm_enriched?.city].filter(Boolean).join(', ')
-      await Share.share({
+    const address = [place.address, place.osm_enriched?.city].filter(Boolean).join(', ')
+    if (
+      await nativeShare({
         title: place.name,
         text: address ? `${place.name}, ${address}` : place.name,
         url: `https://forkmap.vercel.app`,
         dialogTitle: 'Partager ce restaurant',
       })
-    } else {
-      setShowShare(true)
-    }
+    )
+      return
+    setShowShare(true)
   }
 
   const cuisine = place.cuisine ?? place.fsq?.categories?.[0]?.name
