@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => null)
   const parsed = CreateSchema.safeParse(body)
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.message }, { status: 400 })
+  if (!parsed.success) return NextResponse.json({ error: 'Requête invalide.' }, { status: 400 })
 
   const v = validateUsername(parsed.data.username)
   if (!v.ok) return NextResponse.json({ error: v.reason }, { status: 400 })
@@ -80,7 +80,7 @@ export async function PATCH(req: NextRequest) {
 
   const body = await req.json().catch(() => null)
   const parsed = PatchSchema.safeParse(body)
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.message }, { status: 400 })
+  if (!parsed.success) return NextResponse.json({ error: 'Requête invalide.' }, { status: 400 })
 
   const patch: { display_name?: string; avatar_url?: string | null; username?: string } = {}
   if (parsed.data.display_name !== undefined) patch.display_name = parsed.data.display_name
@@ -88,15 +88,21 @@ export async function PATCH(req: NextRequest) {
   if (parsed.data.username !== undefined) {
     const v = validateUsername(parsed.data.username)
     if (!v.ok) return NextResponse.json({ error: v.reason }, { status: 400 })
-    const current = await getProfile(auth.userId)
-    // Only reject if it's a DIFFERENT username that's already taken (keeping
-    // your own username is a no-op, handled in updateProfile).
-    if (current && v.username !== current.username && !(await isUsernameAvailable(v.username)))
-      return NextResponse.json({ error: 'username_taken' }, { status: 409 })
     patch.username = v.username
   }
 
   try {
+    // Only reject if it's a DIFFERENT username that's already taken (keeping
+    // your own username is a no-op, handled in updateProfile).
+    if (patch.username !== undefined) {
+      const current = await getProfile(auth.userId)
+      if (
+        current &&
+        patch.username !== current.username &&
+        !(await isUsernameAvailable(patch.username))
+      )
+        return NextResponse.json({ error: 'username_taken' }, { status: 409 })
+    }
     const profile = await updateProfile(auth.userId, patch)
     return NextResponse.json({ data: profile })
   } catch (err) {
