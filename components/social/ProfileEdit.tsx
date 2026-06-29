@@ -85,8 +85,31 @@ function SuccessChip({ msg }: { msg: string }) {
   )
 }
 
+// ── Safe date formatter — falls back to "bientôt" ────────────
+function formatNextChangeDate(value: string | number | null | undefined): string | null {
+  if (!value) return null
+  const d = new Date(value)
+  if (isNaN(d.getTime())) return null
+  return d.toLocaleDateString('fr-FR')
+}
+
 export default function ProfileEdit({ onClose }: Props) {
   const { profile, updateProfile, pickAndUploadAvatar } = useProfile()
+
+  // ── Mount guard (post-unmount setState protection) ────────
+  const mountedRef = useRef(true)
+  useEffect(
+    () => () => {
+      mountedRef.current = false
+    },
+    []
+  )
+
+  // ── Avatar section state ──────────────────────────────────
+  const [avatarBusy, setAvatarBusy] = useState(false)
+  const [avatarErr, setAvatarErr] = useState<string | null>(null)
+  const [avatarSuccess, setAvatarSuccess] = useState(false)
+  const avatarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Name section state ────────────────────────────────────
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '')
@@ -103,13 +126,10 @@ export default function ProfileEdit({ onClose }: Props) {
   const [usernameSuccess, setUsernameSuccess] = useState(false)
   const usernameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // ── Avatar section state ──────────────────────────────────
-  const [avatarBusy, setAvatarBusy] = useState(false)
-  const [avatarErr, setAvatarErr] = useState<string | null>(null)
-
   // Cleanup all timers on unmount
   useEffect(() => {
     return () => {
+      if (avatarTimerRef.current !== null) clearTimeout(avatarTimerRef.current)
       if (nameTimerRef.current !== null) clearTimeout(nameTimerRef.current)
       if (usernameTimerRef.current !== null) clearTimeout(usernameTimerRef.current)
     }
@@ -120,18 +140,31 @@ export default function ProfileEdit({ onClose }: Props) {
 
   // ── Handlers ─────────────────────────────────────────────
 
+  const showAvatarSuccess = () => {
+    setAvatarSuccess(true)
+    if (avatarTimerRef.current !== null) clearTimeout(avatarTimerRef.current)
+    avatarTimerRef.current = setTimeout(() => {
+      setAvatarSuccess(false)
+      avatarTimerRef.current = null
+    }, 2500)
+  }
+
   const handlePickAvatar = async () => {
     setAvatarErr(null)
     setAvatarBusy(true)
     try {
       const url = await pickAndUploadAvatar()
+      if (!mountedRef.current) return
       if (!url) return
       const result = await updateProfile({ avatar_url: url })
+      if (!mountedRef.current) return
       if (!result.ok) {
         setAvatarErr(result.error ?? 'Impossible de mettre à jour la photo.')
+      } else {
+        showAvatarSuccess()
       }
     } finally {
-      setAvatarBusy(false)
+      if (mountedRef.current) setAvatarBusy(false)
     }
   }
 
@@ -154,12 +187,16 @@ export default function ProfileEdit({ onClose }: Props) {
       return
     }
     setNameBusy(true)
-    const result = await updateProfile({ display_name: trimmed })
-    setNameBusy(false)
-    if (result.ok) {
-      showNameSuccess()
-    } else {
-      setNameErr(result.error ?? 'Une erreur est survenue.')
+    try {
+      const result = await updateProfile({ display_name: trimmed })
+      if (!mountedRef.current) return
+      if (result.ok) {
+        showNameSuccess()
+      } else {
+        setNameErr(result.error ?? 'Une erreur est survenue.')
+      }
+    } finally {
+      if (mountedRef.current) setNameBusy(false)
     }
   }
 
@@ -182,23 +219,30 @@ export default function ProfileEdit({ onClose }: Props) {
       return
     }
     setUsernameBusy(true)
-    const result = await updateProfile({ username: trimmed })
-    setUsernameBusy(false)
-    if (result.ok) {
-      showUsernameSuccess()
-    } else {
-      if (result.error === 'username_taken') {
-        setUsernameErr('Ce pseudo est déjà pris.')
-      } else if (result.error === 'username_locked') {
-        const date = result.nextChangeAt
-          ? new Date(result.nextChangeAt).toLocaleDateString('fr-FR')
-          : ''
-        setUsernameErr(`Tu pourras le changer le ${date}.`)
+    try {
+      const result = await updateProfile({ username: trimmed })
+      if (!mountedRef.current) return
+      if (result.ok) {
+        showUsernameSuccess()
       } else {
-        setUsernameErr(result.error ?? 'Une erreur est survenue.')
+        if (result.error === 'username_taken') {
+          setUsernameErr('Ce pseudo est déjà pris.')
+        } else if (result.error === 'username_locked') {
+          const date = formatNextChangeDate(result.nextChangeAt)
+          setUsernameErr(
+            date ? `Tu pourras le changer le ${date}.` : 'Tu pourras le changer bientôt.'
+          )
+        } else {
+          setUsernameErr(result.error ?? 'Une erreur est survenue.')
+        }
       }
+    } finally {
+      if (mountedRef.current) setUsernameBusy(false)
     }
   }
+
+  // ── Locked date label (safe) ──────────────────────────────
+  const lockedDateLabel = !gate.ok ? formatNextChangeDate(gate.nextChangeAt) : null
 
   // ── Render ────────────────────────────────────────────────
   return (
@@ -296,6 +340,7 @@ export default function ProfileEdit({ onClose }: Props) {
                 {avatarBusy ? <Spinner /> : 'Changer la photo'}
               </button>
               {avatarErr && <ErrorBanner msg={avatarErr} />}
+              {avatarSuccess && <SuccessChip msg="Enregistré ✓" />}
             </div>
           </div>
 
@@ -446,8 +491,9 @@ export default function ProfileEdit({ onClose }: Props) {
                   />
                 </div>
                 <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-60)' }}>
-                  Tu pourras changer ton pseudo le{' '}
-                  {new Date(gate.nextChangeAt).toLocaleDateString('fr-FR')}.
+                  {lockedDateLabel
+                    ? `Tu pourras changer ton pseudo le ${lockedDateLabel}.`
+                    : 'Tu pourras changer ton pseudo bientôt.'}
                 </p>
               </>
             )}
