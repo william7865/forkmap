@@ -163,6 +163,8 @@ export default function ProfileEdit({ onClose }: Props) {
       } else {
         showAvatarSuccess()
       }
+    } catch {
+      if (mountedRef.current) setAvatarErr("Impossible d'ouvrir la photothèque. Réessaie.")
     } finally {
       if (mountedRef.current) setAvatarBusy(false)
     }
@@ -335,7 +337,7 @@ export default function ProfileEdit({ onClose }: Props) {
                 className="btn-secondary"
                 onClick={handlePickAvatar}
                 disabled={avatarBusy}
-                style={{ fontSize: 13, padding: '8px 14px', height: 'auto' }}
+                style={{ fontSize: 13, padding: '8px 14px', height: 'auto', width: 'auto' }}
               >
                 {avatarBusy ? <Spinner /> : 'Changer la photo'}
               </button>
@@ -381,7 +383,13 @@ export default function ProfileEdit({ onClose }: Props) {
                 className="btn-secondary"
                 onClick={handleSaveName}
                 disabled={nameBusy}
-                style={{ fontSize: 13, padding: '8px 14px', height: 'auto', flexShrink: 0 }}
+                style={{
+                  fontSize: 13,
+                  padding: '8px 14px',
+                  height: 'auto',
+                  width: 'auto',
+                  flexShrink: 0,
+                }}
               >
                 {nameBusy ? <Spinner /> : 'Enregistrer'}
               </button>
@@ -448,7 +456,13 @@ export default function ProfileEdit({ onClose }: Props) {
                     className="btn-secondary"
                     onClick={handleSaveUsername}
                     disabled={usernameBusy}
-                    style={{ fontSize: 13, padding: '8px 14px', height: 'auto', flexShrink: 0 }}
+                    style={{
+                  fontSize: 13,
+                  padding: '8px 14px',
+                  height: 'auto',
+                  width: 'auto',
+                  flexShrink: 0,
+                }}
                   >
                     {usernameBusy ? <Spinner /> : 'Enregistrer'}
                   </button>

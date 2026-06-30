@@ -111,9 +111,12 @@ export default function ProfileOnboarding({ onDone }: Props) {
 
   const handlePickAvatar = async () => {
     setAvatarBusy(true)
+    setFieldErr(null)
     try {
       const url = await pickAndUploadAvatar()
       if (url) setAvatarUrl(url)
+    } catch {
+      setFieldErr("Impossible d'ouvrir la photothèque. Réessaie.")
     } finally {
       setAvatarBusy(false)
     }

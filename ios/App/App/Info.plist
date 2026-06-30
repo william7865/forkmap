@@ -62,5 +62,7 @@
 	<string>Forkmap utilise l'appareil photo pour votre photo de profil.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Forkmap accède à vos photos pour votre photo de profil.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Forkmap enregistre votre photo de profil dans votre photothèque.</string>
 </dict>
 </plist>

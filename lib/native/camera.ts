@@ -16,8 +16,11 @@ export async function pickAvatarPhoto(): Promise<Blob | null> {
       if (!photo.webPath) return null
       const res = await fetch(photo.webPath)
       return await res.blob()
-    } catch {
-      return null // user cancelled
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      // User cancellation is normal → swallow. Real errors → surface to caller.
+      if (/cancel/i.test(msg)) return null
+      throw new Error(msg)
     }
   }
   // Web fallback
