@@ -12,6 +12,7 @@ export function useAuthFlow(onDone: () => void) {
   const [step, setStep] = useState<FlowStep>('welcome')
   const [path, setPath] = useState<FlowPath>('signup_email')
   const [busy, setBusy] = useState(false)
+  const [avatarBusy, setAvatarBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [email, setEmail] = useState('')
@@ -84,6 +85,40 @@ export function useAuthFlow(onDone: () => void) {
     setStep('avatar')
   }
 
+  const pickAvatar = async () => {
+    setError(null)
+    setAvatarBusy(true)
+    try {
+      const url = await pickAndUploadAvatar()
+      if (url) setAvatarUrl(url)
+    } catch {
+      setError('Échec de la photo. Réessaie.')
+    } finally {
+      setAvatarBusy(false)
+    }
+  }
+
+  const submitAvatar = async () => {
+    setError(null)
+    setBusy(true)
+    const r = await createProfile({
+      username,
+      display_name: displayName.trim(),
+      avatar_url: avatarUrl,
+    })
+    setBusy(false)
+    if (!r.ok) {
+      setError(
+        r.error === 'username_taken'
+          ? 'Ce pseudo est déjà pris.'
+          : (r.error ?? 'Une erreur est survenue.')
+      )
+      setStep('handle')
+      return
+    }
+    setStep('done')
+  }
+
   const submitEmail = async () => {
     setError(null)
     if (!email.trim() || !password.trim()) {
@@ -127,6 +162,9 @@ export function useAuthFlow(onDone: () => void) {
     setError,
     setBusy,
     setStep,
+    avatarBusy,
+    pickAvatar,
+    submitAvatar,
     goWelcome,
     startEmailSignup,
     startSignin,
