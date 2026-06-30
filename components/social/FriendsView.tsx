@@ -1,11 +1,13 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Search, UserPlus, Check, X, Clock } from 'lucide-react'
 import { Avatar } from '@/components/social/Avatar'
 import { useFriends } from '@/lib/hooks/useFriends'
 import type { UserSearchResult } from '@/types'
 
 export default function FriendsView() {
+  const router = useRouter()
   const { friends, requests, loading, search, sendRequest, accept, decline, removeFriend } =
     useFriends()
   const [q, setQ] = useState('')
@@ -84,6 +86,7 @@ export default function FriendsView() {
               username={u.username}
               src={u.avatar_url}
               id={u.id}
+              onOpen={() => router.push(`/u/${u.username}`)}
             >
               {u.status === 'none' && (
                 <ActionBtn
@@ -123,6 +126,7 @@ export default function FriendsView() {
               username={p.username}
               src={p.avatar_url}
               id={p.id}
+              onOpen={() => router.push(`/u/${p.username}`)}
             >
               <ActionBtn
                 onClick={() => accept(p.id)}
@@ -148,6 +152,7 @@ export default function FriendsView() {
               username={p.username}
               src={p.avatar_url}
               id={p.id}
+              onOpen={() => router.push(`/u/${p.username}`)}
             >
               <Tag icon={<Clock size={13} />} label="En attente" />
             </PersonRow>
@@ -168,6 +173,7 @@ export default function FriendsView() {
             username={p.username}
             src={p.avatar_url}
             id={p.id}
+            onOpen={() => router.push(`/u/${p.username}`)}
           >
             <IconBtn onClick={() => removeFriend(p.id)} aria-label="Retirer">
               <X size={16} />
@@ -203,12 +209,14 @@ function PersonRow({
   username,
   src,
   id,
+  onOpen,
   children,
 }: {
   name: string
   username: string
   src: string | null
   id: string
+  onOpen: () => void
   children: React.ReactNode
 }) {
   return (
@@ -224,20 +232,38 @@ function PersonRow({
         borderRadius: 'var(--r-md)',
       }}
     >
-      <Avatar name={name} src={src} id={id} size={42} />
-      <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-        <strong
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontWeight: 700,
-            fontSize: 15,
-            color: 'var(--ink)',
-          }}
-        >
-          {name}
-        </strong>
-        <span style={{ color: 'var(--text-3)', fontSize: 12.5 }}>@{username}</span>
-      </span>
+      {/* Avatar + nom : zone cliquable vers le profil */}
+      <button
+        onClick={onOpen}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          flex: 1,
+          minWidth: 0,
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: 0,
+          textAlign: 'left',
+        }}
+      >
+        <Avatar name={name} src={src} id={id} size={42} />
+        <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+          <strong
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontWeight: 700,
+              fontSize: 15,
+              color: 'var(--ink)',
+            }}
+          >
+            {name}
+          </strong>
+          <span style={{ color: 'var(--text-3)', fontSize: 12.5 }}>@{username}</span>
+        </span>
+      </button>
+      {/* Boutons d'action : hors de la zone de navigation */}
       <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
         {children}
       </span>
