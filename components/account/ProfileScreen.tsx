@@ -15,6 +15,7 @@ import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { apiFetch } from '@/lib/api'
 import { Avatar } from '@/components/social/Avatar'
 import ProfileEdit from '@/components/social/ProfileEdit'
+import ShareProfileSheet from '@/components/social/ShareProfileSheet'
 import type { FavoriteRow } from '@/types'
 
 // ── Local types ───────────────────────────────────────────────
@@ -73,6 +74,7 @@ export default function ProfileScreen() {
   const [favorites, setFavorites] = useState<FavoriteRow[]>([])
   const [stats, setStats] = useState<VisitStats | null>(null)
   const [editing, setEditing] = useState(false)
+  const [sharing, setSharing] = useState(false)
 
   useEffect(() => {
     async function loadData() {
@@ -183,13 +185,24 @@ export default function ProfileScreen() {
           </p>
         )}
 
-        <button
-          className="btn-secondary"
-          style={{ width: 'auto', marginTop: 6 }}
-          onClick={() => setEditing(true)}
-        >
-          Modifier le profil
-        </button>
+        <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+          <button
+            className="btn-secondary"
+            style={{ width: 'auto' }}
+            onClick={() => setEditing(true)}
+          >
+            Modifier le profil
+          </button>
+          {profile?.username && (
+            <button
+              className="btn-secondary"
+              style={{ width: 'auto' }}
+              onClick={() => setSharing(true)}
+            >
+              Partager mon profil
+            </button>
+          )}
+        </div>
       </div>
 
       {/* STATS ROW */}
@@ -366,6 +379,11 @@ export default function ProfileScreen() {
 
       {/* Profile edit modal */}
       {editing && <ProfileEdit onClose={() => setEditing(false)} />}
+
+      {/* Share profile sheet */}
+      {sharing && profile?.username && (
+        <ShareProfileSheet username={profile.username} onClose={() => setSharing(false)} />
+      )}
     </div>
   )
 }
