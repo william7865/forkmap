@@ -1,15 +1,15 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Search, UserPlus, Check, X, Clock } from 'lucide-react'
 import { Avatar } from '@/components/social/Avatar'
+import PublicProfile from '@/components/social/PublicProfile'
 import { useFriends } from '@/lib/hooks/useFriends'
 import type { UserSearchResult } from '@/types'
 
 export default function FriendsView() {
-  const router = useRouter()
   const { friends, requests, loading, search, sendRequest, accept, decline, removeFriend } =
     useFriends()
+  const [viewing, setViewing] = useState<string | null>(null)
   const [q, setQ] = useState('')
   const [results, setResults] = useState<UserSearchResult[]>([])
   const [searching, setSearching] = useState(false)
@@ -86,7 +86,7 @@ export default function FriendsView() {
               username={u.username}
               src={u.avatar_url}
               id={u.id}
-              onOpen={() => router.push(`/u/${u.username}`)}
+              onOpen={() => setViewing(u.username)}
             >
               {u.status === 'none' && (
                 <ActionBtn
@@ -126,7 +126,7 @@ export default function FriendsView() {
               username={p.username}
               src={p.avatar_url}
               id={p.id}
-              onOpen={() => router.push(`/u/${p.username}`)}
+              onOpen={() => setViewing(p.username)}
             >
               <ActionBtn
                 onClick={() => accept(p.id)}
@@ -152,7 +152,7 @@ export default function FriendsView() {
               username={p.username}
               src={p.avatar_url}
               id={p.id}
-              onOpen={() => router.push(`/u/${p.username}`)}
+              onOpen={() => setViewing(p.username)}
             >
               <Tag icon={<Clock size={13} />} label="En attente" />
             </PersonRow>
@@ -173,7 +173,7 @@ export default function FriendsView() {
             username={p.username}
             src={p.avatar_url}
             id={p.id}
-            onOpen={() => router.push(`/u/${p.username}`)}
+            onOpen={() => setViewing(p.username)}
           >
             <IconBtn onClick={() => removeFriend(p.id)} aria-label="Retirer">
               <X size={16} />
@@ -181,6 +181,9 @@ export default function FriendsView() {
           </PersonRow>
         ))}
       </Section>
+
+      {/* Profil public en overlay (évite le routage dynamique en export statique) */}
+      {viewing && <PublicProfile username={viewing} overlay onBack={() => setViewing(null)} />}
     </div>
   )
 }

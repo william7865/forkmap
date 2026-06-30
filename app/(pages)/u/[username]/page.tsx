@@ -1,14 +1,13 @@
-// Server component — exports generateStaticParams required for static export (mobile build).
-// The page itself is fully client-rendered via PublicProfilePageClient.
-import PublicProfilePageClient from './PublicProfilePageClient'
+// Server component — generateStaticParams is required for the static export (mobile build).
+// On the web (Vercel) this route renders the shared PublicProfile from the URL param.
+// In the native app, the public profile is shown as an in-app OVERLAY (see FriendsView),
+// NOT via this route — so the static export only needs a placeholder shell.
+import PublicProfile from '@/components/social/PublicProfile'
 
-// Static export (mobile build) requires at least one param so Next.js creates
-// the route shell. The Capacitor app navigates client-side (router.push), so
-// only this placeholder HTML file is bundled; real usernames render at runtime.
 export function generateStaticParams() {
   return [{ username: '__placeholder__' }]
 }
 
 export default function PublicProfilePage() {
-  return <PublicProfilePageClient />
+  return <PublicProfile />
 }
