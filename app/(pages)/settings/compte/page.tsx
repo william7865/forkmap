@@ -1,15 +1,15 @@
 'use client'
 
-import { PageHeader, GlobalFooter } from '@/components/ui/PageLayout'
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
 import { useIsMobile } from '@/lib/hooks/useMediaQuery'
 import { useIsNative } from '@/lib/native/platform'
 import AccountSettingsContent from '@/components/settings/AccountSettingsContent'
-import SettingsHub from '@/components/settings/SettingsHub'
+import { ChevronLeft } from 'lucide-react'
 
-export default function SettingsPage() {
+export default function ComptePage() {
   const { isReady } = useAuthGuard()
   const isMobile = useIsMobile()
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const isNative = useIsNative()
 
   if (!isReady) {
@@ -38,32 +38,38 @@ export default function SettingsPage() {
     )
   }
 
-  if (isNative) return <SettingsHub />
-
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'var(--surface)',
-        color: 'var(--text)',
-        fontFamily: 'var(--font-body)',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <PageHeader current="Paramètres" />
+    <div style={{ minHeight: '100vh', background: 'var(--surface)' }}>
+      <button
+        onClick={() => history.back()}
+        aria-label="Retour"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          color: 'var(--text-3)',
+          fontSize: 14,
+          fontWeight: 600,
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: 'calc(var(--safe-top) + 10px) 18px 0',
+          fontFamily: 'inherit',
+        }}
+      >
+        <ChevronLeft size={20} strokeWidth={1.9} /> Retour
+      </button>
       <main
         style={{
           maxWidth: 760,
           margin: '0 auto',
-          padding: isMobile ? '28px 20px 110px' : '52px 32px 96px',
+          padding: '16px 20px calc(var(--safe-bottom) + 96px)',
           width: '100%',
-          boxSizing: 'border-box',
+          boxSizing: 'border-box' as const,
         }}
       >
         <AccountSettingsContent isMobile={isMobile} />
       </main>
-      <GlobalFooter />
     </div>
   )
 }
