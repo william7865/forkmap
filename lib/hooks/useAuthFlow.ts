@@ -70,6 +70,20 @@ export function useAuthFlow(onDone: () => void) {
     else if (step === 'handle') setStep(path === 'signup_email' ? 'email' : 'welcome')
   }
 
+  const submitHandle = () => {
+    setError(null)
+    const v = validateUsername(username)
+    if (!v.ok) {
+      setError(v.reason)
+      return
+    }
+    if (!displayName.trim()) {
+      setError('Indique ton nom.')
+      return
+    }
+    setStep('avatar')
+  }
+
   const submitEmail = async () => {
     setError(null)
     if (!email.trim() || !password.trim()) {
@@ -118,6 +132,7 @@ export function useAuthFlow(onDone: () => void) {
     startSignin,
     startGoogle,
     back,
+    submitHandle,
     submitEmail,
     onDone,
     initialStep: resolveInitialStep(!!auth.user, !!profile),
