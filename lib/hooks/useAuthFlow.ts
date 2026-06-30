@@ -70,6 +70,26 @@ export function useAuthFlow(onDone: () => void) {
     else if (step === 'handle') setStep(path === 'signup_email' ? 'email' : 'welcome')
   }
 
+  const submitEmail = async () => {
+    setError(null)
+    if (!email.trim() || !password.trim()) {
+      setError("L'adresse e-mail et le mot de passe sont requis.")
+      return
+    }
+    if (password.length < 6) {
+      setError('Le mot de passe doit contenir au moins 6 caractères.')
+      return
+    }
+    setBusy(true)
+    const err = await auth.signUpWithEmail(email, password, '')
+    setBusy(false)
+    if (err) {
+      setError(err)
+      return
+    }
+    setStep('handle')
+  }
+
   return {
     auth,
     profile,
@@ -98,6 +118,7 @@ export function useAuthFlow(onDone: () => void) {
     startSignin,
     startGoogle,
     back,
+    submitEmail,
     onDone,
     initialStep: resolveInitialStep(!!auth.user, !!profile),
     progress: signupProgress(step),
