@@ -1,21 +1,36 @@
 'use client'
 import { isNativeRuntime } from './platform'
 
+// Decode a data: URL into a Blob WITHOUT fetch(). The app's CSP `connect-src`
+// does not allow data:/capacitor: schemes, so fetch(dataUrl) is blocked
+// ("Load failed"). Manual base64 decode sidesteps that entirely.
+function dataUrlToBlob(dataUrl: string): Blob {
+  const comma = dataUrl.indexOf(',')
+  const header = dataUrl.slice(0, comma)
+  const body = dataUrl.slice(comma + 1)
+  const mime = /data:([^;]+)/.exec(header)?.[1] ?? 'image/jpeg'
+  const binary = /;base64/i.test(header) ? atob(body) : decodeURIComponent(body)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return new Blob([bytes], { type: mime })
+}
+
 // Pick an image. Native: Capacitor Camera (gallery/photo prompt). Web: file input.
 export async function pickAvatarPhoto(): Promise<Blob | null> {
   if (isNativeRuntime()) {
     const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera')
     try {
       const photo = await Camera.getPhoto({
-        resultType: CameraResultType.Uri,
+        // DataUrl forces a JPEG re-encode (HEIC iPhone photos become JPEG) and
+        // returns base64 inline — no file read over capacitor:// needed.
+        resultType: CameraResultType.DataUrl,
         source: CameraSource.Prompt,
         quality: 90,
         width: 512,
         height: 512,
       })
-      if (!photo.webPath) return null
-      const res = await fetch(photo.webPath)
-      return await res.blob()
+      if (!photo.dataUrl) return null
+      return dataUrlToBlob(photo.dataUrl)
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       // User cancellation is normal → swallow. Real errors → surface to caller.

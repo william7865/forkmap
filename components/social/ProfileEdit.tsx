@@ -135,6 +135,16 @@ export default function ProfileEdit({ onClose }: Props) {
     }
   }, [])
 
+  // Pre-fill fields once the (shared) profile is available — in case it loads
+  // after this component mounts (useState initialisers only run once).
+  useEffect(() => {
+    if (profile) {
+      setDisplayName(profile.display_name)
+      setUsername(profile.username)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id])
+
   // Guard: component is only rendered when profile exists
   if (!profile) return null
 
@@ -164,7 +174,7 @@ export default function ProfileEdit({ onClose }: Props) {
         showAvatarSuccess()
       }
     } catch {
-      if (mountedRef.current) setAvatarErr("Impossible d'ouvrir la photothèque. Réessaie.")
+      if (mountedRef.current) setAvatarErr('Échec de la mise à jour de la photo. Réessaie.')
     } finally {
       if (mountedRef.current) setAvatarBusy(false)
     }

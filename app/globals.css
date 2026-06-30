@@ -473,7 +473,8 @@ h3 {
   border: 1.5px solid var(--b2);
   background: var(--off-white);
   color: var(--ink);
-  font-size: 13px;
+  /* 16px min: empêche le zoom auto d'iOS au focus d'un champ */
+  font-size: 16px;
   font-weight: 400;
   font-family: var(--font-body);
   outline: none;
@@ -709,12 +710,13 @@ a:focus:not(:focus-visible) {
 }
 .native-app * {
   -webkit-touch-callout: none; /* pas de menu long-press */
-}
-/* Le chrome n'est pas sélectionnable ; les contenus lisibles le restent */
-.native-app button,
-.native-app nav,
-.native-app [role='tab'],
-.native-app [role='button'] {
-  -webkit-user-select: none;
+  -webkit-user-select: none; /* pas de sélection de texte façon web */
   user-select: none;
+}
+/* Les champs de saisie restent éditables/sélectionnables */
+.native-app input,
+.native-app textarea,
+.native-app [contenteditable='true'] {
+  -webkit-user-select: text;
+  user-select: text;
 }

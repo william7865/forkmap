@@ -40,7 +40,11 @@ export default function FriendsPage() {
   if (!profile) return <ProfileOnboarding onDone={() => {}} />
 
   return (
-    <main style={{ padding: '16px', paddingBottom: 'calc(var(--safe-bottom) + 72px)' }}>
+    <main
+      style={{
+        padding: 'calc(var(--safe-top) + 16px) 16px calc(var(--safe-bottom) + 72px)',
+      }}
+    >
       <button
         onClick={() => setEditing(true)}
         style={{
