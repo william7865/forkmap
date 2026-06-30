@@ -11,6 +11,8 @@ import type {
   OsmFsqMapping,
   PlaceCard,
   Profile,
+  PublicListCard,
+  PublicProfileBundle,
   UserSearchResult,
 } from '@/types'
 import { canChangeUsername } from '@/lib/username'
@@ -674,5 +676,76 @@ export async function getFriendRequests(meId: string): Promise<FriendRequests> {
   return {
     received: receivedIds.map((id) => byId.get(id)).filter(Boolean) as Profile[],
     sent: sentIds.map((id) => byId.get(id)).filter(Boolean) as Profile[],
+  }
+}
+
+// ---------- Public profile bundle (Amis — Étape B) ----------
+
+export async function countFriends(userId: string): Promise<number> {
+  const { count, error } = await db
+    .from('friendships')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'accepted')
+    .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
+  if (error) throw error
+  return count ?? 0
+}
+
+export async function getPublicLists(userId: string): Promise<PublicListCard[]> {
+  const { data, error } = await db
+    .from('lists')
+    .select('id, name, color_hue, list_items(count)')
+    .eq('user_id', userId)
+    .eq('is_public', true)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []).map((row: unknown) => {
+    const l = row as Record<string, unknown>
+    return {
+      id: l.id as string,
+      name: l.name as string,
+      color_hue: l.color_hue as number,
+      item_count: (l.list_items as { count: number }[])?.[0]?.count ?? 0,
+    }
+  })
+}
+
+export async function getPublicProfileBundle(
+  meId: string,
+  username: string
+): Promise<PublicProfileBundle | null> {
+  const profile = await getProfileByUsername(username)
+  if (!profile) return null
+
+  const [row, friends_count, lists] = await Promise.all([
+    getFriendshipRow(meId, profile.id),
+    countFriends(profile.id),
+    getPublicLists(profile.id),
+  ])
+
+  // Agrégat lieux + cuisines depuis les items des listes publiques (données publiques).
+  let places = 0
+  const cuisines = new Set<string>()
+  const listIds = lists.map((l) => l.id)
+  if (listIds.length > 0) {
+    const { data: items, error } = await db
+      .from('list_items')
+      .select('place_snapshot')
+      .in('list_id', listIds)
+    if (error) throw error
+    places = items?.length ?? 0
+    for (const it of items ?? []) {
+      const snap = (it as { place_snapshot?: Record<string, unknown> }).place_snapshot
+      const c = snap?.cuisine
+      if (typeof c === 'string' && c.trim()) cuisines.add(c.trim().toLowerCase())
+    }
+  }
+
+  return {
+    profile,
+    status: relationFrom(row, meId),
+    friends_count,
+    stats: { lists: lists.length, places, cuisines: cuisines.size },
+    lists,
   }
 }

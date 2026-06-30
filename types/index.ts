@@ -222,3 +222,18 @@ export interface FriendRequests {
   received: Profile[]
   sent: Profile[]
 }
+
+export interface PublicListCard {
+  id: string
+  name: string
+  color_hue: number
+  item_count: number
+}
+
+export interface PublicProfileBundle {
+  profile: Profile
+  status: FriendshipStatus
+  friends_count: number
+  stats: { lists: number; places: number; cuisines: number }
+  lists: PublicListCard[]
+}
