@@ -724,22 +724,24 @@ export async function getPublicProfileBundle(
   ])
 
   // Agrégat lieux + cuisines depuis les items des listes publiques (données publiques).
-  let places = 0
+  // Lieux distincts par osm_id (un même lieu dans 2 listes ne compte qu'une fois).
+  const placeIds = new Set<string>()
   const cuisines = new Set<string>()
   const listIds = lists.map((l) => l.id)
   if (listIds.length > 0) {
     const { data: items, error } = await db
       .from('list_items')
-      .select('place_snapshot')
+      .select('osm_id, place_snapshot')
       .in('list_id', listIds)
     if (error) throw error
-    places = items?.length ?? 0
     for (const it of items ?? []) {
-      const snap = (it as { place_snapshot?: Record<string, unknown> }).place_snapshot
-      const c = snap?.cuisine
+      const row = it as { osm_id?: string; place_snapshot?: Record<string, unknown> }
+      if (typeof row.osm_id === 'string') placeIds.add(row.osm_id)
+      const c = row.place_snapshot?.cuisine
       if (typeof c === 'string' && c.trim()) cuisines.add(c.trim().toLowerCase())
     }
   }
+  const places = placeIds.size
 
   return {
     profile,

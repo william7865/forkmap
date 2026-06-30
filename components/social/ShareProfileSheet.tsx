@@ -32,7 +32,13 @@ export default function ShareProfileSheet({
   }, [url])
 
   const onShare = async () => {
-    const ok = await nativeShare({ text: `Ajoute-moi sur Forkmap : ${url}`, url })
+    let ok = false
+    try {
+      // Throws if the user cancels/dismisses the native share sheet on iOS.
+      ok = await nativeShare({ text: `Ajoute-moi sur Forkmap : ${url}`, url })
+    } catch {
+      return // user cancelled — do nothing
+    }
     if (!ok) {
       try {
         await navigator.clipboard.writeText(url)

@@ -27,6 +27,8 @@ export default function FriendButton({
     set('pending_sent')
     try {
       await sendRequest(userId)
+    } catch {
+      set('none') // revert on failure
     } finally {
       setBusy(false)
     }
@@ -36,14 +38,15 @@ export default function FriendButton({
     set('friends')
     try {
       await accept(userId)
+    } catch {
+      set('pending_received') // revert on failure
     } finally {
       setBusy(false)
     }
   }
 
-  if (status === 'friends') return <Pill icon={<Check size={15} />} label="Amis" tone="muted" />
-  if (status === 'pending_sent')
-    return <Pill icon={<Clock size={14} />} label="Demande envoyée" tone="muted" />
+  if (status === 'friends') return <Pill icon={<Check size={15} />} label="Amis" />
+  if (status === 'pending_sent') return <Pill icon={<Clock size={14} />} label="Demande envoyée" />
   if (status === 'pending_received')
     return (
       <button
@@ -67,7 +70,7 @@ export default function FriendButton({
   )
 }
 
-function Pill({ icon, label, tone }: { icon: React.ReactNode; label: string; tone: 'muted' }) {
+function Pill({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
     <span
       style={{
