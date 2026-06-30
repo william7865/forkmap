@@ -28,6 +28,7 @@ import {
 } from '@/components/icons'
 import type { LucideProps } from 'lucide-react'
 import { Settings as SettingsIcon } from 'lucide-react'
+import ProfileScreen from '@/components/account/ProfileScreen'
 
 const MOOD_ICONS: Record<string, (p: LucideProps) => React.ReactElement> = {
   solo: IcoMoodSolo,
@@ -1062,10 +1063,16 @@ function SpendingExplorer({ visits }: { visits: VisitRow[] }) {
   )
 }
 
-export default function AccountPage() {
+function AccountDashboard() {
   const { isReady, auth } = useAuthGuard()
   if (!isReady) return <Spinner />
   return <AccountPageInner auth={auth} />
+}
+
+export default function AccountPage() {
+  const isNative = useIsNative()
+  if (isNative) return <ProfileScreen />
+  return <AccountDashboard />
 }
 
 function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['auth'] }) {
