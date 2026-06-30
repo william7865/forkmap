@@ -16,6 +16,7 @@ import { PageHeader, GlobalFooter } from '@/components/ui/PageLayout'
 import { getNotes, getNote, saveNote } from '@/components/place/NoteModal'
 import { apiFetch } from '@/lib/api'
 import { useIsMobile } from '@/lib/hooks/useMediaQuery'
+import { useIsNative } from '@/lib/native/platform'
 import { useLists, type ListRow as HookListRow } from '@/lib/hooks/useLists'
 import { ListCard, NewListCard } from '@/components/lists/ListCard'
 import { CreateListModal } from '@/components/lists/CreateListModal'
@@ -1599,6 +1600,7 @@ function FavoritesPageInner() {
   // notes: osm_id → texte (state local rafraîchi depuis localStorage)
   const [notes, setNotes] = useState<Record<string, string>>({})
   const isMobile = useIsMobile()
+  const isNative = useIsNative()
 
   const searchParams = useSearchParams()
   const activeListId = searchParams.get('list')
@@ -1788,14 +1790,18 @@ function FavoritesPageInner() {
         flexDirection: 'column',
       }}
     >
-      <PageHeader current="Enregistrés" />
+      {!isNative && <PageHeader current="Enregistrés" />}
 
       <main style={{ flex: 1 }}>
         <div
           style={{
             maxWidth: 660,
             margin: '0 auto',
-            padding: isMobile ? '24px 16px 100px' : '36px 20px 80px',
+            padding: isNative
+              ? 'calc(var(--safe-top) + 16px) 16px calc(var(--safe-bottom) + 88px)'
+              : isMobile
+                ? '24px 16px 100px'
+                : '36px 20px 80px',
           }}
         >
           {/* Header */}
@@ -2649,7 +2655,7 @@ function FavoritesPageInner() {
         @keyframes spin    { to{transform:rotate(360deg)} }
       `}</style>
 
-      <GlobalFooter />
+      {!isNative && <GlobalFooter />}
     </div>
   )
 }
