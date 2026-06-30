@@ -125,6 +125,50 @@ export function useAuthFlow(onDone: () => void) {
     }
   }
 
+  const [resetSent, setResetSent] = useState(false)
+
+  const submitSignin = async () => {
+    setError(null)
+    if (!email.trim() || !password.trim()) {
+      setError('E-mail et mot de passe requis.')
+      return
+    }
+    setBusy(true)
+    try {
+      const err = await auth.signInWithEmail(email, password)
+      if (err) {
+        setError(err)
+        return
+      }
+      onDone()
+    } catch {
+      setError('Connexion impossible. Réessaie.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const sendReset = async () => {
+    setError(null)
+    if (!email.trim()) {
+      setError('Saisis ton adresse e-mail.')
+      return
+    }
+    setBusy(true)
+    try {
+      const err = await auth.resetPassword(email)
+      if (err) {
+        setError(err)
+        return
+      }
+      setResetSent(true)
+    } catch {
+      setError('Envoi impossible. Réessaie.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const submitEmail = async () => {
     setError(null)
     if (!email.trim() || !password.trim()) {
@@ -178,6 +222,10 @@ export function useAuthFlow(onDone: () => void) {
     back,
     submitHandle,
     submitEmail,
+    resetSent,
+    setResetSent,
+    submitSignin,
+    sendReset,
     onDone,
     initialStep: resolveInitialStep(!!auth.user, !!profile),
     progress: signupProgress(step),
