@@ -1,14 +1,14 @@
 // ============================================================
 // app/(pages)/settings/compte/page.tsx
 // Native sub-route for account management.
-// Renders AccountSettingsContent inside a native chrome wrapper.
+// Renders AccountSettingsNative inside a native chrome wrapper.
 // Not linked from web; also renders content if accessed on web.
 // ============================================================
 'use client'
 
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
 import { useIsMobile } from '@/lib/hooks/useMediaQuery'
-import AccountSettingsContent from '@/components/settings/AccountSettingsContent'
+import AccountSettingsNative from '@/components/settings/AccountSettingsNative'
 import { ChevronLeft } from 'lucide-react'
 
 export default function ComptePage() {
@@ -43,35 +43,65 @@ export default function ComptePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--surface)' }}>
-      <button
-        onClick={() => history.back()}
-        aria-label="Retour"
+      {/* 3-column native top bar */}
+      <div
         style={{
-          display: 'flex',
+          display: 'grid',
+          gridTemplateColumns: '1fr auto 1fr',
           alignItems: 'center',
-          gap: 4,
-          color: 'var(--text-3)',
-          fontSize: 14,
-          fontWeight: 600,
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          padding: 'calc(var(--safe-top) + 10px) 18px 0',
-          fontFamily: 'inherit',
+          padding: 'calc(var(--safe-top) + 10px) 16px 0',
         }}
       >
-        <ChevronLeft size={20} strokeWidth={1.9} /> Retour
-      </button>
+        {/* Back button — left column */}
+        <button
+          onClick={() => history.back()}
+          aria-label="Retour"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            color: 'var(--text-3)',
+            fontSize: 14,
+            fontWeight: 600,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '6px 0',
+            fontFamily: 'inherit',
+            justifySelf: 'start',
+          }}
+        >
+          <ChevronLeft size={20} strokeWidth={1.9} />
+          Retour
+        </button>
+
+        {/* Centered title — middle column */}
+        <span
+          style={{
+            fontSize: 16,
+            fontWeight: 700,
+            color: 'var(--ink)',
+            letterSpacing: '-0.01em',
+            fontFamily: 'inherit',
+          }}
+        >
+          Identité &amp; accès
+        </span>
+
+        {/* Spacer — right column */}
+        <div />
+      </div>
+
       <main
         style={{
           maxWidth: 760,
           margin: '0 auto',
-          padding: '16px 20px calc(var(--safe-bottom) + 96px)',
+          padding: '20px 20px calc(var(--safe-bottom) + 96px)',
           width: '100%',
           boxSizing: 'border-box' as const,
         }}
       >
-        <AccountSettingsContent isMobile={isMobile} />
+        <AccountSettingsNative isMobile={isMobile} />
       </main>
     </div>
   )
