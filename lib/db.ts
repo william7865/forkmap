@@ -548,17 +548,31 @@ export async function getFriendshipRow(aId: string, bId: string): Promise<Friend
 export async function searchUsers(meId: string, q: string): Promise<UserSearchResult[]> {
   const term = q.trim().toLowerCase()
   if (term.length < 2) return []
-  const escaped = term.replace(/[%_]/g, (m) => `\\${m}`)
-  const { data, error } = await db
-    .from('profiles')
-    .select('id, username, display_name, avatar_url')
-    .neq('id', meId)
-    .or(`username.ilike.${escaped}%,display_name.ilike.%${escaped}%`)
-    .limit(20)
-  if (error) throw error
-  const profiles = (data ?? []) as Array<
-    Pick<UserSearchResult, 'id' | 'username' | 'display_name' | 'avatar_url'>
-  >
+  // Escape SQL LIKE wildcards. Use builder .ilike() (parameterized value) for
+  // both columns and merge — never interpolate the term into a raw .or() filter.
+  const escaped = term.replace(/[%_\\]/g, (m) => `\\${m}`)
+  type ProfileLite = Pick<UserSearchResult, 'id' | 'username' | 'display_name' | 'avatar_url'>
+  const [byUsername, byName] = await Promise.all([
+    db
+      .from('profiles')
+      .select('id, username, display_name, avatar_url')
+      .neq('id', meId)
+      .ilike('username', `${escaped}%`)
+      .limit(20),
+    db
+      .from('profiles')
+      .select('id, username, display_name, avatar_url')
+      .neq('id', meId)
+      .ilike('display_name', `%${escaped}%`)
+      .limit(20),
+  ])
+  if (byUsername.error) throw byUsername.error
+  if (byName.error) throw byName.error
+  const merged = new Map<string, ProfileLite>()
+  for (const p of [...(byUsername.data ?? []), ...(byName.data ?? [])] as ProfileLite[]) {
+    merged.set(p.id, p)
+  }
+  const profiles = [...merged.values()].slice(0, 20)
   // Statut d'amitié pour chacun (une requête sur les lignes impliquant meId).
   const { data: rels, error: relErr } = await db
     .from('friendships')
@@ -611,13 +625,20 @@ export async function acceptFriendRequest(meId: string, otherId: string): Promis
 }
 
 export async function removeFriendship(meId: string, otherId: string): Promise<void> {
-  const { error } = await db
+  // Two parameterized deletes (builder .eq()) — never interpolate ids into a
+  // raw PostgREST filter string. Covers both directions of the friendship.
+  const a = await db
     .from('friendships')
     .delete()
-    .or(
-      `and(requester_id.eq.${meId},addressee_id.eq.${otherId}),and(requester_id.eq.${otherId},addressee_id.eq.${meId})`
-    )
-  if (error) throw error
+    .eq('requester_id', meId)
+    .eq('addressee_id', otherId)
+  if (a.error) throw a.error
+  const b = await db
+    .from('friendships')
+    .delete()
+    .eq('requester_id', otherId)
+    .eq('addressee_id', meId)
+  if (b.error) throw b.error
 }
 
 export async function getFriends(meId: string): Promise<Profile[]> {

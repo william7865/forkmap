@@ -22,6 +22,11 @@ export default function FriendsView() {
     []
   )
 
+  // Optimistically reflect an action on the matching search-result row so its
+  // button doesn't keep showing "Ajouter"/"Accepter" until the user retypes.
+  const patchResult = (id: string, status: UserSearchResult['status']) =>
+    setResults((rs) => rs.map((r) => (r.id === id ? { ...r, status } : r)))
+
   const onQuery = (v: string) => {
     setQ(v)
     if (timer.current) clearTimeout(timer.current)
@@ -82,7 +87,10 @@ export default function FriendsView() {
             >
               {u.status === 'none' && (
                 <ActionBtn
-                  onClick={() => sendRequest(u.id)}
+                  onClick={() => {
+                    patchResult(u.id, 'pending_sent')
+                    sendRequest(u.id)
+                  }}
                   icon={<UserPlus size={15} />}
                   label="Ajouter"
                 />
@@ -90,7 +98,10 @@ export default function FriendsView() {
               {u.status === 'pending_sent' && <Tag icon={<Clock size={13} />} label="Envoyée" />}
               {u.status === 'pending_received' && (
                 <ActionBtn
-                  onClick={() => accept(u.id)}
+                  onClick={() => {
+                    patchResult(u.id, 'friends')
+                    accept(u.id)
+                  }}
                   icon={<Check size={15} />}
                   label="Accepter"
                   primary

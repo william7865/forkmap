@@ -197,8 +197,8 @@ export interface Profile {
   created_at: string
 }
 
-// Amis — Étape A
-export type FriendshipStatus = 'none' | 'pending_sent' | 'pending_received' | 'friends'
+// Amis — Étape A (FriendshipStatus défini dans lib/friends.ts, ré-exporté ici)
+export type { FriendshipStatus } from '@/lib/friends'
 
 export interface FriendshipRow {
   id: string
