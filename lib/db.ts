@@ -3,8 +3,18 @@
 // ============================================================
 
 import { createClient } from '@supabase/supabase-js'
-import type { FavoriteRow, OsmFsqMapping, PlaceCard, Profile } from '@/types'
+import type {
+  FavoriteRow,
+  FriendRequests,
+  FriendshipRow,
+  FriendshipStatus,
+  OsmFsqMapping,
+  PlaceCard,
+  Profile,
+  UserSearchResult,
+} from '@/types'
 import { canChangeUsername } from '@/lib/username'
+import { relationFrom } from '@/lib/friends'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -518,4 +528,129 @@ export async function updateProfile(
     .single()
   if (error) throw error
   return data as Profile
+}
+
+// ---------- Friends ----------
+
+// Cherche la ligne d'amitié entre deux users, peu importe le sens.
+export async function getFriendshipRow(aId: string, bId: string): Promise<FriendshipRow | null> {
+  const { data, error } = await db
+    .from('friendships')
+    .select('*')
+    .or(
+      `and(requester_id.eq.${aId},addressee_id.eq.${bId}),and(requester_id.eq.${bId},addressee_id.eq.${aId})`
+    )
+    .maybeSingle()
+  if (error) throw error
+  return (data as FriendshipRow) ?? null
+}
+
+export async function searchUsers(meId: string, q: string): Promise<UserSearchResult[]> {
+  const term = q.trim().toLowerCase()
+  if (term.length < 2) return []
+  const escaped = term.replace(/[%_]/g, (m) => `\\${m}`)
+  const { data, error } = await db
+    .from('profiles')
+    .select('id, username, display_name, avatar_url')
+    .neq('id', meId)
+    .or(`username.ilike.${escaped}%,display_name.ilike.%${escaped}%`)
+    .limit(20)
+  if (error) throw error
+  const profiles = (data ?? []) as Array<
+    Pick<UserSearchResult, 'id' | 'username' | 'display_name' | 'avatar_url'>
+  >
+  // Statut d'amitié pour chacun (une requête sur les lignes impliquant meId).
+  const { data: rels, error: relErr } = await db
+    .from('friendships')
+    .select('*')
+    .or(`requester_id.eq.${meId},addressee_id.eq.${meId}`)
+  if (relErr) throw relErr
+  const rows = (rels ?? []) as FriendshipRow[]
+  return profiles.map((p) => {
+    const row = rows.find(
+      (r) =>
+        (r.requester_id === meId && r.addressee_id === p.id) ||
+        (r.requester_id === p.id && r.addressee_id === meId)
+    )
+    return { ...p, status: relationFrom(row ?? null, meId) }
+  })
+}
+
+export async function sendFriendRequest(meId: string, otherId: string): Promise<FriendshipStatus> {
+  if (meId === otherId) throw new Error('cannot_friend_self')
+  const existing = await getFriendshipRow(meId, otherId)
+  if (existing) {
+    if (existing.status === 'accepted') return 'friends'
+    // Une demande inverse en attente → on accepte directement.
+    if (existing.requester_id === otherId) {
+      await db
+        .from('friendships')
+        .update({ status: 'accepted', responded_at: new Date().toISOString() })
+        .eq('id', existing.id)
+      return 'friends'
+    }
+    return 'pending_sent' // déjà envoyée
+  }
+  const { error } = await db
+    .from('friendships')
+    .insert({ requester_id: meId, addressee_id: otherId, status: 'pending' })
+  if (error) throw error
+  return 'pending_sent'
+}
+
+export async function acceptFriendRequest(meId: string, otherId: string): Promise<boolean> {
+  const { data, error } = await db
+    .from('friendships')
+    .update({ status: 'accepted', responded_at: new Date().toISOString() })
+    .eq('requester_id', otherId)
+    .eq('addressee_id', meId)
+    .eq('status', 'pending')
+    .select('id')
+  if (error) throw error
+  return (data?.length ?? 0) > 0
+}
+
+export async function removeFriendship(meId: string, otherId: string): Promise<void> {
+  const { error } = await db
+    .from('friendships')
+    .delete()
+    .or(
+      `and(requester_id.eq.${meId},addressee_id.eq.${otherId}),and(requester_id.eq.${otherId},addressee_id.eq.${meId})`
+    )
+  if (error) throw error
+}
+
+export async function getFriends(meId: string): Promise<Profile[]> {
+  const { data, error } = await db
+    .from('friendships')
+    .select('requester_id, addressee_id')
+    .eq('status', 'accepted')
+    .or(`requester_id.eq.${meId},addressee_id.eq.${meId}`)
+  if (error) throw error
+  const ids = (data ?? []).map((r) => (r.requester_id === meId ? r.addressee_id : r.requester_id))
+  if (ids.length === 0) return []
+  const { data: profs, error: pErr } = await db.from('profiles').select('*').in('id', ids)
+  if (pErr) throw pErr
+  return (profs ?? []) as Profile[]
+}
+
+export async function getFriendRequests(meId: string): Promise<FriendRequests> {
+  const { data, error } = await db
+    .from('friendships')
+    .select('requester_id, addressee_id')
+    .eq('status', 'pending')
+    .or(`requester_id.eq.${meId},addressee_id.eq.${meId}`)
+  if (error) throw error
+  const rows = (data ?? []) as Array<Pick<FriendshipRow, 'requester_id' | 'addressee_id'>>
+  const receivedIds = rows.filter((r) => r.addressee_id === meId).map((r) => r.requester_id)
+  const sentIds = rows.filter((r) => r.requester_id === meId).map((r) => r.addressee_id)
+  const allIds = [...new Set([...receivedIds, ...sentIds])]
+  if (allIds.length === 0) return { received: [], sent: [] }
+  const { data: profs, error: pErr } = await db.from('profiles').select('*').in('id', allIds)
+  if (pErr) throw pErr
+  const byId = new Map((profs ?? []).map((p) => [(p as Profile).id, p as Profile]))
+  return {
+    received: receivedIds.map((id) => byId.get(id)).filter(Boolean) as Profile[],
+    sent: sentIds.map((id) => byId.get(id)).filter(Boolean) as Profile[],
+  }
 }

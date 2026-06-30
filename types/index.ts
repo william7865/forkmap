@@ -196,3 +196,28 @@ export interface Profile {
   username_changed_at: string | null
   created_at: string
 }
+
+// Amis — Étape A
+export type FriendshipStatus = 'none' | 'pending_sent' | 'pending_received' | 'friends'
+
+export interface FriendshipRow {
+  id: string
+  requester_id: string
+  addressee_id: string
+  status: 'pending' | 'accepted'
+  created_at: string
+  responded_at: string | null
+}
+
+export interface UserSearchResult {
+  id: string
+  username: string
+  display_name: string
+  avatar_url: string | null
+  status: FriendshipStatus
+}
+
+export interface FriendRequests {
+  received: Profile[]
+  sent: Profile[]
+}
