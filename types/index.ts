@@ -198,7 +198,8 @@ export interface Profile {
 }
 
 // Amis — Étape A (FriendshipStatus défini dans lib/friends.ts, ré-exporté ici)
-export type { FriendshipStatus } from '@/lib/friends'
+import type { FriendshipStatus } from '@/lib/friends'
+export type { FriendshipStatus }
 
 export interface FriendshipRow {
   id: string
