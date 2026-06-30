@@ -26,7 +26,7 @@ const MapView = dynamic(() => import('@/components/map/MapView'), { ssr: false }
 const PlaceDetail = dynamic(() => import('@/components/place/PlaceDetail'), { ssr: false })
 const FiltersPanel = dynamic(() => import('@/components/filters/FiltersPanel'), { ssr: false })
 const ShareModal = dynamic(() => import('@/components/place/ShareModal'), { ssr: false })
-const AuthModal = dynamic(() => import('@/components/ui/AuthModal'), { ssr: false })
+const AuthFlow = dynamic(() => import('@/components/auth/AuthFlow'), { ssr: false })
 const SurpriseSheet = dynamic(() => import('@/components/place/SurpriseSheet'), { ssr: false })
 
 function AuthRequiredWatcher({ onOpen }: { onOpen: () => void }) {
@@ -64,7 +64,6 @@ function SurpriseParamWatcher({ onOpen }: { onOpen: () => void }) {
 
 export default function HomePage() {
   const {
-    auth,
     toast,
     isMobile,
     tr,
@@ -1128,14 +1127,7 @@ export default function HomePage() {
         />
       )}
 
-      {showAuthModal && (
-        <AuthModal
-          auth={auth}
-          onClose={() => setShowAuthModal(false)}
-          onSuccess={(msg) => toast.success(msg)}
-          onError={(msg) => toast.error(msg)}
-        />
-      )}
+      {showAuthModal && <AuthFlow onClose={() => setShowAuthModal(false)} />}
 
       {sharePlace && <ShareModal place={sharePlace} onClose={() => setSharePlace(null)} />}
 

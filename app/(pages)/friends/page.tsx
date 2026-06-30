@@ -5,10 +5,9 @@ import { useIsNative } from '@/lib/native/platform'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useProfile } from '@/lib/hooks/useProfile'
 import { Avatar } from '@/components/social/Avatar'
-import ProfileOnboarding from '@/components/social/ProfileOnboarding'
 import ProfileEdit from '@/components/social/ProfileEdit'
 
-const AuthModal = dynamic(() => import('@/components/ui/AuthModal'), { ssr: false })
+const AuthFlow = dynamic(() => import('@/components/auth/AuthFlow'), { ssr: false })
 
 export default function FriendsPage() {
   const native = useIsNative()
@@ -22,22 +21,14 @@ export default function FriendsPage() {
   // Auth session not yet resolved — avoid flashing AuthModal on native cold start.
   if (auth.loading) return <CenteredMsg>Chargement…</CenteredMsg>
 
-  // Not signed in → show auth modal.
-  if (!auth.user)
-    return (
-      <AuthModal
-        auth={auth}
-        onClose={() => history.back()}
-        onSuccess={() => {}}
-        onError={() => {}}
-      />
-    )
+  // Not signed in → show auth flow.
+  if (!auth.user) return <AuthFlow onClose={() => history.back()} />
 
   // Loading profile.
   if (!ready) return <CenteredMsg>Chargement…</CenteredMsg>
 
-  // No profile yet → onboarding.
-  if (!profile) return <ProfileOnboarding onDone={() => {}} />
+  // No profile yet → auth flow resumes at handle step.
+  if (!profile) return <AuthFlow onClose={() => history.back()} />
 
   return (
     <main
