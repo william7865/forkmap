@@ -13,8 +13,9 @@ import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
 import { useRouter } from 'next/navigation'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { useIsMobile } from '@/lib/hooks/useMediaQuery'
+import { useIsNative } from '@/lib/native/platform'
 import { apiFetch } from '@/lib/api'
-import { Check, Eye, EyeOff, LogOut, Trash2 } from 'lucide-react'
+import { Check, ChevronLeft, Eye, EyeOff, LogOut, Trash2 } from 'lucide-react'
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -22,6 +23,7 @@ export default function SettingsPage() {
   const { isReady, auth } = useAuthGuard()
   const router = useRouter()
   const isMobile = useIsMobile()
+  const isNative = useIsNative()
   const sb = getSupabaseBrowserClient()
 
   const [displayName, setDisplayName] = useState('')
@@ -201,17 +203,42 @@ export default function SettingsPage() {
         flexDirection: 'column',
       }}
     >
-      <PageHeader current="Paramètres" />
+      {!isNative && <PageHeader current="Paramètres" />}
 
       <main
         style={{
           maxWidth: 760,
           margin: '0 auto',
-          padding: isMobile ? '28px 20px 110px' : '52px 32px 96px',
+          padding: isNative
+            ? 'calc(var(--safe-top) + 8px) 20px calc(var(--safe-bottom) + 96px)'
+            : isMobile
+              ? '28px 20px 110px'
+              : '52px 32px 96px',
           width: '100%',
           boxSizing: 'border-box',
         }}
       >
+        {isNative && (
+          <button
+            onClick={() => history.back()}
+            aria-label="Retour"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--text-3)',
+              fontSize: 14,
+              fontWeight: 600,
+              padding: 0,
+              marginBottom: 16,
+            }}
+          >
+            <ChevronLeft size={20} strokeWidth={1.9} /> Retour
+          </button>
+        )}
         {/* ── En-tête éditorial ── */}
         <header
           style={{
@@ -593,7 +620,7 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <GlobalFooter />
+      {!isNative && <GlobalFooter />}
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes scaleIn { from{opacity:0;transform:scale(0.94)} to{opacity:1;transform:scale(1)} }
