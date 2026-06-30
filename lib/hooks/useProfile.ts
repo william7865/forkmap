@@ -75,6 +75,10 @@ export function useProfile() {
     const res = await apiFetch(`/api/profile/check-username?u=${encodeURIComponent(u)}`, {
       headers: await authHeaders(),
     })
+    // A non-OK response (401 when unauthenticated, 429, 500) carries no
+    // `available` field — throw so callers show a neutral error instead of
+    // silently treating it as "username taken".
+    if (!res.ok) throw new Error('check_failed')
     return (await res.json()) as { available: boolean; reason?: string }
   }, [])
 
