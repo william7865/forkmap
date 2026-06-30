@@ -1,12 +1,13 @@
 'use client'
 import dynamic from 'next/dynamic'
 import { useState } from 'react'
-import { ChevronRight, Users } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { useIsNative } from '@/lib/native/platform'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useProfile } from '@/lib/hooks/useProfile'
 import { Avatar } from '@/components/social/Avatar'
 import ProfileEdit from '@/components/social/ProfileEdit'
+import FriendsView from '@/components/social/FriendsView'
 
 const AuthFlow = dynamic(() => import('@/components/auth/AuthFlow'), { ssr: false })
 
@@ -93,55 +94,7 @@ export default function FriendsPage() {
         />
       </button>
 
-      {/* Empty state — friends coming soon */}
-      <div
-        style={{
-          marginTop: 56,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          textAlign: 'center',
-          gap: 12,
-          padding: '0 16px',
-        }}
-      >
-        <div
-          style={{
-            width: 60,
-            height: 60,
-            borderRadius: '50%',
-            background: 'var(--bone)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--accent)',
-          }}
-        >
-          <Users size={26} strokeWidth={1.8} />
-        </div>
-        <p
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-display)',
-            fontWeight: 700,
-            fontSize: 18,
-            color: 'var(--ink)',
-          }}
-        >
-          Tes amis arrivent bientôt
-        </p>
-        <p
-          style={{
-            margin: 0,
-            fontSize: 14,
-            color: 'var(--text-3)',
-            maxWidth: 260,
-            lineHeight: 1.45,
-          }}
-        >
-          Bientôt, tu pourras ajouter des amis et découvrir leurs restaurants préférés.
-        </p>
-      </div>
+      <FriendsView />
 
       {editing && <ProfileEdit onClose={() => setEditing(false)} />}
     </main>
