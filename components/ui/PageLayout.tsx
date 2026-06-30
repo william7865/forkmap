@@ -7,6 +7,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { useIsMobile } from '@/lib/hooks/useMediaQuery'
+import { useIsNative } from '@/lib/native/platform'
 
 // ── Logo fourchette brandbook ────────────────────────────
 export function ForkmapLogo({ size = 30 }: { size?: number }) {
@@ -190,22 +191,54 @@ export function InfoPage({
   headerActions?: ReactNode
   maxWidth?: number
 }) {
+  const isNative = useIsNative()
   return (
     <div
       style={{
         minHeight: '100vh',
-        background: 'var(--off-white)',
+        background: isNative ? 'var(--white)' : 'var(--off-white)',
         color: 'var(--ink)',
         fontFamily: 'var(--font-body)',
         display: 'flex',
         flexDirection: 'column',
       }}
     >
-      <PageHeader current={headerLabel} actions={headerActions} />
+      {!isNative && <PageHeader current={headerLabel} actions={headerActions} />}
       <main style={{ flex: 1, background: 'var(--white)' }}>
-        <div style={{ maxWidth, margin: '0 auto', padding: '48px 24px 72px' }}>{children}</div>
+        <div
+          style={{
+            maxWidth,
+            margin: '0 auto',
+            padding: isNative
+              ? 'calc(var(--safe-top) + 8px) 20px calc(var(--safe-bottom) + 88px)'
+              : '48px 24px 72px',
+          }}
+        >
+          {isNative && (
+            <button
+              onClick={() => history.back()}
+              aria-label="Retour"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--ink-40)',
+                fontSize: 14,
+                fontWeight: 600,
+                padding: 0,
+                marginBottom: 18,
+              }}
+            >
+              <IcoArrowLeft /> Retour
+            </button>
+          )}
+          {children}
+        </div>
       </main>
-      <GlobalFooter />
+      {!isNative && <GlobalFooter />}
     </div>
   )
 }
