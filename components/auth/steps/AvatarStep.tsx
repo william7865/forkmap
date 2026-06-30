@@ -14,12 +14,16 @@ export default function AvatarStep({ flow }: { flow: ReturnType<typeof useAuthFl
       subtitle="Optionnel — tu pourras le changer plus tard."
       cta={
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <button className="btn-primary" disabled={flow.busy} onClick={flow.submitAvatar}>
+          <button
+            className="btn-primary"
+            disabled={flow.busy || flow.avatarBusy}
+            onClick={flow.submitAvatar}
+          >
             {flow.busy ? <Spinner light /> : 'Continuer'}
           </button>
           <button
             onClick={flow.submitAvatar}
-            disabled={flow.busy}
+            disabled={flow.busy || flow.avatarBusy}
             style={{
               background: 'none',
               border: 'none',

@@ -101,22 +101,28 @@ export function useAuthFlow(onDone: () => void) {
   const submitAvatar = async () => {
     setError(null)
     setBusy(true)
-    const r = await createProfile({
-      username,
-      display_name: displayName.trim(),
-      avatar_url: avatarUrl,
-    })
-    setBusy(false)
-    if (!r.ok) {
-      setError(
-        r.error === 'username_taken'
-          ? 'Ce pseudo est déjà pris.'
-          : (r.error ?? 'Une erreur est survenue.')
-      )
+    try {
+      const r = await createProfile({
+        username,
+        display_name: displayName.trim(),
+        avatar_url: avatarUrl,
+      })
+      if (!r.ok) {
+        setError(
+          r.error === 'username_taken'
+            ? 'Ce pseudo est déjà pris.'
+            : (r.error ?? 'Une erreur est survenue.')
+        )
+        setStep('handle')
+        return
+      }
+      setStep('done')
+    } catch {
+      setError('Connexion impossible. Réessaie.')
       setStep('handle')
-      return
+    } finally {
+      setBusy(false)
     }
-    setStep('done')
   }
 
   const submitEmail = async () => {
