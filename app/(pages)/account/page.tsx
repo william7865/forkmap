@@ -27,6 +27,7 @@ import {
   IcoMoodWork,
 } from '@/components/icons'
 import type { LucideProps } from 'lucide-react'
+import { Settings as SettingsIcon } from 'lucide-react'
 
 const MOOD_ICONS: Record<string, (p: LucideProps) => React.ReactElement> = {
   solo: IcoMoodSolo,
@@ -1328,53 +1329,113 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
             "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
         }}
       />
-      <PageHeader
-        current="Mon compte"
-        actions={
-          <button
-            onClick={async () => {
-              setSigningOut(true)
-              await auth.signOut()
-              router.replace('/')
-            }}
-            disabled={signingOut}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '7px 13px',
-              borderRadius: 'var(--r-md)',
-              border: '1px solid var(--coral-pale)',
-              background: 'var(--coral-pale)',
-              cursor: signingOut ? 'not-allowed' : 'pointer',
-              fontSize: 11,
-              fontWeight: 700,
-              color: 'var(--coral)',
-              fontFamily: 'inherit',
-              transition: 'background 120ms ease',
-            }}
-            onMouseEnter={(e) => {
-              ;(e.currentTarget as HTMLElement).style.background = 'var(--closed-bg)'
-            }}
-            onMouseLeave={(e) => {
-              ;(e.currentTarget as HTMLElement).style.background = 'var(--coral-pale)'
-            }}
-          >
-            <IcoLogOut /> {signingOut ? 'Déconnexion…' : 'Se déconnecter'}
-          </button>
-        }
-      />
+      {!isNative && (
+        <PageHeader
+          current="Mon compte"
+          actions={
+            <button
+              onClick={async () => {
+                setSigningOut(true)
+                await auth.signOut()
+                router.replace('/')
+              }}
+              disabled={signingOut}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '7px 13px',
+                borderRadius: 'var(--r-md)',
+                border: '1px solid var(--coral-pale)',
+                background: 'var(--coral-pale)',
+                cursor: signingOut ? 'not-allowed' : 'pointer',
+                fontSize: 11,
+                fontWeight: 700,
+                color: 'var(--coral)',
+                fontFamily: 'inherit',
+                transition: 'background 120ms ease',
+              }}
+              onMouseEnter={(e) => {
+                ;(e.currentTarget as HTMLElement).style.background = 'var(--closed-bg)'
+              }}
+              onMouseLeave={(e) => {
+                ;(e.currentTarget as HTMLElement).style.background = 'var(--coral-pale)'
+              }}
+            >
+              <IcoLogOut /> {signingOut ? 'Déconnexion…' : 'Se déconnecter'}
+            </button>
+          }
+        />
+      )}
 
       <div
         style={{
           maxWidth: 920,
           margin: '0 auto',
-          padding: isMobile ? '20px 20px 100px' : '44px 40px 90px',
+          padding: isNative
+            ? 'calc(var(--safe-top) + 6px) 20px calc(var(--safe-bottom) + 100px)'
+            : isMobile
+              ? '20px 20px 100px'
+              : '44px 40px 90px',
           width: '100%',
           position: 'relative',
           zIndex: 1,
         }}
       >
+        {isNative && (
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              gap: 8,
+              marginBottom: 8,
+            }}
+          >
+            <button
+              onClick={() => router.push('/settings')}
+              aria-label="Réglages"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 38,
+                height: 38,
+                borderRadius: 'var(--r-md)',
+                border: '1px solid var(--b2)',
+                background: 'var(--white)',
+                color: 'var(--text-2)',
+                cursor: 'pointer',
+              }}
+            >
+              <SettingsIcon size={18} strokeWidth={1.8} />
+            </button>
+            <button
+              onClick={async () => {
+                setSigningOut(true)
+                await auth.signOut()
+                router.replace('/')
+              }}
+              disabled={signingOut}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 13px',
+                borderRadius: 'var(--r-md)',
+                border: '1px solid var(--coral-pale)',
+                background: 'var(--coral-pale)',
+                cursor: signingOut ? 'not-allowed' : 'pointer',
+                fontSize: 12,
+                fontWeight: 700,
+                color: 'var(--coral)',
+                fontFamily: 'inherit',
+              }}
+            >
+              <IcoLogOut /> {signingOut ? 'Déconnexion…' : 'Se déconnecter'}
+            </button>
+          </div>
+        )}
         {/* ── Masthead : identité typographique ── */}
         <header style={{ position: 'relative', animation: 'fadeUp 360ms var(--ease-out) both' }}>
           {/* lueur chaude discrète */}
@@ -2218,7 +2279,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
           onCancel={() => setShowDeleteModal(false)}
         />
       )}
-      <GlobalFooter />
+      {!isNative && <GlobalFooter />}
       <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}} @keyframes spin{to{transform:rotate(360deg)}} .acct-row{padding:13px 0;transition:padding-left 200ms var(--ease-out)} .acct-row:hover{padding-left:8px} .acct-row:hover .acct-row-name{color:var(--accent)} .acct-row-name{transition:color 160ms ease} .acct-row-arrow{transition:color 160ms ease,transform 160ms var(--ease-out)} .acct-row:hover .acct-row-arrow{color:var(--accent);transform:translateX(3px)} @media (prefers-reduced-motion: reduce){.acct-row,.acct-row:hover{padding-left:0}}`}</style>
     </div>
   )
