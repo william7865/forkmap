@@ -180,13 +180,18 @@ export function useAuthFlow(onDone: () => void) {
       return
     }
     setBusy(true)
-    const err = await auth.signUpWithEmail(email, password, '')
-    setBusy(false)
-    if (err) {
-      setError(err)
-      return
+    try {
+      const err = await auth.signUpWithEmail(email, password, '')
+      if (err) {
+        setError(err)
+        return
+      }
+      setStep('handle')
+    } catch {
+      setError('Connexion impossible. Réessaie.')
+    } finally {
+      setBusy(false)
     }
-    setStep('handle')
   }
 
   return {

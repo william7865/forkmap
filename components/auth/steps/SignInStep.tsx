@@ -14,6 +14,7 @@ export default function SignInStep({ flow }: { flow: ReturnType<typeof useAuthFl
       <StepShell
         onBack={() => {
           setForgot(false)
+          flow.setResetSent(false)
           flow.setError(null)
         }}
         title="Mot de passe oublié"
