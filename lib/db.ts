@@ -546,7 +546,8 @@ export async function getFriendshipRow(aId: string, bId: string): Promise<Friend
 }
 
 export async function searchUsers(meId: string, q: string): Promise<UserSearchResult[]> {
-  const term = q.trim().toLowerCase()
+  // Usernames are stored without a leading '@' — strip it so "@test" matches "test".
+  const term = q.trim().toLowerCase().replace(/^@+/, '')
   if (term.length < 2) return []
   // Escape SQL LIKE wildcards. Use builder .ilike() (parameterized value) for
   // both columns and merge — never interpolate the term into a raw .or() filter.
