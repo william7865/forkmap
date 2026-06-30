@@ -1,16 +1,19 @@
+// ============================================================
+// app/(pages)/settings/compte/page.tsx
+// Native sub-route for account management.
+// Renders AccountSettingsContent inside a native chrome wrapper.
+// Not linked from web; also renders content if accessed on web.
+// ============================================================
 'use client'
 
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
 import { useIsMobile } from '@/lib/hooks/useMediaQuery'
-import { useIsNative } from '@/lib/native/platform'
 import AccountSettingsContent from '@/components/settings/AccountSettingsContent'
 import { ChevronLeft } from 'lucide-react'
 
 export default function ComptePage() {
   const { isReady } = useAuthGuard()
   const isMobile = useIsMobile()
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const isNative = useIsNative()
 
   if (!isReady) {
     return (

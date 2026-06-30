@@ -1,3 +1,8 @@
+// ============================================================
+// app/(pages)/settings/page.tsx — Paramètres
+// WEB: full editorial account-management page (unchanged).
+// NATIVE: SettingsHub (grouped list of links).
+// ============================================================
 'use client'
 
 import { PageHeader, GlobalFooter } from '@/components/ui/PageLayout'
@@ -58,7 +63,7 @@ export default function SettingsPage() {
           margin: '0 auto',
           padding: isMobile ? '28px 20px 110px' : '52px 32px 96px',
           width: '100%',
-          boxSizing: 'border-box',
+          boxSizing: 'border-box' as const,
         }}
       >
         <AccountSettingsContent isMobile={isMobile} />
