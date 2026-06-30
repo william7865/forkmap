@@ -56,7 +56,7 @@ export default function HandleStep({ flow }: { flow: ReturnType<typeof useAuthFl
   return (
     <StepShell
       progress={flow.progress}
-      onBack={flow.back}
+      onBack={flow.resumed ? undefined : flow.back}
       title="Choisis ton pseudo"
       subtitle="C'est comme ça que tes amis te trouveront."
       cta={
@@ -83,6 +83,7 @@ export default function HandleStep({ flow }: { flow: ReturnType<typeof useAuthFl
           className="input-field"
           type="text"
           autoCapitalize="none"
+          autoComplete="username"
           placeholder="ton_pseudo"
           value={flow.username}
           onChange={(e) => onUsername(e.target.value)}
@@ -134,6 +135,7 @@ export default function HandleStep({ flow }: { flow: ReturnType<typeof useAuthFl
         id="handle-name"
         className="input-field"
         type="text"
+        autoComplete="name"
         placeholder="Ton nom"
         value={flow.displayName}
         onChange={(e) => flow.setDisplayName(e.target.value)}

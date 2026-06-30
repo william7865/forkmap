@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useProfile } from '@/lib/hooks/useProfile'
 import { validateUsername } from '@/lib/username'
-import { resolveInitialStep, signupProgress, type FlowStep, type FlowPath } from '@/lib/auth-flow'
+import { signupProgress, type FlowStep, type FlowPath } from '@/lib/auth-flow'
 
 export function useAuthFlow(onDone: () => void) {
   const auth = useAuth()
@@ -20,19 +20,22 @@ export function useAuthFlow(onDone: () => void) {
   const [username, setUsername] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [resumed, setResumed] = useState(false)
 
   // Resume at handle when authed but profileless (Google return / legacy).
   const resumedRef = useRef(false)
   useEffect(() => {
-    if (resumedRef.current || !ready) return
+    if (resumedRef.current || !ready || step !== 'welcome') return
     if (auth.user && !profile) {
       resumedRef.current = true
+      setResumed(true)
+      setPath('signup_google')
       const meta = auth.user.user_metadata ?? {}
       setDisplayName((meta.full_name as string) ?? (meta.name as string) ?? '')
       setAvatarUrl((meta.avatar_url as string) ?? (meta.picture as string) ?? null)
       setStep('handle')
     }
-  }, [ready, auth.user, profile])
+  }, [ready, auth.user, profile, step])
 
   const reset = () => {
     setError(null)
@@ -202,6 +205,7 @@ export function useAuthFlow(onDone: () => void) {
     pickAndUploadAvatar,
     step,
     path,
+    resumed,
     busy,
     error,
     email,
@@ -232,7 +236,6 @@ export function useAuthFlow(onDone: () => void) {
     submitSignin,
     sendReset,
     onDone,
-    initialStep: resolveInitialStep(!!auth.user, !!profile),
     progress: signupProgress(step),
   }
 }

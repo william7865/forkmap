@@ -38,9 +38,13 @@ export default function SignInStep({ flow }: { flow: ReturnType<typeof useAuthFl
               type="email"
               inputMode="email"
               autoCapitalize="none"
+              autoComplete="email"
               placeholder="toi@email.com"
               value={flow.email}
               onChange={(e) => flow.setEmail(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') flow.sendReset()
+              }}
               aria-label="Adresse e-mail"
             />
             {flow.error && <ErrorText msg={flow.error} />}
@@ -74,18 +78,26 @@ export default function SignInStep({ flow }: { flow: ReturnType<typeof useAuthFl
         type="email"
         inputMode="email"
         autoCapitalize="none"
+        autoComplete="email"
         placeholder="toi@email.com"
         value={flow.email}
         onChange={(e) => flow.setEmail(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') flow.submitSignin()
+        }}
         aria-label="Adresse e-mail"
         style={{ marginBottom: 10 }}
       />
       <input
         className="input-field"
         type={showPw ? 'text' : 'password'}
+        autoComplete="current-password"
         placeholder="Mot de passe"
         value={flow.password}
         onChange={(e) => flow.setPassword(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') flow.submitSignin()
+        }}
         aria-label="Mot de passe"
       />
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>

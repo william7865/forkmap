@@ -24,18 +24,26 @@ export default function EmailStep({ flow }: { flow: ReturnType<typeof useAuthFlo
         type="email"
         inputMode="email"
         autoCapitalize="none"
+        autoComplete="email"
         placeholder="toi@email.com"
         value={flow.email}
         onChange={(e) => flow.setEmail(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') flow.submitEmail()
+        }}
         aria-label="Adresse e-mail"
         style={{ marginBottom: 10 }}
       />
       <input
         className="input-field"
         type={showPw ? 'text' : 'password'}
+        autoComplete="new-password"
         placeholder="Mot de passe (6 caractères min.)"
         value={flow.password}
         onChange={(e) => flow.setPassword(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') flow.submitEmail()
+        }}
         aria-label="Mot de passe"
       />
       <button
