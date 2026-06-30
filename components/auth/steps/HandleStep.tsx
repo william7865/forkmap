@@ -27,6 +27,8 @@ export default function HandleStep({ flow }: { flow: ReturnType<typeof useAuthFl
     flow.setError(null)
     if (timer.current) clearTimeout(timer.current)
     if (!v.trim()) {
+      // Invalidate any in-flight check so a late response can't overwrite 'idle'.
+      gen.current++
       setStatus({ state: 'idle' })
       return
     }
@@ -117,6 +119,7 @@ export default function HandleStep({ flow }: { flow: ReturnType<typeof useAuthFl
       )}
 
       <label
+        htmlFor="handle-name"
         style={{
           fontSize: 12,
           fontWeight: 600,
@@ -128,6 +131,7 @@ export default function HandleStep({ flow }: { flow: ReturnType<typeof useAuthFl
         Ton nom
       </label>
       <input
+        id="handle-name"
         className="input-field"
         type="text"
         placeholder="Ton nom"
