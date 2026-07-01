@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
 import { Avatar } from '@/components/social/Avatar'
 import FriendButton from '@/components/social/FriendButton'
+import PublicListSheet from '@/components/social/PublicListSheet'
 import { useIsNative } from '@/lib/native/platform'
 import { apiFetch } from '@/lib/api'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
@@ -41,6 +42,7 @@ export default function PublicProfile({
   const back = onBack ?? (() => router.back())
   const [bundle, setBundle] = useState<PublicProfileBundle | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'notfound'>('loading')
+  const [openList, setOpenList] = useState<{ id: string; name: string } | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -178,8 +180,9 @@ export default function PublicProfile({
           </p>
         ) : (
           bundle.lists.map((l) => (
-            <div
+            <button
               key={l.id}
+              onClick={() => setOpenList({ id: l.id, name: l.name })}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -189,6 +192,10 @@ export default function PublicProfile({
                 background: 'var(--white)',
                 border: '1px solid var(--b2)',
                 borderRadius: 'var(--r-md)',
+                width: '100%',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
               }}
             >
               <span
@@ -216,10 +223,17 @@ export default function PublicProfile({
                   {l.item_count} lieu{l.item_count > 1 ? 'x' : ''}
                 </span>
               </span>
-            </div>
+            </button>
           ))
         )}
       </div>
+      {openList && (
+        <PublicListSheet
+          listId={openList.id}
+          listName={openList.name}
+          onClose={() => setOpenList(null)}
+        />
+      )}
     </div>
   )
 }
