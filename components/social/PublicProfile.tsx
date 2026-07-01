@@ -1,9 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, MessageSquare } from 'lucide-react'
 import { Avatar } from '@/components/social/Avatar'
 import FriendButton from '@/components/social/FriendButton'
+import ChatThread from '@/components/social/ChatThread'
 import PublicListSheet from '@/components/social/PublicListSheet'
 import { useIsNative } from '@/lib/native/platform'
 import { apiFetch } from '@/lib/api'
@@ -43,6 +44,7 @@ export default function PublicProfile({
   const [bundle, setBundle] = useState<PublicProfileBundle | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'notfound'>('loading')
   const [openList, setOpenList] = useState<{ id: string; name: string } | null>(null)
+  const [chatting, setChatting] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -136,8 +138,23 @@ export default function PublicProfile({
           {p.display_name}
         </h1>
         <span style={{ fontSize: 14, color: 'var(--text-3)' }}>@{p.username}</span>
-        <div style={{ marginTop: 8 }}>
+        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
           <FriendButton userId={p.id} status={bundle.status} />
+          {bundle.status === 'friends' && (
+            <button
+              onClick={() => setChatting(true)}
+              className="btn-secondary"
+              style={{
+                width: 'auto',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <MessageSquare size={16} />
+              Message
+            </button>
+          )}
         </div>
       </div>
 
@@ -232,6 +249,17 @@ export default function PublicProfile({
           listId={openList.id}
           listName={openList.name}
           onClose={() => setOpenList(null)}
+        />
+      )}
+      {chatting && (
+        <ChatThread
+          user={{
+            id: p.id,
+            display_name: p.display_name,
+            username: p.username,
+            avatar_url: p.avatar_url,
+          }}
+          onClose={() => setChatting(false)}
         />
       )}
     </div>

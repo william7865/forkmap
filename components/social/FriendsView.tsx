@@ -1,8 +1,9 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { Search, UserPlus, Check, X, Clock } from 'lucide-react'
+import { Search, UserPlus, Check, X, Clock, MessageSquare } from 'lucide-react'
 import { Avatar } from '@/components/social/Avatar'
 import PublicProfile from '@/components/social/PublicProfile'
+import MessagesInbox from '@/components/social/MessagesInbox'
 import { useFriends } from '@/lib/hooks/useFriends'
 import type { UserSearchResult } from '@/types'
 
@@ -10,6 +11,7 @@ export default function FriendsView() {
   const { friends, requests, loading, search, sendRequest, accept, decline, removeFriend } =
     useFriends()
   const [viewing, setViewing] = useState<string | null>(null)
+  const [inbox, setInbox] = useState(false)
   const [q, setQ] = useState('')
   const [results, setResults] = useState<UserSearchResult[]>([])
   const [searching, setSearching] = useState(false)
@@ -50,6 +52,37 @@ export default function FriendsView() {
 
   return (
     <div style={{ marginTop: 24 }}>
+      {/* En-tête avec bouton Messages */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          marginBottom: 12,
+        }}
+      >
+        <button
+          onClick={() => setInbox(true)}
+          aria-label="Messages"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '8px 14px',
+            borderRadius: 'var(--r-md)',
+            border: '1px solid var(--b2)',
+            background: 'var(--white)',
+            cursor: 'pointer',
+            color: 'var(--ink)',
+            fontFamily: 'inherit',
+            fontSize: 13,
+            fontWeight: 700,
+          }}
+        >
+          <MessageSquare size={16} />
+          Messages
+        </button>
+      </div>
+
       {/* Recherche */}
       <div style={{ position: 'relative', marginBottom: 8 }}>
         <Search
@@ -184,6 +217,9 @@ export default function FriendsView() {
 
       {/* Profil public en overlay (évite le routage dynamique en export statique) */}
       {viewing && <PublicProfile username={viewing} overlay onBack={() => setViewing(null)} />}
+
+      {/* Boîte de réception des messages */}
+      {inbox && <MessagesInbox onClose={() => setInbox(false)} />}
     </div>
   )
 }
