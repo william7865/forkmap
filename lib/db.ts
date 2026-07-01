@@ -12,6 +12,7 @@ import type {
   PlaceCard,
   Profile,
   PublicListCard,
+  PublicListDetail,
   PublicProfileBundle,
   UserSearchResult,
 } from '@/types'
@@ -418,6 +419,30 @@ export async function getListsForPlace(userId: string, osmId: string): Promise<s
     .eq('lists.user_id', userId)
   if (error) throw error
   return (data ?? []).map((row: { list_id: string }) => row.list_id)
+}
+
+export async function getPublicListWithItems(listId: string): Promise<PublicListDetail | null> {
+  const { data: list, error: listErr } = await db
+    .from('lists')
+    .select('id, name, color_hue, is_public')
+    .eq('id', listId)
+    .eq('is_public', true)
+    .maybeSingle()
+  if (listErr) throw listErr
+  if (!list) return null
+
+  const { data: items, error: itemsErr } = await db
+    .from('list_items')
+    .select('place_snapshot')
+    .eq('list_id', listId)
+    .order('added_at', { ascending: false })
+  if (itemsErr) throw itemsErr
+
+  const l = list as { id: string; name: string; color_hue: number }
+  return {
+    list: { id: l.id, name: l.name, color_hue: l.color_hue },
+    items: (items ?? []).map((it) => (it as { place_snapshot: PlaceCard }).place_snapshot),
+  }
 }
 
 // ---------- Push tokens ----------

@@ -237,3 +237,8 @@ export interface PublicProfileBundle {
   stats: { lists: number; places: number; cuisines: number }
   lists: PublicListCard[]
 }
+
+export interface PublicListDetail {
+  list: { id: string; name: string; color_hue: number }
+  items: PlaceCard[]
+}
