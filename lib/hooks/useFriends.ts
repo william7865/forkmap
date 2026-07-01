@@ -1,16 +1,8 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
-import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
+import { getAuthHeaders } from '@/lib/auth-headers'
 import type { Profile, FriendRequests, UserSearchResult } from '@/types'
-
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  const sb = getSupabaseBrowserClient()
-  const {
-    data: { session },
-  } = await sb.auth.getSession()
-  return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
-}
 
 export function useFriends() {
   const [friends, setFriends] = useState<Profile[]>([])

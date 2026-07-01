@@ -242,3 +242,20 @@ export interface PublicListDetail {
   list: { id: string; name: string; color_hue: number }
   items: PlaceCard[]
 }
+
+export interface MessageRow {
+  id: string
+  sender_id: string
+  receiver_id: string
+  content: string
+  created_at: string
+  read_at: string | null
+}
+
+export interface ConversationSummary {
+  user: Profile
+  last_message: string
+  last_at: string
+  last_from_me: boolean
+  unread: number
+}
