@@ -16,17 +16,23 @@ export default function ChatThread({
   const myId = auth.user?.id ?? ''
   const { messages, loading, send, sending } = useChatThread(user.id, myId)
   const [text, setText] = useState('')
+  const [sendError, setSendError] = useState(false)
   const endRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' })
   }, [messages.length])
 
-  const onSend = () => {
+  const onSend = async () => {
     const t = text.trim()
     if (!t) return
     setText('')
-    void send(t)
+    setSendError(false)
+    const ok = await send(t)
+    if (!ok) {
+      setText(t) // restaure le message pour que l'utilisateur puisse réessayer
+      setSendError(true)
+    }
   }
 
   return (
@@ -126,6 +132,22 @@ export default function ChatThread({
         })}
         <div ref={endRef} />
       </div>
+
+      {sendError && (
+        <p
+          style={{
+            margin: 0,
+            padding: '6px 14px',
+            fontSize: 12.5,
+            fontWeight: 600,
+            color: 'var(--coral)',
+            background: 'var(--coral-pale)',
+            textAlign: 'center',
+          }}
+        >
+          Message non envoyé. Réessaie.
+        </p>
+      )}
 
       {/* Composer */}
       <div

@@ -52,6 +52,7 @@ export function useChatThread(otherUserId: string, myUserId: string) {
 
   // Abonnement Realtime : messages entrants d'otherUserId.
   useEffect(() => {
+    if (!myUserId) return // pas d'abonnement tant que l'auth n'est pas résolue
     const sb = getSupabaseBrowserClient()
     const ch = sb
       .channel(`msg:${myUserId}:${otherUserId}`)
@@ -74,10 +75,12 @@ export function useChatThread(otherUserId: string, myUserId: string) {
     }
   }, [myUserId, otherUserId, append])
 
+  // Renvoie true si le message a bien été envoyé, false sinon (pour que l'UI
+  // restaure le texte + prévienne au lieu d'un échec silencieux).
   const send = useCallback(
-    async (content: string) => {
+    async (content: string): Promise<boolean> => {
       const text = content.trim()
-      if (!text || sending) return
+      if (!text || sending) return false
       setSending(true)
       try {
         const headers = { 'Content-Type': 'application/json', ...(await authHeaders()) }
@@ -86,12 +89,12 @@ export function useChatThread(otherUserId: string, myUserId: string) {
           headers,
           body: JSON.stringify({ toUserId: otherUserId, content: text }),
         })
-        if (res.ok) {
-          const msg = (await res.json()).data as MessageRow
-          append(msg) // écho de MON message (le filtre Realtime ne me le renvoie pas)
-        }
+        if (!res.ok) return false
+        const msg = (await res.json()).data as MessageRow
+        append(msg) // écho de MON message (le filtre Realtime ne me le renvoie pas)
+        return true
       } catch {
-        /* noop */
+        return false
       } finally {
         setSending(false)
       }

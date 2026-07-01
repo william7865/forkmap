@@ -13,12 +13,23 @@ ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "messages_read_participant" ON messages
   FOR SELECT TO authenticated
   USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
-CREATE POLICY "messages_send_own" ON messages
+-- INSERT : on doit être l'expéditeur ET ami accepté du destinataire.
+-- La règle "amis uniquement" DOIT vivre dans la RLS (la clé anon est publique,
+-- la table est joignable en direct ; ne pas faire confiance au seul code serveur).
+CREATE POLICY "messages_send_to_friend" ON messages
   FOR INSERT TO authenticated
-  WITH CHECK (auth.uid() = sender_id);
-CREATE POLICY "messages_update_participant" ON messages
-  FOR UPDATE TO authenticated
-  USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+  WITH CHECK (
+    auth.uid() = sender_id
+    AND EXISTS (
+      SELECT 1 FROM friendships f
+      WHERE f.status = 'accepted'
+        AND ((f.requester_id = sender_id AND f.addressee_id = receiver_id)
+          OR (f.requester_id = receiver_id AND f.addressee_id = sender_id))
+    )
+  );
+-- Pas de policy UPDATE : les accusés de lecture (read_at) sont posés côté serveur
+-- via le client service-role (qui contourne la RLS). Une policy UPDATE ouverte
+-- permettrait à un participant de falsifier le contenu d'un message de l'autre.
 
 CREATE INDEX IF NOT EXISTS messages_pair ON messages(sender_id, receiver_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS messages_receiver ON messages(receiver_id, created_at DESC);

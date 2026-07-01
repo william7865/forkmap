@@ -26,6 +26,9 @@ export async function POST(req: NextRequest) {
     if (err instanceof Error && err.message === 'not_friends') {
       return NextResponse.json({ error: 'Vous devez être amis pour discuter.' }, { status: 403 })
     }
+    if (err instanceof Error && err.message === 'cannot_message_self') {
+      return NextResponse.json({ error: 'Action impossible.' }, { status: 400 })
+    }
     console.error('[POST /api/messages]', err)
     return NextResponse.json({ error: "Impossible d'envoyer le message." }, { status: 500 })
   }
