@@ -292,6 +292,8 @@ export interface MessageRow {
   payload?: MessagePlacePayload | null
   created_at: string
   read_at: string | null
+  edited_at?: string | null
+  deleted_at?: string | null
 }
 
 export interface ConversationSummary {
@@ -300,4 +302,5 @@ export interface ConversationSummary {
   last_at: string
   last_from_me: boolean
   unread: number
+  muted: boolean
 }

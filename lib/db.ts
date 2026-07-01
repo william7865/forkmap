@@ -1050,7 +1050,8 @@ export async function sendMessage(
     .single()
   if (error) throw error
   const from = await getProfile(fromId)
-  if (from) {
+  const pref = await getConversationPref(toId, fromId) // le destinataire a-t-il coupé cette conv ?
+  if (from && !pref.muted) {
     const snippet = type === 'place' ? 'a partagé un lieu' : content.slice(0, 60)
     await createNotification(
       toId,
@@ -1063,6 +1064,43 @@ export async function sendMessage(
   return data as MessageRow
 }
 
+// Préférences de conversation (best-effort : table absente → valeurs neutres).
+export async function getConversationPref(
+  meId: string,
+  otherId: string
+): Promise<{ muted: boolean; cleared_at: string | null }> {
+  try {
+    const { data } = await db
+      .from('conversation_prefs')
+      .select('muted, cleared_at')
+      .eq('user_id', meId)
+      .eq('other_id', otherId)
+      .maybeSingle()
+    return { muted: !!data?.muted, cleared_at: (data?.cleared_at as string) ?? null }
+  } catch {
+    return { muted: false, cleared_at: null }
+  }
+}
+
+async function getConversationPrefs(
+  meId: string
+): Promise<Map<string, { muted: boolean; cleared_at: string | null }>> {
+  const m = new Map<string, { muted: boolean; cleared_at: string | null }>()
+  try {
+    const { data } = await db
+      .from('conversation_prefs')
+      .select('other_id, muted, cleared_at')
+      .eq('user_id', meId)
+    for (const r of data ?? []) {
+      const row = r as { other_id: string; muted: boolean; cleared_at: string | null }
+      m.set(row.other_id, { muted: !!row.muted, cleared_at: row.cleared_at ?? null })
+    }
+  } catch {
+    /* table absente → prefs vides */
+  }
+  return m
+}
+
 export async function getThread(meId: string, otherId: string, limit = 100): Promise<MessageRow[]> {
   const { data, error } = await db
     .from('messages')
@@ -1073,7 +1111,67 @@ export async function getThread(meId: string, otherId: string, limit = 100): Pro
     .order('created_at', { ascending: true })
     .limit(limit)
   if (error) throw error
-  return (data ?? []) as MessageRow[]
+  let rows = (data ?? []) as MessageRow[]
+  const pref = await getConversationPref(meId, otherId)
+  if (pref.cleared_at) rows = rows.filter((m) => m.created_at > pref.cleared_at!)
+  return rows
+}
+
+export async function editMessage(
+  meId: string,
+  messageId: string,
+  content: string
+): Promise<MessageRow> {
+  const { data: existing } = await db
+    .from('messages')
+    .select('sender_id, deleted_at')
+    .eq('id', messageId)
+    .single()
+  if (!existing || existing.sender_id !== meId) throw new Error('forbidden')
+  if (existing.deleted_at) throw new Error('deleted')
+  const { data, error } = await db
+    .from('messages')
+    .update({ content, edited_at: new Date().toISOString() })
+    .eq('id', messageId)
+    .select()
+    .single()
+  if (error) throw error
+  return data as MessageRow
+}
+
+export async function deleteMessage(meId: string, messageId: string): Promise<void> {
+  const { data: existing } = await db
+    .from('messages')
+    .select('sender_id')
+    .eq('id', messageId)
+    .single()
+  if (!existing || existing.sender_id !== meId) throw new Error('forbidden')
+  const { error } = await db
+    .from('messages')
+    .update({ deleted_at: new Date().toISOString(), content: '', payload: null })
+    .eq('id', messageId)
+  if (error) throw error
+}
+
+export async function setConversationMuted(
+  meId: string,
+  otherId: string,
+  muted: boolean
+): Promise<void> {
+  const { error } = await db.from('conversation_prefs').upsert(
+    { user_id: meId, other_id: otherId, muted, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id,other_id' }
+  )
+  if (error) throw error
+}
+
+// « Supprimer la conversation pour moi » — masque les messages jusqu'à maintenant.
+export async function clearConversation(meId: string, otherId: string): Promise<void> {
+  const { error } = await db.from('conversation_prefs').upsert(
+    { user_id: meId, other_id: otherId, cleared_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+    { onConflict: 'user_id,other_id' }
+  )
+  if (error) throw error
 }
 
 export async function markThreadRead(meId: string, otherId: string): Promise<void> {
@@ -1096,11 +1194,14 @@ export async function getConversations(meId: string): Promise<ConversationSummar
     .limit(500)
   if (error) throw error
   const rows = (data ?? []) as MessageRow[]
+  const prefs = await getConversationPrefs(meId)
 
-  // Regrouper par partenaire ; garder le plus récent + compter les non-lus.
+  // Regrouper par partenaire ; garder le plus récent visible + compter les non-lus.
   const byPartner = new Map<string, { last: MessageRow; unread: number }>()
   for (const m of rows) {
     const partner = m.sender_id === meId ? m.receiver_id : m.sender_id
+    const cleared = prefs.get(partner)?.cleared_at
+    if (cleared && m.created_at <= cleared) continue // effacée pour moi
     const entry = byPartner.get(partner)
     if (!entry) {
       byPartner.set(partner, {
@@ -1124,10 +1225,15 @@ export async function getConversations(meId: string): Promise<ConversationSummar
       if (!user) return null
       return {
         user,
-        last_message: e.last.content,
+        last_message: e.last.deleted_at
+          ? 'Message supprimé'
+          : e.last.type === 'place'
+            ? '📍 Lieu partagé'
+            : e.last.content,
         last_at: e.last.created_at,
         last_from_me: e.last.sender_id === meId,
         unread: e.unread,
+        muted: prefs.get(id)?.muted ?? false,
       }
     })
     .filter((c): c is ConversationSummary => c !== null)

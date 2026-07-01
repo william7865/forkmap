@@ -31,9 +31,12 @@ export default function ChatThread({
   const auth = useAuth()
   const router = useRouter()
   const myId = auth.user?.id ?? ''
-  const { messages, loading, send, sending } = useChatThread(user.id, myId)
+  const { messages, loading, send, sending, editMsg, removeMsg } = useChatThread(user.id, myId)
   const [text, setText] = useState('')
   const [sendError, setSendError] = useState(false)
+  const [menuFor, setMenuFor] = useState<(typeof messages)[number] | null>(null)
+  const [editing, setEditing] = useState<(typeof messages)[number] | null>(null)
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [otherOnline, setOtherOnline] = useState(false)
   const [otherTyping, setOtherTyping] = useState(false)
   const endRef = useRef<HTMLDivElement | null>(null)
@@ -82,6 +85,19 @@ export default function ChatThread({
   const onSend = async () => {
     const t = text.trim()
     if (!t) return
+    // Mode édition : on met à jour le message existant.
+    if (editing) {
+      const target = editing
+      setText('')
+      setEditing(null)
+      const ok = await editMsg(target.id, t)
+      if (!ok) {
+        setText(t)
+        setEditing(target)
+        setSendError(true)
+      }
+      return
+    }
     setText('')
     setSendError(false)
     const ok = await send(t)
@@ -89,6 +105,15 @@ export default function ChatThread({
       setText(t) // restaure le message pour que l'utilisateur puisse réessayer
       setSendError(true)
     }
+  }
+
+  const startPress = (m: (typeof messages)[number]) => {
+    if (m.deleted_at) return
+    if (pressTimer.current) clearTimeout(pressTimer.current)
+    pressTimer.current = setTimeout(() => setMenuFor(m), 450)
+  }
+  const cancelPress = () => {
+    if (pressTimer.current) clearTimeout(pressTimer.current)
   }
 
   return (
@@ -211,6 +236,13 @@ export default function ChatThread({
                   </div>
                 )}
                 <div
+                  onPointerDown={() => startPress(m)}
+                  onPointerUp={cancelPress}
+                  onPointerLeave={cancelPress}
+                  onContextMenu={(e) => {
+                    e.preventDefault()
+                    if (!m.deleted_at) setMenuFor(m)
+                  }}
                   style={{
                     alignSelf: mine ? 'flex-end' : 'flex-start',
                     maxWidth: '78%',
@@ -219,7 +251,21 @@ export default function ChatThread({
                     alignItems: mine ? 'flex-end' : 'flex-start',
                   }}
                 >
-                  {m.type === 'place' && m.payload ? (
+                  {m.deleted_at ? (
+                    <div
+                      style={{
+                        padding: '9px 13px',
+                        borderRadius: 16,
+                        background: mine ? 'var(--surface-2)' : 'var(--white)',
+                        color: 'var(--text-3)',
+                        border: '1px solid var(--b2)',
+                        fontSize: 13.5,
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      Message supprimé
+                    </div>
+                  ) : m.type === 'place' && m.payload ? (
                     <button
                       onClick={() => {
                         const p = m.payload!
@@ -309,6 +355,7 @@ export default function ChatThread({
                     }}
                   >
                     {formatTime(d)}
+                    {m.edited_at && !m.deleted_at ? ' · modifié' : ''}
                     {mine && isLastMine && m.read_at ? ' · Vu' : ''}
                   </span>
                 </div>
@@ -333,6 +380,39 @@ export default function ChatThread({
         >
           Message non envoyé. Réessaie.
         </p>
+      )}
+
+      {/* Bandeau d'édition */}
+      {editing && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '6px 14px',
+            background: 'var(--accent-light)',
+            fontSize: 12.5,
+            fontWeight: 600,
+            color: 'var(--accent-text)',
+          }}
+        >
+          <span style={{ flex: 1 }}>Modification du message</span>
+          <button
+            onClick={() => {
+              setEditing(null)
+              setText('')
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-2)',
+              cursor: 'pointer',
+              fontWeight: 700,
+            }}
+          >
+            Annuler
+          </button>
+        </div>
       )}
 
       {/* Composer */}
@@ -374,6 +454,99 @@ export default function ChatThread({
           <Send size={17} />
         </button>
       </div>
+
+      {/* Feuille d'actions (long-press sur un message) */}
+      {menuFor && (
+        <div
+          onClick={() => setMenuFor(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1600,
+            background: 'rgba(0,0,0,0.35)',
+            display: 'flex',
+            alignItems: 'flex-end',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              background: 'var(--bg)',
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              padding: '8px 8px calc(var(--safe-bottom) + 10px)',
+              animation: 'slideUp 200ms cubic-bezier(0.16,1,0.3,1) both',
+            }}
+          >
+            {menuFor.sender_id === myId && menuFor.type !== 'place' && (
+              <SheetBtn
+                onClick={() => {
+                  setEditing(menuFor)
+                  setText(menuFor.content)
+                  setMenuFor(null)
+                }}
+              >
+                Modifier
+              </SheetBtn>
+            )}
+            {menuFor.type !== 'place' && !!menuFor.content && (
+              <SheetBtn
+                onClick={() => {
+                  navigator.clipboard?.writeText(menuFor.content)
+                  setMenuFor(null)
+                }}
+              >
+                Copier le texte
+              </SheetBtn>
+            )}
+            {menuFor.sender_id === myId && (
+              <SheetBtn
+                danger
+                onClick={() => {
+                  const t = menuFor
+                  setMenuFor(null)
+                  removeMsg(t.id)
+                }}
+              >
+                Supprimer le message
+              </SheetBtn>
+            )}
+            <SheetBtn onClick={() => setMenuFor(null)}>Annuler</SheetBtn>
+          </div>
+        </div>
+      )}
     </div>
+  )
+}
+
+function SheetBtn({
+  children,
+  onClick,
+  danger,
+}: {
+  children: React.ReactNode
+  onClick: () => void
+  danger?: boolean
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: '100%',
+        textAlign: 'left',
+        padding: '15px 16px',
+        borderRadius: 12,
+        border: 'none',
+        background: 'none',
+        cursor: 'pointer',
+        fontFamily: 'var(--font-body)',
+        fontSize: 15.5,
+        fontWeight: 600,
+        color: danger ? 'var(--closed)' : 'var(--ink)',
+      }}
+    >
+      {children}
+    </button>
   )
 }

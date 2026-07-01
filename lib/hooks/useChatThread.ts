@@ -95,5 +95,46 @@ export function useChatThread(otherUserId: string, myUserId: string) {
     [otherUserId, sending, append]
   )
 
-  return { messages, loading, send, sending }
+  // Éditer un de mes messages.
+  const editMsg = useCallback(async (id: string, content: string): Promise<boolean> => {
+    const text = content.trim()
+    if (!text) return false
+    try {
+      const headers = { 'Content-Type': 'application/json', ...(await getAuthHeaders()) }
+      const res = await apiFetch(`/api/messages/item/${id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ content: text }),
+      })
+      if (!res.ok) return false
+      const updated = (await res.json()).data as MessageRow
+      setMessages((prev) => prev.map((m) => (m.id === id ? updated : m)))
+      return true
+    } catch {
+      return false
+    }
+  }, [])
+
+  // Supprimer un de mes messages (suppression douce).
+  const removeMsg = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      const res = await apiFetch(`/api/messages/item/${id}`, {
+        method: 'DELETE',
+        headers: await getAuthHeaders(),
+      })
+      if (!res.ok) return false
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === id
+            ? { ...m, deleted_at: new Date().toISOString(), content: '', payload: null }
+            : m
+        )
+      )
+      return true
+    } catch {
+      return false
+    }
+  }, [])
+
+  return { messages, loading, send, sending, editMsg, removeMsg }
 }
