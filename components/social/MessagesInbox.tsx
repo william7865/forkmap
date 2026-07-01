@@ -4,16 +4,8 @@ import { ChevronLeft } from 'lucide-react'
 import { Avatar } from '@/components/social/Avatar'
 import ChatThread from '@/components/social/ChatThread'
 import { apiFetch } from '@/lib/api'
-import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
+import { getAuthHeaders } from '@/lib/auth-headers'
 import type { ConversationSummary } from '@/types'
-
-async function authHeaders(): Promise<Record<string, string>> {
-  const sb = getSupabaseBrowserClient()
-  const {
-    data: { session },
-  } = await sb.auth.getSession()
-  return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
-}
 
 export default function MessagesInbox({ onClose }: { onClose: () => void }) {
   const [convos, setConvos] = useState<ConversationSummary[]>([])
@@ -22,7 +14,7 @@ export default function MessagesInbox({ onClose }: { onClose: () => void }) {
 
   const load = async () => {
     try {
-      const res = await apiFetch('/api/conversations', { headers: await authHeaders() })
+      const res = await apiFetch('/api/conversations', { headers: await getAuthHeaders() })
       if (res.ok) setConvos(((await res.json()).data ?? []) as ConversationSummary[])
     } catch {
       /* noop */

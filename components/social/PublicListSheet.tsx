@@ -2,17 +2,9 @@
 import { useEffect, useState } from 'react'
 import { ChevronLeft, Bookmark, Check } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
-import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
+import { getAuthHeaders } from '@/lib/auth-headers'
 import { frCuisine } from '@/lib/cuisine'
 import type { PlaceCard, PublicListDetail } from '@/types'
-
-async function authHeaders(): Promise<Record<string, string>> {
-  const sb = getSupabaseBrowserClient()
-  const {
-    data: { session },
-  } = await sb.auth.getSession()
-  return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
-}
 
 export default function PublicListSheet({
   listId,
@@ -31,7 +23,7 @@ export default function PublicListSheet({
     let alive = true
     ;(async () => {
       try {
-        const headers = await authHeaders()
+        const headers = await getAuthHeaders()
         const [listRes, favRes] = await Promise.all([
           apiFetch(`/api/lists/${listId}/public`, { headers }),
           apiFetch('/api/favorites', { headers }),
@@ -60,7 +52,7 @@ export default function PublicListSheet({
   const save = async (place: PlaceCard) => {
     setSaved((s) => new Set(s).add(place.osm_id)) // optimistic
     try {
-      const headers = { 'Content-Type': 'application/json', ...(await authHeaders()) }
+      const headers = { 'Content-Type': 'application/json', ...(await getAuthHeaders()) }
       const res = await apiFetch('/api/favorites', {
         method: 'POST',
         headers,

@@ -2,15 +2,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
+import { getAuthHeaders } from '@/lib/auth-headers'
 import type { MessageRow } from '@/types'
-
-async function authHeaders(): Promise<Record<string, string>> {
-  const sb = getSupabaseBrowserClient()
-  const {
-    data: { session },
-  } = await sb.auth.getSession()
-  return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
-}
 
 export function useChatThread(otherUserId: string, myUserId: string) {
   const [messages, setMessages] = useState<MessageRow[]>([])
@@ -29,7 +22,7 @@ export function useChatThread(otherUserId: string, myUserId: string) {
     let alive = true
     ;(async () => {
       try {
-        const headers = await authHeaders()
+        const headers = await getAuthHeaders()
         const res = await apiFetch(`/api/messages/${otherUserId}`, { headers })
         if (!alive) return
         if (res.ok) {
@@ -83,7 +76,7 @@ export function useChatThread(otherUserId: string, myUserId: string) {
       if (!text || sending) return false
       setSending(true)
       try {
-        const headers = { 'Content-Type': 'application/json', ...(await authHeaders()) }
+        const headers = { 'Content-Type': 'application/json', ...(await getAuthHeaders()) }
         const res = await apiFetch('/api/messages', {
           method: 'POST',
           headers,

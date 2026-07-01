@@ -8,17 +8,9 @@ import ChatThread from '@/components/social/ChatThread'
 import PublicListSheet from '@/components/social/PublicListSheet'
 import { useIsNative } from '@/lib/native/platform'
 import { apiFetch } from '@/lib/api'
-import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
+import { getAuthHeaders } from '@/lib/auth-headers'
 import { placeGradient } from '@/lib/gradients'
 import type { PublicProfileBundle } from '@/types'
-
-async function authHeaders(): Promise<Record<string, string>> {
-  const sb = getSupabaseBrowserClient()
-  const {
-    data: { session },
-  } = await sb.auth.getSession()
-  return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
-}
 
 /**
  * Public profile of any user. Used two ways:
@@ -51,7 +43,7 @@ export default function PublicProfile({
     ;(async () => {
       try {
         const res = await apiFetch(`/api/users/${encodeURIComponent(username)}/profile`, {
-          headers: await authHeaders(),
+          headers: await getAuthHeaders(),
         })
         if (!alive) return
         if (!res.ok) {
