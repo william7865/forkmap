@@ -23,6 +23,7 @@ import { CreateListModal } from '@/components/lists/CreateListModal'
 import { SaveToListPopup } from '@/components/lists/SaveToListPopup'
 import { placeGradient } from '@/lib/gradients'
 import { frCuisine } from '@/lib/cuisine'
+import { setPendingSelect } from '@/lib/pendingSelect'
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   try {
@@ -2058,11 +2059,12 @@ function FavoritesPageInner() {
               return (
                 <button
                   type="button"
-                  onClick={() =>
+                  onClick={() => {
+                    if (featured.snapshot) setPendingSelect(featured.snapshot)
                     router.push(
                       `/?select=${encodeURIComponent(featured.osm_id)}&lat=${featured.lat}&lon=${featured.lon}`
                     )
-                  }
+                  }}
                   style={{
                     position: 'relative',
                     width: '100%',
@@ -2669,11 +2671,12 @@ function FavoritesPageInner() {
                     index={i}
                     note={notes[fav.osm_id] ?? ''}
                     onRemove={() => setToDelete(fav)}
-                    onOpenMap={() =>
+                    onOpenMap={() => {
+                      if (fav.snapshot) setPendingSelect(fav.snapshot)
                       router.push(
                         `/?select=${encodeURIComponent(fav.osm_id)}&lat=${fav.lat}&lon=${fav.lon}`
                       )
-                    }
+                    }}
                     onShare={() => setShareTarget(fav)}
                     onNote={() => setNoteTarget(fav)}
                     onListsChanged={fetchLists}
@@ -2697,11 +2700,12 @@ function FavoritesPageInner() {
                     fav={fav}
                     index={i}
                     onRemove={() => setToDelete(fav)}
-                    onOpenMap={() =>
+                    onOpenMap={() => {
+                      if (fav.snapshot) setPendingSelect(fav.snapshot)
                       router.push(
                         `/?select=${encodeURIComponent(fav.osm_id)}&lat=${fav.lat}&lon=${fav.lon}`
                       )
-                    }
+                    }}
                     onListsChanged={fetchLists}
                     selectMode={selectMode}
                     selected={selectedIds.has(fav.osm_id)}

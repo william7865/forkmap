@@ -7,6 +7,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useHomeState, UNLISTED } from '@/lib/hooks/useHomeState'
 import { useIsNative } from '@/lib/native/platform'
 import { frCuisine } from '@/lib/cuisine'
+import { takePendingSelect } from '@/lib/pendingSelect'
 import SuggestionsPanel from '@/components/place/SuggestionsPanel'
 import PlaceList from '@/components/place/PlaceList'
 import MapPlaceCard from '@/components/place/MapPlaceCard'
@@ -62,6 +63,23 @@ function SurpriseParamWatcher({ onOpen }: { onOpen: () => void }) {
     const qs = params.toString()
     router.replace(qs ? `/?${qs}` : '/', { scroll: false })
   }, [searchParams, onOpen, router])
+  return null
+}
+
+function SelectParamWatcher({ onSelect }: { onSelect: (osmId: string) => void }) {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  useEffect(() => {
+    const osmId = searchParams.get('select')
+    if (!osmId) return
+    onSelect(osmId)
+    const params = new URLSearchParams(Array.from(searchParams.entries()))
+    params.delete('select')
+    params.delete('lat')
+    params.delete('lon')
+    const qs = params.toString()
+    router.replace(qs ? `/?${qs}` : '/', { scroll: false })
+  }, [searchParams, onSelect, router])
   return null
 }
 
@@ -145,6 +163,20 @@ export default function HomePage() {
     setDetailExpanded(false)
     handleCloseDetail()
   }, [handleCloseDetail])
+
+  // Ouverture profonde depuis Favoris / resto partagé : ?select=<osm_id> + lieu en attente.
+  const handleDeepSelect = useCallback(
+    (osmId: string) => {
+      const place = takePendingSelect()
+      if (place && place.osm_id === osmId) {
+        handleMarkerClick(place)
+        // L'effet de reset (dép. selectedPlace) repasse detailExpanded à false ;
+        // on force l'ouverture de la fiche juste après.
+        setTimeout(() => setDetailExpanded(true), 0)
+      }
+    },
+    [handleMarkerClick]
+  )
   const sidebarW = 380
   const searchLeft = isMobile ? 12 : sidebarCollapsed ? 12 : sidebarW + 12
 
@@ -1203,6 +1235,7 @@ export default function HomePage() {
       <Suspense>
         <AuthRequiredWatcher onOpen={() => setShowAuthModal(true)} />
         <SurpriseParamWatcher onOpen={() => setShowSurprise(true)} />
+        <SelectParamWatcher onSelect={handleDeepSelect} />
       </Suspense>
 
       {showSurprise && (

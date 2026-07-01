@@ -3,9 +3,12 @@ import { Fragment, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, Send, MapPin } from 'lucide-react'
 import { Avatar } from '@/components/social/Avatar'
+import PublicProfile from '@/components/social/PublicProfile'
 import { useAuth, getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { useChatThread } from '@/lib/hooks/useChatThread'
 import { frCuisine } from '@/lib/cuisine'
+import { setPendingSelect } from '@/lib/pendingSelect'
+import type { PlaceCard } from '@/types'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type RealtimeChannel = any
 
@@ -36,6 +39,7 @@ export default function ChatThread({
   const [sendError, setSendError] = useState(false)
   const [menuFor, setMenuFor] = useState<(typeof messages)[number] | null>(null)
   const [editing, setEditing] = useState<(typeof messages)[number] | null>(null)
+  const [viewProfile, setViewProfile] = useState(false)
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [otherOnline, setOtherOnline] = useState(false)
   const [otherTyping, setOtherTyping] = useState(false)
@@ -151,41 +155,58 @@ export default function ChatThread({
         >
           <ChevronLeft size={24} />
         </button>
-        <Avatar name={user.display_name} src={user.avatar_url} id={user.id} size={36} />
-        <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <strong
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontWeight: 700,
-              fontSize: 15,
-              color: 'var(--ink)',
-            }}
-          >
-            {user.display_name}
-          </strong>
-          <span
-            style={{
-              fontSize: 12,
-              color: otherTyping || otherOnline ? 'var(--open)' : 'var(--text-3)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-            }}
-          >
-            {(otherTyping || otherOnline) && (
-              <span
-                style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: '50%',
-                  background: 'var(--open)',
-                  flexShrink: 0,
-                }}
-              />
-            )}
-            {otherTyping ? 'écrit…' : otherOnline ? 'en ligne' : `@${user.username}`}
+        <button
+          onClick={() => setViewProfile(true)}
+          aria-label={`Voir le profil de ${user.display_name}`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            flex: 1,
+            minWidth: 0,
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            textAlign: 'left',
+          }}
+        >
+          <Avatar name={user.display_name} src={user.avatar_url} id={user.id} size={36} />
+          <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <strong
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontWeight: 700,
+                fontSize: 15,
+                color: 'var(--ink)',
+              }}
+            >
+              {user.display_name}
+            </strong>
+            <span
+              style={{
+                fontSize: 12,
+                color: otherTyping || otherOnline ? 'var(--open)' : 'var(--text-3)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+              }}
+            >
+              {(otherTyping || otherOnline) && (
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    background: 'var(--open)',
+                    flexShrink: 0,
+                  }}
+                />
+              )}
+              {otherTyping ? 'écrit…' : otherOnline ? 'en ligne' : `@${user.username}`}
+            </span>
           </span>
-        </span>
+        </button>
       </div>
 
       {/* Messages */}
@@ -269,6 +290,20 @@ export default function ChatThread({
                     <button
                       onClick={() => {
                         const p = m.payload!
+                        const osmType = p.osm_id.startsWith('way')
+                          ? 'way'
+                          : p.osm_id.startsWith('relation')
+                            ? 'relation'
+                            : 'node'
+                        setPendingSelect({
+                          osm_id: p.osm_id,
+                          osm_type: osmType,
+                          name: p.name,
+                          lat: p.lat ?? 0,
+                          lon: p.lon ?? 0,
+                          tags: {},
+                          cuisine: p.cuisine ?? undefined,
+                        } as PlaceCard)
                         onClose()
                         router.push(
                           `/?select=${encodeURIComponent(p.osm_id)}` +
@@ -454,6 +489,11 @@ export default function ChatThread({
           <Send size={17} />
         </button>
       </div>
+
+      {/* Profil public de l'ami */}
+      {viewProfile && (
+        <PublicProfile username={user.username} overlay onBack={() => setViewProfile(false)} />
+      )}
 
       {/* Feuille d'actions (long-press sur un message) */}
       {menuFor && (
