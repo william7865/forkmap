@@ -4,10 +4,12 @@
 
 import { createClient } from '@supabase/supabase-js'
 import type {
+  ConversationSummary,
   FavoriteRow,
   FriendRequests,
   FriendshipRow,
   FriendshipStatus,
+  MessageRow,
   OsmFsqMapping,
   PlaceCard,
   Profile,
@@ -775,4 +777,94 @@ export async function getPublicProfileBundle(
     stats: { lists: lists.length, places, cuisines: cuisines.size },
     lists,
   }
+}
+
+// ---------- Messages ----------
+
+export async function sendMessage(
+  fromId: string,
+  toId: string,
+  content: string
+): Promise<MessageRow> {
+  if (fromId === toId) throw new Error('cannot_message_self')
+  const rel = await getFriendshipRow(fromId, toId)
+  if (!rel || rel.status !== 'accepted') throw new Error('not_friends')
+  const { data, error } = await db
+    .from('messages')
+    .insert({ sender_id: fromId, receiver_id: toId, content })
+    .select()
+    .single()
+  if (error) throw error
+  return data as MessageRow
+}
+
+export async function getThread(meId: string, otherId: string, limit = 100): Promise<MessageRow[]> {
+  const { data, error } = await db
+    .from('messages')
+    .select('*')
+    .or(
+      `and(sender_id.eq.${meId},receiver_id.eq.${otherId}),and(sender_id.eq.${otherId},receiver_id.eq.${meId})`
+    )
+    .order('created_at', { ascending: true })
+    .limit(limit)
+  if (error) throw error
+  return (data ?? []) as MessageRow[]
+}
+
+export async function markThreadRead(meId: string, otherId: string): Promise<void> {
+  const { error } = await db
+    .from('messages')
+    .update({ read_at: new Date().toISOString() })
+    .eq('receiver_id', meId)
+    .eq('sender_id', otherId)
+    .is('read_at', null)
+  if (error) throw error
+}
+
+export async function getConversations(meId: string): Promise<ConversationSummary[]> {
+  // Tous les messages me concernant, du plus récent au plus ancien.
+  const { data, error } = await db
+    .from('messages')
+    .select('*')
+    .or(`sender_id.eq.${meId},receiver_id.eq.${meId}`)
+    .order('created_at', { ascending: false })
+    .limit(500)
+  if (error) throw error
+  const rows = (data ?? []) as MessageRow[]
+
+  // Regrouper par partenaire ; garder le plus récent + compter les non-lus.
+  const byPartner = new Map<string, { last: MessageRow; unread: number }>()
+  for (const m of rows) {
+    const partner = m.sender_id === meId ? m.receiver_id : m.sender_id
+    const entry = byPartner.get(partner)
+    if (!entry) {
+      byPartner.set(partner, {
+        last: m,
+        unread: m.receiver_id === meId && !m.read_at ? 1 : 0,
+      })
+    } else if (m.receiver_id === meId && !m.read_at) {
+      entry.unread += 1
+    }
+  }
+  const partnerIds = [...byPartner.keys()]
+  if (partnerIds.length === 0) return []
+  const { data: profs, error: pErr } = await db.from('profiles').select('*').in('id', partnerIds)
+  if (pErr) throw pErr
+  const profById = new Map((profs ?? []).map((p) => [(p as Profile).id, p as Profile]))
+
+  return partnerIds
+    .map((id) => {
+      const e = byPartner.get(id)!
+      const user = profById.get(id)
+      if (!user) return null
+      return {
+        user,
+        last_message: e.last.content,
+        last_at: e.last.created_at,
+        last_from_me: e.last.sender_id === meId,
+        unread: e.unread,
+      }
+    })
+    .filter((c): c is ConversationSummary => c !== null)
+    .sort((a, b) => (a.last_at < b.last_at ? 1 : -1))
 }
