@@ -2,8 +2,9 @@
 import { memo, useState, useCallback, useEffect } from 'react'
 import { getNote } from '@/components/place/NoteModal'
 import type { PlaceCard as T } from '@/types'
-import { Bookmark, MapPin, Utensils } from 'lucide-react'
+import { Bookmark, MapPin, Utensils, Star } from 'lucide-react'
 import { frCuisine } from '@/lib/cuisine'
+import { useIsNative } from '@/lib/native/platform'
 
 interface Props {
   place: T
@@ -29,7 +30,30 @@ function priceLabel(price?: number): string {
   return '€'.repeat(price)
 }
 
+// FSQ square thumbnail URL (native editorial card)
+function photoThumb(place: T, size: number): string | null {
+  const p = place.fsq?.photos?.[0]
+  if (!p) return null
+  return `${p.prefix}${size}x${size}${p.suffix}`
+}
+
+// Short editorial eyebrow badge (native)
+function badgeFor(place: T, rating?: number): { label: string; michelin: boolean } | null {
+  const michelin = place.wikidata?.michelin_stars ?? place.osm_enriched?.michelin
+  if (michelin) return { label: 'Étoilé Michelin', michelin: true }
+  if (rating != null && rating >= 9) return { label: 'Exceptionnel', michelin: false }
+  if (rating != null && rating >= 8) return { label: 'Top choix', michelin: false }
+  return null
+}
+
+// Neighbourhood/zone line (native)
+function zoneFor(place: T): string | null {
+  return place.osm_enriched?.district ?? place.osm_enriched?.city ?? null
+}
+
 export const ITEM_HEIGHT = 92
+// Native editorial card is taller (photo-forward). Web keeps ITEM_HEIGHT.
+export const ITEM_HEIGHT_NATIVE = 118
 
 const PlaceCard = memo(function PlaceCard({
   place,
@@ -41,6 +65,7 @@ const PlaceCard = memo(function PlaceCard({
   onClick,
   onToggleFavorite,
 }: Props) {
+  const native = useIsNative()
   const [pressing, setPressing] = useState(false)
   const [hasNote, setHasNote] = useState(false)
   useEffect(() => {
@@ -66,6 +91,245 @@ const PlaceCard = memo(function PlaceCard({
     [onToggleFavorite]
   )
 
+  // ─────────────────────────── NATIVE — carte éditoriale photo-forward ──
+  if (native) {
+    const photo = photoThumb(place, 220)
+    const badge = badgeFor(place, rating)
+    const zone = zoneFor(place)
+    const cardShadow = isSelected ? 'var(--s3)' : 'var(--s1)'
+    const cardBorder = isSelected ? '1.5px solid var(--accent)' : '1px solid var(--border)'
+
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label={`Voir ${place.name}`}
+        style={{
+          height: ITEM_HEIGHT_NATIVE,
+          boxSizing: 'border-box',
+          margin: '0 14px 10px',
+          borderRadius: 18,
+          overflow: 'hidden',
+          position: 'relative',
+          background: 'var(--bg)',
+          border: cardBorder,
+          boxShadow: cardShadow,
+          cursor: 'pointer',
+          transform: pressing ? 'scale(0.985)' : 'scale(1)',
+          transition: 'box-shadow 160ms ease, transform 160ms ease, border-color 160ms ease',
+          outline: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          padding: 8,
+          gap: 12,
+          textAlign: 'left',
+          fontFamily: 'inherit',
+        }}
+        onMouseEnter={onHover}
+        onMouseLeave={onLeave}
+        onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            handleClick()
+          }
+        }}
+      >
+        {/* Photo (or fallback tile) */}
+        <div
+          style={{
+            width: 100,
+            height: 100,
+            borderRadius: 14,
+            overflow: 'hidden',
+            flexShrink: 0,
+            background: 'var(--surface-2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--text-4)',
+            position: 'relative',
+          }}
+        >
+          {photo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={photo}
+              alt=""
+              loading="lazy"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          ) : (
+            <Utensils size={26} strokeWidth={1.5} />
+          )}
+        </div>
+
+        {/* Content */}
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            paddingRight: 34,
+            gap: 3,
+          }}
+        >
+          {badge && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                color: badge.michelin ? 'var(--text)' : 'var(--text-3)',
+                lineHeight: 1,
+              }}
+            >
+              {badge.michelin && <Star size={10} strokeWidth={0} fill="var(--star)" />}
+              {badge.label}
+            </span>
+          )}
+
+          <span
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 17,
+              fontWeight: 600,
+              color: 'var(--text)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              lineHeight: 1.2,
+              letterSpacing: '-0.01em',
+            }}
+          >
+            {place.name}
+          </span>
+
+          {(cuisine || zone) && (
+            <span
+              style={{
+                fontSize: 12.5,
+                color: 'var(--text-2)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {[cuisine ? frCuisine(cuisine) : null, zone].filter(Boolean).join(' · ')}
+            </span>
+          )}
+
+          {/* Bottom meta: gold star rating · price · open state */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              marginTop: 1,
+              fontSize: 12.5,
+              color: 'var(--text-2)',
+              overflow: 'hidden',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {rating != null && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  fontWeight: 700,
+                  color: 'var(--text)',
+                  flexShrink: 0,
+                }}
+              >
+                <Star size={13} strokeWidth={0} fill="var(--star)" />
+                {rating.toFixed(1)}
+              </span>
+            )}
+            {price != null && (
+              <span style={{ flexShrink: 0, color: 'var(--text-3)', fontWeight: 600 }}>
+                {priceLabel(price)}
+              </span>
+            )}
+            {place.distance != null && (
+              <span
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0 }}
+              >
+                <MapPin size={12} strokeWidth={1.75} />
+                {formatWalkTime(place.distance)}
+              </span>
+            )}
+            {place.open_now !== undefined && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  flexShrink: 0,
+                  color: place.open_now ? 'var(--open)' : 'var(--closed)',
+                  fontWeight: 600,
+                }}
+              >
+                <span
+                  style={{
+                    width: 5,
+                    height: 5,
+                    borderRadius: '50%',
+                    background: place.open_now ? 'var(--open)' : 'var(--closed)',
+                  }}
+                />
+                {place.open_now ? 'Ouvert' : 'Fermé'}
+              </span>
+            )}
+            {hasNote && (
+              <span
+                title="Note personnelle"
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: 'var(--accent)',
+                  flexShrink: 0,
+                }}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Favorite button (top-right) */}
+        <button
+          onClick={handleFavClick}
+          aria-label={isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+          style={{
+            position: 'absolute',
+            top: 6,
+            right: 6,
+            width: 40,
+            height: 40,
+            borderRadius: 999,
+            border: 'none',
+            background: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: isFav ? 'var(--accent)' : 'var(--text-3)',
+          }}
+        >
+          <Bookmark size={19} strokeWidth={1.9} fill={isFav ? 'currentColor' : 'none'} />
+        </button>
+      </div>
+    )
+  }
+
+  // ─────────────────────────────────────────── WEB — inchangé ──
   const cardBorder = isSelected ? '1.5px solid var(--accent)' : '1px solid var(--border)'
   const cardShadow = isSelected ? 'var(--s2)' : isHovered ? 'var(--s1)' : 'none'
   const cardBg = isSelected ? 'var(--accent-light)' : 'var(--bg)'

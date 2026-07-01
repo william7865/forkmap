@@ -184,6 +184,20 @@ export default function ProfileScreen() {
             @{profile.username}
           </p>
         )}
+        {profile?.bio && (
+          <p
+            style={{
+              margin: '6px 0 0',
+              maxWidth: 320,
+              textAlign: 'center',
+              fontSize: 14,
+              lineHeight: 1.4,
+              color: 'var(--text-2)',
+            }}
+          >
+            {profile.bio}
+          </p>
+        )}
 
         <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
           <button

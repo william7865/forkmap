@@ -36,6 +36,7 @@ import {
   Wine,
   Zap,
   Compass,
+  Utensils,
 } from 'lucide-react'
 import { SigSparkle } from '@/components/icons/signature'
 import type { LucideProps } from 'lucide-react'
@@ -51,6 +52,31 @@ const MOOD_ICONS: Record<string, ComponentType<LucideProps>> = {
   discovery: Compass,
 }
 import { heavyTap, lightTap } from '@/lib/native/haptics'
+import { isNativeRuntime } from '@/lib/native/platform'
+
+// Palette du deck — natif : chrome CLAIR monochrome ; web : chrome sombre chaud (inchangé).
+function dpal() {
+  const n = isNativeRuntime()
+  return {
+    n,
+    overlayBg: n
+      ? 'linear-gradient(180deg, #ffffff 0%, #f5f5f6 100%)'
+      : 'linear-gradient(155deg, #2a2018 0%, #1c1611 60%, #0f0b08 100%)',
+    fg: n ? 'var(--text)' : 'var(--bg)',
+    faint: n ? 'var(--text-3)' : 'rgba(255,253,248,0.45)',
+    hint: n ? 'var(--text-3)' : 'rgba(255,253,248,0.5)',
+    chipBorder: n ? 'var(--border)' : 'rgba(255,255,255,0.28)',
+    chipBg: n ? 'var(--bg)' : 'rgba(255,255,255,0.1)',
+    chipFg: n ? 'var(--text-2)' : 'rgba(255,253,248,0.92)',
+    glassBg: n ? 'var(--surface)' : 'rgba(255,255,255,0.12)',
+    glassFg: n ? 'var(--text)' : '#fff',
+    roundBg: n ? 'var(--surface)' : 'rgba(255,255,255,0.1)',
+    roundFg: n ? 'var(--text)' : '#fff',
+    ok: n ? 'var(--open)' : '#7ee0a8',
+    softChipBg: n ? 'var(--surface)' : 'rgba(255,255,255,0.16)',
+    softChipFg: n ? 'var(--text-2)' : 'rgba(255,253,248,0.95)',
+  }
+}
 
 interface Props {
   places: PlaceCard[]
@@ -326,6 +352,7 @@ export default function SurpriseSheet({
     [topPhotos.length]
   )
 
+  const pal = dpal()
   // ── chip style (mood) ──
   const chip = (active: boolean): React.CSSProperties => ({
     padding: '7px 13px',
@@ -334,9 +361,9 @@ export default function SurpriseSheet({
     fontWeight: 600,
     cursor: 'pointer',
     fontFamily: 'var(--font-body)',
-    border: `1px solid ${active ? 'var(--accent)' : 'rgba(255,255,255,0.28)'}`,
-    background: active ? 'var(--accent)' : 'rgba(255,255,255,0.1)',
-    color: active ? '#fff' : 'rgba(255,253,248,0.92)',
+    border: `1px solid ${active ? 'var(--accent)' : pal.chipBorder}`,
+    background: active ? 'var(--accent)' : pal.chipBg,
+    color: active ? '#fff' : pal.chipFg,
     transition: 'all 140ms var(--ease-out)',
     whiteSpace: 'nowrap',
     backdropFilter: 'blur(4px)',
@@ -360,11 +387,11 @@ export default function SurpriseSheet({
         position: 'fixed',
         inset: 0,
         zIndex: 1000,
-        background: 'linear-gradient(155deg, #2a2018 0%, #1c1611 60%, #0f0b08 100%)',
+        background: pal.overlayBg,
         display: 'flex',
         flexDirection: 'column',
         animation: 'overlayIn 220ms ease both',
-        color: 'var(--bg)',
+        color: pal.fg,
       }}
     >
       {/* ── Header ── */}
@@ -384,7 +411,7 @@ export default function SurpriseSheet({
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              color: '#e9a06a',
+              color: 'var(--deck-warm)',
               fontSize: 10,
               fontWeight: 700,
               letterSpacing: '0.16em',
@@ -400,7 +427,7 @@ export default function SurpriseSheet({
               fontSize: 22,
               fontWeight: 600,
               letterSpacing: '-0.015em',
-              color: 'var(--bg)',
+              color: pal.fg,
               lineHeight: 1.1,
             }}
           >
@@ -422,7 +449,7 @@ export default function SurpriseSheet({
             border: 'none',
             cursor: 'pointer',
             fontSize: 11,
-            color: tasteReset ? '#7ee0a8' : 'rgba(255,253,248,0.45)',
+            color: tasteReset ? pal.ok : pal.faint,
             fontFamily: 'var(--font-body)',
             whiteSpace: 'nowrap',
             padding: '4px 2px',
@@ -605,7 +632,9 @@ export default function SurpriseSheet({
                     color="var(--ember)"
                     style={{
                       animation: 'fmHeartPop 820ms var(--ease-spring) both',
-                      filter: 'drop-shadow(0 10px 34px rgba(187,94,46,0.6))',
+                      filter: pal.n
+                        ? 'drop-shadow(0 10px 34px rgba(17,17,18,0.4))'
+                        : 'drop-shadow(0 10px 34px rgba(187,94,46,0.6))',
                     }}
                   />
                   {[0, 1, 2, 3, 4, 5].map((i) => {
@@ -623,7 +652,7 @@ export default function SurpriseSheet({
                             width: 9,
                             height: 9,
                             borderRadius: '50%',
-                            background: i % 2 ? '#e9a06a' : 'var(--ember)',
+                            background: i % 2 ? 'var(--deck-warm)' : 'var(--ember)',
                             '--tx': tx,
                             '--ty': ty,
                             animation: 'heartParticle 700ms var(--ease-out) both',
@@ -688,7 +717,7 @@ export default function SurpriseSheet({
             aria-label="Annuler"
             disabled={!canUndo}
             style={{
-              ...roundBtn(46, 'rgba(255,255,255,0.1)', '#fff'),
+              ...roundBtn(46, pal.roundBg, pal.roundFg),
               opacity: canUndo ? 1 : 0.35,
               cursor: canUndo ? 'pointer' : 'default',
             }}
@@ -698,17 +727,43 @@ export default function SurpriseSheet({
           <button
             onClick={() => decide('pass')}
             aria-label="Passer"
-            style={roundBtn(58, 'rgba(255,255,255,0.12)', '#fff')}
+            style={roundBtn(58, pal.roundBg, pal.n ? 'var(--closed)' : pal.roundFg)}
           >
             <X size={24} strokeWidth={2.5} />
           </button>
-          <button
-            onClick={view}
-            aria-label="Voir le détail"
-            style={roundBtn(48, 'rgba(255,255,255,0.12)', '#e9a06a')}
-          >
-            <Eye size={20} strokeWidth={2} />
-          </button>
+          {pal.n ? (
+            <button
+              onClick={view}
+              aria-label="Découvrir"
+              style={{
+                flex: 1,
+                height: 58,
+                borderRadius: 999,
+                border: 'none',
+                background: 'var(--accent)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+                fontSize: 16,
+                fontWeight: 600,
+                boxShadow: 'var(--s-ember)',
+              }}
+            >
+              Découvrir <Utensils size={20} strokeWidth={2} />
+            </button>
+          ) : (
+            <button
+              onClick={view}
+              aria-label="Voir le détail"
+              style={roundBtn(48, pal.roundBg, 'var(--deck-warm)')}
+            >
+              <Eye size={20} strokeWidth={2} />
+            </button>
+          )}
           <button
             onClick={() => decide('save')}
             aria-label="Garder"
@@ -725,7 +780,7 @@ export default function SurpriseSheet({
           style={{
             textAlign: 'center',
             fontSize: 11,
-            color: 'rgba(255,253,248,0.5)',
+            color: pal.hint,
             paddingBottom: 'max(10px, env(safe-area-inset-bottom))',
             flexShrink: 0,
           }}
@@ -769,6 +824,7 @@ function DeckCard({
   dragHint: 'save' | 'pass' | null
   dim: boolean
 }) {
+  const pal = dpal()
   const p = entry.place
   const photo = photos[activePhoto] ?? photos[0] ?? null
   const cuisine = p.cuisine ?? p.fsq?.categories?.[0]?.name
@@ -787,10 +843,12 @@ function DeckCard({
         overflow: 'hidden',
         position: 'relative',
         background: photo
-          ? '#1c1611'
+          ? pal.n
+            ? '#111112'
+            : '#1c1611'
           : 'linear-gradient(150deg, var(--ember) 0%, var(--ember-hover) 45%, var(--accent) 100%)',
-        boxShadow: '0 18px 50px rgba(0,0,0,0.45)',
-        border: '1px solid rgba(255,255,255,0.12)',
+        boxShadow: pal.n ? 'var(--s4)' : '0 18px 50px rgba(0,0,0,0.45)',
+        border: pal.n ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.12)',
         userSelect: 'none',
         filter: dim ? 'brightness(0.8)' : 'none',
       }}
@@ -1008,7 +1066,7 @@ function DeckCard({
               gap: 5,
               fontSize: 11,
               fontWeight: 600,
-              color: '#e9a06a',
+              color: 'var(--deck-warm)',
               marginBottom: 6,
             }}
           >
@@ -1047,10 +1105,11 @@ function DeckCard({
                 gap: 4,
                 fontWeight: 700,
                 fontSize: 14,
-                color: '#ffd9b8',
+                color: pal.n ? '#fff' : '#ffd9b8',
               }}
             >
-              <Star size={13} fill="#ffd9b8" strokeWidth={0} /> {rating.toFixed(1)}
+              <Star size={13} fill={pal.n ? 'var(--star)' : '#ffd9b8'} strokeWidth={0} />{' '}
+              {rating.toFixed(1)}
               {p.fsq?.total_ratings ? (
                 <span style={{ fontWeight: 500, fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>
                   ({p.fsq.total_ratings})
@@ -1132,6 +1191,7 @@ function DeckMessage({
   action2?: { label: string; icon?: 'bookmark'; onClick: () => void }
   spinner?: boolean
 }) {
+  const pal = dpal()
   return (
     <div style={{ textAlign: 'center', maxWidth: 320, padding: 24 }}>
       <div
@@ -1139,8 +1199,8 @@ function DeckMessage({
           width: 56,
           height: 56,
           borderRadius: 18,
-          background: 'rgba(255,255,255,0.1)',
-          color: '#e9a06a',
+          background: pal.n ? 'var(--surface-2)' : 'rgba(255,255,255,0.1)',
+          color: 'var(--deck-warm)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1152,8 +1212,8 @@ function DeckMessage({
             style={{
               width: 22,
               height: 22,
-              border: '2.5px solid rgba(255,255,255,0.2)',
-              borderTop: '2.5px solid #e9a06a',
+              border: `2.5px solid ${pal.n ? 'var(--border)' : 'rgba(255,255,255,0.2)'}`,
+              borderTop: '2.5px solid var(--deck-warm)',
               borderRadius: '50%',
               animation: 'spin 0.8s linear infinite',
             }}
@@ -1168,7 +1228,7 @@ function DeckMessage({
           fontFamily: 'var(--font-display)',
           fontSize: 21,
           fontWeight: 600,
-          color: '#fff',
+          color: pal.fg,
         }}
       >
         {title}
@@ -1177,7 +1237,7 @@ function DeckMessage({
         style={{
           margin: '0 0 18px',
           fontSize: 13.5,
-          color: 'rgba(255,253,248,0.7)',
+          color: pal.n ? 'var(--text-2)' : 'rgba(255,253,248,0.7)',
           lineHeight: 1.55,
         }}
       >
@@ -1215,10 +1275,12 @@ function DeckMessage({
               gap: 8,
               padding: '10px 18px',
               borderRadius: 'var(--r-pill)',
-              border: action2 ? '1px solid rgba(255,255,255,0.25)' : 'none',
+              border: action2
+                ? `1px solid ${pal.n ? 'var(--border-strong)' : 'rgba(255,255,255,0.25)'}`
+                : 'none',
               cursor: 'pointer',
               background: action2 ? 'transparent' : 'var(--ember)',
-              color: action2 ? 'rgba(255,253,248,0.92)' : '#fff',
+              color: action2 ? (pal.n ? 'var(--text)' : 'rgba(255,253,248,0.92)') : '#fff',
               fontSize: 13,
               fontWeight: 700,
               fontFamily: 'var(--font-body)',
@@ -1233,6 +1295,7 @@ function DeckMessage({
 }
 
 function glassBtn(active: boolean): React.CSSProperties {
+  const pal = dpal()
   return {
     width: 38,
     height: 38,
@@ -1243,39 +1306,45 @@ function glassBtn(active: boolean): React.CSSProperties {
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-    background: active ? 'var(--accent)' : 'rgba(255,255,255,0.12)',
-    color: '#fff',
+    background: active ? 'var(--accent)' : pal.glassBg,
+    color: active ? '#fff' : pal.glassFg,
     backdropFilter: 'blur(6px)',
     transition: 'background 140ms ease',
   }
 }
 
 function roundBtn(size: number, bg: string, color: string): React.CSSProperties {
+  const pal = dpal()
   return {
     width: size,
     height: size,
     borderRadius: '50%',
-    border: 'none',
+    border: pal.n && !bg.includes('ember') ? '1px solid var(--border)' : 'none',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     background: bg,
     color,
-    boxShadow: bg.includes('ember') ? 'var(--s-ember)' : '0 4px 14px rgba(0,0,0,0.3)',
+    boxShadow: bg.includes('ember')
+      ? 'var(--s-ember)'
+      : pal.n
+        ? 'var(--s2)'
+        : '0 4px 14px rgba(0,0,0,0.3)',
     transition: 'transform 120ms var(--ease-spring)',
   }
 }
 
 // Dark-theme segmented control (echoes FiltersPanel, adapted to the overlay)
 function Seg({ items }: { items: { label: string; active: boolean; onClick: () => void }[] }) {
+  const pal = dpal()
   return (
     <div
       style={{
         display: 'inline-flex',
         gap: 3,
-        background: 'rgba(255,255,255,0.08)',
-        border: '1px solid rgba(255,255,255,0.14)',
+        background: pal.n ? 'var(--surface-2)' : 'rgba(255,255,255,0.08)',
+        border: `1px solid ${pal.n ? 'var(--border)' : 'rgba(255,255,255,0.14)'}`,
         borderRadius: 'var(--r-pill)',
         padding: 3,
       }}
@@ -1294,7 +1363,7 @@ function Seg({ items }: { items: { label: string; active: boolean; onClick: () =
             fontWeight: 700,
             fontFamily: 'var(--font-body)',
             background: it.active ? 'var(--accent)' : 'transparent',
-            color: it.active ? '#fff' : 'rgba(255,253,248,0.7)',
+            color: it.active ? '#fff' : pal.n ? 'var(--text-2)' : 'rgba(255,253,248,0.7)',
             transition: 'background 120ms ease, color 120ms ease',
             whiteSpace: 'nowrap',
           }}
@@ -1307,6 +1376,7 @@ function Seg({ items }: { items: { label: string; active: boolean; onClick: () =
 }
 
 function DarkToggle({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
+  const pal = dpal()
   return (
     <label style={{ display: 'inline-flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
       <span
@@ -1317,8 +1387,8 @@ function DarkToggle({ on, onClick, label }: { on: boolean; onClick: () => void; 
           width: 38,
           height: 22,
           borderRadius: 'var(--r-pill)',
-          background: on ? 'var(--accent)' : 'rgba(255,255,255,0.14)',
-          border: `1px solid ${on ? 'var(--accent)' : 'rgba(255,255,255,0.2)'}`,
+          background: on ? 'var(--accent)' : pal.n ? 'var(--surface-2)' : 'rgba(255,255,255,0.14)',
+          border: `1px solid ${on ? 'var(--accent)' : pal.n ? 'var(--border)' : 'rgba(255,255,255,0.2)'}`,
           position: 'relative',
           transition: 'background 160ms ease',
           flexShrink: 0,
@@ -1342,7 +1412,7 @@ function DarkToggle({ on, onClick, label }: { on: boolean; onClick: () => void; 
         style={{
           fontSize: 13,
           fontWeight: 600,
-          color: 'rgba(255,253,248,0.92)',
+          color: pal.n ? 'var(--text)' : 'rgba(255,253,248,0.92)',
           whiteSpace: 'nowrap',
         }}
       >
@@ -1353,6 +1423,7 @@ function DarkToggle({ on, onClick, label }: { on: boolean; onClick: () => void; 
 }
 
 function RefineLabel({ children }: { children: React.ReactNode }) {
+  const pal = dpal()
   return (
     <span
       style={{
@@ -1360,7 +1431,7 @@ function RefineLabel({ children }: { children: React.ReactNode }) {
         fontWeight: 700,
         letterSpacing: '0.1em',
         textTransform: 'uppercase',
-        color: 'rgba(255,253,248,0.45)',
+        color: pal.n ? 'var(--text-3)' : 'rgba(255,253,248,0.45)',
         minWidth: 62,
       }}
     >

@@ -2,11 +2,14 @@
 
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { useEffect, Suspense } from 'react'
+import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useHomeState, UNLISTED } from '@/lib/hooks/useHomeState'
+import { useIsNative } from '@/lib/native/platform'
+import { frCuisine } from '@/lib/cuisine'
 import SuggestionsPanel from '@/components/place/SuggestionsPanel'
 import PlaceList from '@/components/place/PlaceList'
+import MapPlaceCard from '@/components/place/MapPlaceCard'
 import PlaceCardSkeleton from '@/components/place/PlaceCardSkeleton'
 import ToastStack from '@/components/ui/ToastStack'
 import BottomSheet from '@/components/ui/BottomSheet'
@@ -132,6 +135,16 @@ export default function HomePage() {
     handleToggleFavorite,
   } = useHomeState()
 
+  const native = useIsNative()
+  // Natif : sélection → carte flottante (aperçu) ; « Voir la fiche » → détail plein écran.
+  const [detailExpanded, setDetailExpanded] = useState(false)
+  useEffect(() => {
+    setDetailExpanded(false)
+  }, [selectedPlace?.osm_id])
+  const closeDetailAll = useCallback(() => {
+    setDetailExpanded(false)
+    handleCloseDetail()
+  }, [handleCloseDetail])
   const sidebarW = 380
   const searchLeft = isMobile ? 12 : sidebarCollapsed ? 12 : sidebarW + 12
 
@@ -259,6 +272,79 @@ export default function HomePage() {
           />
         </ErrorBoundary>
       </div>
+
+      {/* ═══ FLOATING CUISINE CHIPS (natif — sous la recherche) ═══ */}
+      {native &&
+        !savedOnly &&
+        (() => {
+          type ChipDef = { id: string; label: string; active: boolean; onToggle: () => void }
+          const chips: ChipDef[] = [
+            {
+              id: 'open',
+              label: 'Ouvert',
+              active: !!filters.openNow,
+              onToggle: () => setFilters((f) => ({ ...f, openNow: !f.openNow })),
+            },
+            {
+              id: 'rating4',
+              label: '8+ / 10',
+              active: (filters.minRating ?? 0) >= 8,
+              onToggle: () =>
+                setFilters((f) => ({ ...f, minRating: (f.minRating ?? 0) >= 8 ? 0 : 8 })),
+            },
+            ...topCuisines.map((c) => ({
+              id: `cuisine-${c}`,
+              label: frCuisine(c),
+              active: filters.cuisine === c,
+              onToggle: () => setFilters((f) => ({ ...f, cuisine: f.cuisine === c ? '' : c })),
+            })),
+          ]
+          return (
+            <div
+              style={{
+                position: 'absolute',
+                top: 64,
+                left: 12,
+                right: 12,
+                zIndex: 499,
+                display: 'flex',
+                gap: 8,
+                overflowX: 'auto',
+                scrollbarWidth: 'none',
+                WebkitOverflowScrolling: 'touch',
+                maskImage: 'linear-gradient(90deg, #000 92%, transparent)',
+                WebkitMaskImage: 'linear-gradient(90deg, #000 92%, transparent)',
+              }}
+            >
+              {chips.map((chip) => (
+                <button
+                  key={chip.id}
+                  onClick={chip.onToggle}
+                  aria-pressed={chip.active}
+                  style={{
+                    flexShrink: 0,
+                    padding: '7px 14px',
+                    borderRadius: 999,
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    border: `1px solid ${chip.active ? 'var(--accent)' : 'var(--border)'}`,
+                    background: chip.active ? 'var(--accent)' : 'rgba(255,255,255,0.92)',
+                    backdropFilter: 'blur(8px)',
+                    WebkitBackdropFilter: 'blur(8px)',
+                    color: chip.active ? '#fff' : 'var(--text)',
+                    fontFamily: 'var(--font-body)',
+                    boxShadow: 'var(--s1)',
+                    transition: 'all 140ms ease',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+          )
+        })()}
 
       {/* ═══ FLOATING SEARCH BAR ═══ */}
       <div
@@ -1071,7 +1157,17 @@ export default function HomePage() {
         </BottomSheet>
       )}
 
-      {isMobile && selectedPlace && (
+      {/* Natif : carte flottante d'aperçu (avant d'ouvrir la fiche) */}
+      {isMobile && native && selectedPlace && !detailExpanded && (
+        <MapPlaceCard
+          place={selectedPlace}
+          onOpen={() => setDetailExpanded(true)}
+          onClose={closeDetailAll}
+          onToggleFavorite={() => handleToggleFavorite(selectedPlace)}
+        />
+      )}
+
+      {isMobile && selectedPlace && (!native || detailExpanded) && (
         <div
           style={{
             position: 'fixed',
@@ -1085,7 +1181,7 @@ export default function HomePage() {
         >
           <PlaceDetail
             place={selectedPlace}
-            onClose={handleCloseDetail}
+            onClose={closeDetailAll}
             onToggleFavorite={handleToggleFavorite}
             nearbyPlaces={nearbyPlaces}
             onSelectPlace={handleMarkerClick}

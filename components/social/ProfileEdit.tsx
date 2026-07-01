@@ -15,6 +15,9 @@ import { canChangeUsername, validateUsername } from '@/lib/username'
 
 interface Props {
   onClose: () => void
+  // Le pseudo ne se change que dans les Réglages. Ailleurs (ex. écran Amis),
+  // il s'affiche en lecture seule avec un renvoi vers les Réglages.
+  allowUsername?: boolean
 }
 
 // ── Shared error banner ───────────────────────────────────────
@@ -73,7 +76,7 @@ function formatNextChangeDate(value: string | number | null | undefined): string
   return d.toLocaleDateString('fr-FR')
 }
 
-export default function ProfileEdit({ onClose }: Props) {
+export default function ProfileEdit({ onClose, allowUsername = false }: Props) {
   const { profile, updateProfile, pickAndUploadAvatar } = useProfile()
 
   // ── Mount guard (post-unmount setState protection) ────────
@@ -94,6 +97,7 @@ export default function ProfileEdit({ onClose }: Props) {
   // ── Name + username (saved together via the bottom CTA) ───
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '')
   const [username, setUsername] = useState(profile?.username ?? '')
+  const [bio, setBio] = useState(profile?.bio ?? '')
   const [busy, setBusy] = useState(false)
   const [formErr, setFormErr] = useState<string | null>(null)
 
@@ -111,6 +115,7 @@ export default function ProfileEdit({ onClose }: Props) {
     if (profile) {
       setDisplayName(profile.display_name)
       setUsername(profile.username)
+      setBio(profile.bio ?? '')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id])
@@ -151,8 +156,10 @@ export default function ProfileEdit({ onClose }: Props) {
 
   // ── Save name + pseudo (only changed fields) ─────────────
   const nameChanged = displayName.trim() !== profile.display_name
-  const usernameChanged = gate.ok && username.trim().toLowerCase() !== profile.username
-  const dirty = nameChanged || usernameChanged
+  const usernameChanged =
+    allowUsername && gate.ok && username.trim().toLowerCase() !== profile.username
+  const bioChanged = (bio.trim() || null) !== (profile.bio ?? null)
+  const dirty = nameChanged || usernameChanged || bioChanged
 
   const handleSave = async () => {
     if (busy) return
@@ -162,9 +169,10 @@ export default function ProfileEdit({ onClose }: Props) {
       setFormErr('Le nom ne peut pas être vide.')
       return
     }
-    const patch: { display_name?: string; username?: string } = {}
+    const patch: { display_name?: string; username?: string; bio?: string | null } = {}
     if (name !== profile.display_name) patch.display_name = name
-    if (gate.ok) {
+    if (bioChanged) patch.bio = bio.trim() || null
+    if (allowUsername && gate.ok) {
       const uname = username.trim().toLowerCase()
       if (uname !== profile.username) {
         const v = validateUsername(uname)
@@ -176,7 +184,7 @@ export default function ProfileEdit({ onClose }: Props) {
       }
     }
     // Nothing left to persist (e.g. only the avatar changed) → just close.
-    if (!patch.display_name && !patch.username) {
+    if (patch.display_name === undefined && patch.username === undefined && patch.bio === undefined) {
       onClose()
       return
     }
@@ -209,7 +217,9 @@ export default function ProfileEdit({ onClose }: Props) {
     <StepShell
       onClose={onClose}
       title="Mon profil"
-      subtitle="Modifie ton nom, ta photo et ton pseudo."
+      subtitle={
+        allowUsername ? 'Modifie ton nom, ta photo et ton pseudo.' : 'Modifie ton nom et ta photo.'
+      }
       cta={
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {formErr && <ErrorBanner msg={formErr} />}
@@ -258,11 +268,33 @@ export default function ProfileEdit({ onClose }: Props) {
         aria-label="Nom affiché"
       />
 
+      {/* ── Bio ───────────────────────────────────────────── */}
+      <label htmlFor="bio" style={fieldLabel}>
+        Bio
+      </label>
+      <textarea
+        id="bio"
+        className="input-field"
+        placeholder="Quelques mots sur toi, tes cuisines préférées…"
+        value={bio}
+        maxLength={200}
+        rows={3}
+        onChange={(e) => {
+          setBio(e.target.value)
+          setFormErr(null)
+        }}
+        aria-label="Bio"
+        style={{ resize: 'none' }}
+      />
+      <p style={{ margin: '4px 2px 0', fontSize: 11, color: 'var(--text-3)', textAlign: 'right' }}>
+        {bio.length}/200
+      </p>
+
       {/* ── @pseudo ───────────────────────────────────────── */}
       <label htmlFor="username" style={fieldLabel}>
         Pseudo
       </label>
-      {gate.ok ? (
+      {allowUsername && gate.ok ? (
         <div style={{ position: 'relative' }}>
           <span
             style={{
@@ -323,9 +355,11 @@ export default function ProfileEdit({ onClose }: Props) {
             />
           </div>
           <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--text-3)' }}>
-            {lockedDateLabel
-              ? `Tu pourras changer ton pseudo le ${lockedDateLabel}.`
-              : 'Tu pourras changer ton pseudo bientôt.'}
+            {!allowUsername
+              ? 'Le pseudo se modifie dans les Réglages.'
+              : lockedDateLabel
+                ? `Tu pourras changer ton pseudo le ${lockedDateLabel}.`
+                : 'Tu pourras changer ton pseudo bientôt.'}
           </p>
         </>
       )}

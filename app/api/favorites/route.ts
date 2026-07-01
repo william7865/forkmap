@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { getFavorites, addFavorite } from '@/lib/db'
+import { getFavorites, addFavorite, recordActivity } from '@/lib/db'
 import { requireUser } from '@/lib/api-auth'
 import { rateLimit } from '@/lib/rate-limit'
 
@@ -62,6 +62,13 @@ export async function POST(req: NextRequest) {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const row = await addFavorite(auth.userId, parsed.data.place as any)
+    const pl = parsed.data.place as { osm_id: string; name: string; cuisine?: string | null }
+    await recordActivity(auth.userId, {
+      type: 'favorite',
+      osm_id: pl.osm_id,
+      place_name: pl.name,
+      cuisine: pl.cuisine ?? null,
+    })
     return NextResponse.json({ data: row }, { status: 201 })
   } catch (err) {
     console.error('[POST /api/favorites]', err)

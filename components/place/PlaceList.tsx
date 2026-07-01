@@ -3,8 +3,9 @@
 
 import { memo } from 'react'
 import type { PlaceCard } from '@/types'
-import PlaceCardItem, { ITEM_HEIGHT } from './PlaceCard'
+import PlaceCardItem, { ITEM_HEIGHT, ITEM_HEIGHT_NATIVE } from './PlaceCard'
 import { useVirtualList } from '@/lib/hooks/useVirtualList'
+import { useIsNative } from '@/lib/native/platform'
 import EmptyState from '@/components/states/EmptyState'
 import SkeletonList from '@/components/states/SkeletonList'
 import ErrorState from '@/components/states/ErrorState'
@@ -41,8 +42,10 @@ const PlaceList = memo(function PlaceList({
   onRetry,
   onResetFilters,
 }: Props) {
+  const native = useIsNative()
+  const rowHeight = native ? ITEM_HEIGHT_NATIVE : ITEM_HEIGHT
   const { containerRef, virtualItems, totalHeight } = useVirtualList(places, {
-    itemHeight: ITEM_HEIGHT,
+    itemHeight: rowHeight,
     overscan: 5,
   })
 
@@ -88,7 +91,7 @@ const PlaceList = memo(function PlaceList({
         {virtualItems.map(({ item, index, offsetTop }) => (
           <div
             key={item.osm_id}
-            style={{ position: 'absolute', top: offsetTop, left: 0, right: 0, height: ITEM_HEIGHT }}
+            style={{ position: 'absolute', top: offsetTop, left: 0, right: 0, height: rowHeight }}
           >
             <PlaceCardItem
               place={item}

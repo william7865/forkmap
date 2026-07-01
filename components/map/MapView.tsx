@@ -3,6 +3,20 @@ import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react'
 import { IcoSearch } from '@/components/icons'
 import type { PlaceCard } from '@/types'
 import { lightTap } from '@/lib/native/haptics'
+import { isNativeRuntime } from '@/lib/native/platform'
+
+// Accent des marqueurs : noir dans l'app native (monochrome), terracotta sur le web (rendu web inchangé).
+function mapAccent(): string {
+  return isNativeRuntime() ? '#0a0a0a' : '#bb5e2e'
+}
+// Encre du corps de marqueur : noir pur en natif, brun chaud sur le web.
+function mapInk(): string {
+  return isNativeRuntime() ? '#0a0a0a' : '#241f18'
+}
+// Anneau de pulsation (sélection) : neutre en natif, terracotta sur le web.
+function mapPulseRing(): string {
+  return isNativeRuntime() ? 'rgba(10,10,10,0.30)' : 'rgba(187,94,46,0.32)'
+}
 
 export interface MapViewHandle {
   flyTo: (lat: number, lon: number, zoom?: number) => void
@@ -72,7 +86,30 @@ type MState = 'default' | 'hover' | 'selected' | 'favorite'
 // Favori: teardrop accent + cercle blanc + coeur SVG
 // Sélectionné: teardrop blanc + bordure ink + cercle ink + point blanc
 // Inactif: teardrop bone/stone + cercle stone
+// Marqueur natif « Monochrome Premium » : pastille ronde à icône couvert (maquette Stitch).
+function nativeMarkerHTML(state: MState): string {
+  const isSelected = state === 'selected'
+  const isHover = state === 'hover'
+  const dark = isSelected || state === 'favorite'
+  const d = isSelected ? 44 : isHover ? 40 : 34
+  const bg = dark ? '#1a1a1a' : 'rgba(255,255,255,0.95)'
+  const fg = dark ? '#ffffff' : '#444748'
+  const border = dark ? '2px solid #ffffff' : '1.5px solid #c4c7c7'
+  const shadow = isSelected
+    ? '0 6px 18px rgba(0,0,0,0.30)'
+    : isHover
+      ? '0 4px 12px rgba(0,0,0,0.22)'
+      : '0 2px 8px rgba(0,0,0,0.16)'
+  const isz = Math.round(d * 0.5)
+  const icon =
+    `<svg width="${isz}" height="${isz}" viewBox="0 0 24 24" fill="none" stroke="${fg}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">` +
+    `<path d="M3 2v7c0 1.1.9 2 2 2h0a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/>` +
+    `<path d="M21 15V2a5 3 0 0 0-5 3v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>`
+  return `<div style="width:${d}px;height:${d}px;border-radius:50%;background:${bg};border:${border};box-shadow:${shadow};display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)">${icon}</div>`
+}
+
 function markerHTML(state: MState, rating?: number): string {
+  if (isNativeRuntime()) return nativeMarkerHTML(state)
   const isSelected = state === 'selected'
   const isHover = state === 'hover'
   const isFav = state === 'favorite'
@@ -88,13 +125,13 @@ function markerHTML(state: MState, rating?: number): string {
     bodyStroke = 'var(--ink)'
     bodyStrokeW = '2'
   } else if (isFav) {
-    bodyFill = '#bb5e2e'
+    bodyFill = mapAccent()
     bodyStroke = 'none'
     bodyStrokeW = '0' // ember (signature)
   } else {
-    bodyFill = '#241f18'
+    bodyFill = mapInk()
     bodyStroke = 'none'
-    bodyStrokeW = '0' // warm ink
+    bodyStrokeW = '0' // ink
   }
 
   const shadow = isSelected
@@ -109,7 +146,7 @@ function markerHTML(state: MState, rating?: number): string {
     // Brandbook: cercle ink + point blanc au centre
     const cy = Math.round(size * 0.44)
     inner =
-      `<circle cx="${size / 2}" cy="${cy}" r="${Math.round(size * 0.28)}" fill="#241f18"/>` +
+      `<circle cx="${size / 2}" cy="${cy}" r="${Math.round(size * 0.28)}" fill="${mapInk()}"/>` +
       `<circle cx="${size / 2}" cy="${cy}" r="${Math.round(size * 0.1)}" fill="white"/>`
   } else if (rating != null) {
     // Avec note — cercle blanc + texte
@@ -117,7 +154,7 @@ function markerHTML(state: MState, rating?: number): string {
     const r = Math.round(size * 0.3)
     inner =
       `<circle cx="${size / 2}" cy="${cy}" r="${r}" fill="white" opacity=".95"/>` +
-      `<text x="${size / 2}" y="${cy + 4}" text-anchor="middle" font-size="9" font-weight="700" fill="#241f18" font-family="Hanken Grotesk,system-ui">${rating.toFixed(1)}</text>`
+      `<text x="${size / 2}" y="${cy + 4}" text-anchor="middle" font-size="9" font-weight="700" fill="${mapInk()}" font-family="Hanken Grotesk,system-ui">${rating.toFixed(1)}</text>`
   } else if (isFav) {
     // Favori — cercle blanc + coeur SVG
     const cy = Math.round(size * 0.44)
@@ -125,7 +162,7 @@ function markerHTML(state: MState, rating?: number): string {
     const hs = Math.round(size * 0.32)
     inner =
       `<circle cx="${size / 2}" cy="${cy}" r="${r}" fill="white" opacity=".95"/>` +
-      `<path transform="translate(${size / 2 - hs / 2} ${cy - hs / 2}) scale(${hs / 24})" fill="#bb5e2e" d="M12 21s-7-5.7-7-11a5 5 0 019-3 5 5 0 019 3c0 5.3-7 11-7 11z"/>`
+      `<path transform="translate(${size / 2 - hs / 2} ${cy - hs / 2}) scale(${hs / 24})" fill="${mapAccent()}" d="M12 21s-7-5.7-7-11a5 5 0 019-3 5 5 0 019 3c0 5.3-7 11-7 11z"/>`
   } else {
     // Default — cercle blanc
     const cy = Math.round(size * 0.44)
@@ -142,7 +179,7 @@ function markerHTML(state: MState, rating?: number): string {
 
   // Pulse ring for selected (behind the marker)
   const ring = isSelected
-    ? `<div style="position:absolute;inset:-10px;border-radius:50%;border:2.5px solid rgba(187,94,46,0.32);animation:pulse-ring 1.8s ease-out infinite;pointer-events:none;bottom:auto;top:5px;left:-3px;right:-3px;height:${size + 6}px"></div>`
+    ? `<div style="position:absolute;inset:-10px;border-radius:50%;border:2.5px solid ${mapPulseRing()};animation:pulse-ring 1.8s ease-out infinite;pointer-events:none;bottom:auto;top:5px;left:-3px;right:-3px;height:${size + 6}px"></div>`
     : ''
 
   return `
@@ -175,6 +212,10 @@ function markerSig(state: MState, rating: number | undefined, isFav: boolean): s
 }
 
 function iconDims(state: MState): [number, number] {
+  if (isNativeRuntime()) {
+    const d = state === 'selected' ? 44 : state === 'hover' ? 40 : 34
+    return [d, d]
+  }
   if (state === 'selected') return [36, 48]
   if (state === 'hover') return [34, 45]
   return [28, 38]
@@ -186,7 +227,8 @@ function makeDivIcon(L: A, state: MState, rating?: number): A {
     className: '',
     html: markerHTML(state, rating),
     iconSize: [sz, sh],
-    iconAnchor: [sz / 2, sh],
+    // natif : marqueur rond → ancre au centre ; web : teardrop → ancre en pointe basse
+    iconAnchor: isNativeRuntime() ? [sz / 2, sh / 2] : [sz / 2, sh],
   })
 }
 
@@ -194,7 +236,14 @@ function makeDivIcon(L: A, state: MState, rating?: number): A {
 function clusterIconHTML(count: number): string {
   const s = count < 10 ? 38 : count < 100 ? 44 : 50
   const fs = count < 100 ? 14 : 13
-  return `<div style="width:${s}px;height:${s}px;border-radius:50%;background:rgba(255,253,248,0.95);border:2px solid #bb5e2e;box-shadow:0 3px 12px rgba(61,44,24,0.22);display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-weight:700;font-size:${fs}px;color:#241f18">${count}</div>`
+  const native = isNativeRuntime()
+  const bg = native ? 'rgba(255,255,255,0.97)' : 'rgba(255,253,248,0.95)'
+  const ring = native ? '#0a0a0a' : '#bb5e2e'
+  const numFont = native
+    ? "'Playfair Display',Georgia,serif"
+    : "'Bricolage Grotesque',system-ui,sans-serif"
+  const ink = native ? '#111112' : '#241f18'
+  return `<div style="width:${s}px;height:${s}px;border-radius:50%;background:${bg};border:2px solid ${ring};box-shadow:0 3px 12px rgba(20,22,43,0.20);display:flex;align-items:center;justify-content:center;font-family:${numFont};font-weight:700;font-size:${fs}px;color:${ink}">${count}</div>`
 }
 
 // ── User location dot ──────────────────────────────────────
@@ -210,7 +259,7 @@ function userDotHTML(): string {
 function startDotHTML(): string {
   return `
     <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-      <div style="width:20px;height:20px;border-radius:50%;background:#bb5e2e;border:2.5px solid white;box-shadow:0 2px 8px rgba(187,94,46,0.4);display:flex;align-items:center;justify-content:center">
+      <div style="width:20px;height:20px;border-radius:50%;background:${mapAccent()};border:2.5px solid white;box-shadow:0 2px 8px rgba(20,22,43,0.4);display:flex;align-items:center;justify-content:center">
         <div style="width:7px;height:7px;border-radius:50%;background:white"></div>
       </div>
       <div style="background:rgba(36,31,24,0.88);color:white;font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;white-space:nowrap;letter-spacing:0.03em">Départ</div>
@@ -278,7 +327,7 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
       }
       map.flyToBounds(L.latLngBounds(points), { padding: [64, 64], maxZoom: 16, duration: 0.7 })
     },
-    drawRoute(coords, color = '#bb5e2e') {
+    drawRoute(coords, color = mapAccent()) {
       const L: A = (window as A).L
       const map = mapRef.current
       if (!L || !map) return

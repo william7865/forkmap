@@ -193,6 +193,7 @@ export interface Profile {
   username: string
   display_name: string
   avatar_url: string | null
+  bio?: string | null
   username_changed_at: string | null
   created_at: string
 }
@@ -234,8 +235,38 @@ export interface PublicProfileBundle {
   profile: Profile
   status: FriendshipStatus
   friends_count: number
+  mutuals: number
   stats: { lists: number; places: number; cuisines: number }
   lists: PublicListCard[]
+}
+
+export interface FriendSuggestion {
+  id: string
+  username: string
+  display_name: string
+  avatar_url: string | null
+  mutuals: number
+}
+
+export interface NotificationItem {
+  id: string
+  type: 'friend_request' | 'friend_accept' | 'message'
+  data: Record<string, unknown> | null
+  read_at: string | null
+  created_at: string
+  actor: { id: string; username: string; display_name: string; avatar_url: string | null } | null
+}
+
+export interface ActivityItem {
+  id: string
+  type: 'favorite' | 'visit' | 'list'
+  created_at: string
+  osm_id: string | null
+  place_name: string | null
+  cuisine: string | null
+  rating: number | null
+  list_name: string | null
+  actor: { id: string; username: string; display_name: string; avatar_url: string | null }
 }
 
 export interface PublicListDetail {
@@ -243,11 +274,22 @@ export interface PublicListDetail {
   items: PlaceCard[]
 }
 
+export interface MessagePlacePayload {
+  osm_id: string
+  name: string
+  cuisine?: string | null
+  lat?: number
+  lon?: number
+  photo?: string | null
+}
+
 export interface MessageRow {
   id: string
   sender_id: string
   receiver_id: string
   content: string
+  type?: 'text' | 'place'
+  payload?: MessagePlacePayload | null
   created_at: string
   read_at: string | null
 }

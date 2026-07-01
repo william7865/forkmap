@@ -61,3 +61,6 @@ supabase/.temp/
 
 # Claude planning artifacts (specs/plans) — local only, never tracked
 docs/superpowers/
+
+# Claude Code — réglages locaux perso (ne pas committer)
+.claude/settings.local.json

@@ -1,22 +1,38 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { Search, UserPlus, Check, X, Clock, MessageSquare } from 'lucide-react'
+import { Search, UserPlus, Check, X, Clock, ChevronLeft } from 'lucide-react'
 import { Avatar } from '@/components/social/Avatar'
 import PublicProfile from '@/components/social/PublicProfile'
-import MessagesInbox from '@/components/social/MessagesInbox'
 import { useFriends } from '@/lib/hooks/useFriends'
-import type { UserSearchResult } from '@/types'
+import { apiFetch } from '@/lib/api'
+import { getAuthHeaders } from '@/lib/auth-headers'
+import type { UserSearchResult, FriendSuggestion } from '@/types'
 
-export default function FriendsView() {
-  const { friends, requests, loading, search, sendRequest, accept, decline, removeFriend } =
-    useFriends()
+export default function FriendsView({ onClose }: { onClose?: () => void }) {
+  const { friends, requests, loading, search, sendRequest, accept, decline } = useFriends()
   const [viewing, setViewing] = useState<string | null>(null)
-  const [inbox, setInbox] = useState(false)
   const [q, setQ] = useState('')
   const [results, setResults] = useState<UserSearchResult[]>([])
   const [searching, setSearching] = useState(false)
+  const [suggestions, setSuggestions] = useState<FriendSuggestion[]>([])
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const gen = useRef(0)
+
+  // « Personnes que tu connais peut-être » (amis d'amis).
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        const res = await apiFetch('/api/friends/suggestions', { headers: await getAuthHeaders() })
+        if (alive && res.ok) setSuggestions(((await res.json()).data ?? []) as FriendSuggestion[])
+      } catch {
+        /* noop */
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [])
 
   useEffect(
     () => () => {
@@ -51,45 +67,47 @@ export default function FriendsView() {
   }
 
   return (
-    <div style={{ marginTop: 24 }}>
-      {/* En-tête avec bouton Messages */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          marginBottom: 12,
-        }}
-      >
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1400,
+        background: 'var(--bg)',
+        overflowY: 'auto',
+        padding: 'calc(var(--safe-top) + 14px) 18px calc(var(--safe-bottom) + 40px)',
+        animation: 'slideUp 240ms cubic-bezier(0.16,1,0.3,1) both',
+      }}
+    >
+      {/* En-tête overlay « Ajouter des amis » */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
         <button
-          onClick={() => setInbox(true)}
-          aria-label="Messages"
+          onClick={onClose}
+          aria-label="Retour"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)', padding: 0 }}
+        >
+          <ChevronLeft size={26} />
+        </button>
+        <h1
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '8px 14px',
-            borderRadius: 'var(--r-md)',
-            border: '1px solid var(--b2)',
-            background: 'var(--white)',
-            cursor: 'pointer',
-            color: 'var(--ink)',
-            fontFamily: 'inherit',
-            fontSize: 13,
+            margin: 0,
+            fontFamily: 'var(--font-display)',
             fontWeight: 700,
+            fontSize: 26,
+            letterSpacing: '-0.02em',
+            color: 'var(--ink)',
           }}
         >
-          <MessageSquare size={16} />
-          Messages
-        </button>
+          Amis
+        </h1>
       </div>
 
       {/* Recherche */}
-      <div style={{ position: 'relative', marginBottom: 8 }}>
+      <div style={{ position: 'relative', marginBottom: 20 }}>
         <Search
-          size={17}
+          size={18}
           style={{
             position: 'absolute',
-            left: 12,
+            left: 14,
             top: '50%',
             transform: 'translateY(-50%)',
             color: 'var(--text-3)',
@@ -99,11 +117,17 @@ export default function FriendsView() {
           className="input-field"
           type="text"
           autoCapitalize="none"
-          placeholder="Rechercher un ami (@pseudo)"
+          placeholder="Rechercher un pseudo…"
           value={q}
           onChange={(e) => onQuery(e.target.value)}
           aria-label="Rechercher un ami"
-          style={{ paddingLeft: 36 }}
+          style={{
+            paddingLeft: 42,
+            height: 52,
+            borderRadius: 999,
+            background: 'var(--surface-2)',
+            border: 'none',
+          }}
         />
       </div>
 
@@ -194,7 +218,7 @@ export default function FriendsView() {
       )}
 
       {/* Mes amis */}
-      <Section title={`Mes amis${friends.length ? ` · ${friends.length}` : ''}`}>
+      <Section title={`Amis${friends.length ? ` (${friends.length})` : ''}`}>
         {loading && <Muted>Chargement…</Muted>}
         {!loading && friends.length === 0 && (
           <Muted>Aucun ami pour l&apos;instant. Cherche un @pseudo pour commencer.</Muted>
@@ -208,36 +232,58 @@ export default function FriendsView() {
             id={p.id}
             onOpen={() => setViewing(p.username)}
           >
-            <IconBtn onClick={() => removeFriend(p.id)} aria-label="Retirer">
-              <X size={16} />
-            </IconBtn>
+            <Tag icon={<Check size={13} />} label="Ami" />
           </PersonRow>
         ))}
       </Section>
 
+      {/* Suggestions — personnes que tu connais peut-être (amis d'amis) */}
+      {q.trim().length < 2 && suggestions.length > 0 && (
+        <Section title="Personnes que tu connais peut-être">
+          {suggestions.map((s) => (
+            <PersonRow
+              key={s.id}
+              name={s.display_name}
+              username={s.username}
+              src={s.avatar_url}
+              id={s.id}
+              subtitle={`${s.mutuals} ami${s.mutuals > 1 ? 's' : ''} en commun`}
+              onOpen={() => setViewing(s.username)}
+            >
+              <ActionBtn
+                onClick={() => {
+                  setSuggestions((list) => list.filter((x) => x.id !== s.id))
+                  sendRequest(s.id)
+                }}
+                icon={<UserPlus size={15} />}
+                label="Ajouter"
+              />
+            </PersonRow>
+          ))}
+        </Section>
+      )}
+
       {/* Profil public en overlay (évite le routage dynamique en export statique) */}
       {viewing && <PublicProfile username={viewing} overlay onBack={() => setViewing(null)} />}
-
-      {/* Boîte de réception des messages */}
-      {inbox && <MessagesInbox onClose={() => setInbox(false)} />}
     </div>
   )
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginTop: 22 }}>
-      <p
+    <div style={{ marginTop: 26 }}>
+      <h2
         style={{
-          margin: '0 0 8px 4px',
-          fontSize: 12,
+          margin: '0 0 12px 2px',
+          fontFamily: 'var(--font-display)',
+          fontSize: 18,
           fontWeight: 700,
-          letterSpacing: '0.04em',
-          color: 'var(--text-2)',
+          letterSpacing: '-0.01em',
+          color: 'var(--text)',
         }}
       >
         {title}
-      </p>
+      </h2>
       {children}
     </div>
   )
@@ -250,6 +296,7 @@ function PersonRow({
   id,
   onOpen,
   children,
+  subtitle,
 }: {
   name: string
   username: string
@@ -257,18 +304,20 @@ function PersonRow({
   id: string
   onOpen: () => void
   children: React.ReactNode
+  subtitle?: string
 }) {
   return (
     <div
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
-        padding: '10px 12px',
-        marginBottom: 8,
+        gap: 14,
+        padding: '12px 14px',
+        marginBottom: 10,
         background: 'var(--white)',
         border: '1px solid var(--b2)',
-        borderRadius: 'var(--r-md)',
+        borderRadius: 'var(--r-lg)',
+        boxShadow: 'var(--s1)',
       }}
     >
       {/* Avatar + nom : zone cliquable vers le profil */}
@@ -277,7 +326,7 @@ function PersonRow({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 12,
+          gap: 14,
           flex: 1,
           minWidth: 0,
           background: 'none',
@@ -287,7 +336,7 @@ function PersonRow({
           textAlign: 'left',
         }}
       >
-        <Avatar name={name} src={src} id={id} size={42} />
+        <Avatar name={name} src={src} id={id} size={52} />
         <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
           <strong
             style={{
@@ -299,7 +348,7 @@ function PersonRow({
           >
             {name}
           </strong>
-          <span style={{ color: 'var(--text-3)', fontSize: 12.5 }}>@{username}</span>
+          <span style={{ color: 'var(--text-3)', fontSize: 12.5 }}>{subtitle ?? `@${username}`}</span>
         </span>
       </button>
       {/* Boutons d'action : hors de la zone de navigation */}

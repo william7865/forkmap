@@ -130,6 +130,20 @@ export default function PublicProfile({
           {p.display_name}
         </h1>
         <span style={{ fontSize: 14, color: 'var(--text-3)' }}>@{p.username}</span>
+        {p.bio && (
+          <p
+            style={{
+              margin: '4px 0 0',
+              maxWidth: 320,
+              textAlign: 'center',
+              fontSize: 14,
+              lineHeight: 1.4,
+              color: 'var(--text-2)',
+            }}
+          >
+            {p.bio}
+          </p>
+        )}
         <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
           <FriendButton userId={p.id} status={bundle.status} />
           {bundle.status === 'friends' && (
@@ -169,6 +183,20 @@ export default function PublicProfile({
         <Stat n={bundle.stats.places} label="Lieux" border />
         <Stat n={bundle.stats.cuisines} label="Cuisines" border />
       </div>
+
+      {/* Amis en commun */}
+      {bundle.mutuals > 0 && (
+        <p
+          style={{
+            margin: '12px 16px 0',
+            fontSize: 13,
+            fontWeight: 600,
+            color: 'var(--text-2)',
+          }}
+        >
+          {bundle.mutuals} ami{bundle.mutuals > 1 ? 's' : ''} en commun
+        </p>
+      )}
 
       {/* Public lists */}
       <div style={{ margin: '28px 16px 0' }}>

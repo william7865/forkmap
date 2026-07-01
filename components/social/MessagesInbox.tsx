@@ -1,16 +1,45 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, UserPlus, Bell } from 'lucide-react'
 import { Avatar } from '@/components/social/Avatar'
 import ChatThread from '@/components/social/ChatThread'
+import NotificationsSheet from '@/components/social/NotificationsSheet'
 import { apiFetch } from '@/lib/api'
 import { getAuthHeaders } from '@/lib/auth-headers'
-import type { ConversationSummary } from '@/types'
+import type { ConversationSummary, ActivityItem } from '@/types'
 
-export default function MessagesInbox({ onClose }: { onClose: () => void }) {
+function activityText(a: ActivityItem): string {
+  const who = a.actor.display_name
+  if (a.type === 'favorite') return `${who} a enregistré ${a.place_name ?? 'un resto'}`
+  if (a.type === 'visit') {
+    const stars = a.rating ? ` ${'★'.repeat(Math.round(a.rating))}` : ''
+    return `${who} a noté ${a.place_name ?? 'un resto'}${stars}`
+  }
+  return `${who} a créé la liste ${a.list_name ?? ''}`.trim()
+}
+function timeAgo(iso: string): string {
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000
+  if (diff < 60) return "à l'instant"
+  if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`
+  if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`
+  return `il y a ${Math.floor(diff / 86400)} j`
+}
+
+export default function MessagesInbox({
+  onClose,
+  onAddFriends,
+  asPage,
+}: {
+  onClose?: () => void
+  onAddFriends?: () => void
+  asPage?: boolean
+}) {
   const [convos, setConvos] = useState<ConversationSummary[]>([])
+  const [activities, setActivities] = useState<ActivityItem[]>([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState<ConversationSummary['user'] | null>(null)
+  const [showNotifs, setShowNotifs] = useState(false)
+  const [unreadNotifs, setUnreadNotifs] = useState(0)
 
   const load = async () => {
     try {
@@ -24,52 +53,209 @@ export default function MessagesInbox({ onClose }: { onClose: () => void }) {
   }
   useEffect(() => {
     load()
-  }, [])
+    if (asPage) {
+      ;(async () => {
+        try {
+          const headers = await getAuthHeaders()
+          const [act, notif] = await Promise.all([
+            apiFetch('/api/activity', { headers }),
+            apiFetch('/api/notifications', { headers }),
+          ])
+          if (act.ok) setActivities(((await act.json()).data ?? []) as ActivityItem[])
+          if (notif.ok) {
+            const list = ((await notif.json()).data ?? []) as { read_at: string | null }[]
+            setUnreadNotifs(list.filter((n) => !n.read_at).length)
+          }
+        } catch {
+          /* noop */
+        }
+      })()
+    }
+  }, [asPage])
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 1450,
-        background: 'var(--bg)',
-        overflowY: 'auto',
-        paddingBottom: 'calc(var(--safe-bottom) + 40px)',
-      }}
+      style={
+        asPage
+          ? {
+              minHeight: '100vh',
+              background: 'var(--bg)',
+              overflowY: 'auto',
+              paddingBottom: 'calc(var(--safe-bottom) + 84px)',
+            }
+          : {
+              position: 'fixed',
+              inset: 0,
+              zIndex: 1450,
+              background: 'var(--bg)',
+              overflowY: 'auto',
+              paddingBottom: 'calc(var(--safe-bottom) + 40px)',
+            }
+      }
     >
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
-          padding: 'calc(var(--safe-top) + 10px) 14px 8px',
+          gap: 10,
+          padding: 'calc(var(--safe-top) + 14px) 18px 10px',
         }}
       >
-        <button
-          onClick={onClose}
-          aria-label="Retour"
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--ink)',
-            padding: 0,
-          }}
-        >
-          <ChevronLeft size={24} />
-        </button>
+        {onClose && !asPage && (
+          <button
+            onClick={onClose}
+            aria-label="Retour"
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--ink)',
+              padding: 0,
+            }}
+          >
+            <ChevronLeft size={24} />
+          </button>
+        )}
         <h1
           style={{
             margin: 0,
             fontFamily: 'var(--font-display)',
             fontWeight: 700,
-            fontSize: 22,
+            fontSize: 30,
+            letterSpacing: '-0.02em',
             color: 'var(--ink)',
           }}
         >
           Messages
         </h1>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+          {asPage && (
+            <button
+              onClick={() => {
+                setShowNotifs(true)
+                setUnreadNotifs(0)
+              }}
+              aria-label="Notifications"
+              style={{
+                position: 'relative',
+                width: 44,
+                height: 44,
+                borderRadius: 999,
+                border: '1px solid var(--b2)',
+                background: 'var(--white)',
+                color: 'var(--ink)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <Bell size={20} />
+              {unreadNotifs > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 6,
+                    right: 6,
+                    minWidth: 16,
+                    height: 16,
+                    padding: '0 4px',
+                    borderRadius: 999,
+                    background: '#e5484d',
+                    color: '#fff',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    lineHeight: '16px',
+                    textAlign: 'center',
+                    border: '2px solid var(--white)',
+                  }}
+                >
+                  {unreadNotifs > 9 ? '9+' : unreadNotifs}
+                </span>
+              )}
+            </button>
+          )}
+          {onAddFriends && (
+            <button
+              onClick={onAddFriends}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '10px 16px',
+                borderRadius: 'var(--r-pill)',
+                border: 'none',
+                background: 'var(--accent)',
+                color: '#fff',
+                fontFamily: 'var(--font-body)',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <UserPlus size={16} strokeWidth={2.2} /> Ajouter
+            </button>
+          )}
+        </div>
       </div>
+
+      {asPage && activities.length > 0 && (
+        <div style={{ padding: '4px 18px 8px' }}>
+          <h2
+            style={{
+              margin: '0 0 10px',
+              fontFamily: 'var(--font-display)',
+              fontSize: 18,
+              fontWeight: 700,
+              letterSpacing: '-0.01em',
+              color: 'var(--ink)',
+            }}
+          >
+            Activité récente
+          </h2>
+          {activities.slice(0, 8).map((a) => (
+            <div
+              key={a.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '10px 0',
+                borderBottom: '1px solid var(--b1)',
+              }}
+            >
+              <Avatar
+                name={a.actor.display_name}
+                src={a.actor.avatar_url}
+                id={a.actor.id}
+                size={38}
+              />
+              <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: 'var(--ink)' }}>
+                {activityText(a)}
+              </span>
+              <span style={{ flexShrink: 0, fontSize: 11.5, color: 'var(--text-3)' }}>
+                {timeAgo(a.created_at)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {asPage && activities.length > 0 && (
+        <h2
+          style={{
+            margin: '12px 0 0',
+            padding: '0 18px',
+            fontFamily: 'var(--font-display)',
+            fontSize: 18,
+            fontWeight: 700,
+            letterSpacing: '-0.01em',
+            color: 'var(--ink)',
+          }}
+        >
+          Conversations
+        </h2>
+      )}
 
       <div style={{ padding: '8px 12px 0' }}>
         {loading && <Muted>Chargement…</Muted>}
@@ -156,6 +342,8 @@ export default function MessagesInbox({ onClose }: { onClose: () => void }) {
           }}
         />
       )}
+
+      {showNotifs && <NotificationsSheet onClose={() => setShowNotifs(false)} />}
     </div>
   )
 }

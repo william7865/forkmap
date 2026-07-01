@@ -4,12 +4,14 @@
 
 import { createClient } from '@supabase/supabase-js'
 import type {
+  ActivityItem,
   ConversationSummary,
   FavoriteRow,
   FriendRequests,
   FriendshipRow,
   FriendshipStatus,
   MessageRow,
+  NotificationItem,
   OsmFsqMapping,
   PlaceCard,
   Profile,
@@ -532,11 +534,12 @@ export async function createProfile(
 
 export async function updateProfile(
   userId: string,
-  patch: { display_name?: string; avatar_url?: string | null; username?: string }
+  patch: { display_name?: string; avatar_url?: string | null; username?: string; bio?: string | null }
 ): Promise<Profile> {
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (patch.display_name !== undefined) update.display_name = patch.display_name
   if (patch.avatar_url !== undefined) update.avatar_url = patch.avatar_url
+  if (patch.bio !== undefined) update.bio = patch.bio
 
   if (patch.username !== undefined) {
     const current = await getProfile(userId)
@@ -631,6 +634,14 @@ export async function sendFriendRequest(meId: string, otherId: string): Promise<
         .from('friendships')
         .update({ status: 'accepted', responded_at: new Date().toISOString() })
         .eq('id', existing.id)
+      const me = await getProfile(meId)
+      await createNotification(
+        otherId,
+        meId,
+        'friend_accept',
+        { username: me?.username },
+        me ? `${me.display_name} a accepté ta demande d'ami` : undefined
+      )
       return 'friends'
     }
     return 'pending_sent' // déjà envoyée
@@ -639,6 +650,14 @@ export async function sendFriendRequest(meId: string, otherId: string): Promise<
     .from('friendships')
     .insert({ requester_id: meId, addressee_id: otherId, status: 'pending' })
   if (error) throw error
+  const me = await getProfile(meId)
+  await createNotification(
+    otherId,
+    meId,
+    'friend_request',
+    { username: me?.username },
+    me ? `${me.display_name} t'a envoyé une demande d'ami` : undefined
+  )
   return 'pending_sent'
 }
 
@@ -651,7 +670,111 @@ export async function acceptFriendRequest(meId: string, otherId: string): Promis
     .eq('status', 'pending')
     .select('id')
   if (error) throw error
-  return (data?.length ?? 0) > 0
+  const ok = (data?.length ?? 0) > 0
+  if (ok) {
+    const me = await getProfile(meId)
+    await createNotification(
+      otherId,
+      meId,
+      'friend_accept',
+      { username: me?.username },
+      me ? `${me.display_name} a accepté ta demande d'ami` : undefined
+    )
+  }
+  return ok
+}
+
+// ---------- Notifications + push ----------
+
+// Envoi push best-effort. Délègue à un webhook (Edge Function / service) que TU
+// branches via PUSH_WEBHOOK_URL (+ PUSH_WEBHOOK_SECRET). Sans config → no-op.
+// Le webhook reçoit { tokens:[{token,platform}], title, body, data } et parle à FCM/APNs.
+export async function sendPushToUser(
+  userId: string,
+  title: string,
+  body: string,
+  data?: Record<string, unknown>
+): Promise<void> {
+  const url = process.env.PUSH_WEBHOOK_URL
+  if (!url) return
+  try {
+    const { data: toks } = await db
+      .from('push_tokens')
+      .select('token, platform')
+      .eq('user_id', userId)
+    if (!toks || toks.length === 0) return
+    await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(process.env.PUSH_WEBHOOK_SECRET
+          ? { Authorization: `Bearer ${process.env.PUSH_WEBHOOK_SECRET}` }
+          : {}),
+      },
+      body: JSON.stringify({ tokens: toks, title, body, data: data ?? {} }),
+    })
+  } catch (err) {
+    console.warn('[sendPushToUser] ignoré', err)
+  }
+}
+
+// Crée une notif in-app (best-effort) + push. actorText = nom pour le corps du push.
+export async function createNotification(
+  userId: string,
+  actorId: string,
+  type: 'friend_request' | 'friend_accept' | 'message',
+  data?: Record<string, unknown>,
+  pushBody?: string
+): Promise<void> {
+  if (userId === actorId) return
+  try {
+    await db
+      .from('notifications')
+      .insert({ user_id: userId, actor_id: actorId, type, data: data ?? null })
+  } catch (err) {
+    console.warn('[createNotification] ignoré', err)
+  }
+  if (pushBody) {
+    const title =
+      type === 'message' ? 'Nouveau message' : type === 'friend_request' ? "Demande d'ami" : 'Forkmap'
+    void sendPushToUser(userId, title, pushBody, { type, ...(data ?? {}) })
+  }
+}
+
+export async function getNotifications(meId: string, limit = 40): Promise<NotificationItem[]> {
+  const { data, error } = await db
+    .from('notifications')
+    .select('*')
+    .eq('user_id', meId)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  const rows = (data ?? []) as Array<Record<string, unknown>>
+  const actorIds = [...new Set(rows.map((r) => r.actor_id as string).filter(Boolean))]
+  const byId = new Map<string, unknown>()
+  if (actorIds.length > 0) {
+    const { data: profs } = await db
+      .from('profiles')
+      .select('id, username, display_name, avatar_url')
+      .in('id', actorIds)
+    for (const p of profs ?? []) byId.set((p as { id: string }).id, p)
+  }
+  return rows.map((r) => ({
+    id: r.id as string,
+    type: r.type as NotificationItem['type'],
+    data: (r.data as Record<string, unknown>) ?? null,
+    read_at: (r.read_at as string) ?? null,
+    created_at: r.created_at as string,
+    actor: (byId.get(r.actor_id as string) as NotificationItem['actor']) ?? null,
+  }))
+}
+
+export async function markNotificationsRead(meId: string): Promise<void> {
+  await db
+    .from('notifications')
+    .update({ read_at: new Date().toISOString() })
+    .eq('user_id', meId)
+    .is('read_at', null)
 }
 
 export async function removeFriendship(meId: string, otherId: string): Promise<void> {
@@ -685,6 +808,67 @@ export async function getFriends(meId: string): Promise<Profile[]> {
   return (profs ?? []) as Profile[]
 }
 
+// IDs des amis acceptés (les 2 sens).
+export async function getFriendIds(userId: string): Promise<string[]> {
+  const { data, error } = await db
+    .from('friendships')
+    .select('requester_id, addressee_id')
+    .eq('status', 'accepted')
+    .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
+  if (error) throw error
+  return (data ?? []).map((r) => (r.requester_id === userId ? r.addressee_id : r.requester_id))
+}
+
+// Nombre d'amis en commun entre deux utilisateurs.
+export async function countMutualFriends(meId: string, otherId: string): Promise<number> {
+  const [a, b] = await Promise.all([getFriendIds(meId), getFriendIds(otherId)])
+  const setB = new Set(b)
+  return a.filter((id) => setB.has(id) && id !== meId && id !== otherId).length
+}
+
+// « Personnes que tu connais peut-être » : amis de mes amis, pas encore reliés à moi,
+// triés par nombre d'amis en commun.
+export async function getFriendSuggestions(
+  meId: string
+): Promise<Array<Profile & { mutuals: number }>> {
+  const myFriends = await getFriendIds(meId)
+  if (myFriends.length === 0) return []
+  // Exclure : moi + toute relation existante (amis + demandes en cours, 2 sens).
+  const { data: rels } = await db
+    .from('friendships')
+    .select('requester_id, addressee_id')
+    .or(`requester_id.eq.${meId},addressee_id.eq.${meId}`)
+  const excluded = new Set<string>([meId])
+  for (const r of rels ?? []) {
+    excluded.add(r.requester_id === meId ? r.addressee_id : r.requester_id)
+  }
+  // Arêtes d'amitié impliquant l'un de mes amis.
+  const list = myFriends.join(',')
+  const { data: fof, error } = await db
+    .from('friendships')
+    .select('requester_id, addressee_id')
+    .eq('status', 'accepted')
+    .or(`requester_id.in.(${list}),addressee_id.in.(${list})`)
+  if (error) throw error
+  const mutualCount = new Map<string, number>()
+  const friendSet = new Set(myFriends)
+  for (const r of fof ?? []) {
+    // Le bout qui n'est PAS l'un de mes amis est un candidat ; +1 ami en commun.
+    const cand = friendSet.has(r.requester_id) ? r.addressee_id : r.requester_id
+    if (excluded.has(cand)) continue
+    mutualCount.set(cand, (mutualCount.get(cand) ?? 0) + 1)
+  }
+  const ids = [...mutualCount.keys()]
+  if (ids.length === 0) return []
+  const { data: profs } = await db.from('profiles').select('*').in('id', ids)
+  const out = (profs ?? []).map((p) => ({
+    ...(p as Profile),
+    mutuals: mutualCount.get((p as Profile).id) ?? 1,
+  }))
+  out.sort((a, b) => b.mutuals - a.mutuals)
+  return out.slice(0, 12)
+}
+
 export async function getFriendRequests(meId: string): Promise<FriendRequests> {
   const { data, error } = await db
     .from('friendships')
@@ -704,6 +888,72 @@ export async function getFriendRequests(meId: string): Promise<FriendRequests> {
     received: receivedIds.map((id) => byId.get(id)).filter(Boolean) as Profile[],
     sent: sentIds.map((id) => byId.get(id)).filter(Boolean) as Profile[],
   }
+}
+
+// ---------- Fil d'activité (amis) ----------
+
+// Best-effort : n'échoue jamais (si la table n'existe pas encore, on ignore).
+export async function recordActivity(
+  userId: string,
+  e: {
+    type: 'favorite' | 'visit' | 'list'
+    osm_id?: string | null
+    place_name?: string | null
+    cuisine?: string | null
+    rating?: number | null
+    list_name?: string | null
+  }
+): Promise<void> {
+  try {
+    await db.from('activity_events').insert({
+      user_id: userId,
+      type: e.type,
+      osm_id: e.osm_id ?? null,
+      place_name: e.place_name ?? null,
+      cuisine: e.cuisine ?? null,
+      rating: e.rating ?? null,
+      list_name: e.list_name ?? null,
+    })
+  } catch (err) {
+    console.warn('[recordActivity] ignoré', err)
+  }
+}
+
+export async function getFriendActivity(meId: string, limit = 40): Promise<ActivityItem[]> {
+  const friendIds = await getFriendIds(meId)
+  const authors = [meId, ...friendIds]
+  const { data, error } = await db
+    .from('activity_events')
+    .select('*')
+    .in('user_id', authors)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  const rows = (data ?? []) as Array<Record<string, unknown>>
+  const ids = [...new Set(rows.map((r) => r.user_id as string))]
+  if (ids.length === 0) return []
+  const { data: profs } = await db
+    .from('profiles')
+    .select('id, username, display_name, avatar_url')
+    .in('id', ids)
+  const byId = new Map((profs ?? []).map((p) => [(p as { id: string }).id, p]))
+  return rows
+    .map((r) => {
+      const actor = byId.get(r.user_id as string) as ActivityItem['actor'] | undefined
+      if (!actor) return null
+      return {
+        id: r.id as string,
+        type: r.type as ActivityItem['type'],
+        created_at: r.created_at as string,
+        osm_id: (r.osm_id as string) ?? null,
+        place_name: (r.place_name as string) ?? null,
+        cuisine: (r.cuisine as string) ?? null,
+        rating: (r.rating as number) ?? null,
+        list_name: (r.list_name as string) ?? null,
+        actor,
+      } as ActivityItem
+    })
+    .filter(Boolean) as ActivityItem[]
 }
 
 // ---------- Public profile bundle (Amis — Étape B) ----------
@@ -744,10 +994,11 @@ export async function getPublicProfileBundle(
   const profile = await getProfileByUsername(username)
   if (!profile) return null
 
-  const [row, friends_count, lists] = await Promise.all([
+  const [row, friends_count, lists, mutuals] = await Promise.all([
     getFriendshipRow(meId, profile.id),
     countFriends(profile.id),
     getPublicLists(profile.id),
+    meId === profile.id ? Promise.resolve(0) : countMutualFriends(meId, profile.id),
   ])
 
   // Agrégat lieux + cuisines depuis les items des listes publiques (données publiques).
@@ -774,6 +1025,7 @@ export async function getPublicProfileBundle(
     profile,
     status: relationFrom(row, meId),
     friends_count,
+    mutuals,
     stats: { lists: lists.length, places, cuisines: cuisines.size },
     lists,
   }
@@ -784,17 +1036,30 @@ export async function getPublicProfileBundle(
 export async function sendMessage(
   fromId: string,
   toId: string,
-  content: string
+  content: string,
+  type: 'text' | 'place' = 'text',
+  payload?: unknown
 ): Promise<MessageRow> {
   if (fromId === toId) throw new Error('cannot_message_self')
   const rel = await getFriendshipRow(fromId, toId)
   if (!rel || rel.status !== 'accepted') throw new Error('not_friends')
   const { data, error } = await db
     .from('messages')
-    .insert({ sender_id: fromId, receiver_id: toId, content })
+    .insert({ sender_id: fromId, receiver_id: toId, content, type, payload: payload ?? null })
     .select()
     .single()
   if (error) throw error
+  const from = await getProfile(fromId)
+  if (from) {
+    const snippet = type === 'place' ? 'a partagé un lieu' : content.slice(0, 60)
+    await createNotification(
+      toId,
+      fromId,
+      'message',
+      { username: from.username },
+      `${from.display_name} : ${snippet}`
+    )
+  }
   return data as MessageRow
 }
 

@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireUser } from '@/lib/api-auth'
 import { rateLimit } from '@/lib/rate-limit'
-import { getVisits, getVisitsByPlace, addVisit } from '@/lib/db'
+import { getVisits, getVisitsByPlace, addVisit, recordActivity } from '@/lib/db'
 
 const VisitSchema = z.object({
   osm_id: z.string().min(1).max(64),
@@ -58,6 +58,12 @@ export async function POST(req: NextRequest) {
       amount_spent: parsed.data.amount_spent ?? undefined,
       personal_rating: parsed.data.personal_rating ?? undefined,
     } as Parameters<typeof addVisit>[1])
+    await recordActivity(uid, {
+      type: 'visit',
+      osm_id: parsed.data.osm_id,
+      place_name: parsed.data.name,
+      rating: parsed.data.personal_rating ?? null,
+    })
     return NextResponse.json({ data: visit }, { status: 201 })
   } catch {
     return NextResponse.json({ error: 'Failed to save visit' }, { status: 500 })

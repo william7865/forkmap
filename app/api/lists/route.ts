@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireUser } from '@/lib/api-auth'
 import { rateLimit } from '@/lib/rate-limit'
-import { getLists, createList } from '@/lib/db'
+import { getLists, createList, recordActivity } from '@/lib/db'
 
 export async function GET(req: NextRequest) {
   const limited = rateLimit(req, { limit: 60, windowMs: 60_000 })
@@ -46,6 +46,9 @@ export async function POST(req: NextRequest) {
       parsed.data.description ?? null,
       parsed.data.is_public
     )
+    if (parsed.data.is_public) {
+      await recordActivity(auth.userId, { type: 'list', list_name: parsed.data.name })
+    }
     return NextResponse.json({ data: list }, { status: 201 })
   } catch (err) {
     console.error('[POST /api/lists]', err)

@@ -1,4 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap');
+/* App natif — "Monochrome Premium" (chargé aussi sur web, utilisé uniquement sous html.native-app) */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&family=Geist:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -112,11 +115,81 @@
   --s-forest: var(--s-accent);
   --green: var(--open);
 
+  /* ── Deck "Surprends-moi" : accent secondaire chaud (peach) ── */
+  --deck-warm: #e9a06a;
+
   /* ── Safe areas (encoche / home indicator) ── */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   APP NATIF — Design System 7 "Monochrome Premium"
+   Playfair Display (noms de resto) · Geist (UI) · Blanc / gris neutre
+   Accent Noir #0A0A0A. Photos + étoile dorée = seules vraies couleurs.
+   Scopé à html.native-app (ajouté par CapacitorInit) : le rendu
+   du SITE WEB reste strictement inchangé (thème papier/terracotta).
+   La plupart des composants lisent des var() → re-thème automatique.
+   ═══════════════════════════════════════════════════════════════ */
+html.native-app {
+  /* Polices — Inter partout (fidèle aux maquettes Stitch) */
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Accent UNIQUE — Noir */
+  --accent: #1a1a1a;
+  --accent-hover: #000000;
+  --accent-light: #f3f4f5;
+  --accent-text: #1a1a1a;
+
+  /* Surfaces — gris très clair (f8f9fa) + blanc cartes */
+  --bg: #ffffff; /* cartes, panneaux, modales (surface-container-lowest) */
+  --surface: #f8f9fa; /* canvas de page (background) */
+  --surface-2: #e7e8e9; /* remplissages secondaires / pressés (surface-container-high) */
+  --border: rgba(25, 28, 29, 0.1);
+  --border-strong: rgba(25, 28, 29, 0.16);
+
+  /* Texte — encre neutre */
+  --text: #191c1d; /* on-surface */
+  --text-2: #444748; /* on-surface-variant */
+  --text-3: #747878; /* outline */
+  --text-4: #b7bbbb;
+
+  /* Sémantique — ouvert (vert) + fermé/danger (rouge), conservés */
+  --open: #17945a;
+  --open-bg: #e6f4ec;
+  --closed: #dc4b3e;
+  --closed-bg: #fdecea;
+
+  /* Étoile de note — seul accent coloré des ratings */
+  --star: #f5a623;
+
+  /* Ombres — neutres et douces */
+  --s1: 0 1px 4px rgba(17, 17, 18, 0.06);
+  --s2: 0 3px 14px rgba(17, 17, 18, 0.08);
+  --s3: 0 8px 26px rgba(17, 17, 18, 0.1);
+  --s4: 0 16px 44px rgba(17, 17, 18, 0.16);
+  --s-accent: 0 6px 22px rgba(17, 17, 18, 0.22);
+  --s-ember: 0 8px 24px rgba(17, 17, 18, 0.26);
+  --s-focus: 0 0 0 3px rgba(17, 17, 18, 0.22);
+
+  /* Rayons — plus généreux (cartes ~16/20/24) */
+  --r-lg: 16px;
+  --r-xl: 20px;
+  --r-2xl: 24px;
+
+  /* Alias codés en dur à réaligner (les alias en var() suivent déjà l'accent) */
+  --ink-80: #2a2a2e;
+  --bone: #e4e4e7;
+  --stone: #b9b9c0;
+  --b1: rgba(17, 17, 18, 0.05);
+  --b2: rgba(17, 17, 18, 0.08);
+  --b3: rgba(17, 17, 18, 0.14);
+
+  /* Deck : accent secondaire → gris neutre en natif monochrome */
+  --deck-warm: #52525b;
 }
 
 *,
@@ -153,6 +226,13 @@ h3 {
   background: #ece4d6 !important;
   font-family: var(--font-body) !important;
   cursor: default !important;
+}
+/* App native : carte désaturée façon éditorial premium (tuiles uniquement) */
+.native-app .leaflet-container {
+  background: #eceeef !important;
+}
+.native-app .leaflet-tile-pane {
+  filter: grayscale(0.55) contrast(1.06) brightness(1.02);
 }
 .leaflet-control-zoom {
   border: none !important;

@@ -4,9 +4,19 @@ import { requireUser } from '@/lib/api-auth'
 import { rateLimit } from '@/lib/rate-limit'
 import { sendMessage } from '@/lib/db'
 
+const PlacePayload = z.object({
+  osm_id: z.string(),
+  name: z.string(),
+  cuisine: z.string().nullable().optional(),
+  lat: z.number().optional(),
+  lon: z.number().optional(),
+  photo: z.string().nullable().optional(),
+})
 const SendSchema = z.object({
   toUserId: z.string().uuid(),
   content: z.string().trim().min(1).max(2000),
+  type: z.enum(['text', 'place']).optional(),
+  payload: PlacePayload.optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -20,7 +30,13 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: 'Message invalide.' }, { status: 400 })
 
   try {
-    const msg = await sendMessage(auth.userId, parsed.data.toUserId, parsed.data.content)
+    const msg = await sendMessage(
+      auth.userId,
+      parsed.data.toUserId,
+      parsed.data.content,
+      parsed.data.type ?? 'text',
+      parsed.data.payload
+    )
     return NextResponse.json({ data: msg }, { status: 201 })
   } catch (err) {
     if (err instanceof Error && err.message === 'not_friends') {

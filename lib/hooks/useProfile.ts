@@ -100,7 +100,12 @@ export function useProfile() {
   )
 
   const updateProfile = useCallback(
-    async (patch: { display_name?: string; avatar_url?: string | null; username?: string }) => {
+    async (patch: {
+      display_name?: string
+      avatar_url?: string | null
+      username?: string
+      bio?: string | null
+    }) => {
       const res = await apiFetch('/api/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },

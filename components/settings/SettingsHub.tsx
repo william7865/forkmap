@@ -275,7 +275,7 @@ export default function SettingsHub() {
         </button>
       </div>
 
-      {editing && <ProfileEdit onClose={() => setEditing(false)} />}
+      {editing && <ProfileEdit onClose={() => setEditing(false)} allowUsername />}
     </div>
   )
 }

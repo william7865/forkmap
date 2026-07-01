@@ -72,6 +72,7 @@ const PatchSchema = z.object({
   display_name: z.string().min(1).max(40).optional(),
   avatar_url: z.string().url().nullable().optional(),
   username: z.string().min(1).optional(),
+  bio: z.string().max(200).nullable().optional(),
 })
 
 export async function PATCH(req: NextRequest) {
@@ -84,9 +85,15 @@ export async function PATCH(req: NextRequest) {
   const parsed = PatchSchema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: 'Requête invalide.' }, { status: 400 })
 
-  const patch: { display_name?: string; avatar_url?: string | null; username?: string } = {}
+  const patch: {
+    display_name?: string
+    avatar_url?: string | null
+    username?: string
+    bio?: string | null
+  } = {}
   if (parsed.data.display_name !== undefined) patch.display_name = parsed.data.display_name
   if (parsed.data.avatar_url !== undefined) patch.avatar_url = parsed.data.avatar_url
+  if (parsed.data.bio !== undefined) patch.bio = parsed.data.bio
   if (parsed.data.username !== undefined) {
     const v = validateUsername(parsed.data.username)
     if (!v.ok) return NextResponse.json({ error: v.reason }, { status: 400 })

@@ -1,9 +1,9 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Map, Heart, Users, User } from 'lucide-react'
-import { IcoSparkle } from '@/components/icons'
+import { Map, Heart, Users, User, Compass } from 'lucide-react'
 import { lightTap } from '@/lib/native/haptics'
+import { useUnreadMessages } from '@/lib/hooks/useUnreadMessages'
 
 type Tab = {
   href: string
@@ -21,8 +21,8 @@ const TABS: Tab[] = [
   },
   {
     href: '/?surprise=1',
-    icon: (active) => <IcoSparkle size={22} strokeWidth={active ? 2 : 1.75} />,
-    label: 'Surprends-moi',
+    icon: (active) => <Compass size={22} strokeWidth={active ? 2 : 1.75} />,
+    label: 'Explorer',
     match: () => false,
   },
   {
@@ -34,19 +34,20 @@ const TABS: Tab[] = [
   {
     href: '/friends',
     icon: (active) => <Users size={22} strokeWidth={active ? 2 : 1.75} />,
-    label: 'Amis',
+    label: 'Social',
     match: (p) => p.startsWith('/friends'),
   },
   {
     href: '/account',
     icon: (active) => <User size={22} strokeWidth={active ? 2 : 1.75} />,
-    label: 'Compte',
+    label: 'Profil',
     match: (p) => p.startsWith('/account'),
   },
 ]
 
 export default function AppTabBar() {
   const pathname = usePathname()
+  const unread = useUnreadMessages()
   return (
     <nav
       aria-label="Navigation principale"
@@ -74,25 +75,63 @@ export default function AppTabBar() {
             style={{
               flex: 1,
               display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
               justifyContent: 'center',
-              gap: 3,
               textDecoration: 'none',
               minHeight: 56,
-              color: active ? 'var(--accent)' : 'var(--text-3)',
+              alignItems: 'center',
             }}
           >
-            {tab.icon(active)}
             <span
               style={{
-                fontSize: 10,
-                fontWeight: active ? 600 : 400,
-                fontFamily: 'var(--font-body)',
-                letterSpacing: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                padding: active ? '6px 16px' : '6px 10px',
+                borderRadius: 14,
+                background: active ? 'var(--surface-2)' : 'transparent',
+                color: active ? 'var(--accent)' : 'var(--text-3)',
+                transition: 'background 160ms ease, color 160ms ease',
               }}
             >
-              {tab.label}
+              <span style={{ position: 'relative', display: 'inline-flex' }}>
+                {tab.icon(active)}
+                {tab.href === '/friends' && unread > 0 && (
+                  <span
+                    aria-label={`${unread} messages non lus`}
+                    style={{
+                      position: 'absolute',
+                      top: -5,
+                      right: -8,
+                      minWidth: 16,
+                      height: 16,
+                      padding: '0 4px',
+                      borderRadius: 999,
+                      background: '#e5484d',
+                      color: '#fff',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      lineHeight: '16px',
+                      textAlign: 'center',
+                      border: '2px solid var(--bg)',
+                    }}
+                  >
+                    {unread > 9 ? '9+' : unread}
+                  </span>
+                )}
+              </span>
+              <span
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 700,
+                  fontFamily: 'var(--font-body)',
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {tab.label}
+              </span>
             </span>
           </Link>
         )

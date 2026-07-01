@@ -1136,6 +1136,158 @@ function FavCardList({
   const listBtnRef = useRef<HTMLButtonElement>(null)
   const [showLists, setShowLists] = useState(false)
   const primary = selectMode ? onToggleSelect! : onOpenMap
+  const nativeFav = useIsNative()
+
+  // ── App native : carte photo compacte, infos superposées (grille 2 colonnes) ──
+  if (nativeFav) {
+    const michelin = fav.snapshot?.wikidata?.michelin_stars ?? fav.snapshot?.osm_enriched?.michelin
+    const zone = fav.snapshot?.osm_enriched?.district ?? fav.snapshot?.osm_enriched?.city
+    const price = fav.snapshot?.fsq?.price
+    const badge = michelin ? 'Michelin' : rating != null && rating >= 8.5 ? 'Top Choix' : null
+    return (
+      <div
+        className="anim-card-in"
+        onClick={selectMode ? onToggleSelect : onOpenMap}
+        style={{
+          position: 'relative',
+          aspectRatio: '4 / 5',
+          borderRadius: 18,
+          overflow: 'hidden',
+          background: placeGradient(fav.osm_id),
+          border: selected ? '2px solid var(--accent)' : '1px solid var(--border)',
+          cursor: 'pointer',
+          animationDelay: `${index * 35}ms`,
+        }}
+      >
+        {photo && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={photo}
+            alt=""
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+        )}
+        {/* Scrim légibilité */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(transparent 42%, rgba(0,0,0,0.74))',
+          }}
+        />
+        {/* Cœur */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onRemove()
+          }}
+          aria-label="Retirer des favoris"
+          style={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            width: 36,
+            height: 36,
+            borderRadius: 999,
+            border: 'none',
+            background: 'rgba(255,255,255,0.92)',
+            color: 'var(--accent)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: 'var(--s1)',
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 21s-7-5.7-7-11a5 5 0 019-3 5 5 0 019 3c0 5.3-7 11-7 11z" />
+          </svg>
+        </button>
+        {/* Badge */}
+        {badge && (
+          <span
+            style={{
+              position: 'absolute',
+              top: 12,
+              left: 12,
+              fontSize: 9.5,
+              fontWeight: 800,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              color: '#111',
+              background: 'rgba(255,255,255,0.92)',
+              borderRadius: 6,
+              padding: '3px 8px',
+            }}
+          >
+            {badge}
+          </span>
+        )}
+        {/* Infos superposées */}
+        <div style={{ position: 'absolute', left: 12, right: 12, bottom: 12 }}>
+          {(rating != null || price != null) && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                marginBottom: 4,
+                color: '#fff',
+                fontSize: 12.5,
+                fontWeight: 700,
+              }}
+            >
+              {rating != null && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="var(--star)">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
+                  {rating.toFixed(1)}
+                </span>
+              )}
+              {price != null && (
+                <span style={{ color: 'rgba(255,255,255,0.85)' }}>{'€'.repeat(price)}</span>
+              )}
+            </div>
+          )}
+          <h3
+            style={{
+              margin: 0,
+              fontFamily: 'var(--font-display)',
+              fontSize: 16,
+              fontWeight: 700,
+              color: '#fff',
+              letterSpacing: '-0.01em',
+              lineHeight: 1.2,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {fav.name}
+          </h3>
+          <p
+            style={{
+              margin: '2px 0 0',
+              fontSize: 12,
+              color: 'rgba(255,255,255,0.8)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {[cuisine ? frCuisine(cuisine) : null, zone].filter(Boolean).join(' • ')}
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -1594,6 +1746,7 @@ function FavoritesPageInner() {
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<SortKey>('date_desc')
   const [viewMode, setViewMode] = useState<ViewMode>('list')
+  const [favCuisine, setFavCuisine] = useState<string | null>(null)
   const [toDelete, setToDelete] = useState<FavoriteRow | null>(null)
   const [shareTarget, setShareTarget] = useState<FavoriteRow | null>(null)
   const [noteTarget, setNoteTarget] = useState<FavoriteRow | null>(null)
@@ -1717,6 +1870,11 @@ function FavoritesPageInner() {
 
   const sorted = useMemo((): FavoriteRow[] => {
     let arr: FavoriteRow[] = [...favorites]
+    if (favCuisine) {
+      arr = arr.filter(
+        (f) => (f.snapshot?.cuisine ?? f.snapshot?.fsq?.categories?.[0]?.name) === favCuisine
+      )
+    }
     switch (sortBy) {
       case 'date_asc':
         arr.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
@@ -1731,7 +1889,7 @@ function FavoritesPageInner() {
         arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     }
     return arr
-  }, [favorites, sortBy])
+  }, [favorites, sortBy, favCuisine])
 
   if (!isReady)
     return (
@@ -1826,9 +1984,68 @@ function FavoritesPageInner() {
             </p>
           </div>
 
-          {/* Hero — coup de cœur (editorial) */}
+          {/* Chips cuisines (natif — maquette « Mes Favoris ») */}
+          {isNative &&
+            !activeListId &&
+            !loading &&
+            favorites.length > 0 &&
+            (() => {
+              const counts = new Map<string, number>()
+              favorites.forEach((f) => {
+                const c = f.snapshot?.cuisine ?? f.snapshot?.fsq?.categories?.[0]?.name
+                if (c) counts.set(c, (counts.get(c) ?? 0) + 1)
+              })
+              const top = [...counts.entries()]
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 6)
+                .map(([c]) => c)
+              const chips: { key: string | null; label: string }[] = [
+                { key: null, label: 'Tout' },
+                ...top.map((c) => ({ key: c, label: frCuisine(c) })),
+              ]
+              return (
+                <div
+                  className="no-scrollbar"
+                  style={{
+                    display: 'flex',
+                    gap: 8,
+                    overflowX: 'auto',
+                    marginBottom: 24,
+                    paddingBottom: 2,
+                  }}
+                >
+                  {chips.map((chip) => {
+                    const active = favCuisine === chip.key
+                    return (
+                      <button
+                        key={chip.label}
+                        onClick={() => setFavCuisine(chip.key)}
+                        style={{
+                          flexShrink: 0,
+                          padding: '9px 18px',
+                          borderRadius: 10,
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontFamily: 'var(--font-body)',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          whiteSpace: 'nowrap',
+                          background: active ? 'var(--accent)' : 'var(--surface-2)',
+                          color: active ? '#fff' : 'var(--text-2)',
+                        }}
+                      >
+                        {chip.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              )
+            })()}
+
+          {/* Hero — coup de cœur (editorial, web uniquement) */}
           {featured &&
             !loading &&
+            !isNative &&
             (() => {
               const photo = favPhoto(featured, 800)
               const rating = featured.snapshot?.fsq?.rating
@@ -1975,8 +2192,8 @@ function FavoritesPageInner() {
               )
             })()}
 
-          {/* Controls */}
-          {!loading && !activeListId && (
+          {/* Controls (web — natif utilise les chips) */}
+          {!loading && !activeListId && !isNative && (
             <div
               style={{
                 display: 'flex',
@@ -2073,8 +2290,8 @@ function FavoritesPageInner() {
             </div>
           )}
 
-          {/* Lists grid */}
-          {!activeListId && lists.length > 0 && (
+          {/* Lists grid (web — masqué en natif pour coller à la maquette) */}
+          {!activeListId && lists.length > 0 && !isNative && (
             <div style={{ marginBottom: 32, animation: 'fadeUp 280ms var(--ease-out) 20ms both' }}>
               <p
                 style={{
@@ -2438,7 +2655,13 @@ function FavoritesPageInner() {
               sans liste s'affichaient sous les items de la liste) */}
           {!activeListId &&
             (viewMode === 'list' ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div
+                style={
+                  isNative
+                    ? { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }
+                    : { display: 'flex', flexDirection: 'column', gap: 10 }
+                }
+              >
                 {sorted.map((fav, i) => (
                   <FavCardList
                     key={fav.id}

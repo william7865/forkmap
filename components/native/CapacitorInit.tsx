@@ -19,9 +19,9 @@ export default function CapacitorInit() {
     async function initNative() {
       document.documentElement.classList.add('native-app')
       const { StatusBar, Style } = await import('@capacitor/status-bar')
-      // Cream paper background + dark content (dark text/icons on light bg)
+      // Indigo Éditorial: white background + dark content (dark text/icons on light bg)
       await StatusBar.setStyle({ style: Style.Light })
-      await StatusBar.setBackgroundColor({ color: '#fffdf8' })
+      await StatusBar.setBackgroundColor({ color: '#ffffff' })
       try {
         const { SplashScreen } = await import('@capacitor/splash-screen')
         // Keep the logo splash visible briefly so it reads even on fast cold
