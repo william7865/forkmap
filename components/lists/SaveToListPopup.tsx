@@ -41,6 +41,9 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
+      // Le CreateListModal est monté dans un portail séparé (hors de popupRef) :
+      // ne pas fermer le popup quand on clique dedans, sinon le sous-formulaire disparaît.
+      if (showCreate) return
       if (popupRef.current && !popupRef.current.contains(e.target as Node)) onClose()
     }
     const t = setTimeout(() => document.addEventListener('mousedown', handler), 0)
@@ -48,15 +51,16 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
       clearTimeout(t)
       document.removeEventListener('mousedown', handler)
     }
-  }, [onClose])
+  }, [onClose, showCreate])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (showCreate) return
       if (e.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [onClose])
+  }, [onClose, showCreate])
 
   const toggle = async (listId: string) => {
     if (pendingIds.has(listId)) return

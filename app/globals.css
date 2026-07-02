@@ -801,9 +801,10 @@ a:focus:not(:focus-visible) {
   user-select: text;
 }
 /* iOS zoome au focus si la police < 16px → on force ≥16px sur tous les champs
-   natifs (filet en plus du viewport user-scalable=no). */
+   natifs (filet en plus du viewport user-scalable=no). !important pour battre
+   les fontSize inline (14/13/11px) qui, sinon, l'emportent et laissent iOS zoomer. */
 .native-app input,
 .native-app textarea,
 .native-app select {
-  font-size: 16px;
+  font-size: 16px !important;
 }

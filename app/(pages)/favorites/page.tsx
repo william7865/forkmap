@@ -2292,8 +2292,8 @@ function FavoritesPageInner() {
             </div>
           )}
 
-          {/* Lists grid (web — masqué en natif pour coller à la maquette) */}
-          {!activeListId && lists.length > 0 && !isNative && (
+          {/* Lists grid — affichée aussi en natif (seul accès aux listes dans l'app) */}
+          {!activeListId && lists.length > 0 && (
             <div style={{ marginBottom: 32, animation: 'fadeUp 280ms var(--ease-out) 20ms both' }}>
               <p
                 style={{
@@ -2354,7 +2354,7 @@ function FavoritesPageInner() {
                   marginBottom: 24,
                 }}
               >
-                <div>
+                <div style={{ minWidth: 0, flex: 1 }}>
                   <h2
                     style={{
                       margin: '0 0 4px',
@@ -2362,6 +2362,8 @@ function FavoritesPageInner() {
                       fontSize: 26,
                       fontWeight: 400,
                       letterSpacing: '-0.04em',
+                      overflowWrap: 'anywhere',
+                      wordBreak: 'break-word',
                     }}
                   >
                     {activeList.name}
@@ -2373,6 +2375,8 @@ function FavoritesPageInner() {
                         fontSize: 13,
                         color: 'var(--text-3)',
                         lineHeight: 1.6,
+                        overflowWrap: 'anywhere',
+                        wordBreak: 'break-word',
                       }}
                     >
                       {activeList.description}
