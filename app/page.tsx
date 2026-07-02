@@ -1160,14 +1160,61 @@ export default function HomePage() {
           defaultSnap="half"
           bottomOffset="calc(56px + env(safe-area-inset-bottom))"
         >
-          <button
-            onClick={() => setShowSurprise(true)}
-            className="btn-ember"
-            style={{ margin: '4px 0 12px' }}
-          >
-            <SigSparkle size={16} />
-            Je ne sais pas quoi manger
-          </button>
+          {native ? (
+            <button
+              onClick={() => setShowSurprise(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                width: '100%',
+                padding: '12px 14px',
+                margin: '2px 0 14px',
+                borderRadius: 999,
+                border: 'none',
+                cursor: 'pointer',
+                background: 'var(--accent)',
+                color: '#fff',
+                boxShadow: 'var(--s-ember)',
+                fontFamily: 'var(--font-body)',
+              }}
+            >
+              <span
+                style={{
+                  width: 32,
+                  height: 32,
+                  flexShrink: 0,
+                  borderRadius: 999,
+                  background: 'rgba(255,255,255,0.16)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <SigSparkle size={16} />
+              </span>
+              <span style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 15, fontWeight: 600, lineHeight: 1.2 }}>
+                  Je ne sais pas quoi manger
+                </span>
+                <span
+                  style={{ display: 'block', fontSize: 12, opacity: 0.7, fontWeight: 400 }}
+                >
+                  Laisse-nous choisir pour toi
+                </span>
+              </span>
+              <ChevronRight size={20} style={{ opacity: 0.75, flexShrink: 0 }} />
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowSurprise(true)}
+              className="btn-ember"
+              style={{ margin: '4px 0 12px' }}
+            >
+              <SigSparkle size={16} />
+              Je ne sais pas quoi manger
+            </button>
+          )}
           {savedOnly && savedListTabs}
           <PlaceList
             places={visiblePlaces}

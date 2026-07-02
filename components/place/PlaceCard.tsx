@@ -96,8 +96,7 @@ const PlaceCard = memo(function PlaceCard({
     const photo = photoThumb(place, 220)
     const badge = badgeFor(place, rating)
     const zone = zoneFor(place)
-    const cardShadow = isSelected ? 'var(--s3)' : 'var(--s1)'
-    const cardBorder = isSelected ? '1.5px solid var(--accent)' : '1px solid var(--border)'
+    const cardShadow = isSelected ? 'var(--s3)' : 'var(--s2)'
 
     return (
       <div
@@ -105,14 +104,14 @@ const PlaceCard = memo(function PlaceCard({
         tabIndex={0}
         aria-label={`Voir ${place.name}`}
         style={{
-          height: ITEM_HEIGHT_NATIVE,
+          height: ITEM_HEIGHT_NATIVE - 12,
           boxSizing: 'border-box',
-          margin: '0 14px 10px',
-          borderRadius: 18,
+          margin: '0 16px',
+          borderRadius: 20,
           overflow: 'hidden',
           position: 'relative',
           background: 'var(--bg)',
-          border: cardBorder,
+          border: isSelected ? '1.5px solid var(--accent)' : '1px solid var(--border)',
           boxShadow: cardShadow,
           cursor: 'pointer',
           transform: pressing ? 'scale(0.985)' : 'scale(1)',
@@ -120,8 +119,8 @@ const PlaceCard = memo(function PlaceCard({
           outline: 'none',
           display: 'flex',
           alignItems: 'center',
-          padding: 8,
-          gap: 12,
+          padding: 9,
+          gap: 13,
           textAlign: 'left',
           fontFamily: 'inherit',
         }}
@@ -140,7 +139,7 @@ const PlaceCard = memo(function PlaceCard({
           style={{
             width: 100,
             height: 100,
-            borderRadius: 14,
+            borderRadius: 16,
             overflow: 'hidden',
             flexShrink: 0,
             background: 'var(--surface-2)',
