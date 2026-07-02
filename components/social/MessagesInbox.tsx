@@ -1,13 +1,13 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { ChevronLeft, UserPlus, Bell, MoreHorizontal, BellOff } from 'lucide-react'
+import { ChevronLeft, UserPlus, Bell, MoreHorizontal, BellOff, MessageCircle } from 'lucide-react'
 import { Avatar } from '@/components/social/Avatar'
 import ChatThread from '@/components/social/ChatThread'
 import NotificationsSheet from '@/components/social/NotificationsSheet'
 import { apiFetch } from '@/lib/api'
 import { getAuthHeaders } from '@/lib/auth-headers'
 import { useOnlineUsers } from '@/lib/presence'
-import type { ConversationSummary } from '@/types'
+import type { ConversationSummary, Profile, FriendSuggestion, FriendRequests } from '@/types'
 
 export default function MessagesInbox({
   onClose,
@@ -24,7 +24,30 @@ export default function MessagesInbox({
   const [showNotifs, setShowNotifs] = useState(false)
   const [unreadNotifs, setUnreadNotifs] = useState(0)
   const [convMenu, setConvMenu] = useState<ConversationSummary | null>(null)
+  const [friends, setFriends] = useState<Profile[]>([])
+  const [suggestions, setSuggestions] = useState<FriendSuggestion[]>([])
+  const [requestsCount, setRequestsCount] = useState(0)
   const online = useOnlineUsers()
+
+  const addSuggestion = async (s: FriendSuggestion) => {
+    setSuggestions((prev) => prev.filter((x) => x.id !== s.id))
+    try {
+      await apiFetch('/api/friends', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        body: JSON.stringify({ userId: s.id }),
+      })
+    } catch {
+      /* noop */
+    }
+  }
+
+  // Amis triés : en ligne d'abord.
+  const sortedFriends = [...friends].sort((a, b) => {
+    const ao = online.has(a.id) ? 0 : 1
+    const bo = online.has(b.id) ? 0 : 1
+    return ao - bo
+  })
 
   const toggleMute = async (c: ConversationSummary) => {
     const muted = !c.muted
@@ -68,10 +91,22 @@ export default function MessagesInbox({
     if (asPage) {
       ;(async () => {
         try {
-          const notif = await apiFetch('/api/notifications', { headers: await getAuthHeaders() })
+          const headers = await getAuthHeaders()
+          const [notif, fr, sugg, req] = await Promise.all([
+            apiFetch('/api/notifications', { headers }),
+            apiFetch('/api/friends', { headers }),
+            apiFetch('/api/friends/suggestions', { headers }),
+            apiFetch('/api/friends/requests', { headers }),
+          ])
           if (notif.ok) {
             const list = ((await notif.json()).data ?? []) as { read_at: string | null }[]
             setUnreadNotifs(list.filter((n) => !n.read_at).length)
+          }
+          if (fr.ok) setFriends(((await fr.json()).data ?? []) as Profile[])
+          if (sugg.ok) setSuggestions(((await sugg.json()).data ?? []) as FriendSuggestion[])
+          if (req.ok) {
+            const r = ((await req.json()).data ?? { received: [], sent: [] }) as FriendRequests
+            setRequestsCount(r.received?.length ?? 0)
           }
         } catch {
           /* noop */
@@ -206,10 +241,149 @@ export default function MessagesInbox({
         </div>
       </div>
 
+      {/* Demandes d'ami reçues */}
+      {asPage && requestsCount > 0 && onAddFriends && (
+        <button
+          onClick={onAddFriends}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            width: 'calc(100% - 36px)',
+            margin: '4px 18px 6px',
+            padding: '12px 14px',
+            borderRadius: 'var(--r-lg)',
+            border: '1px solid var(--accent)',
+            background: 'var(--accent-light)',
+            cursor: 'pointer',
+            fontFamily: 'var(--font-body)',
+          }}
+        >
+          <span
+            style={{
+              width: 36,
+              height: 36,
+              flexShrink: 0,
+              borderRadius: 999,
+              background: 'var(--accent)',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <UserPlus size={18} strokeWidth={2.2} />
+          </span>
+          <span style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>
+              {requestsCount} demande{requestsCount > 1 ? 's' : ''} d&apos;ami
+            </span>
+            <span style={{ display: 'block', fontSize: 12.5, color: 'var(--text-2)' }}>
+              Touche pour voir
+            </span>
+          </span>
+          <MoreHorizontal size={20} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+        </button>
+      )}
+
+      {/* Amis actifs — tap pour discuter (façon « active now ») */}
+      {asPage && sortedFriends.length > 0 && (
+        <div style={{ marginTop: 4 }}>
+          <p
+            style={{
+              margin: '0 18px 4px',
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              color: 'var(--text-3)',
+            }}
+          >
+            Amis
+          </p>
+          <div
+            style={{
+              display: 'flex',
+              gap: 14,
+              overflowX: 'auto',
+              padding: '6px 18px 12px',
+              scrollbarWidth: 'none',
+            }}
+            className="no-scrollbar"
+          >
+            {sortedFriends.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setOpen(f)}
+                style={{
+                  flexShrink: 0,
+                  width: 64,
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 5,
+                }}
+              >
+                <span style={{ position: 'relative' }}>
+                  <Avatar name={f.display_name} src={f.avatar_url} id={f.id} size={58} />
+                  {online.has(f.id) && (
+                    <span
+                      aria-label="En ligne"
+                      style={{
+                        position: 'absolute',
+                        bottom: 1,
+                        right: 1,
+                        width: 15,
+                        height: 15,
+                        borderRadius: '50%',
+                        background: 'var(--open)',
+                        border: '3px solid var(--bg)',
+                      }}
+                    />
+                  )}
+                </span>
+                <span
+                  style={{
+                    fontSize: 11.5,
+                    color: 'var(--text-2)',
+                    fontWeight: 500,
+                    maxWidth: 64,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {f.display_name}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {asPage && !loading && convos.length > 0 && (
+        <p
+          style={{
+            margin: '4px 18px 0',
+            fontSize: 12,
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase',
+            color: 'var(--text-3)',
+          }}
+        >
+          Discussions
+        </p>
+      )}
+
       <div style={{ padding: '8px 12px 0' }}>
         {loading && <Muted>Chargement…</Muted>}
         {!loading && convos.length === 0 && (
-          <Muted>Aucune conversation. Ouvre le profil d&apos;un ami pour lui écrire.</Muted>
+          <EmptyConversations hasFriends={friends.length > 0} onAddFriends={onAddFriends} />
         )}
         {convos.map((c) => (
           <div
@@ -333,6 +507,83 @@ export default function MessagesInbox({
         ))}
       </div>
 
+      {/* Suggestions — personnes que tu connais peut-être */}
+      {asPage && suggestions.length > 0 && (
+        <div style={{ marginTop: 18 }}>
+          <p
+            style={{
+              margin: '0 18px 4px',
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              color: 'var(--text-3)',
+            }}
+          >
+            Suggestions pour toi
+          </p>
+          <div
+            className="no-scrollbar"
+            style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '6px 18px 8px' }}
+          >
+            {suggestions.map((s) => (
+              <div
+                key={s.id}
+                style={{
+                  flexShrink: 0,
+                  width: 150,
+                  padding: 14,
+                  borderRadius: 'var(--r-lg)',
+                  background: 'var(--white)',
+                  border: '1px solid var(--b2)',
+                  boxShadow: 'var(--s1)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  gap: 4,
+                }}
+              >
+                <Avatar name={s.display_name} src={s.avatar_url} id={s.id} size={64} />
+                <span
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: 'var(--ink)',
+                    maxWidth: '100%',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {s.display_name}
+                </span>
+                <span style={{ fontSize: 11.5, color: 'var(--text-3)', marginBottom: 6 }}>
+                  {s.mutuals} ami{s.mutuals > 1 ? 's' : ''} en commun
+                </span>
+                <button
+                  onClick={() => addSuggestion(s)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 0',
+                    borderRadius: 999,
+                    border: 'none',
+                    background: 'var(--accent)',
+                    color: '#fff',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    fontFamily: 'var(--font-body)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Ajouter
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {open && (
         <ChatThread
           user={open}
@@ -395,6 +646,81 @@ export default function MessagesInbox({
 
 function Muted({ children }: { children: React.ReactNode }) {
   return <p style={{ margin: '8px 4px', fontSize: 13.5, color: 'var(--text-3)' }}>{children}</p>
+}
+
+function EmptyConversations({
+  hasFriends,
+  onAddFriends,
+}: {
+  hasFriends: boolean
+  onAddFriends?: () => void
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        textAlign: 'center',
+        padding: '40px 24px',
+        gap: 6,
+      }}
+    >
+      <div
+        style={{
+          width: 64,
+          height: 64,
+          borderRadius: 999,
+          background: 'var(--surface-2)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--text-3)',
+          marginBottom: 6,
+        }}
+      >
+        <MessageCircle size={30} strokeWidth={1.75} />
+      </div>
+      <h3
+        style={{
+          margin: 0,
+          fontFamily: 'var(--font-display)',
+          fontSize: 18,
+          fontWeight: 700,
+          color: 'var(--ink)',
+        }}
+      >
+        Aucune conversation
+      </h3>
+      <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-3)', maxWidth: 260 }}>
+        {hasFriends
+          ? 'Touche un ami en haut pour lui écrire, ou partage-lui un resto.'
+          : 'Ajoute des amis pour discuter et partager vos adresses préférées.'}
+      </p>
+      {!hasFriends && onAddFriends && (
+        <button
+          onClick={onAddFriends}
+          style={{
+            marginTop: 12,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '11px 20px',
+            borderRadius: 'var(--r-pill)',
+            border: 'none',
+            background: 'var(--accent)',
+            color: '#fff',
+            fontFamily: 'var(--font-body)',
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          <UserPlus size={16} strokeWidth={2.2} /> Ajouter des amis
+        </button>
+      )}
+    </div>
+  )
 }
 
 function ConvSheetBtn({
