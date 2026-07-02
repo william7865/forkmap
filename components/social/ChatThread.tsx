@@ -8,6 +8,7 @@ import { useAuth, getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { useChatThread } from '@/lib/hooks/useChatThread'
 import { frCuisine } from '@/lib/cuisine'
 import { setPendingSelect } from '@/lib/pendingSelect'
+import { useOnlineUsers } from '@/lib/presence'
 import type { PlaceCard } from '@/types'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type RealtimeChannel = any
@@ -41,7 +42,8 @@ export default function ChatThread({
   const [editing, setEditing] = useState<(typeof messages)[number] | null>(null)
   const [viewProfile, setViewProfile] = useState(false)
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [otherOnline, setOtherOnline] = useState(false)
+  const onlineUsers = useOnlineUsers()
+  const otherOnline = onlineUsers.has(user.id) // présence GLOBALE (ami sur l'app)
   const [otherTyping, setOtherTyping] = useState(false)
   const endRef = useRef<HTMLDivElement | null>(null)
   const chanRef = useRef<RealtimeChannel | null>(null)
@@ -52,25 +54,19 @@ export default function ChatThread({
     endRef.current?.scrollIntoView({ block: 'end' })
   }, [messages.length])
 
-  // Présence en ligne + indicateur « écrit… » (Realtime, canal par paire).
+  // Canal par paire — sert uniquement à l'indicateur « écrit… » (l'« en ligne »
+  // vient de la présence globale). Broadcast, pas de presence tracking ici.
   useEffect(() => {
     if (!myId) return
     const sb = getSupabaseBrowserClient()
     const key = [myId, user.id].sort().join(':')
-    const ch = sb.channel(`chat-rt:${key}`, { config: { presence: { key: myId } } })
-    ch.on('presence', { event: 'sync' }, () => {
-      const state = ch.presenceState() as Record<string, unknown>
-      setOtherOnline(Object.keys(state).includes(user.id))
-    })
-      .on('broadcast', { event: 'typing' }, (msg: { payload?: { from?: string } }) => {
-        if (msg.payload?.from !== user.id) return
-        setOtherTyping(true)
-        if (typingTimer.current) clearTimeout(typingTimer.current)
-        typingTimer.current = setTimeout(() => setOtherTyping(false), 2500)
-      })
-      .subscribe((status: string) => {
-        if (status === 'SUBSCRIBED') ch.track({ user_id: myId })
-      })
+    const ch = sb.channel(`chat-typing:${key}`)
+    ch.on('broadcast', { event: 'typing' }, (msg: { payload?: { from?: string } }) => {
+      if (msg.payload?.from !== user.id) return
+      setOtherTyping(true)
+      if (typingTimer.current) clearTimeout(typingTimer.current)
+      typingTimer.current = setTimeout(() => setOtherTyping(false), 2500)
+    }).subscribe()
     chanRef.current = ch
     return () => {
       if (typingTimer.current) clearTimeout(typingTimer.current)

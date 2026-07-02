@@ -2,8 +2,11 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Map, Heart, Users, User, Compass } from 'lucide-react'
+import { useEffect } from 'react'
 import { lightTap } from '@/lib/native/haptics'
 import { useUnreadMessages } from '@/lib/hooks/useUnreadMessages'
+import { useAuth } from '@/lib/hooks/useAuth'
+import { startPresence, stopPresence } from '@/lib/presence'
 
 type Tab = {
   href: string
@@ -48,6 +51,13 @@ const TABS: Tab[] = [
 export default function AppTabBar() {
   const pathname = usePathname()
   const unread = useUnreadMessages()
+  const auth = useAuth()
+  // Présence en ligne globale tant que l'app (barre d'onglets) est montée.
+  useEffect(() => {
+    const id = auth.user?.id
+    if (id) startPresence(id)
+    else stopPresence()
+  }, [auth.user?.id])
   return (
     <nav
       aria-label="Navigation principale"

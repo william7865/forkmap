@@ -777,6 +777,11 @@ export async function markNotificationsRead(meId: string): Promise<void> {
     .is('read_at', null)
 }
 
+export async function deleteNotification(meId: string, id: string): Promise<void> {
+  const { error } = await db.from('notifications').delete().eq('id', id).eq('user_id', meId)
+  if (error) throw error
+}
+
 export async function removeFriendship(meId: string, otherId: string): Promise<void> {
   // Two parameterized deletes (builder .eq()) — never interpolate ids into a
   // raw PostgREST filter string. Covers both directions of the friendship.
