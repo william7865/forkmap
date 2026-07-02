@@ -5,6 +5,10 @@ import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { getAuthHeaders } from '@/lib/auth-headers'
 import type { MessageRow } from '@/types'
 
+// Compteur module → topic de canal unique par montage (évite « cannot add
+// postgres_changes callbacks after subscribe() » quand un canal du même nom traîne).
+let channelSeq = 0
+
 export function useChatThread(otherUserId: string, myUserId: string) {
   const [messages, setMessages] = useState<MessageRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,7 +52,7 @@ export function useChatThread(otherUserId: string, myUserId: string) {
     if (!myUserId) return // pas d'abonnement tant que l'auth n'est pas résolue
     const sb = getSupabaseBrowserClient()
     const ch = sb
-      .channel(`msg:${myUserId}:${otherUserId}`)
+      .channel(`msg:${myUserId}:${otherUserId}:${++channelSeq}`)
       .on(
         'postgres_changes',
         {

@@ -18,6 +18,18 @@ export default function CapacitorInit() {
 
     async function initNative() {
       document.documentElement.classList.add('native-app')
+      // App native : bloque le zoom auto d'iOS au focus des champs (feel natif).
+      // Scopé au natif — le viewport du site web reste inchangé.
+      let vp = document.querySelector('meta[name="viewport"]')
+      if (!vp) {
+        vp = document.createElement('meta')
+        vp.setAttribute('name', 'viewport')
+        document.head.appendChild(vp)
+      }
+      vp.setAttribute(
+        'content',
+        'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover'
+      )
       const { StatusBar, Style } = await import('@capacitor/status-bar')
       // Indigo Éditorial: white background + dark content (dark text/icons on light bg)
       await StatusBar.setStyle({ style: Style.Light })
