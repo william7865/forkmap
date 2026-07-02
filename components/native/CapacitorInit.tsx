@@ -30,6 +30,12 @@ export default function CapacitorInit() {
         'content',
         'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover'
       )
+      // Filet fiable WebKit : bloque le pincement (gesture*) — le viewport ne suffit
+      // pas toujours dans la WKWebView. Leaflet gère son propre zoom via touch events,
+      // donc la carte reste zoomable.
+      ;['gesturestart', 'gesturechange', 'gestureend'].forEach((t) =>
+        document.addEventListener(t, (e: Event) => e.preventDefault(), { passive: false })
+      )
       const { StatusBar, Style } = await import('@capacitor/status-bar')
       // Indigo Éditorial: white background + dark content (dark text/icons on light bg)
       await StatusBar.setStyle({ style: Style.Light })
