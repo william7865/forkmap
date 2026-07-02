@@ -2,9 +2,11 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, Send, MapPin } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import { Avatar } from '@/components/social/Avatar'
-import PublicProfile from '@/components/social/PublicProfile'
 import { useAuth, getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
+// Import dynamique : PublicProfile importe déjà ChatThread → casse le cycle d'imports.
+const PublicProfile = dynamic(() => import('@/components/social/PublicProfile'), { ssr: false })
 import { useChatThread } from '@/lib/hooks/useChatThread'
 import { frCuisine } from '@/lib/cuisine'
 import { setPendingSelect } from '@/lib/pendingSelect'
