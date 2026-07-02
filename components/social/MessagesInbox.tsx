@@ -1,6 +1,14 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { ChevronLeft, UserPlus, Bell, MoreHorizontal, BellOff, MessageCircle } from 'lucide-react'
+import {
+  ChevronLeft,
+  UserPlus,
+  Bell,
+  MoreHorizontal,
+  BellOff,
+  MessageCircle,
+  Search,
+} from 'lucide-react'
 import { Avatar } from '@/components/social/Avatar'
 import ChatThread from '@/components/social/ChatThread'
 import NotificationsSheet from '@/components/social/NotificationsSheet'
@@ -27,7 +35,14 @@ export default function MessagesInbox({
   const [friends, setFriends] = useState<Profile[]>([])
   const [suggestions, setSuggestions] = useState<FriendSuggestion[]>([])
   const [requestsCount, setRequestsCount] = useState(0)
+  const [convSearch, setConvSearch] = useState('')
   const online = useOnlineUsers()
+
+  const filteredConvos = convSearch.trim()
+    ? convos.filter((c) =>
+        c.user.display_name.toLowerCase().includes(convSearch.trim().toLowerCase())
+      )
+    : convos
 
   const addSuggestion = async (s: FriendSuggestion) => {
     setSuggestions((prev) => prev.filter((x) => x.id !== s.id))
@@ -379,13 +394,36 @@ export default function MessagesInbox({
           Discussions
         </p>
       )}
+      {asPage && convos.length > 3 && (
+        <div style={{ position: 'relative', margin: '8px 18px 0' }}>
+          <Search
+            size={17}
+            style={{
+              position: 'absolute',
+              left: 12,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'var(--text-3)',
+            }}
+          />
+          <input
+            className="input-field"
+            type="text"
+            placeholder="Rechercher une conversation"
+            value={convSearch}
+            onChange={(e) => setConvSearch(e.target.value)}
+            aria-label="Rechercher une conversation"
+            style={{ paddingLeft: 38, height: 44, borderRadius: 999, background: 'var(--surface-2)', border: 'none' }}
+          />
+        </div>
+      )}
 
       <div style={{ padding: '8px 12px 0' }}>
         {loading && <Muted>Chargement…</Muted>}
         {!loading && convos.length === 0 && (
           <EmptyConversations hasFriends={friends.length > 0} onAddFriends={onAddFriends} />
         )}
-        {convos.map((c) => (
+        {filteredConvos.map((c) => (
           <div
             key={c.user.id}
             style={{

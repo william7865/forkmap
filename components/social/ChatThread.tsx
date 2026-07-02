@@ -1,7 +1,7 @@
 'use client'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, Send, MapPin } from 'lucide-react'
+import { ChevronLeft, Send, MapPin, X } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { Avatar } from '@/components/social/Avatar'
 import { useAuth, getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
@@ -37,12 +37,17 @@ export default function ChatThread({
   const auth = useAuth()
   const router = useRouter()
   const myId = auth.user?.id ?? ''
-  const { messages, loading, send, sending, editMsg, removeMsg } = useChatThread(user.id, myId)
+  const { messages, loading, send, sending, editMsg, removeMsg, react } = useChatThread(
+    user.id,
+    myId
+  )
   const [text, setText] = useState('')
   const [sendError, setSendError] = useState(false)
   const [menuFor, setMenuFor] = useState<(typeof messages)[number] | null>(null)
   const [editing, setEditing] = useState<(typeof messages)[number] | null>(null)
+  const [replyTo, setReplyTo] = useState<(typeof messages)[number] | null>(null)
   const [viewProfile, setViewProfile] = useState(false)
+  const REACTIONS = ['❤️', '😂', '👍', '🔥', '😮', '😢']
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const onlineUsers = useOnlineUsers()
   const otherOnline = onlineUsers.has(user.id) // présence GLOBALE (ami sur l'app)
@@ -102,7 +107,9 @@ export default function ChatThread({
     }
     setText('')
     setSendError(false)
-    const ok = await send(t)
+    const rt = replyTo?.id ?? null
+    setReplyTo(null)
+    const ok = await send(t, rt)
     if (!ok) {
       setText(t) // restaure le message pour que l'utilisateur puisse réessayer
       setSendError(true)
@@ -270,6 +277,36 @@ export default function ChatThread({
                     alignItems: mine ? 'flex-end' : 'flex-start',
                   }}
                 >
+                  {/* Message cité (réponse) */}
+                  {m.reply_to &&
+                    (() => {
+                      const q = messages.find((x) => x.id === m.reply_to)
+                      return (
+                        <div
+                          style={{
+                            maxWidth: '100%',
+                            padding: '5px 10px',
+                            marginBottom: -4,
+                            borderLeft: '3px solid var(--accent)',
+                            background: 'var(--surface-2)',
+                            borderRadius: '8px 8px 0 0',
+                            fontSize: 12,
+                            color: 'var(--text-2)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {q
+                            ? q.deleted_at
+                              ? 'Message supprimé'
+                              : q.type === 'place'
+                                ? `📍 ${q.payload?.name ?? 'Lieu'}`
+                                : q.content
+                            : 'Message'}
+                        </div>
+                      )
+                    })()}
                   {m.deleted_at ? (
                     <div
                       style={{
@@ -391,6 +428,32 @@ export default function ChatThread({
                     {m.edited_at && !m.deleted_at ? ' · modifié' : ''}
                     {mine && isLastMine && m.read_at ? ' · Vu' : ''}
                   </span>
+                  {/* Réactions */}
+                  {m.reactions && m.reactions.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 3 }}>
+                      {m.reactions.map((r) => (
+                        <button
+                          key={r.emoji}
+                          onClick={() => react(m.id, r.emoji)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3,
+                            padding: '2px 7px',
+                            borderRadius: 999,
+                            border: `1px solid ${r.mine ? 'var(--accent)' : 'var(--b2)'}`,
+                            background: r.mine ? 'var(--accent-light)' : 'var(--white)',
+                            color: 'var(--ink)',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {r.emoji} {r.count}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </Fragment>
             )
@@ -444,6 +507,56 @@ export default function ChatThread({
             }}
           >
             Annuler
+          </button>
+        </div>
+      )}
+
+      {/* Aperçu de réponse */}
+      {replyTo && !editing && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '8px 14px',
+            background: 'var(--surface-2)',
+            borderLeft: '3px solid var(--accent)',
+          }}
+        >
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--accent-text)' }}>
+              Réponse à {replyTo.sender_id === myId ? 'toi' : user.display_name}
+            </span>
+            <span
+              style={{
+                display: 'block',
+                fontSize: 12.5,
+                color: 'var(--text-2)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {replyTo.deleted_at
+                ? 'Message supprimé'
+                : replyTo.type === 'place'
+                  ? `📍 ${replyTo.payload?.name ?? 'Lieu'}`
+                  : replyTo.content}
+            </span>
+          </span>
+          <button
+            onClick={() => setReplyTo(null)}
+            aria-label="Annuler la réponse"
+            style={{
+              flexShrink: 0,
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-2)',
+              cursor: 'pointer',
+              padding: 4,
+            }}
+          >
+            <X size={16} strokeWidth={2.25} />
           </button>
         </div>
       )}
@@ -517,6 +630,44 @@ export default function ChatThread({
               animation: 'slideUp 200ms cubic-bezier(0.16,1,0.3,1) both',
             }}
           >
+            {/* Réactions rapides */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-around',
+                padding: '6px 4px 10px',
+                borderBottom: '1px solid var(--b1)',
+                marginBottom: 4,
+              }}
+            >
+              {REACTIONS.map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={() => {
+                    react(menuFor.id, emoji)
+                    setMenuFor(null)
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: 28,
+                    cursor: 'pointer',
+                    padding: 4,
+                    lineHeight: 1,
+                  }}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+            <SheetBtn
+              onClick={() => {
+                setReplyTo(menuFor)
+                setMenuFor(null)
+              }}
+            >
+              Répondre
+            </SheetBtn>
             {menuFor.sender_id === myId && menuFor.type !== 'place' && (
               <SheetBtn
                 onClick={() => {

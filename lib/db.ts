@@ -605,7 +605,8 @@ export async function searchUsers(meId: string, q: string): Promise<UserSearchRe
   for (const p of [...(byUsername.data ?? []), ...(byName.data ?? [])] as ProfileLite[]) {
     merged.set(p.id, p)
   }
-  const profiles = [...merged.values()].slice(0, 20)
+  const blocked = await getBlockRelatedIds(meId)
+  const profiles = [...merged.values()].filter((p) => !blocked.has(p.id)).slice(0, 20)
   // Statut d'amitié pour chacun (une requête sur les lignes impliquant meId).
   const { data: rels, error: relErr } = await db
     .from('friendships')
@@ -782,6 +783,94 @@ export async function deleteNotification(meId: string, id: string): Promise<void
   if (error) throw error
 }
 
+// ---------- Blocage ----------
+
+export async function blockUser(meId: string, otherId: string): Promise<void> {
+  if (meId === otherId) throw new Error('cannot_block_self')
+  const { error } = await db
+    .from('blocks')
+    .upsert({ blocker_id: meId, blocked_id: otherId }, { onConflict: 'blocker_id,blocked_id' })
+  if (error) throw error
+  // Bloquer rompt aussi l'amitié.
+  await removeFriendship(meId, otherId).catch(() => {})
+}
+
+export async function unblockUser(meId: string, otherId: string): Promise<void> {
+  const { error } = await db.from('blocks').delete().eq('blocker_id', meId).eq('blocked_id', otherId)
+  if (error) throw error
+}
+
+// Bloqué dans un sens OU l'autre (best-effort : table absente → false).
+export async function isBlockedBetween(a: string, b: string): Promise<boolean> {
+  try {
+    const { data } = await db
+      .from('blocks')
+      .select('blocker_id')
+      .or(`and(blocker_id.eq.${a},blocked_id.eq.${b}),and(blocker_id.eq.${b},blocked_id.eq.${a})`)
+      .limit(1)
+    return (data?.length ?? 0) > 0
+  } catch {
+    return false
+  }
+}
+
+// Tous les ids en relation de blocage avec moi (les 2 sens) — pour filtrer recherche/suggestions.
+export async function getBlockRelatedIds(meId: string): Promise<Set<string>> {
+  try {
+    const { data } = await db
+      .from('blocks')
+      .select('blocker_id, blocked_id')
+      .or(`blocker_id.eq.${meId},blocked_id.eq.${meId}`)
+    const s = new Set<string>()
+    for (const r of data ?? []) s.add(r.blocker_id === meId ? r.blocked_id : r.blocker_id)
+    return s
+  } catch {
+    return new Set()
+  }
+}
+
+// Ai-je bloqué cette personne ? (pour l'UI du profil)
+export async function hasBlocked(meId: string, otherId: string): Promise<boolean> {
+  try {
+    const { data } = await db
+      .from('blocks')
+      .select('blocked_id')
+      .eq('blocker_id', meId)
+      .eq('blocked_id', otherId)
+      .maybeSingle()
+    return !!data
+  } catch {
+    return false
+  }
+}
+
+// ---------- Réactions aux messages ----------
+
+export async function toggleReaction(
+  meId: string,
+  messageId: string,
+  emoji: string
+): Promise<void> {
+  const { data: msg } = await db
+    .from('messages')
+    .select('sender_id, receiver_id')
+    .eq('id', messageId)
+    .single()
+  if (!msg || (msg.sender_id !== meId && msg.receiver_id !== meId)) throw new Error('forbidden')
+  const { data: existing } = await db
+    .from('message_reactions')
+    .select('id')
+    .eq('message_id', messageId)
+    .eq('user_id', meId)
+    .eq('emoji', emoji)
+    .maybeSingle()
+  if (existing) {
+    await db.from('message_reactions').delete().eq('id', (existing as { id: string }).id)
+  } else {
+    await db.from('message_reactions').insert({ message_id: messageId, user_id: meId, emoji })
+  }
+}
+
 export async function removeFriendship(meId: string, otherId: string): Promise<void> {
   // Two parameterized deletes (builder .eq()) — never interpolate ids into a
   // raw PostgREST filter string. Covers both directions of the friendship.
@@ -847,6 +936,7 @@ export async function getFriendSuggestions(
   for (const r of rels ?? []) {
     excluded.add(r.requester_id === meId ? r.addressee_id : r.requester_id)
   }
+  for (const id of await getBlockRelatedIds(meId)) excluded.add(id)
   // Arêtes d'amitié impliquant l'un de mes amis.
   const list = myFriends.join(',')
   const { data: fof, error } = await db
@@ -999,11 +1089,12 @@ export async function getPublicProfileBundle(
   const profile = await getProfileByUsername(username)
   if (!profile) return null
 
-  const [row, friends_count, lists, mutuals] = await Promise.all([
+  const [row, friends_count, lists, mutuals, blocked] = await Promise.all([
     getFriendshipRow(meId, profile.id),
     countFriends(profile.id),
     getPublicLists(profile.id),
     meId === profile.id ? Promise.resolve(0) : countMutualFriends(meId, profile.id),
+    meId === profile.id ? Promise.resolve(false) : hasBlocked(meId, profile.id),
   ])
 
   // Agrégat lieux + cuisines depuis les items des listes publiques (données publiques).
@@ -1031,6 +1122,7 @@ export async function getPublicProfileBundle(
     status: relationFrom(row, meId),
     friends_count,
     mutuals,
+    blocked,
     stats: { lists: lists.length, places, cuisines: cuisines.size },
     lists,
   }
@@ -1043,14 +1135,23 @@ export async function sendMessage(
   toId: string,
   content: string,
   type: 'text' | 'place' = 'text',
-  payload?: unknown
+  payload?: unknown,
+  replyTo?: string | null
 ): Promise<MessageRow> {
   if (fromId === toId) throw new Error('cannot_message_self')
+  if (await isBlockedBetween(fromId, toId)) throw new Error('blocked')
   const rel = await getFriendshipRow(fromId, toId)
   if (!rel || rel.status !== 'accepted') throw new Error('not_friends')
   const { data, error } = await db
     .from('messages')
-    .insert({ sender_id: fromId, receiver_id: toId, content, type, payload: payload ?? null })
+    .insert({
+      sender_id: fromId,
+      receiver_id: toId,
+      content,
+      type,
+      payload: payload ?? null,
+      reply_to: replyTo ?? null,
+    })
     .select()
     .single()
   if (error) throw error
@@ -1119,6 +1220,38 @@ export async function getThread(meId: string, otherId: string, limit = 100): Pro
   let rows = (data ?? []) as MessageRow[]
   const pref = await getConversationPref(meId, otherId)
   if (pref.cleared_at) rows = rows.filter((m) => m.created_at > pref.cleared_at!)
+
+  // Réactions (best-effort : table absente → on ignore).
+  try {
+    const ids = rows.map((r) => r.id)
+    if (ids.length > 0) {
+      const { data: reacts } = await db
+        .from('message_reactions')
+        .select('message_id, user_id, emoji')
+        .in('message_id', ids)
+      const agg = new Map<string, Map<string, { count: number; mine: boolean }>>()
+      for (const r of (reacts ?? []) as {
+        message_id: string
+        user_id: string
+        emoji: string
+      }[]) {
+        const perMsg = agg.get(r.message_id) ?? new Map()
+        agg.set(r.message_id, perMsg)
+        const e = perMsg.get(r.emoji) ?? { count: 0, mine: false }
+        e.count++
+        if (r.user_id === meId) e.mine = true
+        perMsg.set(r.emoji, e)
+      }
+      rows = rows.map((r) => {
+        const perMsg = agg.get(r.id)
+        return perMsg
+          ? { ...r, reactions: [...perMsg.entries()].map(([emoji, v]) => ({ emoji, ...v })) }
+          : r
+      })
+    }
+  } catch {
+    /* table absente */
+  }
   return rows
 }
 

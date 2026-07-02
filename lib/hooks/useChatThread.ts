@@ -75,7 +75,7 @@ export function useChatThread(otherUserId: string, myUserId: string) {
   // Renvoie true si le message a bien été envoyé, false sinon (pour que l'UI
   // restaure le texte + prévienne au lieu d'un échec silencieux).
   const send = useCallback(
-    async (content: string): Promise<boolean> => {
+    async (content: string, replyTo?: string | null): Promise<boolean> => {
       const text = content.trim()
       if (!text || sending) return false
       setSending(true)
@@ -84,7 +84,7 @@ export function useChatThread(otherUserId: string, myUserId: string) {
         const res = await apiFetch('/api/messages', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ toUserId: otherUserId, content: text }),
+          body: JSON.stringify({ toUserId: otherUserId, content: text, replyTo: replyTo ?? null }),
         })
         if (!res.ok) return false
         const msg = (await res.json()).data as MessageRow
@@ -97,6 +97,42 @@ export function useChatThread(otherUserId: string, myUserId: string) {
       }
     },
     [otherUserId, sending, append]
+  )
+
+  // Réagir à un message (toggle emoji) — optimiste.
+  const react = useCallback(
+    async (messageId: string, emoji: string) => {
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id !== messageId) return m
+          const reactions = [...(m.reactions ?? [])]
+          const idx = reactions.findIndex((r) => r.emoji === emoji)
+          if (idx >= 0) {
+            const r = reactions[idx]
+            if (r.mine) {
+              const count = r.count - 1
+              if (count <= 0) reactions.splice(idx, 1)
+              else reactions[idx] = { ...r, count, mine: false }
+            } else {
+              reactions[idx] = { ...r, count: r.count + 1, mine: true }
+            }
+          } else {
+            reactions.push({ emoji, count: 1, mine: true })
+          }
+          return { ...m, reactions }
+        })
+      )
+      try {
+        await apiFetch(`/api/messages/item/${messageId}/react`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+          body: JSON.stringify({ emoji }),
+        })
+      } catch {
+        /* optimiste — on garde l'état local */
+      }
+    },
+    []
   )
 
   // Éditer un de mes messages.
@@ -140,5 +176,5 @@ export function useChatThread(otherUserId: string, myUserId: string) {
     }
   }, [])
 
-  return { messages, loading, send, sending, editMsg, removeMsg }
+  return { messages, loading, send, sending, editMsg, removeMsg, react }
 }

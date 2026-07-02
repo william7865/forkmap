@@ -17,6 +17,7 @@ const SendSchema = z.object({
   content: z.string().trim().min(1).max(2000),
   type: z.enum(['text', 'place']).optional(),
   payload: PlacePayload.optional(),
+  replyTo: z.string().uuid().nullable().optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -35,10 +36,14 @@ export async function POST(req: NextRequest) {
       parsed.data.toUserId,
       parsed.data.content,
       parsed.data.type ?? 'text',
-      parsed.data.payload
+      parsed.data.payload,
+      parsed.data.replyTo
     )
     return NextResponse.json({ data: msg }, { status: 201 })
   } catch (err) {
+    if (err instanceof Error && err.message === 'blocked') {
+      return NextResponse.json({ error: 'Conversation indisponible.' }, { status: 403 })
+    }
     if (err instanceof Error && err.message === 'not_friends') {
       return NextResponse.json({ error: 'Vous devez être amis pour discuter.' }, { status: 403 })
     }

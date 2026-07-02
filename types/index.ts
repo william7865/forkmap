@@ -236,6 +236,7 @@ export interface PublicProfileBundle {
   status: FriendshipStatus
   friends_count: number
   mutuals: number
+  blocked: boolean
   stats: { lists: number; places: number; cuisines: number }
   lists: PublicListCard[]
 }
@@ -294,6 +295,14 @@ export interface MessageRow {
   read_at: string | null
   edited_at?: string | null
   deleted_at?: string | null
+  reply_to?: string | null
+  reactions?: MessageReaction[]
+}
+
+export interface MessageReaction {
+  emoji: string
+  count: number
+  mine: boolean
 }
 
 export interface ConversationSummary {

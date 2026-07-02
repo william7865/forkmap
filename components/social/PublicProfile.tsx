@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ChevronLeft, MessageSquare } from 'lucide-react'
+import { ChevronLeft, MessageSquare, MoreHorizontal } from 'lucide-react'
 import { Avatar } from '@/components/social/Avatar'
 import FriendButton from '@/components/social/FriendButton'
 import ChatThread from '@/components/social/ChatThread'
@@ -37,6 +37,22 @@ export default function PublicProfile({
   const [state, setState] = useState<'loading' | 'ready' | 'notfound'>('loading')
   const [openList, setOpenList] = useState<{ id: string; name: string } | null>(null)
   const [chatting, setChatting] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
+
+  const toggleBlock = async () => {
+    if (!bundle) return
+    const nowBlocked = !bundle.blocked
+    setBundle({ ...bundle, blocked: nowBlocked, status: nowBlocked ? 'none' : bundle.status })
+    setShowMenu(false)
+    try {
+      await apiFetch(`/api/blocks/${bundle.profile.id}`, {
+        method: nowBlocked ? 'POST' : 'DELETE',
+        headers: await getAuthHeaders(),
+      })
+    } catch {
+      /* noop */
+    }
+  }
 
   useEffect(() => {
     let alive = true
@@ -104,7 +120,71 @@ export default function PublicProfile({
   const p = bundle.profile
   return (
     <div style={rootStyle}>
-      <TopBar onBack={back} />
+      <TopBar onBack={back} onMenu={() => setShowMenu(true)} />
+
+      {/* Menu (bloquer / débloquer) */}
+      {showMenu && (
+        <div
+          onClick={() => setShowMenu(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1600,
+            background: 'rgba(0,0,0,0.35)',
+            display: 'flex',
+            alignItems: 'flex-end',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              background: 'var(--bg)',
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              padding: '8px 8px calc(var(--safe-bottom) + 10px)',
+              animation: 'slideUp 200ms cubic-bezier(0.16,1,0.3,1) both',
+            }}
+          >
+            <button
+              onClick={toggleBlock}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                padding: '15px 16px',
+                borderRadius: 12,
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+                fontSize: 15.5,
+                fontWeight: 600,
+                color: bundle.blocked ? 'var(--ink)' : 'var(--closed)',
+              }}
+            >
+              {bundle.blocked ? `Débloquer ${p.display_name}` : `Bloquer ${p.display_name}`}
+            </button>
+            <button
+              onClick={() => setShowMenu(false)}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                padding: '15px 16px',
+                borderRadius: 12,
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+                fontSize: 15.5,
+                fontWeight: 600,
+                color: 'var(--ink)',
+              }}
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Identity */}
       <div
@@ -145,21 +225,41 @@ export default function PublicProfile({
           </p>
         )}
         <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <FriendButton userId={p.id} status={bundle.status} />
-          {bundle.status === 'friends' && (
-            <button
-              onClick={() => setChatting(true)}
-              className="btn-secondary"
+          {bundle.blocked ? (
+            <span
               style={{
-                width: 'auto',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
+                padding: '9px 16px',
+                borderRadius: 'var(--r-pill)',
+                background: 'var(--closed-bg)',
+                color: 'var(--closed)',
+                fontSize: 13.5,
+                fontWeight: 700,
               }}
             >
-              <MessageSquare size={16} />
-              Message
-            </button>
+              Utilisateur bloqué
+            </span>
+          ) : (
+            <>
+              <FriendButton userId={p.id} status={bundle.status} />
+              {bundle.status === 'friends' && (
+                <button
+                  onClick={() => setChatting(true)}
+                  className="btn-secondary"
+                  style={{
+                    width: 'auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <MessageSquare size={16} />
+                  Message
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -286,9 +386,15 @@ export default function PublicProfile({
   )
 }
 
-function TopBar({ onBack }: { onBack: () => void }) {
+function TopBar({ onBack, onMenu }: { onBack: () => void; onMenu?: () => void }) {
   return (
-    <div style={{ padding: 'calc(var(--safe-top) + 10px) 16px 0', display: 'flex' }}>
+    <div
+      style={{
+        padding: 'calc(var(--safe-top) + 10px) 16px 0',
+        display: 'flex',
+        alignItems: 'center',
+      }}
+    >
       <button
         onClick={onBack}
         aria-label="Retour"
@@ -302,6 +408,22 @@ function TopBar({ onBack }: { onBack: () => void }) {
       >
         <ChevronLeft size={24} />
       </button>
+      {onMenu && (
+        <button
+          onClick={onMenu}
+          aria-label="Options"
+          style={{
+            marginLeft: 'auto',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'var(--ink)',
+            padding: 0,
+          }}
+        >
+          <MoreHorizontal size={22} />
+        </button>
+      )}
     </div>
   )
 }
