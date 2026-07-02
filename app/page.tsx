@@ -1221,7 +1221,11 @@ export default function HomePage() {
             selectedId={selectedPlace?.osm_id}
             hoveredId={hoveredId}
             onHover={setHoveredId}
-            onSelect={handleMarkerClick}
+            onSelect={(p) => {
+              // Depuis la liste : ouvrir directement la fiche (pas la carte flottante d'aperçu).
+              handleMarkerClick(p)
+              setTimeout(() => setDetailExpanded(true), 0)
+            }}
             onToggleFavorite={handleToggleFavorite}
             loading={loading}
             error={error}

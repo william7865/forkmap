@@ -1426,6 +1426,11 @@ export default function PlaceDetail({
                 </span>
               )}
             </div>
+            <CopyAddressButton
+              text={[place.address, place.osm_enriched?.district ?? place.osm_enriched?.city]
+                .filter(Boolean)
+                .join(', ')}
+            />
           </div>
         )}
 
@@ -1827,5 +1832,61 @@ export default function PlaceDetail({
 
       <style>{`@keyframes shimmer { 0%{background-position:100% 0} 100%{background-position:-100% 0} }`}</style>
     </div>
+  )
+}
+
+// Bouton « copier l'adresse » avec retour visuel.
+function CopyAddressButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  if (!text) return null
+  const copy = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      /* clipboard indispo */
+    }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+  return (
+    <button
+      onClick={copy}
+      aria-label="Copier l'adresse"
+      style={{
+        flexShrink: 0,
+        alignSelf: 'center',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 5,
+        padding: '6px 10px',
+        borderRadius: 999,
+        border: 'none',
+        cursor: 'pointer',
+        background: copied ? 'var(--open-bg)' : 'rgba(28,25,23,0.06)',
+        color: copied ? 'var(--open)' : 'var(--ink-60)',
+        fontSize: 11.5,
+        fontWeight: 700,
+        fontFamily: 'var(--font-body)',
+        transition: 'background 140ms ease, color 140ms ease',
+      }}
+    >
+      {copied ? (
+        <>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+          Copié
+        </>
+      ) : (
+        <>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
+          Copier
+        </>
+      )}
+    </button>
   )
 }
