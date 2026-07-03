@@ -3,10 +3,11 @@
 // Reproduit la maquette Stitch « Carte Interactive » : photo + note + badges + « Voir la fiche » + ❤️.
 import { memo, useState } from 'react'
 import type { PlaceCard } from '@/types'
-import { Star, Bookmark, X, Utensils, Send } from 'lucide-react'
+import { Star, Bookmark, X, Send } from 'lucide-react'
 import { frCuisine } from '@/lib/cuisine'
 import { useIsNative } from '@/lib/native/platform'
 import SendToFriendSheet from '@/components/social/SendToFriendSheet'
+import PlaceThumb from '@/components/place/PlaceThumb'
 
 interface Props {
   place: PlaceCard
@@ -15,6 +16,7 @@ interface Props {
   onToggleFavorite: () => void
 }
 
+// Best photo URL — used for the "send to friend" share payload.
 function photoUrl(place: PlaceCard, size: number): string | null {
   const p = place.fsq?.photos?.[0]
   if (p) return `${p.prefix}${size}x${size}${p.suffix}`
@@ -33,7 +35,6 @@ const MapPlaceCard = memo(function MapPlaceCard({
 }: Props) {
   const native = useIsNative()
   const [sharing, setSharing] = useState(false)
-  const photo = photoUrl(place, 220)
   const cuisine = place.cuisine ?? place.fsq?.categories?.[0]?.name
   const zone = place.osm_enriched?.district ?? place.osm_enriched?.city
   const rating = place.fsq?.rating
@@ -82,22 +83,9 @@ const MapPlaceCard = memo(function MapPlaceCard({
           padding: 0,
           cursor: 'pointer',
           background: 'var(--surface-2)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--text-4)',
         }}
       >
-        {photo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={photo}
-            alt=""
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          />
-        ) : (
-          <Utensils size={30} strokeWidth={1.5} />
-        )}
+        <PlaceThumb place={place} initialSize={44} />
       </button>
 
       {/* Content */}

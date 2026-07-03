@@ -17,6 +17,7 @@ import { annotateDistances, annotateScores, applyFilters } from '@/lib/scoring'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { apiFetch } from '@/lib/api'
 import { heavyTap } from '@/lib/native/haptics'
+import { pullCloudNotes } from '@/components/place/NoteModal'
 
 interface BBox {
   minLon: number
@@ -91,6 +92,9 @@ export function useRestaurants() {
   // hearts survive /favorites → / navigation.
   useEffect(() => {
     let cancelled = false
+
+    // Sync personal notes from the cloud into the local cache (self-gates on auth).
+    void pullCloudNotes()
 
     getAuthHeaders().then((authHeaders) => {
       if (cancelled) return
@@ -294,6 +298,66 @@ export function useRestaurants() {
           is_favorite: favoriteIdsRef.current.has(p.osm_id),
         }))
         publish(withFav)
+      }
+
+      // ── Step 3: Google enrichment (rating, photos, hours) via the DIY
+      // scraper (or a keyed provider — see lib/google.ts). CAPPED to the top
+      // RICH_CAP places by current score: the scraper hits Google directly and
+      // must stay light to avoid blocks / burning a provider quota. The route
+      // degrades gracefully when no provider is available.
+      const RICH_CAP = 10
+      const topIds = new Set(
+        [...enriched]
+          .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+          .slice(0, RICH_CAP)
+          .map((p) => p.osm_id)
+      )
+      const richBatch = osmPlaces.filter((p) => topIds.has(p.osm_id))
+
+      if (richBatch.length && fetchCount.current === myFetch) {
+        try {
+          const res = await apiFetch('/api/places/enrich-google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ places: richBatch }),
+            signal,
+          })
+          const data = await res.json()
+          const googleBatch: PlaceCard[] = data.data ?? richBatch
+          const googleMap = new Map(googleBatch.map((e) => [e.osm_id, e]))
+          enriched = enriched.map((orig) => {
+            const g = googleMap.get(orig.osm_id)
+            if (!g?.fsq) return orig
+            // Merge Google rich fields onto FSQ/OSM base; keep FSQ categories.
+            const mergedFsq = {
+              ...orig.fsq,
+              ...g.fsq,
+              categories: orig.fsq?.categories ?? g.fsq?.categories,
+            }
+            return {
+              ...orig,
+              fsq: mergedFsq,
+              fsq_rating: mergedFsq.rating ?? orig.fsq_rating,
+              open_now: orig.open_now ?? g.open_now,
+              is_favorite: favoriteIdsRef.current.has(orig.osm_id),
+            }
+          })
+        } catch {
+          // Google failed — keep FSQ/OSM-enriched data, still useful.
+        }
+
+        if (fetchCount.current !== myFetch) return
+        const gMap = new Map(enriched.map((e) => [e.osm_id, e]))
+        const gCombined = osmPlaces.map((orig) => {
+          const found = gMap.get(orig.osm_id)
+          return found ?? { ...orig, is_favorite: favoriteIdsRef.current.has(orig.osm_id) }
+        })
+        const gScored = annotateScores(annotateDistances(gCombined, bbox.centerLat, bbox.centerLon))
+        const gWithFav = gScored.map((p) => ({
+          ...p,
+          is_favorite: favoriteIdsRef.current.has(p.osm_id),
+        }))
+        publish(gWithFav)
       }
 
       // Final flush — publish the fully-enriched state immediately.

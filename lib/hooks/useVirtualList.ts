@@ -10,6 +10,9 @@ import { useRef, useState, useEffect } from 'react'
 interface UseVirtualListOptions {
   itemHeight: number // fixed row height in px
   overscan?: number // extra rows above/below viewport (default 5)
+  /** Height of non-virtualized content rendered above the list inside the same
+      scroll container (e.g. an editorial header). Shifts the visible window. */
+  leadingOffset?: number
 }
 
 interface UseVirtualListReturn<T> {
@@ -20,7 +23,7 @@ interface UseVirtualListReturn<T> {
 
 export function useVirtualList<T>(
   items: T[],
-  { itemHeight, overscan = 6 }: UseVirtualListOptions
+  { itemHeight, overscan = 6, leadingOffset = 0 }: UseVirtualListOptions
 ): UseVirtualListReturn<T> {
   const containerRef = useRef<HTMLDivElement>(null!)
   const [scrollTop, setScrollTop] = useState(0)
@@ -48,10 +51,13 @@ export function useVirtualList<T>(
 
   const totalHeight = items.length * itemHeight
 
-  const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan)
+  // The list starts `leadingOffset` px down the scroll content (below the
+  // header), so shift the scroll position into list-space before windowing.
+  const listScroll = scrollTop - leadingOffset
+  const startIndex = Math.max(0, Math.floor(listScroll / itemHeight) - overscan)
   const endIndex = Math.min(
     items.length - 1,
-    Math.ceil((scrollTop + viewportHeight) / itemHeight) + overscan
+    Math.ceil((listScroll + viewportHeight) / itemHeight) + overscan
   )
 
   const virtualItems = []

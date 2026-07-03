@@ -39,6 +39,11 @@ NEXT_PUBLIC_SUPABASE_URL=https://yourproject.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key       # auth côté client + vérification du token côté serveur
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key   # opérations BDD côté serveur (contourne la RLS)
 FOURSQUARE_API_KEY=fsq3xxxxx                       # optionnel — dégradation gracieuse sans la clé
+# --- Enrichissement Google (note/photos/horaires) via lib/google.ts — providers interchangeables ---
+PLACES_PROVIDER=                                   # optionnel — force le provider : scrape | serpapi | google. Défaut : scrape (DIY, gratuit, sans clé)
+PLACES_SCRAPE=                                     # optionnel — mettre "off" pour désactiver le scraper DIY
+SERPAPI_KEY=                                       # optionnel — provider serpapi (moteur google_maps, palier gratuit ~100/mois)
+GOOGLE_PLACES_API_KEY=AIzaxxxxx                    # optionnel — provider google (API Places New, nécessite facturation)
 RESEND_API_KEY=re_xxxxx                            # optionnel — sans elle, le formulaire de contact n'envoie pas d'email
 CONTACT_EMAIL_TO=hello@forkmap.app                 # optionnel — destinataire du formulaire de contact (défaut : hello@forkmap.app)
 NEXT_PUBLIC_API_URL=https://forkmap.vercel.app     # UNIQUEMENT pour les builds mobiles — pointe l'app statique vers l'API. Laisser vide sur Vercel (appels relatifs).
@@ -51,6 +56,7 @@ Exécuter les fichiers SQL dans l'éditeur SQL de Supabase **dans cet ordre** :
 3. `sql/push_tokens.sql` — table `push_tokens` + RLS (push mobile).
 4. `sql/profiles.sql` — table `profiles` + RLS (profils publics).
 5. `sql/avatars-storage.sql` — bucket Storage `avatars` + politiques d'accès.
+6. `sql/notes.sql` — table `notes` + RLS (notes perso synchronisées, ex-localStorage).
 
 Pour l'OAuth Google, activer le provider Google dans Supabase Auth et ajouter la redirection vers `/auth/callback`.
 
@@ -115,6 +121,10 @@ Score composite dans `[0,1]` : **note 40 % + popularité 20 % + distance 30 % + 
 | `osm/overpass`              | GET                 | POI bruts. Cache, limité à 30/min.                   |
 | `places/enrich-osm`         | POST                | Tags OSM détaillés + Wikidata optionnel. Gratuit.    |
 | `places/enrich`             | POST                | Foursquare. Limité à 20/min.                         |
+| `places/enrich-google`      | POST                | Google Places New (note/prix/photos/horaires). 20/min. |
+| `places/google-photo`       | GET                 | Proxy image Google (clé côté serveur, non stockée).  |
+| `places/social`             | GET                 | Amis ayant enregistré/visité un lieu (`?osm_id=`).   |
+| `notes`                     | GET / PUT           | Notes perso synchronisées (`?`/body `osm_id`+`text`). |
 | `favorites`                 | GET / POST / DELETE | Liste / ajout / vidage des favoris.                  |
 | `favorites/[osmId]`         | DELETE              | Supprime un favori.                                  |
 | `lists`                     | GET / POST          | Listes utilisateur.                                  |

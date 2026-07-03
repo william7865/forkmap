@@ -48,6 +48,9 @@ import { apiFetch } from '@/lib/api'
 import { frCuisine } from '@/lib/cuisine'
 import { isNativeRuntime } from '@/lib/native/platform'
 import { nativeShare } from '@/lib/native/share'
+import { placeGradient } from '@/lib/gradients'
+import PlaceThumb, { placeInitial } from '@/components/place/PlaceThumb'
+import PlaceSocialProof from '@/components/place/PlaceSocialProof'
 
 // dirflg Apple Maps : w=marche, d=voiture (vélo retombe sur voiture)
 const APPLE_FLAG: Record<string, string> = { walking: 'w', bicycling: 'd', driving: 'd' }
@@ -421,13 +424,14 @@ export default function PlaceDetail({
               position: 'relative',
               height: 200,
               flexShrink: 0,
-              background: photoUrl
-                ? undefined
-                : 'linear-gradient(150deg, var(--ember) 0%, var(--ember-hover) 42%, var(--accent) 100%)',
+              background: photoUrl ? undefined : placeGradient(place.osm_id),
               overflow: 'hidden',
             }}
           >
-            {photoUrl && (
+            {photos.length > 1 ? (
+              // Multiple photos → swipeable gallery (dots + snap)
+              <PhotoGallery photos={photos} />
+            ) : photoUrl ? (
               <Image
                 src={photoUrl}
                 alt=""
@@ -436,6 +440,26 @@ export default function PlaceDetail({
                 style={{ objectFit: 'cover' }}
                 priority
               />
+            ) : (
+              // Editorial fallback: the place's initial in the display serif,
+              // over its deterministic gradient (no photo → still branded).
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 96,
+                  fontWeight: 600,
+                  letterSpacing: '-0.02em',
+                  color: 'rgba(255,255,255,0.9)',
+                }}
+              >
+                {placeInitial(place.name)}
+              </span>
             )}
 
             {/* Glassmorphism buttons on photo */}
@@ -678,6 +702,9 @@ export default function PlaceDetail({
           gap: 18,
         }}
       >
+        {/* Friends who saved / visited this place (renders nothing if none) */}
+        <PlaceSocialProof osmId={place.osm_id} />
+
         {/* Secondary actions: Note + Visite + cuisine filter */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <button
@@ -1555,6 +1582,72 @@ export default function PlaceDetail({
                 <IcoVisit /> Mes visites ({visits.length})
               </span>
             </Label>
+            {/* Personal history digest — computed from the visits already loaded */}
+            {(() => {
+              const rated = visits.filter((v) => v.personal_rating != null)
+              const spent = visits.filter((v) => v.amount_spent != null && v.amount_spent > 0)
+              const avgRating = rated.length
+                ? rated.reduce((s, v) => s + (v.personal_rating ?? 0), 0) / rated.length
+                : null
+              const avgSpend = spent.length
+                ? Math.round(spent.reduce((s, v) => s + (v.amount_spent ?? 0), 0) / spent.length)
+                : null
+              const last = visits[0]?.visited_at // API returns newest-first
+              const tiles: { v: string; l: string }[] = [
+                { v: String(visits.length), l: visits.length > 1 ? 'visites' : 'visite' },
+              ]
+              if (last)
+                tiles.push({
+                  v: new Date(last).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
+                  l: 'dernière',
+                })
+              if (avgRating != null) tiles.push({ v: `${avgRating.toFixed(1)}★`, l: 'note moy.' })
+              if (avgSpend != null) tiles.push({ v: `${avgSpend} €`, l: 'par repas' })
+              return (
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 8,
+                    marginBottom: 10,
+                    background: 'var(--off-white)',
+                    border: '1px solid var(--ink-10)',
+                    borderRadius: 'var(--r-md)',
+                    padding: '11px 12px',
+                  }}
+                >
+                  {tiles.map((t, i) => (
+                    <div key={i} style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontFamily: 'var(--font-display)',
+                          fontSize: 16,
+                          fontWeight: 600,
+                          color: 'var(--ink)',
+                          letterSpacing: '-0.01em',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {t.v}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 9.5,
+                          letterSpacing: '0.06em',
+                          textTransform: 'uppercase',
+                          color: 'var(--ink-40)',
+                          fontWeight: 600,
+                          marginTop: 2,
+                        }}
+                      >
+                        {t.l}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
             <div
               style={{
                 display: 'flex',
@@ -1709,27 +1802,18 @@ export default function PlaceDetail({
                       e.currentTarget.style.borderColor = 'var(--ink-10)'
                     }}
                   >
-                    {/* Mini gradient thumb */}
+                    {/* Mini thumb — photo or light editorial tile (consistent) */}
                     <div
                       style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 8,
+                        width: 38,
+                        height: 38,
+                        borderRadius: 10,
                         flexShrink: 0,
-                        background: c ? `linear-gradient(135deg,#1a2e1a,#3d6e3d)` : 'var(--cream)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        overflow: 'hidden',
+                        position: 'relative',
                       }}
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                        <path
-                          d="M9 4v8c0 2.5 1 4 3 4.5V21M15 4v5c0 1-.7 1.5-1.5 1.5S12 10 12 9V4M15 9.5c0 2 1.5 3 3 3V21"
-                          stroke="rgba(255,255,255,0.7)"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                        />
-                      </svg>
+                      <PlaceThumb place={p} initialSize={16} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p
@@ -1873,14 +1957,32 @@ function CopyAddressButton({ text }: { text: string }) {
     >
       {copied ? (
         <>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M20 6 9 17l-5-5" />
           </svg>
           Copié
         </>
       ) : (
         <>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
           </svg>

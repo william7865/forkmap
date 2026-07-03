@@ -71,6 +71,38 @@ export async function removeFavorite(userId: string, osmId: string): Promise<voi
   if (error) throw error
 }
 
+// ---------- Personal notes (synced) ----------
+
+export interface NoteRow {
+  osm_id: string
+  text: string
+  updated_at: string
+}
+
+export async function getNotes(userId: string): Promise<NoteRow[]> {
+  const { data, error } = await db
+    .from('notes')
+    .select('osm_id, text, updated_at')
+    .eq('user_id', userId)
+  if (error) throw error
+  return (data ?? []) as NoteRow[]
+}
+
+export async function upsertNote(userId: string, osmId: string, text: string): Promise<void> {
+  const { error } = await db
+    .from('notes')
+    .upsert(
+      { user_id: userId, osm_id: osmId, text, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id,osm_id' }
+    )
+  if (error) throw error
+}
+
+export async function deleteNote(userId: string, osmId: string): Promise<void> {
+  const { error } = await db.from('notes').delete().eq('user_id', userId).eq('osm_id', osmId)
+  if (error) throw error
+}
+
 // ---------- OSM ↔ FSQ mapping ----------
 
 export async function getFsqMapping(osmId: string): Promise<OsmFsqMapping | null> {
@@ -534,7 +566,12 @@ export async function createProfile(
 
 export async function updateProfile(
   userId: string,
-  patch: { display_name?: string; avatar_url?: string | null; username?: string; bio?: string | null }
+  patch: {
+    display_name?: string
+    avatar_url?: string | null
+    username?: string
+    bio?: string | null
+  }
 ): Promise<Profile> {
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (patch.display_name !== undefined) update.display_name = patch.display_name
@@ -622,6 +659,113 @@ export async function searchUsers(meId: string, q: string): Promise<UserSearchRe
     )
     return { ...p, status: relationFrom(row ?? null, meId) }
   })
+}
+
+// ---------- Social proof for a place ----------
+
+export type FriendLite = Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url'>
+
+export interface PlaceSocialProof {
+  saved: FriendLite[]
+  visited: FriendLite[]
+}
+
+/**
+ * Which of the current user's accepted friends have saved and/or visited a
+ * given place. Powers the "friends who saved this" row on the place detail.
+ */
+export async function getPlaceSocialProof(meId: string, osmId: string): Promise<PlaceSocialProof> {
+  const empty: PlaceSocialProof = { saved: [], visited: [] }
+
+  const { data: rels, error: relErr } = await db
+    .from('friendships')
+    .select('requester_id, addressee_id')
+    .eq('status', 'accepted')
+    .or(`requester_id.eq.${meId},addressee_id.eq.${meId}`)
+  if (relErr) throw relErr
+
+  const friendIds = (rels ?? []).map((r) =>
+    r.requester_id === meId ? r.addressee_id : r.requester_id
+  )
+  if (friendIds.length === 0) return empty
+
+  const [favs, vis] = await Promise.all([
+    db.from('favorites').select('user_id').eq('osm_id', osmId).in('user_id', friendIds),
+    db.from('visits').select('user_id').eq('osm_id', osmId).in('user_id', friendIds),
+  ])
+  if (favs.error) throw favs.error
+  if (vis.error) throw vis.error
+
+  const savedIds = [...new Set((favs.data ?? []).map((r) => r.user_id as string))]
+  const visitedIds = [...new Set((vis.data ?? []).map((r) => r.user_id as string))]
+  const allIds = [...new Set([...savedIds, ...visitedIds])]
+  if (allIds.length === 0) return empty
+
+  const { data: profs, error: pErr } = await db
+    .from('profiles')
+    .select('id, username, display_name, avatar_url')
+    .in('id', allIds)
+  if (pErr) throw pErr
+
+  const byId = new Map((profs ?? []).map((p) => [p.id, p as FriendLite]))
+  const pick = (ids: string[]) => ids.map((id) => byId.get(id)).filter((p): p is FriendLite => !!p)
+  return { saved: pick(savedIds), visited: pick(visitedIds) }
+}
+
+/**
+ * Batch social proof: for many places at once, which friends saved OR visited
+ * each. Powers the avatar hint on discovery cards. Returns a map osm_id →
+ * friends (max 5 each). One friendships query + one favorites + one visits.
+ */
+export async function getPlaceSocialProofBatch(
+  meId: string,
+  osmIds: string[]
+): Promise<Record<string, FriendLite[]>> {
+  if (osmIds.length === 0) return {}
+
+  const { data: rels, error: relErr } = await db
+    .from('friendships')
+    .select('requester_id, addressee_id')
+    .eq('status', 'accepted')
+    .or(`requester_id.eq.${meId},addressee_id.eq.${meId}`)
+  if (relErr) throw relErr
+  const friendIds = (rels ?? []).map((r) =>
+    r.requester_id === meId ? r.addressee_id : r.requester_id
+  )
+  if (friendIds.length === 0) return {}
+
+  const [favs, vis] = await Promise.all([
+    db.from('favorites').select('user_id, osm_id').in('osm_id', osmIds).in('user_id', friendIds),
+    db.from('visits').select('user_id, osm_id').in('osm_id', osmIds).in('user_id', friendIds),
+  ])
+  if (favs.error) throw favs.error
+  if (vis.error) throw vis.error
+
+  const byPlace = new Map<string, Set<string>>()
+  for (const r of [...(favs.data ?? []), ...(vis.data ?? [])]) {
+    const osmId = r.osm_id as string
+    if (!byPlace.has(osmId)) byPlace.set(osmId, new Set())
+    byPlace.get(osmId)!.add(r.user_id as string)
+  }
+  const allIds = [...new Set([...byPlace.values()].flatMap((s) => [...s]))]
+  if (allIds.length === 0) return {}
+
+  const { data: profs, error: pErr } = await db
+    .from('profiles')
+    .select('id, username, display_name, avatar_url')
+    .in('id', allIds)
+  if (pErr) throw pErr
+  const byId = new Map((profs ?? []).map((p) => [p.id, p as FriendLite]))
+
+  const out: Record<string, FriendLite[]> = {}
+  for (const [osmId, set] of byPlace) {
+    const friends = [...set]
+      .map((id) => byId.get(id))
+      .filter((p): p is FriendLite => !!p)
+      .slice(0, 5)
+    if (friends.length) out[osmId] = friends
+  }
+  return out
 }
 
 export async function sendFriendRequest(meId: string, otherId: string): Promise<FriendshipStatus> {
@@ -737,7 +881,11 @@ export async function createNotification(
   }
   if (pushBody) {
     const title =
-      type === 'message' ? 'Nouveau message' : type === 'friend_request' ? "Demande d'ami" : 'Forkmap'
+      type === 'message'
+        ? 'Nouveau message'
+        : type === 'friend_request'
+          ? "Demande d'ami"
+          : 'Forkmap'
     void sendPushToUser(userId, title, pushBody, { type, ...(data ?? {}) })
   }
 }
@@ -796,7 +944,11 @@ export async function blockUser(meId: string, otherId: string): Promise<void> {
 }
 
 export async function unblockUser(meId: string, otherId: string): Promise<void> {
-  const { error } = await db.from('blocks').delete().eq('blocker_id', meId).eq('blocked_id', otherId)
+  const { error } = await db
+    .from('blocks')
+    .delete()
+    .eq('blocker_id', meId)
+    .eq('blocked_id', otherId)
   if (error) throw error
 }
 
@@ -865,7 +1017,10 @@ export async function toggleReaction(
     .eq('emoji', emoji)
     .maybeSingle()
   if (existing) {
-    await db.from('message_reactions').delete().eq('id', (existing as { id: string }).id)
+    await db
+      .from('message_reactions')
+      .delete()
+      .eq('id', (existing as { id: string }).id)
   } else {
     await db.from('message_reactions').insert({ message_id: messageId, user_id: meId, emoji })
   }
@@ -1296,17 +1451,24 @@ export async function setConversationMuted(
   otherId: string,
   muted: boolean
 ): Promise<void> {
-  const { error } = await db.from('conversation_prefs').upsert(
-    { user_id: meId, other_id: otherId, muted, updated_at: new Date().toISOString() },
-    { onConflict: 'user_id,other_id' }
-  )
+  const { error } = await db
+    .from('conversation_prefs')
+    .upsert(
+      { user_id: meId, other_id: otherId, muted, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id,other_id' }
+    )
   if (error) throw error
 }
 
 // « Supprimer la conversation pour moi » — masque les messages jusqu'à maintenant.
 export async function clearConversation(meId: string, otherId: string): Promise<void> {
   const { error } = await db.from('conversation_prefs').upsert(
-    { user_id: meId, other_id: otherId, cleared_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+    {
+      user_id: meId,
+      other_id: otherId,
+      cleared_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
     { onConflict: 'user_id,other_id' }
   )
   if (error) throw error

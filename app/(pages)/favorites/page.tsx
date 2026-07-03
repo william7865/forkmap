@@ -22,6 +22,7 @@ import { ListCard, NewListCard } from '@/components/lists/ListCard'
 import { CreateListModal } from '@/components/lists/CreateListModal'
 import { SaveToListPopup } from '@/components/lists/SaveToListPopup'
 import { placeGradient } from '@/lib/gradients'
+import { placeInitial } from '@/components/place/PlaceThumb'
 import { frCuisine } from '@/lib/cuisine'
 import { setPendingSelect } from '@/lib/pendingSelect'
 
@@ -1160,7 +1161,7 @@ function FavCardList({
           animationDelay: `${index * 35}ms`,
         }}
       >
-        {photo && (
+        {photo ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={photo}
@@ -1173,6 +1174,25 @@ function FavCardList({
               objectFit: 'cover',
             }}
           />
+        ) : (
+          // No photo → serif-initial watermark (same language as the rest of the app)
+          <span
+            aria-hidden
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontFamily: 'var(--font-display)',
+              fontSize: 76,
+              fontWeight: 600,
+              letterSpacing: '-0.02em',
+              color: 'rgba(255,255,255,0.9)',
+            }}
+          >
+            {placeInitial(fav.snapshot?.name ?? fav.name)}
+          </span>
         )}
         {/* Scrim légibilité */}
         <div
@@ -2435,13 +2455,66 @@ function FavoritesPageInner() {
               ) : listItems.length === 0 ? (
                 <div
                   style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
                     textAlign: 'center',
-                    padding: '40px 0',
-                    color: 'var(--text-3)',
-                    fontSize: 13,
+                    padding: '34px 24px',
+                    gap: 14,
                   }}
                 >
-                  Cette liste est vide.
+                  <div
+                    style={{
+                      width: 58,
+                      height: 58,
+                      borderRadius: 18,
+                      background: 'var(--surface-2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--text-3)',
+                    }}
+                  >
+                    <IcoListPlus />
+                  </div>
+                  <div>
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        fontSize: 18,
+                        fontWeight: 600,
+                        color: 'var(--text)',
+                        letterSpacing: '-0.01em',
+                      }}
+                    >
+                      Cette liste attend ses adresses
+                    </div>
+                    <p
+                      style={{
+                        margin: '6px 0 0',
+                        fontSize: 13.5,
+                        color: 'var(--text-2)',
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      Ouvre un restaurant et ajoute-le à cette liste pour le retrouver ici.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => router.push('/')}
+                    style={{
+                      background: 'var(--accent)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 999,
+                      padding: '11px 20px',
+                      fontSize: 13.5,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Explorer la carte
+                  </button>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

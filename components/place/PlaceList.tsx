@@ -1,7 +1,9 @@
-// PlaceList — virtualized with proper empty/error states
+// PlaceList — single-scroll virtualized list. An optional `header` (editorial
+// hero, rail, concierge…) renders inside the SAME scroll container so the whole
+// sheet scrolls as one feed — no nested/double scroll.
 'use client'
 
-import { memo } from 'react'
+import { memo, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { PlaceCard } from '@/types'
 import PlaceCardItem, { ITEM_HEIGHT, ITEM_HEIGHT_NATIVE } from './PlaceCard'
 import { useVirtualList } from '@/lib/hooks/useVirtualList'
@@ -18,6 +20,8 @@ interface Props {
   onSelect: (p: PlaceCard) => void
   onToggleFavorite: (p: PlaceCard) => void
   onShare?: (p: PlaceCard) => void
+  /** Content rendered above the list, inside the same scroll container. */
+  header?: ReactNode
   // State props
   loading?: boolean
   error?: string | null
@@ -35,6 +39,7 @@ const PlaceList = memo(function PlaceList({
   onSelect,
   onToggleFavorite,
   onShare,
+  header,
   loading,
   error,
   nameQuery,
@@ -44,17 +49,35 @@ const PlaceList = memo(function PlaceList({
 }: Props) {
   const native = useIsNative()
   const rowHeight = native ? ITEM_HEIGHT_NATIVE : ITEM_HEIGHT
+
+  // Measure the header so virtualization can offset its window by its height.
+  const headerRef = useRef<HTMLDivElement>(null)
+  const [headerH, setHeaderH] = useState(0)
+  useEffect(() => {
+    const el = headerRef.current
+    if (!el) {
+      setHeaderH(0)
+      return
+    }
+    const ro = new ResizeObserver(([entry]) => setHeaderH(entry.contentRect.height))
+    ro.observe(el)
+    setHeaderH(el.getBoundingClientRect().height)
+    return () => ro.disconnect()
+  }, [header])
+
   const { containerRef, virtualItems, totalHeight } = useVirtualList(places, {
     itemHeight: rowHeight,
-    overscan: 5,
+    overscan: 6,
+    leadingOffset: headerH,
   })
 
-  // Loading: show skeletons
-  if (loading && places.length === 0) return <SkeletonList />
+  const empty = !loading && places.length === 0
 
-  // Error
-  if (error && places.length === 0) {
-    return (
+  let body: ReactNode
+  if (loading && places.length === 0) {
+    body = <SkeletonList />
+  } else if (error && places.length === 0) {
+    body = (
       <ErrorState
         title="Impossible de charger les restaurants"
         message={
@@ -65,29 +88,15 @@ const PlaceList = memo(function PlaceList({
         onRetry={onRetry}
       />
     )
-  }
-
-  // Empty — no results for query
-  if (!loading && places.length === 0 && nameQuery?.trim()) {
-    return <EmptyState variant="no-results" searchQuery={nameQuery} onReset={onResetFilters} />
-  }
-
-  // Empty — filters active but nothing matches
-  if (!loading && places.length === 0 && hasActiveFilters) {
-    return <EmptyState variant="no-results" onReset={onResetFilters} />
-  }
-
-  // Empty — area has no restaurants
-  if (!loading && places.length === 0) {
-    return <EmptyState variant="no-area" />
-  }
-
-  return (
-    <div
-      ref={containerRef}
-      style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', paddingTop: 12 }}
-    >
-      <div style={{ height: totalHeight, position: 'relative' }}>
+  } else if (empty && nameQuery?.trim()) {
+    body = <EmptyState variant="no-results" searchQuery={nameQuery} onReset={onResetFilters} />
+  } else if (empty && hasActiveFilters) {
+    body = <EmptyState variant="no-results" onReset={onResetFilters} />
+  } else if (empty) {
+    body = <EmptyState variant="no-area" />
+  } else {
+    body = (
+      <div style={{ height: totalHeight, position: 'relative', paddingBottom: 12 }}>
         {virtualItems.map(({ item, index, offsetTop }) => (
           <div
             key={item.osm_id}
@@ -107,6 +116,22 @@ const PlaceList = memo(function PlaceList({
           </div>
         ))}
       </div>
+    )
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        height: '100%',
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        WebkitOverflowScrolling: 'touch',
+        paddingTop: header ? 0 : 12,
+      }}
+    >
+      {header && <div ref={headerRef}>{header}</div>}
+      {body}
     </div>
   )
 })
