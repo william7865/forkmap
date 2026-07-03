@@ -132,7 +132,7 @@ function levenshtein(a: string, b: string): number {
   return dp[m][n]
 }
 
-function nameSimilarity(a: string, b: string): number {
+export function nameSimilarity(a: string, b: string): number {
   const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
   const na = normalize(a),
     nb = normalize(b)

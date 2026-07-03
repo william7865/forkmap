@@ -18,6 +18,7 @@ import {
   type SurpriseOptions,
   type SurpriseResult,
 } from '@/lib/surprise'
+import { getMoment, suggestedMood, momentHeadline } from '@/lib/context'
 import { emptyProfile, recordSave, recordPass, isMadeForYou, type TasteProfile } from '@/lib/taste'
 import {
   X,
@@ -159,7 +160,12 @@ export default function SurpriseSheet({
   onToggleFavorite,
   onSeeSaved,
 }: Props) {
-  const [mood, setMood] = useState<Mood | null>(null)
+  // Read "the moment" once (time + weekday) and open the deck already tuned
+  // to it — a point of view a plain map never offers. It's a proposal: the
+  // suggested mood is pre-selected but one tap clears it, and it only
+  // re-weights the deck (rankDeck never hides anything).
+  const [moment] = useState(() => getMoment())
+  const [mood, setMood] = useState<Mood | null>(() => suggestedMood(moment))
   const [maxPrice, setMaxPrice] = useState<1 | 2 | 3 | 4 | null>(null)
   const [maxDistance, setMaxDistance] = useState<number | null>(null)
   const [openNow, setOpenNow] = useState(false)
@@ -433,7 +439,7 @@ export default function SurpriseSheet({
           >
             {savedCount > 0
               ? `${savedCount} gardé${savedCount > 1 ? 's' : ''} ✦`
-              : 'Trouvons ton resto'}
+              : momentHeadline(moment)}
           </h2>
         </div>
         <button
@@ -502,6 +508,23 @@ export default function SurpriseSheet({
           )
         })}
       </div>
+
+      {/* Contextual suggestion cue — transparent about why a mood is pre-selected */}
+      {mood != null && mood === suggestedMood(moment) && savedCount === 0 && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '0 18px 4px',
+            fontSize: 11,
+            color: pal.hint,
+            flexShrink: 0,
+          }}
+        >
+          <SigSparkle size={11} /> Suggéré pour ce moment · tape pour changer
+        </div>
+      )}
 
       {/* Refine panel */}
       {refine && (

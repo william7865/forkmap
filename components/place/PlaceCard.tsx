@@ -5,6 +5,8 @@ import type { PlaceCard as T } from '@/types'
 import { Bookmark, MapPin, Utensils, Star } from 'lucide-react'
 import { frCuisine } from '@/lib/cuisine'
 import { useIsNative } from '@/lib/native/platform'
+import PlaceThumb from '@/components/place/PlaceThumb'
+import { Avatar } from '@/components/social/Avatar'
 
 interface Props {
   place: T
@@ -30,13 +32,6 @@ function priceLabel(price?: number): string {
   return '€'.repeat(price)
 }
 
-// FSQ square thumbnail URL (native editorial card)
-function photoThumb(place: T, size: number): string | null {
-  const p = place.fsq?.photos?.[0]
-  if (!p) return null
-  return `${p.prefix}${size}x${size}${p.suffix}`
-}
-
 // Short editorial eyebrow badge (native)
 function badgeFor(place: T, rating?: number): { label: string; michelin: boolean } | null {
   const michelin = place.wikidata?.michelin_stars ?? place.osm_enriched?.michelin
@@ -52,8 +47,8 @@ function zoneFor(place: T): string | null {
 }
 
 export const ITEM_HEIGHT = 92
-// Native editorial card is taller (photo-forward). Web keeps ITEM_HEIGHT.
-export const ITEM_HEIGHT_NATIVE = 118
+// Native editorial card is taller (photo-forward) + airier. Web keeps ITEM_HEIGHT.
+export const ITEM_HEIGHT_NATIVE = 134
 
 const PlaceCard = memo(function PlaceCard({
   place,
@@ -93,7 +88,6 @@ const PlaceCard = memo(function PlaceCard({
 
   // ─────────────────────────── NATIVE — carte éditoriale photo-forward ──
   if (native) {
-    const photo = photoThumb(place, 220)
     const badge = badgeFor(place, rating)
     const zone = zoneFor(place)
     const cardShadow = isSelected ? 'var(--s3)' : 'var(--s2)'
@@ -104,10 +98,10 @@ const PlaceCard = memo(function PlaceCard({
         tabIndex={0}
         aria-label={`Voir ${place.name}`}
         style={{
-          height: ITEM_HEIGHT_NATIVE - 12,
+          height: ITEM_HEIGHT_NATIVE - 14,
           boxSizing: 'border-box',
           margin: '0 16px',
-          borderRadius: 20,
+          borderRadius: 22,
           overflow: 'hidden',
           position: 'relative',
           background: 'var(--bg)',
@@ -119,8 +113,8 @@ const PlaceCard = memo(function PlaceCard({
           outline: 'none',
           display: 'flex',
           alignItems: 'center',
-          padding: 9,
-          gap: 13,
+          padding: 12,
+          gap: 15,
           textAlign: 'left',
           fontFamily: 'inherit',
         }}
@@ -134,32 +128,52 @@ const PlaceCard = memo(function PlaceCard({
           }
         }}
       >
-        {/* Photo (or fallback tile) */}
+        {/* Photo (or editorial fallback tile) */}
         <div
           style={{
-            width: 100,
-            height: 100,
+            width: 94,
+            height: 94,
             borderRadius: 16,
             overflow: 'hidden',
             flexShrink: 0,
-            background: 'var(--surface-2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--text-4)',
             position: 'relative',
           }}
         >
-          {photo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={photo}
-              alt=""
-              loading="lazy"
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
-          ) : (
-            <Utensils size={26} strokeWidth={1.5} />
+          <PlaceThumb place={place} initialSize={40} />
+          {place.friendsSaved && place.friendsSaved.length > 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 5,
+                left: 5,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                background: 'rgba(255,255,255,0.94)',
+                backdropFilter: 'blur(4px)',
+                borderRadius: 999,
+                padding: '2px 7px 2px 3px',
+                boxShadow: 'var(--s1)',
+              }}
+            >
+              <div style={{ display: 'flex' }}>
+                {place.friendsSaved.slice(0, 2).map((f, i) => (
+                  <div
+                    key={f.id}
+                    style={{
+                      marginLeft: i === 0 ? 0 : -6,
+                      boxShadow: '0 0 0 1.5px #fff',
+                      borderRadius: '50%',
+                    }}
+                  >
+                    <Avatar name={f.display_name} src={f.avatar_url} id={f.id} size={16} />
+                  </div>
+                ))}
+              </div>
+              <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text)' }}>
+                {place.friendsSaved.length}
+              </span>
+            </div>
           )}
         </div>
 
@@ -172,10 +186,12 @@ const PlaceCard = memo(function PlaceCard({
             flexDirection: 'column',
             justifyContent: 'center',
             paddingRight: 34,
-            gap: 3,
+            gap: 5,
           }}
         >
-          {badge && (
+          {/* Badge reserved for Michelin only — keeps the list clean; a badge
+              on every high-rated card cheapens it. Rating carries the quality. */}
+          {badge?.michelin && (
             <span
               style={{
                 display: 'inline-flex',
@@ -185,11 +201,11 @@ const PlaceCard = memo(function PlaceCard({
                 fontWeight: 700,
                 letterSpacing: '0.06em',
                 textTransform: 'uppercase',
-                color: badge.michelin ? 'var(--text)' : 'var(--text-3)',
+                color: 'var(--text)',
                 lineHeight: 1,
               }}
             >
-              {badge.michelin && <Star size={10} strokeWidth={0} fill="var(--star)" />}
+              <Star size={10} strokeWidth={0} fill="var(--star)" />
               {badge.label}
             </span>
           )}
@@ -258,9 +274,7 @@ const PlaceCard = memo(function PlaceCard({
               </span>
             )}
             {place.distance != null && (
-              <span
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0 }}
-              >
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
                 <MapPin size={12} strokeWidth={1.75} />
                 {formatWalkTime(place.distance)}
               </span>

@@ -8,15 +8,17 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Settings } from 'lucide-react'
+import { Settings, Star, Bookmark } from 'lucide-react'
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
+import PlaceThumb from '@/components/place/PlaceThumb'
+import { frCuisine } from '@/lib/cuisine'
 import { useProfile } from '@/lib/hooks/useProfile'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { apiFetch } from '@/lib/api'
 import { Avatar } from '@/components/social/Avatar'
 import ProfileEdit from '@/components/social/ProfileEdit'
 import ShareProfileSheet from '@/components/social/ShareProfileSheet'
-import type { FavoriteRow } from '@/types'
+import type { FavoriteRow, PlaceCard } from '@/types'
 
 // ── Local types ───────────────────────────────────────────────
 interface VisitStats {
@@ -323,71 +325,163 @@ export default function ProfileScreen() {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              padding: '32px 0',
-              gap: 12,
+              padding: '30px 24px 36px',
+              gap: 14,
             }}
           >
-            <p
+            <div
               style={{
-                margin: 0,
-                fontSize: 14,
+                width: 60,
+                height: 60,
+                borderRadius: 18,
+                background: 'var(--surface-2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 color: 'var(--text-3)',
-                textAlign: 'center',
               }}
             >
-              Aucun favori pour l&apos;instant.
-            </p>
+              <Bookmark size={26} strokeWidth={1.6} />
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 18,
+                  fontWeight: 600,
+                  color: 'var(--text)',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                Rien d&apos;enregistré… pour l&apos;instant
+              </div>
+              <p
+                style={{
+                  margin: '6px 0 0',
+                  fontSize: 13.5,
+                  color: 'var(--text-2)',
+                  lineHeight: 1.5,
+                }}
+              >
+                Enregistre les restaurants qui te font envie&nbsp;: ils apparaîtront ici.
+              </p>
+            </div>
             <button
               onClick={() => router.push('/')}
               style={{
-                background: 'none',
+                background: 'var(--accent)',
+                color: '#fff',
                 border: 'none',
-                padding: 0,
-                fontSize: 13,
-                color: 'var(--accent)',
-                cursor: 'pointer',
+                borderRadius: 999,
+                padding: '11px 20px',
+                fontSize: 13.5,
                 fontWeight: 600,
+                cursor: 'pointer',
               }}
             >
-              Découvrir des restaurants
+              Explorer la carte
             </button>
           </div>
         ) : (
-          previewFavs.map((f) => (
-            <div
-              key={f.id}
-              style={{
-                background: 'var(--white)',
-                border: '1px solid var(--b2)',
-                borderRadius: 'var(--r-md)',
-                padding: '12px 14px',
-                marginTop: 8,
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <span
-                style={{
-                  fontWeight: 600,
-                  fontSize: 15,
-                  color: 'var(--ink)',
-                }}
-              >
-                {f.snapshot?.name ?? f.name}
-              </span>
-              {f.snapshot?.cuisine && (
-                <span
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+            {previewFavs.map((f) => {
+              const place: PlaceCard =
+                f.snapshot ??
+                ({
+                  osm_id: f.osm_id,
+                  osm_type: 'node',
+                  name: f.name,
+                  lat: 0,
+                  lon: 0,
+                  tags: {},
+                } as PlaceCard)
+              const rating = f.snapshot?.fsq?.rating
+              const cuisine = f.snapshot?.cuisine ?? f.snapshot?.fsq?.categories?.[0]?.name
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => router.push('/favorites')}
                   style={{
-                    fontSize: 12.5,
-                    color: 'var(--text-3)',
-                    marginTop: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    width: '100%',
+                    background: 'var(--white)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--r-lg)',
+                    padding: 8,
+                    cursor: 'pointer',
+                    textAlign: 'left',
                   }}
                 >
-                  {f.snapshot.cuisine}
-                </span>
-              )}
-            </div>
-          ))
+                  <div
+                    style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: 12,
+                      overflow: 'hidden',
+                      flexShrink: 0,
+                      position: 'relative',
+                    }}
+                  >
+                    <PlaceThumb place={place} initialSize={24} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        fontSize: 16,
+                        fontWeight: 600,
+                        color: 'var(--text)',
+                        letterSpacing: '-0.01em',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {f.snapshot?.name ?? f.name}
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        marginTop: 3,
+                        fontSize: 12.5,
+                        color: 'var(--text-2)',
+                      }}
+                    >
+                      {rating != null && (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3,
+                            fontWeight: 700,
+                            color: 'var(--text)',
+                          }}
+                        >
+                          <Star size={12} strokeWidth={0} fill="var(--star)" />
+                          {rating.toFixed(1)}
+                        </span>
+                      )}
+                      {cuisine && (
+                        <span
+                          style={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {frCuisine(cuisine)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
         )}
       </div>
 

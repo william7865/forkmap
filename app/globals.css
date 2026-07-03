@@ -134,9 +134,10 @@
    La plupart des composants lisent des var() → re-thème automatique.
    ═══════════════════════════════════════════════════════════════ */
 html.native-app {
-  /* Polices — Inter partout (fidèle aux maquettes Stitch) */
+  /* Polices — UI en Inter ; noms de resto & titres en serif éditorial
+     (Playfair Display) = la "voix" de l'app native, l'anti-générique. */
   --font-body: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-display: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Playfair Display', ui-serif, Georgia, 'Times New Roman', serif;
 
   /* Accent UNIQUE — Noir */
   --accent: #1a1a1a;

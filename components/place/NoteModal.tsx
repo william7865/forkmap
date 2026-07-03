@@ -1,7 +1,12 @@
-// NoteModal.tsx — Note personnelle sur un restaurant (localStorage)
+// NoteModal.tsx — Note personnelle sur un restaurant.
+// localStorage stays the synchronous local cache (instant reads, no ripple on
+// getNote), and every write also syncs to Supabase so notes survive a
+// reinstall / new device. pullCloudNotes() merges the cloud copy on mount.
 'use client'
 import React, { useState } from 'react'
 import type { PlaceCard } from '@/types'
+import { apiFetch } from '@/lib/api'
+import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 
 const STORAGE_KEY = 'forkmap_notes_v1'
 
@@ -21,6 +26,60 @@ export function saveNote(osmId: string, note: string) {
   if (note.trim()) notes[osmId] = note.trim()
   else delete notes[osmId]
   localStorage.setItem(STORAGE_KEY, JSON.stringify(notes))
+  void syncNoteToCloud(osmId, note.trim()) // fire-and-forget
+}
+
+async function authHeaders(): Promise<Record<string, string>> {
+  try {
+    const {
+      data: { session },
+    } = await getSupabaseBrowserClient().auth.getSession()
+    return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
+  } catch {
+    return {}
+  }
+}
+
+async function syncNoteToCloud(osmId: string, text: string): Promise<void> {
+  const headers = await authHeaders()
+  if (!headers.Authorization) return // logged out → local-only, synced on next login
+  try {
+    await apiFetch('/api/notes', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: JSON.stringify({ osm_id: osmId, text }),
+    })
+  } catch {
+    // Offline / transient — the local copy is the source of truth until re-saved.
+  }
+}
+
+/**
+ * Merge the user's cloud notes into the local cache (call on mount when logged
+ * in). Cloud wins per place; any local-only notes are pushed up so pre-existing
+ * localStorage notes migrate to the cloud on first run.
+ */
+export async function pullCloudNotes(): Promise<void> {
+  if (typeof window === 'undefined') return
+  const headers = await authHeaders()
+  if (!headers.Authorization) return
+  try {
+    const res = await apiFetch('/api/notes', { headers })
+    if (!res.ok) return
+    const data: { data?: { osm_id: string; text: string }[] } = await res.json()
+    const cloud = data.data ?? []
+    const local = getNotes()
+    const merged: Record<string, string> = { ...local }
+    for (const n of cloud) merged[n.osm_id] = n.text
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
+    // Push local-only notes up (migrate old localStorage-only notes).
+    const cloudKeys = new Set(cloud.map((n) => n.osm_id))
+    for (const [osmId, text] of Object.entries(local)) {
+      if (text && !cloudKeys.has(osmId)) void syncNoteToCloud(osmId, text)
+    }
+  } catch {
+    // ignore — local cache remains usable
+  }
 }
 
 // ── Icons ─────────────────────────────────────────────────

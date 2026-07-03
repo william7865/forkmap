@@ -22,7 +22,9 @@ import {
   Shield,
   FileText,
   Map,
+  UserPlus,
 } from 'lucide-react'
+import { nativeShare } from '@/lib/native/share'
 
 // ── Sub-components ────────────────────────────────────────────
 
@@ -119,6 +121,27 @@ export default function SettingsHub() {
     setSigningOut(true)
     await auth.signOut()
     router.replace('/')
+  }
+
+  const inviteFriends = async () => {
+    const base = 'https://forkmap.vercel.app'
+    const url = profile?.username ? `${base}/u/${profile.username}` : base
+    const text = 'Rejoins-moi sur Forkmap — l’app pour trouver où manger sans se prendre la tête 🍴'
+    const handled = await nativeShare({
+      title: 'Forkmap',
+      text,
+      url,
+      dialogTitle: 'Inviter des amis',
+    })
+    if (!handled) {
+      // Web fallback: Web Share API, else copy the link.
+      try {
+        if (navigator.share) await navigator.share({ title: 'Forkmap', text, url })
+        else await navigator.clipboard.writeText(`${text} ${url}`)
+      } catch {
+        /* user cancelled */
+      }
+    }
   }
 
   return (
@@ -218,6 +241,11 @@ export default function SettingsHub() {
             />
           </button>
         )}
+
+        {/* Section: PARTAGER */}
+        <Section label="PARTAGER">
+          <HubRow icon={UserPlus} label="Inviter des amis" onClick={inviteFriends} />
+        </Section>
 
         {/* Section: COMPTE */}
         <Section label="COMPTE">

@@ -89,3 +89,8 @@ export function buildFsqSearchKey(lat: number, lon: number, name: string): strin
   const r = (n: number) => Math.round(n * 10000) / 10000;
   return `fsq-search:${r(lat)},${r(lon)}:${name.toLowerCase().slice(0, 20)}`;
 }
+
+export function buildGoogleSearchKey(lat: number, lon: number, name: string): string {
+  const r = (n: number) => Math.round(n * 10000) / 10000;
+  return `google-search:${r(lat)},${r(lon)}:${name.toLowerCase().slice(0, 20)}`;
+}

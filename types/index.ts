@@ -121,6 +121,16 @@ export interface PlaceCard extends PlaceBase {
   is_favorite?: boolean
   /** Number of times the user has visited this place */
   visitCount?: number
+  /** Friends who saved/visited this place (social proof on cards). */
+  friendsSaved?: FriendLite[]
+}
+
+/** Minimal public profile shape for social-proof avatars. */
+export interface FriendLite {
+  id: string
+  username: string
+  display_name: string
+  avatar_url: string | null
 }
 
 /** DB row: favorites table */

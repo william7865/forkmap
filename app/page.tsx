@@ -5,11 +5,13 @@ import Link from 'next/link'
 import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useHomeState, UNLISTED } from '@/lib/hooks/useHomeState'
+import { useSocialProof } from '@/lib/hooks/useSocialProof'
 import { useIsNative } from '@/lib/native/platform'
 import { frCuisine } from '@/lib/cuisine'
 import { takePendingSelect } from '@/lib/pendingSelect'
 import SuggestionsPanel from '@/components/place/SuggestionsPanel'
 import PlaceList from '@/components/place/PlaceList'
+import HomeEditorial from '@/components/home/HomeEditorial'
 import MapPlaceCard from '@/components/place/MapPlaceCard'
 import PlaceCardSkeleton from '@/components/place/PlaceCardSkeleton'
 import ToastStack from '@/components/ui/ToastStack'
@@ -154,6 +156,8 @@ export default function HomePage() {
   } = useHomeState()
 
   const native = useIsNative()
+  // Annotate visible places with friends who saved/visited them (avatar hint).
+  const socialPlaces = useSocialProof(visiblePlaces)
   // Natif : sélection → carte flottante (aperçu) ; « Voir la fiche » → détail plein écran.
   const [detailExpanded, setDetailExpanded] = useState(false)
   useEffect(() => {
@@ -310,10 +314,11 @@ export default function HomePage() {
         !savedOnly &&
         (() => {
           type ChipDef = { id: string; label: string; active: boolean; onToggle: () => void }
+          const openCount = places.filter((p) => p.open_now === true).length
           const chips: ChipDef[] = [
             {
               id: 'open',
-              label: 'Ouvert',
+              label: openCount > 0 ? `Ouvert · ${openCount}` : 'Ouvert',
               active: !!filters.openNow,
               onToggle: () => setFilters((f) => ({ ...f, openNow: !f.openNow })),
             },
@@ -1160,64 +1165,114 @@ export default function HomePage() {
           defaultSnap="half"
           bottomOffset="calc(56px + env(safe-area-inset-bottom))"
         >
-          {native ? (
-            <button
-              onClick={() => setShowSurprise(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                width: '100%',
-                padding: '12px 14px',
-                margin: '2px 0 14px',
-                borderRadius: 999,
-                border: 'none',
-                cursor: 'pointer',
-                background: 'var(--accent)',
-                color: '#fff',
-                boxShadow: 'var(--s-ember)',
-                fontFamily: 'var(--font-body)',
-              }}
-            >
-              <span
-                style={{
-                  width: 32,
-                  height: 32,
-                  flexShrink: 0,
-                  borderRadius: 999,
-                  background: 'rgba(255,255,255,0.16)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <SigSparkle size={16} />
-              </span>
-              <span style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 15, fontWeight: 600, lineHeight: 1.2 }}>
-                  Je ne sais pas quoi manger
-                </span>
-                <span
-                  style={{ display: 'block', fontSize: 12, opacity: 0.7, fontWeight: 400 }}
-                >
-                  Laisse-nous choisir pour toi
-                </span>
-              </span>
-              <ChevronRight size={20} style={{ opacity: 0.75, flexShrink: 0 }} />
-            </button>
-          ) : (
-            <button
-              onClick={() => setShowSurprise(true)}
-              className="btn-ember"
-              style={{ margin: '4px 0 12px' }}
-            >
-              <SigSparkle size={16} />
-              Je ne sais pas quoi manger
-            </button>
-          )}
-          {savedOnly && savedListTabs}
           <PlaceList
-            places={visiblePlaces}
+            header={
+              <>
+                {native && !savedOnly && visiblePlaces.length > 0 && (
+                  <HomeEditorial
+                    places={socialPlaces}
+                    onSelect={(p) => {
+                      handleMarkerClick(p)
+                      setTimeout(() => setDetailExpanded(true), 0)
+                    }}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
+                )}
+                {native ? (
+                  <button
+                    onClick={() => setShowSurprise(true)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 13,
+                      padding: '14px 16px',
+                      margin: savedOnly ? '2px 16px 14px' : '4px 16px 24px',
+                      borderRadius: 18,
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: 'var(--accent)',
+                      color: '#fff',
+                      boxShadow: 'var(--s2)',
+                      fontFamily: 'var(--font-body)',
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 38,
+                        height: 38,
+                        flexShrink: 0,
+                        borderRadius: 12,
+                        background: 'rgba(255,255,255,0.12)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--star)',
+                      }}
+                    >
+                      <SigSparkle size={17} />
+                    </span>
+                    <span style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
+                      <span
+                        style={{
+                          display: 'block',
+                          fontFamily: 'var(--font-display)',
+                          fontSize: 15.5,
+                          fontWeight: 600,
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        Je ne sais pas quoi manger
+                      </span>
+                      <span style={{ display: 'block', fontSize: 12, opacity: 0.62, marginTop: 1 }}>
+                        Laisse le concierge choisir
+                      </span>
+                    </span>
+                    <ChevronRight size={20} style={{ opacity: 0.6, flexShrink: 0 }} />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowSurprise(true)}
+                    className="btn-ember"
+                    style={{ margin: '4px 0 12px' }}
+                  >
+                    <SigSparkle size={16} />
+                    Je ne sais pas quoi manger
+                  </button>
+                )}
+                {savedOnly && savedListTabs}
+                {native && !savedOnly && visiblePlaces.length > 0 && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'baseline',
+                      justifyContent: 'space-between',
+                      margin: '0 16px 2px',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        fontSize: 20,
+                        fontWeight: 600,
+                        letterSpacing: '-0.01em',
+                      }}
+                    >
+                      Tous les restaurants
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 12.5,
+                        color: 'var(--text-3)',
+                        fontVariantNumeric: 'tabular-nums',
+                      }}
+                    >
+                      {visiblePlaces.length}
+                    </span>
+                  </div>
+                )}
+              </>
+            }
+            places={socialPlaces}
             selectedId={selectedPlace?.osm_id}
             hoveredId={hoveredId}
             onHover={setHoveredId}
