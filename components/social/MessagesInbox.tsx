@@ -8,6 +8,7 @@ import {
   BellOff,
   MessageCircle,
   Search,
+  Newspaper,
 } from 'lucide-react'
 import { Avatar } from '@/components/social/Avatar'
 import ChatThread from '@/components/social/ChatThread'
@@ -20,10 +21,12 @@ import type { ConversationSummary, Profile, FriendSuggestion, FriendRequests } f
 export default function MessagesInbox({
   onClose,
   onAddFriends,
+  onOpenFeed,
   asPage,
 }: {
   onClose?: () => void
   onAddFriends?: () => void
+  onOpenFeed?: () => void
   asPage?: boolean
 }) {
   const [convos, setConvos] = useState<ConversationSummary[]>([])
@@ -186,6 +189,26 @@ export default function MessagesInbox({
           Messages
         </h1>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+          {onOpenFeed && (
+            <button
+              onClick={onOpenFeed}
+              aria-label="Fil d'activité"
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 999,
+                border: '1px solid var(--b2)',
+                background: 'var(--white)',
+                color: 'var(--ink)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <Newspaper size={20} />
+            </button>
+          )}
           {asPage && (
             <button
               onClick={() => {
@@ -290,7 +313,9 @@ export default function MessagesInbox({
             <UserPlus size={18} strokeWidth={2.2} />
           </span>
           <span style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
-            <span style={{ display: 'block', fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>
+            <span
+              style={{ display: 'block', fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}
+            >
               {requestsCount} demande{requestsCount > 1 ? 's' : ''} d&apos;ami
             </span>
             <span style={{ display: 'block', fontSize: 12.5, color: 'var(--text-2)' }}>
@@ -413,7 +438,13 @@ export default function MessagesInbox({
             value={convSearch}
             onChange={(e) => setConvSearch(e.target.value)}
             aria-label="Rechercher une conversation"
-            style={{ paddingLeft: 38, height: 44, borderRadius: 999, background: 'var(--surface-2)', border: 'none' }}
+            style={{
+              paddingLeft: 38,
+              height: 44,
+              borderRadius: 999,
+              background: 'var(--surface-2)',
+              border: 'none',
+            }}
           />
         </div>
       )}
@@ -454,7 +485,12 @@ export default function MessagesInbox({
               }}
             >
               <span style={{ position: 'relative', flexShrink: 0 }}>
-                <Avatar name={c.user.display_name} src={c.user.avatar_url} id={c.user.id} size={46} />
+                <Avatar
+                  name={c.user.display_name}
+                  src={c.user.avatar_url}
+                  id={c.user.id}
+                  size={46}
+                />
                 {online.has(c.user.id) && (
                   <span
                     aria-label="En ligne"
