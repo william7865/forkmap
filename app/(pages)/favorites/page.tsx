@@ -1110,6 +1110,7 @@ function FavCardList({
   fav,
   index,
   note,
+  visited,
   onRemove,
   onOpenMap,
   onShare,
@@ -1122,6 +1123,7 @@ function FavCardList({
   fav: FavoriteRow
   index: number
   note: string
+  visited?: boolean
   onRemove: () => void
   onOpenMap: () => void
   onShare: () => void
@@ -1248,6 +1250,41 @@ function FavCardList({
             }}
           >
             {badge}
+          </span>
+        )}
+        {/* « Déjà testé » — une visite existe pour ce lieu */}
+        {visited && (
+          <span
+            style={{
+              position: 'absolute',
+              top: badge ? 38 : 12,
+              left: 12,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 9.5,
+              fontWeight: 800,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              color: '#fff',
+              background: 'rgba(23,148,90,0.95)',
+              borderRadius: 6,
+              padding: '3px 8px',
+            }}
+          >
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Testé
           </span>
         )}
         {/* Infos superposées */}
@@ -1768,6 +1805,8 @@ function FavoritesPageInner() {
   const [sortBy, setSortBy] = useState<SortKey>('date_desc')
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [favCuisine, setFavCuisine] = useState<string | null>(null)
+  const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set())
+  const [favTab, setFavTab] = useState<'all' | 'todo' | 'done'>('all')
   const [toDelete, setToDelete] = useState<FavoriteRow | null>(null)
   const [shareTarget, setShareTarget] = useState<FavoriteRow | null>(null)
   const [noteTarget, setNoteTarget] = useState<FavoriteRow | null>(null)
@@ -1871,6 +1910,15 @@ function FavoritesPageInner() {
       loadFavorites()
       setNotes(getNotes())
       fetchLists()
+      // Visited places → powers the "Déjà testé" vs "À essayer" split.
+      getAuthHeaders().then((headers) =>
+        apiFetch('/api/visits', { headers })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((j: { data?: { osm_id: string }[] } | null) => {
+            if (j?.data) setVisitedIds(new Set(j.data.map((v) => v.osm_id)))
+          })
+          .catch(() => {})
+      )
     }
   }, [isReady, loadFavorites, fetchLists])
 
@@ -1891,6 +1939,8 @@ function FavoritesPageInner() {
 
   const sorted = useMemo((): FavoriteRow[] => {
     let arr: FavoriteRow[] = [...favorites]
+    if (favTab === 'todo') arr = arr.filter((f) => !visitedIds.has(f.osm_id))
+    else if (favTab === 'done') arr = arr.filter((f) => visitedIds.has(f.osm_id))
     if (favCuisine) {
       arr = arr.filter(
         (f) => (f.snapshot?.cuisine ?? f.snapshot?.fsq?.categories?.[0]?.name) === favCuisine
@@ -1910,7 +1960,7 @@ function FavoritesPageInner() {
         arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     }
     return arr
-  }, [favorites, sortBy, favCuisine])
+  }, [favorites, sortBy, favCuisine, favTab, visitedIds])
 
   if (!isReady)
     return (
@@ -2004,6 +2054,73 @@ function FavoritesPageInner() {
                 : `${favorites.length} restaurant${favorites.length !== 1 ? 's' : ''} · ${lists.length} liste${lists.length !== 1 ? 's' : ''}`}
             </p>
           </div>
+
+          {/* À essayer / Déjà testé (natif) — active le journal de visites */}
+          {isNative &&
+            !activeListId &&
+            !loading &&
+            favorites.length > 0 &&
+            (() => {
+              const done = favorites.filter((f) => visitedIds.has(f.osm_id)).length
+              const tabs: { key: 'all' | 'todo' | 'done'; label: string; count: number }[] = [
+                { key: 'all', label: 'Tout', count: favorites.length },
+                { key: 'todo', label: 'À essayer', count: favorites.length - done },
+                { key: 'done', label: 'Déjà testé', count: done },
+              ]
+              return (
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 4,
+                    padding: 4,
+                    background: 'var(--surface-2)',
+                    borderRadius: 12,
+                    marginBottom: 16,
+                  }}
+                >
+                  {tabs.map((t) => {
+                    const active = favTab === t.key
+                    return (
+                      <button
+                        key={t.key}
+                        onClick={() => setFavTab(t.key)}
+                        aria-pressed={active}
+                        style={{
+                          flex: 1,
+                          padding: '8px 4px',
+                          borderRadius: 9,
+                          border: 'none',
+                          cursor: 'pointer',
+                          background: active ? 'var(--bg)' : 'transparent',
+                          boxShadow: active ? 'var(--s1)' : 'none',
+                          color: active ? 'var(--text)' : 'var(--text-2)',
+                          fontFamily: 'var(--font-body)',
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 5,
+                          transition: 'all 140ms ease',
+                        }}
+                      >
+                        {t.label}
+                        <span
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 700,
+                            color: 'var(--text-3)',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          {t.count}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )
+            })()}
 
           {/* Chips cuisines (natif — maquette « Mes Favoris ») */}
           {isNative &&
@@ -2741,11 +2858,30 @@ function FavoritesPageInner() {
                     : { display: 'flex', flexDirection: 'column', gap: 10 }
                 }
               >
+                {sorted.length === 0 && favorites.length > 0 && (
+                  <div
+                    style={{
+                      gridColumn: '1 / -1',
+                      textAlign: 'center',
+                      padding: '36px 20px',
+                      color: 'var(--text-3)',
+                      fontSize: 13.5,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {favTab === 'todo'
+                      ? 'Tous tes favoris sont déjà testés 🎉'
+                      : favTab === 'done'
+                        ? 'Rien de testé pour l’instant — logue une visite depuis une fiche.'
+                        : 'Aucun favori ici.'}
+                  </div>
+                )}
                 {sorted.map((fav, i) => (
                   <FavCardList
                     key={fav.id}
                     fav={fav}
                     index={i}
+                    visited={visitedIds.has(fav.osm_id)}
                     note={notes[fav.osm_id] ?? ''}
                     onRemove={() => setToDelete(fav)}
                     onOpenMap={() => {
