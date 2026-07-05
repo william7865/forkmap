@@ -3,6 +3,9 @@
 // (dégradé déterministe + initiale du nom en serif). Remplit son parent (le
 // parent fixe taille / rayon / overflow). Unifie carte, liste, fiche, favoris
 // sur un seul traitement — fini les carrés gris + icône fourchette.
+// Si une photo échoue au chargement (proxy Google bloqué, image 404…), on
+// retombe sur la tuile à initiale au lieu d'un carré d'image cassée.
+import { useState } from 'react'
 import type { PlaceCard } from '@/types'
 
 /** Best available photo URL for a place (FSQ/Google thumbnail, then Wikidata). */
@@ -59,15 +62,18 @@ export default function PlaceThumb({
   photoSize = 240,
   tone = 'light',
 }: Props) {
+  // Track the URL that failed (not a boolean) so a new photo still retries.
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
   const photo = thumbUrl(place, photoSize)
 
-  if (photo) {
+  if (photo && photo !== failedUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={photo}
         alt=""
         loading="lazy"
+        onError={() => setFailedUrl(photo)}
         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
       />
     )
