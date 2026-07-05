@@ -6,7 +6,9 @@ import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useHomeState, UNLISTED } from '@/lib/hooks/useHomeState'
 import { useSocialProof } from '@/lib/hooks/useSocialProof'
+import { getRecentPlaces, addRecentPlace } from '@/lib/recent'
 import { useIsNative } from '@/lib/native/platform'
+import type { PlaceCard } from '@/types'
 import { frCuisine } from '@/lib/cuisine'
 import { takePendingSelect } from '@/lib/pendingSelect'
 import SuggestionsPanel from '@/components/place/SuggestionsPanel'
@@ -158,11 +160,20 @@ export default function HomePage() {
   const native = useIsNative()
   // Annotate visible places with friends who saved/visited them (avatar hint).
   const socialPlaces = useSocialProof(visiblePlaces)
+  // Recently-viewed restaurants (localStorage) — shown in the search dropdown.
+  const [recentPlaces, setRecentPlaces] = useState<PlaceCard[]>([])
+  useEffect(() => {
+    if (searchFocused) setRecentPlaces(getRecentPlaces())
+  }, [searchFocused])
   // Natif : sélection → carte flottante (aperçu) ; « Voir la fiche » → détail plein écran.
   const [detailExpanded, setDetailExpanded] = useState(false)
   useEffect(() => {
     setDetailExpanded(false)
   }, [selectedPlace?.osm_id])
+  // Record a "recently viewed" place when its full detail is opened.
+  useEffect(() => {
+    if (detailExpanded && selectedPlace) addRecentPlace(selectedPlace)
+  }, [detailExpanded, selectedPlace])
   const closeDetailAll = useCallback(() => {
     setDetailExpanded(false)
     handleCloseDetail()
@@ -617,149 +628,210 @@ export default function HomePage() {
         )}
 
         {/* Search suggestions */}
-        {searchFocused && (nameQuery.length > 0 || recentSearches.length > 0) && (
-          <div
-            style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              marginTop: 8,
-              background: 'var(--bg)',
-              border: '1px solid var(--border)',
-              borderRadius: 12,
-              boxShadow: 'var(--s2)',
-              zIndex: 600,
-              overflow: 'hidden',
-            }}
-          >
-            {nameQuery.length > 1 &&
-              places
-                .filter(
-                  (p) =>
-                    p.name.toLowerCase().includes(nameQuery.toLowerCase()) ||
-                    (p.cuisine ?? '').toLowerCase().includes(nameQuery.toLowerCase())
-                )
-                .slice(0, 5)
-                .map((p) => (
-                  <button
-                    key={p.osm_id}
-                    onMouseDown={() => {
-                      saveSearch(p.name)
-                      setSearchFocused(false)
-                      handleMarkerClick(p)
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      width: '100%',
-                      padding: '10px 14px',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      fontFamily: 'var(--font-body)',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-                  >
-                    <Search size={14} strokeWidth={1.75} color="var(--text-3)" />
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-                      {p.name}
-                    </span>
-                    {p.cuisine && (
-                      <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{p.cuisine}</span>
-                    )}
-                  </button>
-                ))}
-
-            {nameQuery.length === 0 && recentSearches.length > 0 && (
-              <>
-                <div
-                  style={{
-                    padding: '8px 14px 4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: 'var(--text-3)',
-                      letterSpacing: '0.08em',
-                    }}
-                  >
-                    RÉCENTS
-                  </span>
-                  <button
-                    onMouseDown={(e) => {
-                      e.preventDefault()
-                      clearRecentSearches()
-                    }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: 11,
-                      color: 'var(--text-3)',
-                      padding: '0 2px',
-                      fontFamily: 'var(--font-body)',
-                    }}
-                  >
-                    Tout effacer
-                  </button>
-                </div>
-                {recentSearches.map((s) => (
-                  <div
-                    key={s}
-                    style={{ display: 'flex', alignItems: 'center', padding: '8px 14px', gap: 8 }}
-                  >
+        {searchFocused &&
+          (nameQuery.length > 0 || recentSearches.length > 0 || recentPlaces.length > 0) && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                marginTop: 8,
+                background: 'var(--bg)',
+                border: '1px solid var(--border)',
+                borderRadius: 12,
+                boxShadow: 'var(--s2)',
+                zIndex: 600,
+                overflow: 'hidden',
+              }}
+            >
+              {nameQuery.length > 1 &&
+                places
+                  .filter(
+                    (p) =>
+                      p.name.toLowerCase().includes(nameQuery.toLowerCase()) ||
+                      (p.cuisine ?? '').toLowerCase().includes(nameQuery.toLowerCase())
+                  )
+                  .slice(0, 5)
+                  .map((p) => (
                     <button
+                      key={p.osm_id}
                       onMouseDown={() => {
-                        setNameQuery(s)
+                        saveSearch(p.name)
                         setSearchFocused(false)
+                        handleMarkerClick(p)
                       }}
                       style={{
-                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        width: '100%',
+                        padding: '10px 14px',
                         background: 'none',
                         border: 'none',
                         cursor: 'pointer',
                         textAlign: 'left',
-                        fontSize: 13,
-                        color: 'var(--text)',
                         fontFamily: 'var(--font-body)',
                       }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
                     >
-                      {s}
+                      <Search size={14} strokeWidth={1.75} color="var(--text-3)" />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+                        {p.name}
+                      </span>
+                      {p.cuisine && (
+                        <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{p.cuisine}</span>
+                      )}
                     </button>
+                  ))}
+
+              {nameQuery.length === 0 && recentPlaces.length > 0 && (
+                <>
+                  <div style={{ padding: '8px 14px 4px' }}>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: 'var(--text-3)',
+                        letterSpacing: '0.08em',
+                      }}
+                    >
+                      REVUS RÉCEMMENT
+                    </span>
+                  </div>
+                  {recentPlaces.slice(0, 5).map((p) => (
                     <button
-                      onMouseDown={() =>
-                        setRecentSearches((prev) => {
-                          const n = prev.filter((r) => r !== s)
-                          localStorage.setItem('forkmap_recent_searches', JSON.stringify(n))
-                          return n
-                        })
-                      }
+                      key={p.osm_id}
+                      onMouseDown={() => {
+                        setSearchFocused(false)
+                        handleMarkerClick(p)
+                        setTimeout(() => setDetailExpanded(true), 0)
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        width: '100%',
+                        padding: '10px 14px',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        fontFamily: 'var(--font-body)',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                    >
+                      <MapPin size={14} strokeWidth={1.75} color="var(--text-3)" />
+                      <span
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: 'var(--text)',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {p.name}
+                      </span>
+                      {p.cuisine && (
+                        <span style={{ fontSize: 11, color: 'var(--text-3)', flexShrink: 0 }}>
+                          {frCuisine(p.cuisine)}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </>
+              )}
+
+              {nameQuery.length === 0 && recentSearches.length > 0 && (
+                <>
+                  <div
+                    style={{
+                      padding: '8px 14px 4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: 'var(--text-3)',
+                        letterSpacing: '0.08em',
+                      }}
+                    >
+                      RÉCENTS
+                    </span>
+                    <button
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        clearRecentSearches()
+                      }}
                       style={{
                         background: 'none',
                         border: 'none',
                         cursor: 'pointer',
+                        fontSize: 11,
                         color: 'var(--text-3)',
-                        display: 'flex',
-                        padding: 4,
+                        padding: '0 2px',
+                        fontFamily: 'var(--font-body)',
                       }}
                     >
-                      <X size={12} strokeWidth={1.75} />
+                      Tout effacer
                     </button>
                   </div>
-                ))}
-              </>
-            )}
-          </div>
-        )}
+                  {recentSearches.map((s) => (
+                    <div
+                      key={s}
+                      style={{ display: 'flex', alignItems: 'center', padding: '8px 14px', gap: 8 }}
+                    >
+                      <button
+                        onMouseDown={() => {
+                          setNameQuery(s)
+                          setSearchFocused(false)
+                        }}
+                        style={{
+                          flex: 1,
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          fontSize: 13,
+                          color: 'var(--text)',
+                          fontFamily: 'var(--font-body)',
+                        }}
+                      >
+                        {s}
+                      </button>
+                      <button
+                        onMouseDown={() =>
+                          setRecentSearches((prev) => {
+                            const n = prev.filter((r) => r !== s)
+                            localStorage.setItem('forkmap_recent_searches', JSON.stringify(n))
+                            return n
+                          })
+                        }
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: 'var(--text-3)',
+                          display: 'flex',
+                          padding: 4,
+                        }}
+                      >
+                        <X size={12} strokeWidth={1.75} />
+                      </button>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
       </div>
 
       {/* ═══ DESKTOP SIDEBAR — floating overlay ═══ */}
