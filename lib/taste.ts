@@ -23,6 +23,22 @@ export function emptyProfile(): TasteProfile {
   return { cuisines: {} }
 }
 
+/** localStorage key where the Surprise deck persists the learned taste. */
+export const TASTE_STORAGE_KEY = 'forkmap_taste'
+
+/** Load the persisted taste profile (shared by the deck and the home). */
+export function loadTasteProfile(): TasteProfile {
+  if (typeof window === 'undefined') return emptyProfile()
+  try {
+    const raw = localStorage.getItem(TASTE_STORAGE_KEY)
+    if (!raw) return emptyProfile()
+    const p = JSON.parse(raw)
+    return p && typeof p.cuisines === 'object' ? { cuisines: p.cuisines } : emptyProfile()
+  } catch {
+    return emptyProfile()
+  }
+}
+
 /** Distinct lowercased cuisine + FSQ category keys for a place. */
 export function cuisineKeys(place: PlaceCard): string[] {
   const keys: string[] = []
