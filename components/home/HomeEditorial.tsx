@@ -8,6 +8,7 @@ import type { PlaceCard } from '@/types'
 import { Star, Bookmark, MapPin, Sparkles } from 'lucide-react'
 import { frCuisine } from '@/lib/cuisine'
 import { getMoment, momentEyebrow } from '@/lib/context'
+import { loadTasteProfile, tasteBoost, isMadeForYou, emptyProfile } from '@/lib/taste'
 import PlaceThumb from '@/components/place/PlaceThumb'
 
 interface Props {
@@ -67,8 +68,11 @@ const HomeEditorial = memo(function HomeEditorial({ places, onSelect, onToggleFa
   // maintenant"…) — computed client-side so the static bundle doesn't hydrate
   // with the build-time clock.
   const [eyebrow, setEyebrow] = useState('Près de toi')
+  // Taste learned by the Surprise deck, reused here so the home reflects it.
+  const [taste, setTaste] = useState(emptyProfile())
   useEffect(() => {
     setEyebrow(momentEyebrow(getMoment()))
+    setTaste(loadTasteProfile())
   }, [])
 
   if (places.length === 0) return null
@@ -78,7 +82,9 @@ const HomeEditorial = memo(function HomeEditorial({ places, onSelect, onToggleFa
   // biases toward fast-food). Rank by rating (Michelin > rating); when no
   // rating is known, push fast-food/chains down so the hero is never a burger
   // joint, then prefer open-now, then proximity.
-  const rating = (p: PlaceCard) => (p.wikidata?.michelin_stars ? 10 : 0) + (p.fsq?.rating ?? 0)
+  // Rating + a small taste nudge (from the deck) so the hero leans to your taste.
+  const rating = (p: PlaceCard) =>
+    (p.wikidata?.michelin_stars ? 10 : 0) + (p.fsq?.rating ?? 0) + tasteBoost(taste, p)
   const isChainish = (p: PlaceCard) =>
     /fast_food|burger/i.test(`${p.cuisine ?? ''} ${p.fsq?.categories?.[0]?.name ?? ''}`)
   const heroRank = (a: PlaceCard, b: PlaceCard) => {
@@ -91,7 +97,14 @@ const HomeEditorial = memo(function HomeEditorial({ places, onSelect, onToggleFa
   }
   const hero = [...places].sort(heroRank)[0] ?? places[0]
   const rail = places.filter((p) => p.osm_id !== hero.osm_id).slice(0, 8)
-  const heroBadge = badgeFor(hero)
+  const baseBadge = badgeFor(hero)
+  // "Fait pour toi" when the hero matches your taste (Michelin still wins).
+  const heroBadge =
+    baseBadge === 'Étoilé Michelin'
+      ? baseBadge
+      : isMadeForYou(taste, hero)
+        ? 'Fait pour toi'
+        : baseBadge
   const heroWalk = walkTime(hero.distance)
   const heroCuisine = hero.cuisine ?? hero.fsq?.categories?.[0]?.name
 
