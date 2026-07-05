@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/hooks/useAuth'
 import { useProfile } from '@/lib/hooks/useProfile'
 import FriendsView from '@/components/social/FriendsView'
 import MessagesInbox from '@/components/social/MessagesInbox'
+import ActivityFeed from '@/components/social/ActivityFeed'
 
 const AuthFlow = dynamic(() => import('@/components/auth/AuthFlow'), { ssr: false })
 
@@ -14,6 +15,7 @@ export default function FriendsPage() {
   const auth = useAuth()
   const { profile, ready } = useProfile()
   const [addFriends, setAddFriends] = useState(false)
+  const [feedOpen, setFeedOpen] = useState(false)
 
   // Web: social features are app-only.
   if (!native) return <CenteredMsg>Disponible dans l&apos;application Forkmap.</CenteredMsg>
@@ -33,7 +35,12 @@ export default function FriendsPage() {
   // Onglet Social : les Messages d'abord ; « Ajouter » ouvre la gestion des amis.
   return (
     <>
-      <MessagesInbox asPage onAddFriends={() => setAddFriends(true)} />
+      <MessagesInbox
+        asPage
+        onAddFriends={() => setAddFriends(true)}
+        onOpenFeed={() => setFeedOpen(true)}
+      />
+      {feedOpen && <ActivityFeed onClose={() => setFeedOpen(false)} />}
       {addFriends && <FriendsView onClose={() => setAddFriends(false)} />}
     </>
   )
