@@ -27,6 +27,8 @@ import {
 } from 'lucide-react'
 import { nativeShare } from '@/lib/native/share'
 import TasteEditor from '@/components/settings/TasteEditor'
+import { getThemePref, setThemePref, type ThemePref } from '@/lib/theme'
+import { refreshTheme } from '@/components/native/CapacitorInit'
 
 // ── Sub-components ────────────────────────────────────────────
 
@@ -106,6 +108,49 @@ function Section({ label, children }: { label: string; children: React.ReactNode
       >
         {children}
       </div>
+    </div>
+  )
+}
+
+function ThemeControl() {
+  const [pref, setPref] = useState<ThemePref>(() => getThemePref())
+  const options: { key: ThemePref; label: string }[] = [
+    { key: 'light', label: 'Clair' },
+    { key: 'dark', label: 'Sombre' },
+    { key: 'auto', label: 'Auto' },
+  ]
+  const choose = (p: ThemePref) => {
+    setPref(p)
+    setThemePref(p)
+    refreshTheme()
+  }
+  return (
+    <div style={{ display: 'flex', gap: 4, padding: 4 }}>
+      {options.map((o) => {
+        const active = pref === o.key
+        return (
+          <button
+            key={o.key}
+            onClick={() => choose(o.key)}
+            aria-pressed={active}
+            style={{
+              flex: 1,
+              padding: '9px 4px',
+              borderRadius: 9,
+              border: 'none',
+              cursor: 'pointer',
+              background: active ? 'var(--accent)' : 'var(--surface-2)',
+              color: active ? 'var(--on-accent)' : 'var(--text-2)',
+              fontFamily: 'inherit',
+              fontSize: 13,
+              fontWeight: 700,
+              transition: 'background 140ms, color 140ms',
+            }}
+          >
+            {o.label}
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -244,6 +289,11 @@ export default function SettingsHub() {
             />
           </button>
         )}
+
+        {/* Section: APPARENCE */}
+        <Section label="APPARENCE">
+          <ThemeControl />
+        </Section>
 
         {/* Section: PRÉFÉRENCES */}
         <Section label="PRÉFÉRENCES">

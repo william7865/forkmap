@@ -8,6 +8,27 @@ import { useRouter } from 'next/navigation'
 import { Capacitor } from '@capacitor/core'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { registerPushNotifications } from '@/lib/native/pushNotifications'
+import { resolveTheme, getThemePref, applyTheme, systemPrefersDark } from '@/lib/theme'
+
+/** Resolve + apply the theme and sync the native status bar to match. */
+async function syncTheme() {
+  const isNative = Capacitor.isNativePlatform()
+  const theme = resolveTheme(getThemePref(), systemPrefersDark(), isNative)
+  applyTheme(theme)
+  if (!isNative) return
+  try {
+    const { StatusBar, Style } = await import('@capacitor/status-bar')
+    await StatusBar.setStyle({ style: theme === 'dark' ? Style.Dark : Style.Light })
+    await StatusBar.setBackgroundColor({ color: theme === 'dark' ? '#0f0f10' : '#ffffff' })
+  } catch {
+    /* plugin absent — ignore */
+  }
+}
+
+/** Recompute the theme (e.g. after the settings toggle or an OS change). */
+export function refreshTheme() {
+  void syncTheme()
+}
 
 export default function CapacitorInit() {
   const router = useRouter()
@@ -36,10 +57,8 @@ export default function CapacitorInit() {
       ;['gesturestart', 'gesturechange', 'gestureend'].forEach((t) =>
         document.addEventListener(t, (e: Event) => e.preventDefault(), { passive: false })
       )
-      const { StatusBar, Style } = await import('@capacitor/status-bar')
-      // Indigo Éditorial: white background + dark content (dark text/icons on light bg)
-      await StatusBar.setStyle({ style: Style.Light })
-      await StatusBar.setBackgroundColor({ color: '#ffffff' })
+      // Apply the theme (light/dark) while the splash still covers the app → no flash.
+      await syncTheme()
       try {
         const { SplashScreen } = await import('@capacitor/splash-screen')
         // Keep the logo splash visible briefly so it reads even on fast cold
@@ -82,6 +101,15 @@ export default function CapacitorInit() {
       listenerHandle?.remove()
     }
   }, [router])
+
+  // Re-apply the theme when the OS light/dark setting changes (auto mode).
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const handler = () => refreshTheme()
+    mq.addEventListener?.('change', handler)
+    return () => mq.removeEventListener?.('change', handler)
+  }, [])
 
   // Push notification registration on sign-in
   useEffect(() => {
