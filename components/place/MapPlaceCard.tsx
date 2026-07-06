@@ -208,7 +208,7 @@ const MapPlaceCard = memo(function MapPlaceCard({
               borderRadius: 13,
               border: 'none',
               background: 'var(--accent)',
-              color: '#fff',
+              color: 'var(--on-accent)',
               fontFamily: 'var(--font-body)',
               fontSize: 14,
               fontWeight: 600,

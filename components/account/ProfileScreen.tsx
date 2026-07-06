@@ -370,7 +370,7 @@ export default function ProfileScreen() {
               onClick={() => router.push('/')}
               style={{
                 background: 'var(--accent)',
-                color: '#fff',
+                color: 'var(--on-accent)',
                 border: 'none',
                 borderRadius: 999,
                 padding: '11px 20px',

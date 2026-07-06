@@ -329,7 +329,7 @@ export default function NoteModal({ place, onClose, onSaved }: Props) {
                 borderRadius: 'var(--r-md)',
                 border: 'none',
                 background: saved ? 'var(--green)' : 'var(--forest-mid)',
-                color: 'white',
+                color: 'var(--on-accent)',
                 cursor: 'pointer',
                 fontSize: 13,
                 fontWeight: 600,

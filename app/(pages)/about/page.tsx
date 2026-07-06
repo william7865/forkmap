@@ -294,7 +294,7 @@ export default function AboutPage() {
             padding: '11px 24px',
             borderRadius: 12,
             background: 'var(--forest-mid)',
-            color: 'white',
+            color: 'var(--on-accent)',
             textDecoration: 'none',
             fontSize: 13,
             fontWeight: 600,

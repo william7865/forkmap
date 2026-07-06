@@ -345,7 +345,7 @@ export default function HelpPage() {
             padding: '9px 18px',
             borderRadius: 10,
             background: 'var(--forest-mid)',
-            color: 'white',
+            color: 'var(--on-accent)',
             textDecoration: 'none',
             fontSize: 12,
             fontWeight: 600,

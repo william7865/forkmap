@@ -764,7 +764,7 @@ export default function SurpriseSheet({
                 borderRadius: 999,
                 border: 'none',
                 background: 'var(--accent)',
-                color: '#fff',
+                color: 'var(--on-accent)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1010,7 +1010,7 @@ function DeckCard({
             padding: '5px 11px',
             borderRadius: 'var(--r-pill)',
             background: 'var(--ember)',
-            color: '#fff',
+            color: 'var(--on-accent)',
             zIndex: 4,
           }}
         >
@@ -1032,7 +1032,7 @@ function DeckCard({
             fontWeight: 700,
             padding: '5px 11px',
             borderRadius: 'var(--r-pill)',
-            background: 'rgba(255,253,248,0.95)',
+            background: 'var(--bg)',
             color: 'var(--ember-text)',
             zIndex: 4,
           }}
@@ -1279,7 +1279,7 @@ function DeckMessage({
               border: 'none',
               cursor: 'pointer',
               background: 'var(--ember)',
-              color: '#fff',
+              color: 'var(--on-accent)',
               fontSize: 13,
               fontWeight: 700,
               fontFamily: 'var(--font-body)',
@@ -1425,7 +1425,7 @@ function DarkToggle({ on, onClick, label }: { on: boolean; onClick: () => void; 
             width: 16,
             height: 16,
             borderRadius: '50%',
-            background: '#fff',
+            background: on ? 'var(--on-accent)' : '#fff',
             boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
             transition: 'left 160ms var(--ease-out)',
           }}

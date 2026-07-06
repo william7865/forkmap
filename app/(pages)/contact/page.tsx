@@ -133,7 +133,7 @@ export default function ContactPage() {
                 padding: '10px 20px',
                 borderRadius: 10,
                 background: 'var(--forest-mid)',
-                color: 'white',
+                color: 'var(--on-accent)',
                 fontSize: 13,
                 fontWeight: 600,
                 textDecoration: 'none',
