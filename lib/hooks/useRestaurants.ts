@@ -13,10 +13,11 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import type { PlaceCard, FilterState, PlaceBase, FavoriteRow } from '@/types'
-import { annotateDistances, annotateScores, applyFilters } from '@/lib/scoring'
+import { annotateDistances, annotateScores, applyFilters, haversineDistance } from '@/lib/scoring'
+import { nameSimilarity } from '@/lib/foursquare'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { apiFetch } from '@/lib/api'
-import { canScrapeOnDevice, enrichPlacesViaScrape } from '@/lib/google-client'
+import { canScrapeOnDevice, enrichPlacesViaScrape, searchGoogleViewport } from '@/lib/google-client'
 import { heavyTap } from '@/lib/native/haptics'
 import { pullCloudNotes } from '@/components/place/NoteModal'
 
@@ -56,6 +57,22 @@ function bboxChanged(prev: BBox | null, next: BBox): boolean {
     Math.abs(prev.maxLon - next.maxLon) > REFETCH_THRESHOLD ||
     Math.abs(prev.maxLat - next.maxLat) > REFETCH_THRESHOLD
   )
+}
+
+// Merge Google-viewport places (rich, primary) with OSM: keep every Google
+// place, then append OSM places that don't duplicate one (name + proximity).
+// Google keeps its synthetic id throughout, so the early paint doesn't churn.
+function mergeGoogleIntoOsm(google: PlaceCard[], osm: PlaceCard[]): PlaceCard[] {
+  if (google.length === 0) return osm
+  const osmOnly = osm.filter(
+    (o) =>
+      !google.some(
+        (g) =>
+          nameSimilarity(g.name, o.name) >= 0.6 &&
+          haversineDistance(g.lat, g.lon, o.lat, o.lon) < 120
+      )
+  )
+  return [...google, ...osmOnly]
 }
 
 // Keep the display order STABLE across progressive enrichment: a sorted list is
@@ -161,6 +178,27 @@ export function useRestaurants() {
     setLoading(true)
     setError(null)
 
+    // Native: fetch the viewport from Google IN PARALLEL with Overpass and paint
+    // it first — it comes back in ~1s from the device (residential IP), fully
+    // enriched, while public Overpass mirrors are slow/uneven from Vercel's IP.
+    const googlePromise = searchGoogleViewport([bbox.centerLat, bbox.centerLon])
+    void googlePromise.then((g) => {
+      if (fetchCount.current !== myFetch || g.length === 0 || placesRef.current.length > 0) return
+      const scored = annotateScores(
+        annotateDistances(
+          g.map((p) => ({ ...p, is_favorite: favoriteIdsRef.current.has(p.osm_id) })),
+          bbox.centerLat,
+          bbox.centerLon
+        )
+      )
+      placesRef.current = scored
+      const sorted = applyFilters(scored, currentFilters.current)
+      displayOrderRef.current = sorted.map((p) => p.osm_id)
+      setPlaces(scored)
+      setFilteredPlaces(sorted)
+      setLoading(false)
+    })
+
     try {
       const osmRes = await apiFetch(
         `/api/osm/overpass?bbox=${bbox.minLon},${bbox.minLat},${bbox.maxLon},${bbox.maxLat}`,
@@ -172,22 +210,42 @@ export function useRestaurants() {
 
       if (fetchCount.current !== myFetch) return
       if (!osmPlaces.length) {
-        setPlaces([])
-        setFilteredPlaces([])
+        // No OSM here — fall back to the Google viewport alone (already rich).
+        const google = (await googlePromise).map((p) => ({
+          ...p,
+          is_favorite: favoriteIdsRef.current.has(p.osm_id),
+        }))
+        if (fetchCount.current !== myFetch) return
+        const scored = annotateScores(annotateDistances(google, bbox.centerLat, bbox.centerLon))
+        placesRef.current = scored
+        setPlaces(scored)
+        setFilteredPlaces(applyFilters(scored, currentFilters.current))
         setLoading(false)
+        setEnriching(false)
         return
       }
 
+      const osmCards = osmPlaces.map((p) => ({
+        ...p,
+        is_favorite: favoriteIdsRef.current.has(p.osm_id),
+      }))
+      // Fold in the Google viewport (usually already resolved from the early
+      // paint) as the base: Google places first (rich), OSM completes coverage.
+      const google = (await googlePromise).map((p) => ({
+        ...p,
+        is_favorite: favoriteIdsRef.current.has(p.osm_id),
+      }))
+      if (fetchCount.current !== myFetch) return
       const raw = annotateScores(
-        annotateDistances(
-          osmPlaces.map((p) => ({ ...p, is_favorite: favoriteIdsRef.current.has(p.osm_id) })),
-          bbox.centerLat,
-          bbox.centerLon
-        )
+        annotateDistances(mergeGoogleIntoOsm(google, osmCards), bbox.centerLat, bbox.centerLon)
       )
       placesRef.current = raw
       setPlaces(raw)
-      const baseSorted = applyFilters(raw, currentFilters.current)
+      // stabilize (not reset) so the early-painted Google order is preserved.
+      const baseSorted = stabilize(
+        applyFilters(raw, currentFilters.current),
+        displayOrderRef.current
+      )
       displayOrderRef.current = baseSorted.map((p) => p.osm_id)
       setFilteredPlaces(baseSorted)
       setLoading(false)

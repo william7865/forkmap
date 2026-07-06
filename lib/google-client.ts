@@ -22,6 +22,30 @@ export function canScrapeOnDevice(): boolean {
   return isNativeRuntime()
 }
 
+/** Restaurants for a whole viewport, from Google (device IP). Fast + rich; used
+ *  as the FIRST paint on native while Overpass loads in parallel. Returns
+ *  ready-to-render PlaceCards (synthetic osm_id `g/lat,lon`). No-op on web. */
+export async function searchGoogleViewport(center: [number, number] | null): Promise<PlaceCard[]> {
+  if (!isNativeRuntime() || !center) return []
+  try {
+    const url = buildScrapeUrl('restaurant', center[0], center[1], 40, 6000)
+    const res = await nativeHttpGetText(url, SCRAPE_HEADERS)
+    if (!res || res.status !== 200) return []
+    return parseScrapeResults(res.data).map((r) => ({
+      osm_id: `g/${r.lat.toFixed(5)},${r.lon.toFixed(5)}`,
+      osm_type: 'node' as const,
+      name: r.name,
+      lat: r.lat,
+      lon: r.lon,
+      tags: {},
+      fsq: r.fsq,
+      fsq_rating: r.fsq.rating,
+    }))
+  } catch {
+    return []
+  }
+}
+
 /**
  * Search Google Maps for `query` near the map center, from the device
  * (residential IP). Returns Google's own ranked results (name/coords/rating).

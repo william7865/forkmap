@@ -25,15 +25,26 @@ export const SCRAPE_HEADERS: Record<string, string> = {
   Cookie: SCRAPE_COOKIE,
 }
 
-/** Build the internal `tbm=map&pb=` search URL for one place lookup. */
-export function buildScrapeUrl(name: string, lat: number, lon: number): string {
+/** Build the internal `tbm=map&pb=` search URL.
+ *  @param count how many results to request (`7i`); ~40 for a viewport listing.
+ *  @param spread the `1d` map extent — wider covers a whole viewport. */
+export function buildScrapeUrl(
+  query: string,
+  lat: number,
+  lon: number,
+  count = 6,
+  spread = 2000
+): string {
   const url = new URL(GMAPS_SEARCH)
   url.searchParams.set('tbm', 'map')
   url.searchParams.set('authuser', '0')
   url.searchParams.set('hl', 'fr')
   url.searchParams.set('gl', 'fr')
-  url.searchParams.set('q', name)
-  url.searchParams.set('pb', `!4m8!1m3!1d2000!2d${lon}!3d${lat}!3m2!1i1024!2i768!4f13.1!7i6!10b1`)
+  url.searchParams.set('q', query)
+  url.searchParams.set(
+    'pb',
+    `!4m8!1m3!1d${spread}!2d${lon}!3d${lat}!3m2!1i1024!2i768!4f13.1!7i${count}!10b1`
+  )
   return url.toString()
 }
 
