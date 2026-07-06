@@ -40,6 +40,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key       # auth côté client + vérifi
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key   # opérations BDD côté serveur (contourne la RLS)
 FOURSQUARE_API_KEY=fsq3xxxxx                       # optionnel — dégradation gracieuse sans la clé
 # --- Enrichissement Google (note/photos/horaires) via lib/google.ts — providers interchangeables ---
+# ⚠️ En APP NATIVE, l'enrichissement Google est fait CÔTÉ CLIENT (lib/google-client.ts) :
+#    le device scrape Google via le plugin natif RawHttp (ios AppDelegate.swift) → IP
+#    RÉSIDENTIELLE (Google bloque l'IP datacenter Vercel, pas les devices). Le web passe
+#    par la route serveur ci-dessous (bloquée sur Vercel → dégrade gracieusement).
 PLACES_PROVIDER=                                   # optionnel — force le provider : scrape | serpapi | google. Défaut : scrape (DIY, gratuit, sans clé)
 PLACES_SCRAPE=                                     # optionnel — mettre "off" pour désactiver le scraper DIY
 SERPAPI_KEY=                                       # optionnel — provider serpapi (moteur google_maps, palier gratuit ~100/mois)
