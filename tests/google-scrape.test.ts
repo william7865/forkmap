@@ -1,18 +1,33 @@
 import { describe, it, expect } from 'vitest'
-import { buildScrapeUrl, scrapeIsBlocked, matchScrapeBody } from '@/lib/google-scrape'
+import {
+  buildScrapeUrl,
+  scrapeIsBlocked,
+  matchScrapeBody,
+  parseScrapeResults,
+} from '@/lib/google-scrape'
 
-// Build a minimal Google-map-shaped response body: data[0][1] = entries,
-// each entry[14] is the place node (p[11]=name, p[4][7]=rating, p[10]=id).
-function makeBody(name: string, rating?: number): string {
+// Build a minimal Google-map place node (entry[14]): p[11]=name, p[4][7]=rating,
+// p[10]=id, p[9]=[.., .., lat, lon].
+function makeEntry(name: string, rating?: number, lat?: number, lon?: number): unknown[] {
   const p: unknown[] = []
   const ratingArr: unknown[] = []
   if (rating != null) ratingArr[7] = rating
   p[4] = ratingArr
+  if (lat != null && lon != null) p[9] = [null, null, lat, lon]
   p[10] = 'fsq-id'
   p[11] = name
   const entry: unknown[] = []
   entry[14] = p
-  const data = [[null, [entry]]]
+  return entry
+}
+
+function makeBody(name: string, rating?: number): string {
+  const data = [[null, [makeEntry(name, rating)]]]
+  return ")]}'\n" + JSON.stringify(data)
+}
+
+function makeSearchBody(entries: [string, number, number, number][]): string {
+  const data = [[null, entries.map(([n, r, la, lo]) => makeEntry(n, r, la, lo))]]
   return ")]}'\n" + JSON.stringify(data)
 }
 
@@ -54,5 +69,27 @@ describe('matchScrapeBody', () => {
 
   it('returns null when no entry name is similar enough', () => {
     expect(matchScrapeBody('Completely Different', makeBody('Le Comptoir', 4.5))).toBeNull()
+  })
+})
+
+describe('parseScrapeResults', () => {
+  it('returns all results with coords, preserving order', () => {
+    const body = makeSearchBody([
+      ['Le Comptoir', 4.6, 48.85, 2.34],
+      ['Chez Denise', 4.2, 48.86, 2.35],
+    ])
+    const results = parseScrapeResults(body)
+    expect(results).toHaveLength(2)
+    expect(results[0]).toMatchObject({ name: 'Le Comptoir', lat: 48.85, lon: 2.34, rating: 9.2 })
+    expect(results[1].name).toBe('Chez Denise')
+  })
+
+  it('skips entries without coordinates', () => {
+    const body = ")]}'\n" + JSON.stringify([[null, [makeEntry('No Coords', 4.0)]]])
+    expect(parseScrapeResults(body)).toHaveLength(0)
+  })
+
+  it('returns [] when blocked', () => {
+    expect(parseScrapeResults('<!doctype html>')).toEqual([])
   })
 })

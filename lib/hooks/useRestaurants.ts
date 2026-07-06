@@ -58,6 +58,20 @@ function bboxChanged(prev: BBox | null, next: BBox): boolean {
   )
 }
 
+// Keep the display order STABLE across progressive enrichment: a sorted list is
+// reordered to match the previously-shown order (by osm_id), with any new items
+// appended in their sorted position. This stops the list/markers from jumping
+// as ratings/scores fill in — data updates in place instead of re-sorting.
+function stabilize(sorted: PlaceCard[], orderIds: string[]): PlaceCard[] {
+  if (orderIds.length === 0) return sorted
+  const pos = new Map(orderIds.map((id, i) => [id, i]))
+  return [...sorted].sort((a, b) => {
+    const pa = pos.get(a.osm_id) ?? Infinity
+    const pb = pos.get(b.osm_id) ?? Infinity
+    return pa - pb // ties (both new → Infinity) keep the incoming sorted order
+  })
+}
+
 export function useRestaurants() {
   const [places, setPlaces] = useState<PlaceCard[]>([])
   const [filteredPlaces, setFilteredPlaces] = useState<PlaceCard[]>([])
@@ -79,6 +93,9 @@ export function useRestaurants() {
   // AbortController ref — cancels in-flight fetches when a new one starts,
   // preventing wasted FSQ quota on stale map positions.
   const abortRef = useRef<AbortController | null>(null)
+  // osm_id order of the currently displayed list — keeps enrichment from
+  // reshuffling rows (see stabilize). Reset on a new fetch / explicit re-sort.
+  const displayOrderRef = useRef<string[]>([])
 
   // Keep ref in sync with state
   // (state is still needed for re-render; ref is for stable closure reads)
@@ -140,6 +157,7 @@ export function useRestaurants() {
     const signal = controller.signal
 
     const myFetch = ++fetchCount.current
+    displayOrderRef.current = [] // fresh order for this fetch
     setLoading(true)
     setError(null)
 
@@ -169,7 +187,9 @@ export function useRestaurants() {
       )
       placesRef.current = raw
       setPlaces(raw)
-      setFilteredPlaces(applyFilters(raw, currentFilters.current))
+      const baseSorted = applyFilters(raw, currentFilters.current)
+      displayOrderRef.current = baseSorted.map((p) => p.osm_id)
+      setFilteredPlaces(baseSorted)
       setLoading(false)
       setEnriching(true)
 
@@ -194,7 +214,12 @@ export function useRestaurants() {
           publishTimer = null
           if (fetchCount.current !== myFetch) return
           setPlaces(next)
-          setFilteredPlaces(applyFilters(next, currentFilters.current))
+          const stable = stabilize(
+            applyFilters(next, currentFilters.current),
+            displayOrderRef.current
+          )
+          displayOrderRef.current = stable.map((p) => p.osm_id)
+          setFilteredPlaces(stable)
           lastPublishAt = Date.now()
         }
         const elapsed = Date.now() - lastPublishAt
@@ -368,7 +393,9 @@ export function useRestaurants() {
         publish(gWithFav)
       }
 
-      // Final flush — publish the fully-enriched state immediately.
+      // Final settle — reset the frozen order so the list re-sorts ONCE by the
+      // fully-enriched scores (best places rise), instead of jumping per batch.
+      displayOrderRef.current = []
       publish(placesRef.current, true)
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return // cancelled, not an error
@@ -389,7 +416,10 @@ export function useRestaurants() {
   // no re-render cascade across consumers on every batch update.
   const applyClientFilters = useCallback((filters: FilterState) => {
     currentFilters.current = filters
-    setFilteredPlaces(applyFilters(placesRef.current, filters))
+    // Explicit filter/sort change → re-sort fully and reset the stable order.
+    const sorted = applyFilters(placesRef.current, filters)
+    displayOrderRef.current = sorted.map((p) => p.osm_id)
+    setFilteredPlaces(sorted)
   }, [])
 
   // ── Favourite toggle ────────────────────────────────────────

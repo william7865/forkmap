@@ -9,11 +9,37 @@
 import type { PlaceCard } from '@/types'
 import { isNativeRuntime } from '@/lib/native/platform'
 import { nativeHttpGetText } from '@/lib/native/http'
-import { buildScrapeUrl, matchScrapeBody, SCRAPE_HEADERS } from '@/lib/google-scrape'
+import {
+  buildScrapeUrl,
+  matchScrapeBody,
+  parseScrapeResults,
+  SCRAPE_HEADERS,
+  type ScrapeSearchResult,
+} from '@/lib/google-scrape'
 
 /** True when device-side scraping is possible (native app). */
 export function canScrapeOnDevice(): boolean {
   return isNativeRuntime()
+}
+
+/**
+ * Search Google Maps for `query` near the map center, from the device
+ * (residential IP). Returns Google's own ranked results (name/coords/rating).
+ * No-op ([]) on web — the caller falls back to Nominatim.
+ */
+export async function searchGoogleNearby(
+  query: string,
+  center: [number, number] | null
+): Promise<ScrapeSearchResult[]> {
+  if (!isNativeRuntime() || !center || query.trim().length < 3) return []
+  try {
+    const url = buildScrapeUrl(query, center[0], center[1])
+    const res = await nativeHttpGetText(url, SCRAPE_HEADERS)
+    if (!res || res.status !== 200) return []
+    return parseScrapeResults(res.data).slice(0, 6)
+  } catch {
+    return []
+  }
 }
 
 /** Max simultaneous device→Google requests (stay light per device). */

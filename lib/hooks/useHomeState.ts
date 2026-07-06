@@ -7,6 +7,7 @@ import { useRouteCache, type TransportMode } from '@/lib/hooks/useRouteCache'
 import { useAuth, getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { apiFetch } from '@/lib/api'
 import { haversineDistance } from '@/lib/scoring'
+import { nameSimilarity } from '@/lib/foursquare'
 import { useToast } from '@/lib/hooks/useToast'
 import { useIsMobile } from '@/lib/hooks/useMediaQuery'
 import { useLanguage } from '@/lib/i18n/useLanguage'
@@ -36,9 +37,22 @@ export function useHomeState() {
   } = useRestaurants()
 
   const [selectedPlace, setSelectedPlace] = useState<PlaceCard | null>(null)
+  // A place opened from a Google search that OSM may not have — kept so it also
+  // shows as a marker on the map (merged into mapPlaces), not just as a card.
+  const [searchedPlace, setSearchedPlace] = useState<PlaceCard | null>(null)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [filters, setFilters] = useState<FilterState>({ sortBy: 'score' })
   const [nameQuery, setNameQuery] = useState('')
+  // Current map center — biases the off-viewport (Nominatim) search toward here.
+  const [mapCenter, setMapCenter] = useState<[number, number] | null>(null)
+  // A searched place to auto-open once a fetch loads it (fly → open). Matched by
+  // osm_id (Nominatim) or by name + proximity (Google results carry no osm_id).
+  const pendingSearchSelectRef = useRef<{
+    osm_id?: string
+    name: string
+    lat: number
+    lon: number
+  } | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [showSurprise, setShowSurprise] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
@@ -153,8 +167,18 @@ export function useHomeState() {
   }, [favoritePlaces, activeSavedList, savedListMembers])
 
   // What the map + list show: saved layer in saved-only mode, else the
-  // normal (filtered) discovery results.
-  const mapPlaces = savedOnly ? savedView : filteredPlaces
+  // normal (filtered) discovery results — plus any Google-searched place that
+  // OSM doesn't have, so it appears as a marker too.
+  const mapPlaces = useMemo<PlaceCard[]>(() => {
+    const base = savedOnly ? savedView : filteredPlaces
+    if (!searchedPlace || base.some((p) => p.osm_id === searchedPlace.osm_id)) return base
+    return [searchedPlace, ...base]
+  }, [savedOnly, savedView, filteredPlaces, searchedPlace])
+
+  // Drop the searched marker once the user selects another place or closes it.
+  useEffect(() => {
+    if (searchedPlace && selectedPlace?.osm_id !== searchedPlace.osm_id) setSearchedPlace(null)
+  }, [selectedPlace, searchedPlace])
 
   // Select a collection tab inside saved mode (null = all saved).
   const selectSavedList = useCallback(
@@ -358,6 +382,7 @@ export function useHomeState() {
     (bbox: Parameters<typeof fetchRestaurants>[0]) => {
       const key = `${bbox.minLon.toFixed(3)},${bbox.minLat.toFixed(3)},${bbox.maxLon.toFixed(3)},${bbox.maxLat.toFixed(3)}`
       currentBboxRef.current = key
+      setMapCenter([bbox.centerLat, bbox.centerLon])
       // In saved-only mode the map shows favorites, not viewport results —
       // panning must not trigger a fetch.
       if (savedOnly) return
@@ -399,6 +424,57 @@ export function useHomeState() {
     },
     [userLocation, routeMode, doRoute, isMobile]
   )
+
+  // Tap an off-viewport search result → fly there, then open it once the fetch
+  // for that area loads the matching place (matched by osm_id).
+  const searchSelectPlace = useCallback(
+    (r: { osm_id?: string; name: string; lat: number; lon: number; fsq?: PlaceCard['fsq'] }) => {
+      setNameQuery('')
+      mapRef.current?.flyTo(r.lat, r.lon, 17)
+
+      // Google result: OSM may have no such place, so open a card built straight
+      // from the Google data (name/rating/photos/hours) — don't wait on a match.
+      if (r.fsq) {
+        const card: PlaceCard = {
+          osm_id: r.osm_id ?? `g/${r.lat.toFixed(5)},${r.lon.toFixed(5)}`,
+          osm_type: 'node',
+          name: r.name,
+          lat: r.lat,
+          lon: r.lon,
+          tags: {},
+          fsq: r.fsq,
+          fsq_rating: r.fsq.rating,
+        }
+        setSearchedPlace(card) // also render it as a marker on the map
+        handleMarkerClick(card)
+        return
+      }
+
+      // OSM (Nominatim) result: open it once the area's fetch loads the place.
+      const target = { osm_id: r.osm_id, name: r.name, lat: r.lat, lon: r.lon }
+      pendingSearchSelectRef.current = target
+      setTimeout(() => {
+        if (pendingSearchSelectRef.current === target) pendingSearchSelectRef.current = null
+      }, 8000)
+    },
+    [handleMarkerClick]
+  )
+
+  useEffect(() => {
+    const t = pendingSearchSelectRef.current
+    if (!t) return
+    const found = t.osm_id
+      ? places.find((p) => p.osm_id === t.osm_id)
+      : places.find(
+          (p) =>
+            nameSimilarity(t.name, p.name) >= 0.55 &&
+            haversineDistance(t.lat, t.lon, p.lat, p.lon) < 200
+        )
+    if (found) {
+      pendingSearchSelectRef.current = null
+      handleMarkerClick(found)
+    }
+  }, [places, handleMarkerClick])
 
   // Flux "chercher → choisir → itinéraire" : le point de départ est défini
   // depuis la fiche d'un lieu déjà ouvert → calculer l'itinéraire automatiquement.
@@ -492,6 +568,8 @@ export function useHomeState() {
     // data
     filteredPlaces,
     mapPlaces,
+    mapCenter,
+    searchSelectPlace,
     loading,
     enriching,
     error,
