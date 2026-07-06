@@ -61,7 +61,7 @@ function dpal() {
   return {
     n,
     overlayBg: n
-      ? 'linear-gradient(180deg, #ffffff 0%, #f5f5f6 100%)'
+      ? 'linear-gradient(180deg, var(--bg) 0%, var(--surface) 100%)'
       : 'linear-gradient(155deg, #2a2018 0%, #1c1611 60%, #0f0b08 100%)',
     fg: n ? 'var(--text)' : 'var(--bg)',
     faint: n ? 'var(--text-3)' : 'rgba(255,253,248,0.45)',

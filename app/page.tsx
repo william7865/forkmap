@@ -377,7 +377,7 @@ export default function HomePage() {
                     fontWeight: 600,
                     cursor: 'pointer',
                     border: `1px solid ${chip.active ? 'var(--accent)' : 'var(--border)'}`,
-                    background: chip.active ? 'var(--accent)' : 'rgba(255,255,255,0.92)',
+                    background: chip.active ? 'var(--accent)' : 'var(--bg)',
                     backdropFilter: 'blur(8px)',
                     WebkitBackdropFilter: 'blur(8px)',
                     color: chip.active ? 'var(--on-accent)' : 'var(--text)',
