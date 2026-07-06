@@ -12,6 +12,7 @@ import { useIsMobile } from '@/lib/hooks/useMediaQuery'
 import { useLanguage } from '@/lib/i18n/useLanguage'
 import type { MapViewHandle } from '@/components/map/MapView'
 import { getCurrentPosition } from '@/lib/native/geolocation'
+import { isNativeRuntime } from '@/lib/native/platform'
 
 // Sentinel collection tab: saved places that belong to no list.
 export const UNLISTED = '__unlisted__'
@@ -301,6 +302,33 @@ export function useHomeState() {
       .catch(() => {
         setLocateError(true)
         setLocating(false)
+      })
+  }, [])
+
+  // On app open (native), center on the user's location and search nearby,
+  // instead of the default Paris view. Silent: a denial/timeout just keeps the
+  // default map (no error UI). Skips deep-links to a place / the surprise deck.
+  const autoLocatedRef = useRef(false)
+  useEffect(() => {
+    if (autoLocatedRef.current || !isNativeRuntime()) return
+    autoLocatedRef.current = true
+    const params =
+      typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+    if (params?.get('select') || params?.get('surprise')) return
+
+    let tries = 0
+    const flyWhenReady = (lat: number, lon: number) => {
+      if (mapRef.current) mapRef.current.flyTo(lat, lon, 15)
+      else if (tries++ < 20) setTimeout(() => flyWhenReady(lat, lon), 150)
+    }
+    getCurrentPosition()
+      .then(({ lat, lng: lon }) => {
+        setUserLocation([lat, lon])
+        setLocationLabel(null)
+        flyWhenReady(lat, lon)
+      })
+      .catch(() => {
+        /* denied / unavailable → keep the default map */
       })
   }, [])
 
