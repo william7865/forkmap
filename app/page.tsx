@@ -6,6 +6,7 @@ import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useHomeState, UNLISTED } from '@/lib/hooks/useHomeState'
 import { useSocialProof } from '@/lib/hooks/useSocialProof'
+import { usePlaceSearch } from '@/lib/hooks/usePlaceSearch'
 import { getRecentPlaces, addRecentPlace } from '@/lib/recent'
 import { useIsNative } from '@/lib/native/platform'
 import type { PlaceCard } from '@/types'
@@ -155,9 +156,17 @@ export default function HomePage() {
     handleTransportChange,
     handleCloseDetail,
     handleToggleFavorite,
+    mapCenter,
+    searchSelectPlace,
   } = useHomeState()
 
   const native = useIsNative()
+  // Off-viewport search (Nominatim) — lets the bar find places beyond the map.
+  const { results: awayResults, loading: awayLoading } = usePlaceSearch(nameQuery, mapCenter)
+  // Drop results already shown among the loaded (local) places.
+  const awayFiltered = awayResults
+    .filter((r) => !places.some((p) => p.osm_id === r.osm_id))
+    .slice(0, 5)
   // Annotate visible places with friends who saved/visited them (avatar hint).
   const socialPlaces = useSocialProof(visiblePlaces)
   // Recently-viewed restaurants (localStorage) — shown in the search dropdown.
@@ -685,6 +694,78 @@ export default function HomePage() {
                       )}
                     </button>
                   ))}
+
+              {nameQuery.trim().length >= 3 && (awayFiltered.length > 0 || awayLoading) && (
+                <>
+                  <div style={{ padding: '8px 14px 4px' }}>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: 'var(--text-3)',
+                        letterSpacing: '0.08em',
+                      }}
+                    >
+                      AILLEURS
+                    </span>
+                  </div>
+                  {awayFiltered.length === 0 && awayLoading && (
+                    <div style={{ padding: '4px 14px 10px', fontSize: 12, color: 'var(--text-3)' }}>
+                      Recherche…
+                    </div>
+                  )}
+                  {awayFiltered.map((r) => (
+                    <button
+                      key={r.osm_id}
+                      onMouseDown={() => {
+                        saveSearch(r.name)
+                        setSearchFocused(false)
+                        searchSelectPlace(r)
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        width: '100%',
+                        padding: '10px 14px',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        fontFamily: 'var(--font-body)',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                    >
+                      <MapPin size={14} strokeWidth={1.75} color="var(--accent)" />
+                      <span
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: 'var(--text)',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {r.name}
+                      </span>
+                      {r.context && (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color: 'var(--text-3)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {r.context}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </>
+              )}
 
               {nameQuery.length === 0 && recentPlaces.length > 0 && (
                 <>

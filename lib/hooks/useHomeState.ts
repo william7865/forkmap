@@ -39,6 +39,10 @@ export function useHomeState() {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [filters, setFilters] = useState<FilterState>({ sortBy: 'score' })
   const [nameQuery, setNameQuery] = useState('')
+  // Current map center — biases the off-viewport (Nominatim) search toward here.
+  const [mapCenter, setMapCenter] = useState<[number, number] | null>(null)
+  // osm_id of a searched place to auto-open once a fetch loads it (fly → open).
+  const pendingSearchSelectRef = useRef<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [showSurprise, setShowSurprise] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
@@ -358,6 +362,7 @@ export function useHomeState() {
     (bbox: Parameters<typeof fetchRestaurants>[0]) => {
       const key = `${bbox.minLon.toFixed(3)},${bbox.minLat.toFixed(3)},${bbox.maxLon.toFixed(3)},${bbox.maxLat.toFixed(3)}`
       currentBboxRef.current = key
+      setMapCenter([bbox.centerLat, bbox.centerLon])
       // In saved-only mode the map shows favorites, not viewport results —
       // panning must not trigger a fetch.
       if (savedOnly) return
@@ -399,6 +404,28 @@ export function useHomeState() {
     },
     [userLocation, routeMode, doRoute, isMobile]
   )
+
+  // Tap an off-viewport search result → fly there, then open it once the fetch
+  // for that area loads the matching place (matched by osm_id).
+  const searchSelectPlace = useCallback((r: { osm_id: string; lat: number; lon: number }) => {
+    pendingSearchSelectRef.current = r.osm_id
+    setNameQuery('')
+    mapRef.current?.flyTo(r.lat, r.lon, 17)
+    // Give up after a while so a later unrelated fetch never auto-opens it.
+    setTimeout(() => {
+      if (pendingSearchSelectRef.current === r.osm_id) pendingSearchSelectRef.current = null
+    }, 8000)
+  }, [])
+
+  useEffect(() => {
+    const id = pendingSearchSelectRef.current
+    if (!id) return
+    const found = places.find((p) => p.osm_id === id)
+    if (found) {
+      pendingSearchSelectRef.current = null
+      handleMarkerClick(found)
+    }
+  }, [places, handleMarkerClick])
 
   // Flux "chercher → choisir → itinéraire" : le point de départ est défini
   // depuis la fiche d'un lieu déjà ouvert → calculer l'itinéraire automatiquement.
@@ -492,6 +519,8 @@ export function useHomeState() {
     // data
     filteredPlaces,
     mapPlaces,
+    mapCenter,
+    searchSelectPlace,
     loading,
     enriching,
     error,
