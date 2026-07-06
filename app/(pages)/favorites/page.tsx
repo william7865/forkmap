@@ -19,6 +19,8 @@ import { useIsMobile } from '@/lib/hooks/useMediaQuery'
 import { useIsNative } from '@/lib/native/platform'
 import { useLists, type ListRow as HookListRow } from '@/lib/hooks/useLists'
 import { ListCard, NewListCard } from '@/components/lists/ListCard'
+import CollaboratorsSheet from '@/components/lists/CollaboratorsSheet'
+import { Avatar } from '@/components/social/Avatar'
 import { CreateListModal } from '@/components/lists/CreateListModal'
 import PollCreate from '@/components/poll/PollCreate'
 import { SaveToListPopup } from '@/components/lists/SaveToListPopup'
@@ -1890,6 +1892,7 @@ function FavoritesPageInner() {
   const [listItems, setListItems] = useState<ListItemEntry[]>([])
   const [listItemsLoading, setListItemsLoading] = useState(false)
   const [deleteListTarget, setDeleteListTarget] = useState<HookListRow | null>(null)
+  const [collabTarget, setCollabTarget] = useState<HookListRow | null>(null)
 
   const loadFavorites = useCallback(async () => {
     setLoading(true)
@@ -2550,43 +2553,87 @@ function FavoritesPageInner() {
                   )}
                   <p style={{ margin: 0, fontSize: 12, color: 'var(--text-3)' }}>
                     {activeList.item_count} lieu{activeList.item_count !== 1 ? 'x' : ''} ·{' '}
-                    {activeList.is_public ? 'Publique' : 'Privée'}
+                    {activeList.is_collaborator
+                      ? `Partagée par ${activeList.shared_by ?? 'un ami'}`
+                      : activeList.is_public
+                        ? 'Publique'
+                        : 'Privée'}
                   </p>
+                  {!activeList.is_collaborator &&
+                    activeList.collaborators &&
+                    activeList.collaborators.length > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
+                        <div style={{ display: 'flex' }}>
+                          {activeList.collaborators.slice(0, 4).map((c, i) => (
+                            <div key={c.id} style={{ marginLeft: i === 0 ? 0 : -8 }}>
+                              <Avatar
+                                name={c.display_name}
+                                src={c.avatar_url}
+                                id={c.id}
+                                size={26}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
+                          {activeList.collaborators.length} collaborateur
+                          {activeList.collaborators.length > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    )}
                 </div>
-                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                  <button
-                    onClick={() => setEditingList(activeList)}
-                    style={{
-                      padding: '7px 14px',
-                      borderRadius: 'var(--r-md)',
-                      border: '1px solid var(--border)',
-                      background: 'var(--white)',
-                      cursor: 'pointer',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      color: 'var(--text-2)',
-                      fontFamily: 'inherit',
-                    }}
-                  >
-                    Modifier
-                  </button>
-                  <button
-                    onClick={() => setDeleteListTarget(activeList)}
-                    style={{
-                      padding: '7px 14px',
-                      borderRadius: 'var(--r-md)',
-                      border: '1px solid var(--border)',
-                      background: 'var(--coral-pale)',
-                      cursor: 'pointer',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      color: 'var(--coral)',
-                      fontFamily: 'inherit',
-                    }}
-                  >
-                    Supprimer
-                  </button>
-                </div>
+                {!activeList.is_collaborator && (
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    <button
+                      onClick={() => setCollabTarget(activeList)}
+                      style={{
+                        padding: '7px 14px',
+                        borderRadius: 'var(--r-md)',
+                        border: '1px solid var(--border)',
+                        background: 'var(--white)',
+                        cursor: 'pointer',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: 'var(--text-2)',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      Inviter
+                    </button>
+                    <button
+                      onClick={() => setEditingList(activeList)}
+                      style={{
+                        padding: '7px 14px',
+                        borderRadius: 'var(--r-md)',
+                        border: '1px solid var(--border)',
+                        background: 'var(--white)',
+                        cursor: 'pointer',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: 'var(--text-2)',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      Modifier
+                    </button>
+                    <button
+                      onClick={() => setDeleteListTarget(activeList)}
+                      style={{
+                        padding: '7px 14px',
+                        borderRadius: 'var(--r-md)',
+                        border: '1px solid var(--border)',
+                        background: 'var(--coral-pale)',
+                        cursor: 'pointer',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: 'var(--coral)',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                )}
               </div>
               {listItemsLoading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -3102,6 +3149,15 @@ function FavoritesPageInner() {
             setEditingList(null)
           }}
           onClose={() => setEditingList(null)}
+        />
+      )}
+
+      {collabTarget && (
+        <CollaboratorsSheet
+          listId={collabTarget.id}
+          listName={collabTarget.name}
+          onClose={() => setCollabTarget(null)}
+          onChanged={fetchLists}
         />
       )}
 

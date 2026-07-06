@@ -4,6 +4,12 @@ import { useState, useCallback } from 'react'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { apiFetch } from '@/lib/api'
 
+export interface CollaboratorLite {
+  id: string
+  display_name: string
+  avatar_url: string | null
+}
+
 export interface ListRow {
   id: string
   user_id: string
@@ -14,6 +20,12 @@ export interface ListRow {
   created_at: string
   updated_at: string
   item_count: number
+  /** True when the current user is a collaborator (not the owner). */
+  is_collaborator?: boolean
+  /** Owner display name, set on lists shared with the current user. */
+  shared_by?: string | null
+  /** Collaborators of an owned list (avatar stack). */
+  collaborators?: CollaboratorLite[]
 }
 
 async function getAuthHeaders(): Promise<Record<string, string>> {

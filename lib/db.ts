@@ -307,6 +307,12 @@ export async function getVisitStats(userId: string): Promise<VisitStats> {
 
 // ---------- List types ----------
 
+export interface CollaboratorLite {
+  id: string
+  display_name: string
+  avatar_url: string | null
+}
+
 export interface ListRow {
   id: string
   user_id: string
@@ -317,6 +323,12 @@ export interface ListRow {
   created_at: string
   updated_at: string
   item_count?: number
+  /** True when the current user is a collaborator (not the owner) of this list. */
+  is_collaborator?: boolean
+  /** Owner display name, set on lists shared *with* the current user. */
+  shared_by?: string | null
+  /** Collaborators of an owned list (for the avatar stack). */
+  collaborators?: CollaboratorLite[]
 }
 
 export interface ListItemRow {
@@ -329,28 +341,179 @@ export interface ListItemRow {
 
 // ---------- Lists ----------
 
+function mapListRow(row: unknown, extra: Partial<ListRow> = {}): ListRow {
+  const list = row as Record<string, unknown>
+  return {
+    id: list.id as string,
+    user_id: list.user_id as string,
+    name: list.name as string,
+    description: list.description as string | null,
+    is_public: list.is_public as boolean,
+    color_hue: list.color_hue as number,
+    created_at: list.created_at as string,
+    updated_at: list.updated_at as string,
+    item_count: (list.list_items as { count: number }[])?.[0]?.count ?? 0,
+    ...extra,
+  }
+}
+
+/** Fetch light profiles (id/name/avatar) for a set of user ids. */
+async function getProfilesLite(ids: string[]): Promise<Map<string, CollaboratorLite>> {
+  const map = new Map<string, CollaboratorLite>()
+  if (ids.length === 0) return map
+  const { data } = await db
+    .from('profiles')
+    .select('id, display_name, avatar_url')
+    .in('id', [...new Set(ids)])
+  for (const r of data ?? []) {
+    const p = r as CollaboratorLite
+    map.set(p.id, { id: p.id, display_name: p.display_name, avatar_url: p.avatar_url ?? null })
+  }
+  return map
+}
+
 export async function getLists(userId: string): Promise<ListRow[]> {
-  const { data, error } = await db
+  // Owned lists.
+  const { data: owned, error } = await db
     .from('lists')
     .select('*, list_items(count)')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
-
   if (error) throw error
-  return (data ?? []).map((row: unknown) => {
-    const list = row as Record<string, unknown>
-    return {
-      id: list.id as string,
-      user_id: list.user_id as string,
-      name: list.name as string,
-      description: list.description as string | null,
-      is_public: list.is_public as boolean,
-      color_hue: list.color_hue as number,
-      created_at: list.created_at as string,
-      updated_at: list.updated_at as string,
-      item_count: (list.list_items as { count: number }[])?.[0]?.count ?? 0,
+  const ownedRows = owned ?? []
+
+  // Lists shared *with* this user (collaborator memberships).
+  const { data: memberships } = await db
+    .from('list_collaborators')
+    .select('list_id')
+    .eq('user_id', userId)
+  const sharedIds = (memberships ?? []).map((m) => (m as { list_id: string }).list_id)
+
+  let sharedRows: unknown[] = []
+  if (sharedIds.length) {
+    const { data } = await db
+      .from('lists')
+      .select('*, list_items(count)')
+      .in('id', sharedIds)
+      .order('created_at', { ascending: false })
+    sharedRows = data ?? []
+  }
+
+  // Collaborators of owned lists (for the avatar stack).
+  const ownedIds = ownedRows.map((l) => (l as { id: string }).id)
+  const collabByList = new Map<string, string[]>()
+  if (ownedIds.length) {
+    const { data: collabs } = await db
+      .from('list_collaborators')
+      .select('list_id, user_id')
+      .in('list_id', ownedIds)
+    for (const c of collabs ?? []) {
+      const row = c as { list_id: string; user_id: string }
+      const arr = collabByList.get(row.list_id) ?? []
+      arr.push(row.user_id)
+      collabByList.set(row.list_id, arr)
     }
+  }
+
+  // Profiles needed: collaborators of owned lists + owners of shared lists.
+  const profileIds = [
+    ...[...collabByList.values()].flat(),
+    ...sharedRows.map((l) => (l as { user_id: string }).user_id),
+  ]
+  const profiles = await getProfilesLite(profileIds)
+
+  const ownedMapped = ownedRows.map((l) => {
+    const id = (l as { id: string }).id
+    const collaborators = (collabByList.get(id) ?? [])
+      .map((uid) => profiles.get(uid))
+      .filter((p): p is CollaboratorLite => !!p)
+    return mapListRow(l, { is_collaborator: false, collaborators })
   })
+
+  const sharedMapped = sharedRows.map((l) => {
+    const ownerId = (l as { user_id: string }).user_id
+    return mapListRow(l, {
+      is_collaborator: true,
+      shared_by: profiles.get(ownerId)?.display_name ?? null,
+    })
+  })
+
+  return [...ownedMapped, ...sharedMapped]
+}
+
+// ---------- List collaborators ----------
+
+/** Whether a user may edit a list (owner or collaborator). */
+export async function canEditList(listId: string, userId: string): Promise<boolean> {
+  const { data: list } = await db.from('lists').select('user_id').eq('id', listId).maybeSingle()
+  if (!list) return false
+  if ((list as { user_id: string }).user_id === userId) return true
+  const { data: collab } = await db
+    .from('list_collaborators')
+    .select('id')
+    .eq('list_id', listId)
+    .eq('user_id', userId)
+    .maybeSingle()
+  return !!collab
+}
+
+async function isListOwner(listId: string, userId: string): Promise<boolean> {
+  const { data } = await db
+    .from('lists')
+    .select('id')
+    .eq('id', listId)
+    .eq('user_id', userId)
+    .maybeSingle()
+  return !!data
+}
+
+export async function isCollaborator(listId: string, userId: string): Promise<boolean> {
+  const { data } = await db
+    .from('list_collaborators')
+    .select('id')
+    .eq('list_id', listId)
+    .eq('user_id', userId)
+    .maybeSingle()
+  return !!data
+}
+
+/** Owner adds a friend as a collaborator. Guards owner + accepted friendship. */
+export async function addCollaborator(
+  ownerId: string,
+  listId: string,
+  friendId: string
+): Promise<void> {
+  if (ownerId === friendId) throw new Error('cannot_add_self')
+  if (!(await isListOwner(listId, ownerId))) throw new Error('not_owner')
+  const rel = await getFriendshipRow(ownerId, friendId)
+  if (!rel || rel.status !== 'accepted') throw new Error('not_friends')
+  const { error } = await db
+    .from('list_collaborators')
+    .upsert({ list_id: listId, user_id: friendId }, { onConflict: 'list_id,user_id' })
+  if (error) throw error
+}
+
+/** Owner removes a collaborator. */
+export async function removeCollaborator(
+  ownerId: string,
+  listId: string,
+  userId: string
+): Promise<void> {
+  if (!(await isListOwner(listId, ownerId))) throw new Error('not_owner')
+  const { error } = await db
+    .from('list_collaborators')
+    .delete()
+    .eq('list_id', listId)
+    .eq('user_id', userId)
+  if (error) throw error
+}
+
+/** Profiles of a list's collaborators. Caller must be owner or collaborator. */
+export async function getCollaborators(listId: string): Promise<CollaboratorLite[]> {
+  const { data } = await db.from('list_collaborators').select('user_id').eq('list_id', listId)
+  const ids = (data ?? []).map((r) => (r as { user_id: string }).user_id)
+  const profiles = await getProfilesLite(ids)
+  return ids.map((id) => profiles.get(id)).filter((p): p is CollaboratorLite => !!p)
 }
 
 export async function createList(
@@ -394,13 +557,7 @@ export async function deleteList(listId: string, userId: string): Promise<void> 
 // ---------- List items ----------
 
 export async function getListItems(listId: string, userId: string): Promise<ListItemRow[]> {
-  const { data: list, error: listErr } = await db
-    .from('lists')
-    .select('id')
-    .eq('id', listId)
-    .eq('user_id', userId)
-    .single()
-  if (listErr || !list) throw new Error('Not found or not authorized')
+  if (!(await canEditList(listId, userId))) throw new Error('Not found or not authorized')
 
   const { data, error } = await db
     .from('list_items')
@@ -417,13 +574,7 @@ export async function addListItem(
   osmId: string,
   placeSnapshot: Record<string, unknown>
 ): Promise<ListItemRow> {
-  const { data: list } = await db
-    .from('lists')
-    .select('id')
-    .eq('id', listId)
-    .eq('user_id', userId)
-    .single()
-  if (!list) throw new Error('Not found or not authorized')
+  if (!(await canEditList(listId, userId))) throw new Error('Not found or not authorized')
 
   const { data, error } = await db
     .from('list_items')
@@ -438,13 +589,7 @@ export async function addListItem(
 }
 
 export async function removeListItem(listId: string, userId: string, osmId: string): Promise<void> {
-  const { data: list } = await db
-    .from('lists')
-    .select('id')
-    .eq('id', listId)
-    .eq('user_id', userId)
-    .single()
-  if (!list) throw new Error('Not found or not authorized')
+  if (!(await canEditList(listId, userId))) throw new Error('Not found or not authorized')
 
   const { error } = await db.from('list_items').delete().eq('list_id', listId).eq('osm_id', osmId)
   if (error) throw error
