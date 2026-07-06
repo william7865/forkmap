@@ -23,8 +23,10 @@ import {
   FileText,
   Map,
   UserPlus,
+  Utensils,
 } from 'lucide-react'
 import { nativeShare } from '@/lib/native/share'
+import TasteEditor from '@/components/settings/TasteEditor'
 
 // ── Sub-components ────────────────────────────────────────────
 
@@ -115,6 +117,7 @@ export default function SettingsHub() {
   const auth = useAuth()
   const { profile } = useProfile()
   const [editing, setEditing] = useState(false)
+  const [editingTaste, setEditingTaste] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
 
   const signOut = async () => {
@@ -242,6 +245,11 @@ export default function SettingsHub() {
           </button>
         )}
 
+        {/* Section: PRÉFÉRENCES */}
+        <Section label="PRÉFÉRENCES">
+          <HubRow icon={Utensils} label="Tes goûts" onClick={() => setEditingTaste(true)} />
+        </Section>
+
         {/* Section: PARTAGER */}
         <Section label="PARTAGER">
           <HubRow icon={UserPlus} label="Inviter des amis" onClick={inviteFriends} />
@@ -304,6 +312,7 @@ export default function SettingsHub() {
       </div>
 
       {editing && <ProfileEdit onClose={() => setEditing(false)} allowUsername />}
+      {editingTaste && <TasteEditor onClose={() => setEditingTaste(false)} />}
     </div>
   )
 }
