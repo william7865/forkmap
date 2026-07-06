@@ -321,13 +321,19 @@ export interface MessagePlacePayload {
   photo?: string | null
 }
 
+/** Payload for a poll shared into a DM (message type 'poll'). */
+export interface MessagePollPayload {
+  poll_id: string
+  title: string
+}
+
 export interface MessageRow {
   id: string
   sender_id: string
   receiver_id: string
   content: string
-  type?: 'text' | 'place'
-  payload?: MessagePlacePayload | null
+  type?: 'text' | 'place' | 'poll'
+  payload?: MessagePlacePayload | MessagePollPayload | null
   created_at: string
   read_at: string | null
   edited_at?: string | null

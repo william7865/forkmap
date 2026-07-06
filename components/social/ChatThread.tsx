@@ -1,17 +1,18 @@
 'use client'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, Send, MapPin, X } from 'lucide-react'
+import { ChevronLeft, Send, MapPin, X, BarChart3 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { Avatar } from '@/components/social/Avatar'
 import { useAuth, getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 // Import dynamique : PublicProfile importe déjà ChatThread → casse le cycle d'imports.
 const PublicProfile = dynamic(() => import('@/components/social/PublicProfile'), { ssr: false })
+const PublicPoll = dynamic(() => import('@/components/poll/PublicPoll'), { ssr: false })
 import { useChatThread } from '@/lib/hooks/useChatThread'
 import { frCuisine } from '@/lib/cuisine'
 import { setPendingSelect } from '@/lib/pendingSelect'
 import { useOnlineUsers } from '@/lib/presence'
-import type { PlaceCard } from '@/types'
+import type { PlaceCard, MessagePlacePayload, MessagePollPayload } from '@/types'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type RealtimeChannel = any
 
@@ -47,6 +48,7 @@ export default function ChatThread({
   const [editing, setEditing] = useState<(typeof messages)[number] | null>(null)
   const [replyTo, setReplyTo] = useState<(typeof messages)[number] | null>(null)
   const [viewProfile, setViewProfile] = useState(false)
+  const [openPoll, setOpenPoll] = useState<string | null>(null)
   const REACTIONS = ['❤️', '😂', '👍', '🔥', '😮', '😢']
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const onlineUsers = useOnlineUsers()
@@ -301,8 +303,10 @@ export default function ChatThread({
                             ? q.deleted_at
                               ? 'Message supprimé'
                               : q.type === 'place'
-                                ? `📍 ${q.payload?.name ?? 'Lieu'}`
-                                : q.content
+                                ? `📍 ${(q.payload as MessagePlacePayload)?.name ?? 'Lieu'}`
+                                : q.type === 'poll'
+                                  ? `🗳️ ${(q.payload as MessagePollPayload)?.title ?? 'Sondage'}`
+                                  : q.content
                             : 'Message'}
                         </div>
                       )
@@ -321,10 +325,62 @@ export default function ChatThread({
                     >
                       Message supprimé
                     </div>
+                  ) : m.type === 'poll' && m.payload ? (
+                    <button
+                      onClick={() => setOpenPoll((m.payload as MessagePollPayload).poll_id)}
+                      style={{
+                        width: 240,
+                        maxWidth: '100%',
+                        padding: '14px 14px',
+                        border: mine ? 'none' : '1px solid var(--b2)',
+                        borderRadius: 16,
+                        background: 'var(--white)',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        boxShadow: 'var(--s1)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          fontSize: 11,
+                          letterSpacing: '0.14em',
+                          textTransform: 'uppercase',
+                          fontWeight: 700,
+                          color: 'var(--star)',
+                          marginBottom: 6,
+                        }}
+                      >
+                        <BarChart3 size={13} /> Sondage
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: 'var(--font-display)',
+                          fontWeight: 700,
+                          fontSize: 15.5,
+                          color: 'var(--ink)',
+                          letterSpacing: '-0.01em',
+                        }}
+                      >
+                        {(m.payload as MessagePollPayload).title}
+                      </div>
+                      <div
+                        style={{
+                          marginTop: 8,
+                          fontSize: 12.5,
+                          color: 'var(--accent-text)',
+                          fontWeight: 700,
+                        }}
+                      >
+                        Voter →
+                      </div>
+                    </button>
                   ) : m.type === 'place' && m.payload ? (
                     <button
                       onClick={() => {
-                        const p = m.payload!
+                        const p = m.payload as MessagePlacePayload
                         const osmType = p.osm_id.startsWith('way')
                           ? 'way'
                           : p.osm_id.startsWith('relation')
@@ -361,8 +417,8 @@ export default function ChatThread({
                       <div
                         style={{
                           height: 116,
-                          background: m.payload.photo
-                            ? `url("${m.payload.photo}") center/cover`
+                          background: (m.payload as MessagePlacePayload).photo
+                            ? `url("${(m.payload as MessagePlacePayload).photo}") center/cover`
                             : 'var(--surface-2)',
                           display: 'flex',
                           alignItems: 'center',
@@ -370,7 +426,9 @@ export default function ChatThread({
                           color: 'var(--text-3)',
                         }}
                       >
-                        {!m.payload.photo && <MapPin size={26} strokeWidth={1.6} />}
+                        {!(m.payload as MessagePlacePayload).photo && (
+                          <MapPin size={26} strokeWidth={1.6} />
+                        )}
                       </div>
                       <div style={{ padding: '10px 12px' }}>
                         <div
@@ -382,7 +440,7 @@ export default function ChatThread({
                             letterSpacing: '-0.01em',
                           }}
                         >
-                          {m.payload.name}
+                          {(m.payload as MessagePlacePayload).name}
                         </div>
                         <div
                           style={{
@@ -396,7 +454,9 @@ export default function ChatThread({
                           }}
                         >
                           <MapPin size={12} />
-                          {m.payload.cuisine ? frCuisine(m.payload.cuisine) : 'Voir sur la carte'}
+                          {(m.payload as MessagePlacePayload).cuisine
+                            ? frCuisine((m.payload as MessagePlacePayload).cuisine!)
+                            : 'Voir sur la carte'}
                         </div>
                       </div>
                     </button>
@@ -524,7 +584,14 @@ export default function ChatThread({
           }}
         >
           <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--accent-text)' }}>
+            <span
+              style={{
+                display: 'block',
+                fontSize: 11.5,
+                fontWeight: 700,
+                color: 'var(--accent-text)',
+              }}
+            >
               Réponse à {replyTo.sender_id === myId ? 'toi' : user.display_name}
             </span>
             <span
@@ -540,8 +607,10 @@ export default function ChatThread({
               {replyTo.deleted_at
                 ? 'Message supprimé'
                 : replyTo.type === 'place'
-                  ? `📍 ${replyTo.payload?.name ?? 'Lieu'}`
-                  : replyTo.content}
+                  ? `📍 ${(replyTo.payload as MessagePlacePayload)?.name ?? 'Lieu'}`
+                  : replyTo.type === 'poll'
+                    ? `🗳️ ${(replyTo.payload as MessagePollPayload)?.title ?? 'Sondage'}`
+                    : replyTo.content}
             </span>
           </span>
           <button
@@ -668,7 +737,7 @@ export default function ChatThread({
             >
               Répondre
             </SheetBtn>
-            {menuFor.sender_id === myId && menuFor.type !== 'place' && (
+            {menuFor.sender_id === myId && menuFor.type !== 'place' && menuFor.type !== 'poll' && (
               <SheetBtn
                 onClick={() => {
                   setEditing(menuFor)
@@ -679,7 +748,7 @@ export default function ChatThread({
                 Modifier
               </SheetBtn>
             )}
-            {menuFor.type !== 'place' && !!menuFor.content && (
+            {menuFor.type !== 'place' && menuFor.type !== 'poll' && !!menuFor.content && (
               <SheetBtn
                 onClick={() => {
                   navigator.clipboard?.writeText(menuFor.content)
@@ -705,6 +774,8 @@ export default function ChatThread({
           </div>
         </div>
       )}
+
+      {openPoll && <PublicPoll id={openPoll} onClose={() => setOpenPoll(null)} />}
     </div>
   )
 }

@@ -1292,7 +1292,7 @@ export async function sendMessage(
   fromId: string,
   toId: string,
   content: string,
-  type: 'text' | 'place' = 'text',
+  type: 'text' | 'place' | 'poll' = 'text',
   payload?: unknown,
   replyTo?: string | null
 ): Promise<MessageRow> {
@@ -1316,7 +1316,12 @@ export async function sendMessage(
   const from = await getProfile(fromId)
   const pref = await getConversationPref(toId, fromId) // le destinataire a-t-il coupé cette conv ?
   if (from && !pref.muted) {
-    const snippet = type === 'place' ? 'a partagé un lieu' : content.slice(0, 60)
+    const snippet =
+      type === 'place'
+        ? 'a partagé un lieu'
+        : type === 'poll'
+          ? 'a partagé un sondage'
+          : content.slice(0, 60)
     await createNotification(
       toId,
       fromId,

@@ -4,7 +4,7 @@
 // the creator (if logged in) can close the poll.
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Star, Check, Trophy } from 'lucide-react'
+import { Star, Check, Trophy, X } from 'lucide-react'
 import type { PollPublic } from '@/types'
 import { apiFetch } from '@/lib/api'
 import { getVoterToken, getVoterName, setVoterName } from '@/lib/poll-token'
@@ -12,9 +12,14 @@ import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { frCuisine } from '@/lib/cuisine'
 import PlaceThumb from '@/components/place/PlaceThumb'
 
-export default function PublicPoll() {
+/**
+ * Renders a poll. Used two ways:
+ *  - as the /sondage/[id] route page (reads the id from the URL), and
+ *  - as an in-app overlay when opened from a shared DM card (`id` + `onClose`).
+ */
+export default function PublicPoll({ id: idProp, onClose }: { id?: string; onClose?: () => void }) {
   const params = useParams<{ id: string }>()
-  const id = params?.id ?? ''
+  const id = idProp ?? params?.id ?? ''
 
   const [poll, setPoll] = useState<PollPublic | null>(null)
   const [myVote, setMyVote] = useState<string | null>(null)
@@ -118,8 +123,35 @@ export default function PublicPoll() {
         minHeight: '100vh',
         background: 'var(--bg)',
         padding: 'calc(var(--safe-top, 0px) + 28px) 18px calc(var(--safe-bottom, 0px) + 40px)',
+        ...(onClose
+          ? { position: 'fixed', inset: 0, zIndex: 1600, overflowY: 'auto' as const }
+          : {}),
       }}
     >
+      {onClose && (
+        <button
+          onClick={onClose}
+          aria-label="Fermer"
+          style={{
+            position: 'absolute',
+            top: 'calc(var(--safe-top, 0px) + 14px)',
+            right: 16,
+            background: 'var(--white)',
+            border: '1px solid var(--b2)',
+            borderRadius: 999,
+            width: 36,
+            height: 36,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: 'var(--ink)',
+            boxShadow: 'var(--s1)',
+          }}
+        >
+          <X size={19} />
+        </button>
+      )}
       <div style={{ maxWidth: 520, margin: '0 auto' }}>
         <div
           style={{

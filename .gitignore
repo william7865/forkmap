@@ -64,3 +64,6 @@ docs/superpowers/
 
 # Claude Code — réglages locaux perso (ne pas committer)
 .claude/settings.local.json
+
+# Claude SDK agent worktrees
+.claude/worktrees/
