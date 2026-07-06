@@ -16,6 +16,7 @@ import type { PlaceCard, FilterState, PlaceBase, FavoriteRow } from '@/types'
 import { annotateDistances, annotateScores, applyFilters } from '@/lib/scoring'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { apiFetch } from '@/lib/api'
+import { canScrapeOnDevice, enrichPlacesViaScrape } from '@/lib/google-client'
 import { heavyTap } from '@/lib/native/haptics'
 import { pullCloudNotes } from '@/components/place/NoteModal'
 
@@ -316,14 +317,21 @@ export function useRestaurants() {
 
       if (richBatch.length && fetchCount.current === myFetch) {
         try {
-          const res = await apiFetch('/api/places/enrich-google', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ places: richBatch }),
-            signal,
-          })
-          const data = await res.json()
-          const googleBatch: PlaceCard[] = data.data ?? richBatch
+          // Native scrapes Google straight from the device (residential IP → not
+          // blocked). Web falls back to the server route (blocked on Vercel's IP).
+          let googleBatch: PlaceCard[]
+          if (canScrapeOnDevice()) {
+            googleBatch = await enrichPlacesViaScrape(richBatch)
+          } else {
+            const res = await apiFetch('/api/places/enrich-google', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ places: richBatch }),
+              signal,
+            })
+            const data = await res.json()
+            googleBatch = data.data ?? richBatch
+          }
           const googleMap = new Map(googleBatch.map((e) => [e.osm_id, e]))
           enriched = enriched.map((orig) => {
             const g = googleMap.get(orig.osm_id)

@@ -47,3 +47,56 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
 }
+
+// ============================================================
+// RawHttp — minimal native GET returning the RAW response body as text.
+// Needed because CapacitorHttp force-parses `application/json` responses, and
+// Google's map endpoint serves an XSSI-prefixed (`)]}'`) blob as application/json
+// that isn't valid JSON. A raw URLSession request from the DEVICE also exits via
+// the user's residential IP (Google blocks the single Vercel datacenter IP).
+// Kept in AppDelegate.swift so it's in the App target without editing the Xcode
+// project; Capacitor auto-discovers CAPBridgedPlugin conformers at runtime.
+// ============================================================
+import Capacitor
+
+@objc(RawHttpPlugin)
+public class RawHttpPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "RawHttpPlugin"
+    public let jsName = "RawHttp"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "get", returnType: CAPPluginReturnPromise)
+    ]
+
+    @objc func get(_ call: CAPPluginCall) {
+        guard let urlStr = call.getString("url"), let url = URL(string: urlStr) else {
+            call.reject("bad url")
+            return
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        req.timeoutInterval = 12
+        if let headers = call.getObject("headers") {
+            for (key, value) in headers {
+                if let s = value as? String { req.setValue(s, forHTTPHeaderField: key) }
+            }
+        }
+        URLSession.shared.dataTask(with: req) { data, resp, err in
+            if let err = err {
+                call.reject(err.localizedDescription)
+                return
+            }
+            let status = (resp as? HTTPURLResponse)?.statusCode ?? 0
+            let text = data.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+            call.resolve(["status": status, "data": text])
+        }.resume()
+    }
+}
+
+// Registers app-local plugins (RawHttp). Capacitor does not auto-discover
+// plugins defined in the app target, so we register them on the bridge here.
+// Wired via Main.storyboard (the initial view controller's custom class).
+class MainViewController: CAPBridgeViewController {
+    override open func capacitorDidLoad() {
+        bridge?.registerPluginInstance(RawHttpPlugin())
+    }
+}
