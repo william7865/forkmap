@@ -37,6 +37,9 @@ export function useHomeState() {
   } = useRestaurants()
 
   const [selectedPlace, setSelectedPlace] = useState<PlaceCard | null>(null)
+  // A place opened from a Google search that OSM may not have — kept so it also
+  // shows as a marker on the map (merged into mapPlaces), not just as a card.
+  const [searchedPlace, setSearchedPlace] = useState<PlaceCard | null>(null)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [filters, setFilters] = useState<FilterState>({ sortBy: 'score' })
   const [nameQuery, setNameQuery] = useState('')
@@ -164,8 +167,18 @@ export function useHomeState() {
   }, [favoritePlaces, activeSavedList, savedListMembers])
 
   // What the map + list show: saved layer in saved-only mode, else the
-  // normal (filtered) discovery results.
-  const mapPlaces = savedOnly ? savedView : filteredPlaces
+  // normal (filtered) discovery results — plus any Google-searched place that
+  // OSM doesn't have, so it appears as a marker too.
+  const mapPlaces = useMemo<PlaceCard[]>(() => {
+    const base = savedOnly ? savedView : filteredPlaces
+    if (!searchedPlace || base.some((p) => p.osm_id === searchedPlace.osm_id)) return base
+    return [searchedPlace, ...base]
+  }, [savedOnly, savedView, filteredPlaces, searchedPlace])
+
+  // Drop the searched marker once the user selects another place or closes it.
+  useEffect(() => {
+    if (searchedPlace && selectedPlace?.osm_id !== searchedPlace.osm_id) setSearchedPlace(null)
+  }, [selectedPlace, searchedPlace])
 
   // Select a collection tab inside saved mode (null = all saved).
   const selectSavedList = useCallback(
@@ -422,7 +435,7 @@ export function useHomeState() {
       // Google result: OSM may have no such place, so open a card built straight
       // from the Google data (name/rating/photos/hours) — don't wait on a match.
       if (r.fsq) {
-        handleMarkerClick({
+        const card: PlaceCard = {
           osm_id: r.osm_id ?? `g/${r.lat.toFixed(5)},${r.lon.toFixed(5)}`,
           osm_type: 'node',
           name: r.name,
@@ -431,7 +444,9 @@ export function useHomeState() {
           tags: {},
           fsq: r.fsq,
           fsq_rating: r.fsq.rating,
-        })
+        }
+        setSearchedPlace(card) // also render it as a marker on the map
+        handleMarkerClick(card)
         return
       }
 
