@@ -2,6 +2,8 @@
 // types/index.ts — Shared TypeScript types for Restaurant Finder
 // ============================================================
 
+import type { PollResults } from '@/lib/polls'
+
 /** Raw OSM tag map */
 export type OsmTags = Record<string, string>
 
@@ -283,6 +285,31 @@ export interface ActivityItem {
 export interface PublicListDetail {
   list: { id: string; name: string; color_hue: number }
   items: PlaceCard[]
+}
+
+// ---------- Group polls ("où on mange ce soir ?") ----------
+
+export interface PollOptionPublic {
+  id: string
+  place: PlaceCard
+}
+
+export interface PollPublic {
+  id: string
+  title: string
+  closed: boolean
+  owner_id: string
+  options: PollOptionPublic[]
+  results: PollResults
+}
+
+/** Row for the creator's "mes sondages" list. */
+export interface PollSummary {
+  id: string
+  title: string
+  closed: boolean
+  total: number
+  created_at: string
 }
 
 export interface MessagePlacePayload {
