@@ -60,6 +60,8 @@ Exécuter les fichiers SQL dans l'éditeur SQL de Supabase **dans cet ordre** :
 7. `sql/polls.sql` — tables `polls`, `poll_options`, `poll_votes` + RLS (sondages de groupe ; vote anonyme par lien via routes service-role).
 8. `sql/list-collaborators.sql` — table `list_collaborators` + RLS (listes collaboratives ; autorisation via `canEditList` côté serveur).
 
+Migrations ponctuelles dans `sql/migrations/` (à appliquer après les schémas de base) — ex. `2026-07-06-messages-poll-type.sql` élargit la contrainte `messages.type` à `'poll'` (partage de sondage en DM).
+
 Pour l'OAuth Google, activer le provider Google dans Supabase Auth et ajouter la redirection vers `/auth/callback`.
 
 ## Architecture

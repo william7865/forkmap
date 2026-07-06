@@ -21,10 +21,12 @@ export default function SharePollSheet({
   const { friends, loading } = useFriends()
   const [sentTo, setSentTo] = useState<Set<string>>(new Set())
   const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const sendTo = async (userId: string) => {
     if (busy || sentTo.has(userId)) return
     setBusy(userId)
+    setError(null)
     try {
       const res = await apiFetch('/api/messages', {
         method: 'POST',
@@ -36,9 +38,14 @@ export default function SharePollSheet({
           payload: { poll_id: pollId, title },
         }),
       })
-      if (res.ok) setSentTo((s) => new Set(s).add(userId))
+      if (res.ok) {
+        setSentTo((s) => new Set(s).add(userId))
+      } else {
+        const j = await res.json().catch(() => null)
+        setError(j?.error ?? "Impossible d'envoyer le sondage.")
+      }
     } catch {
-      /* noop */
+      setError('Connexion impossible. Réessaie.')
     } finally {
       setBusy(null)
     }
@@ -86,6 +93,19 @@ export default function SharePollSheet({
       <p style={{ margin: '0 0 18px 2px', fontSize: 13.5, color: 'var(--text-2)' }}>
         Envoie le sondage <strong style={{ color: 'var(--text)' }}>{title}</strong> à tes amis.
       </p>
+
+      {error && (
+        <p
+          style={{
+            margin: '0 0 14px 2px',
+            fontSize: 13,
+            fontWeight: 600,
+            color: 'var(--coral)',
+          }}
+        >
+          {error}
+        </p>
+      )}
 
       {loading && <p style={{ color: 'var(--text-3)', fontSize: 13.5 }}>Chargement…</p>}
       {!loading && friends.length === 0 && (
