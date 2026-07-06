@@ -49,6 +49,10 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 
 const REFETCH_THRESHOLD = 0.004
 
+// How many top places (by score) get a per-place photo scrape. Kept small: the
+// scraper hits Google directly and must stay light. Covers the hero + first rails.
+const PHOTO_CAP = 10
+
 function bboxChanged(prev: BBox | null, next: BBox): boolean {
   if (!prev) return true
   return (
@@ -87,6 +91,26 @@ function stabilize(sorted: PlaceCard[], orderIds: string[]): PlaceCard[] {
     const pb = pos.get(b.osm_id) ?? Infinity
     return pa - pb // ties (both new → Infinity) keep the incoming sorted order
   })
+}
+
+/**
+ * Upgrade the top-scored places that still LACK a photo with a real one from a
+ * per-place Google scrape, then return the list with those photos merged in.
+ * The Google viewport listing returns ratings but no photo blob, so its places
+ * (the hero + first rail cards) would otherwise show a gradient placeholder.
+ * Native-only: a no-op (returns the input untouched) on web or when every top
+ * place already has a photo.
+ */
+async function enrichTopPhotos(list: PlaceCard[], cap: number): Promise<PlaceCard[]> {
+  if (!canScrapeOnDevice()) return list
+  const need = [...list]
+    .filter((p) => !p.fsq?.photos?.length)
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+    .slice(0, cap)
+  if (!need.length) return list
+  const done = await enrichPlacesViaScrape(need)
+  const byId = new Map(done.map((e) => [e.osm_id, e]))
+  return list.map((p) => byId.get(p.osm_id) ?? p)
 }
 
 export function useRestaurants() {
@@ -221,6 +245,19 @@ export function useRestaurants() {
         setPlaces(scored)
         setFilteredPlaces(applyFilters(scored, currentFilters.current))
         setLoading(false)
+        // The viewport listing has no photos — upgrade the top places (hero +
+        // first rails) with a real one, then re-publish.
+        const withPhotos = await enrichTopPhotos(scored, PHOTO_CAP)
+        if (fetchCount.current !== myFetch) return
+        if (withPhotos !== scored) {
+          const reFav = withPhotos.map((p) => ({
+            ...p,
+            is_favorite: favoriteIdsRef.current.has(p.osm_id),
+          }))
+          placesRef.current = reFav
+          setPlaces(reFav)
+          setFilteredPlaces(applyFilters(reFav, currentFilters.current))
+        }
         setEnriching(false)
         return
       }
@@ -371,12 +408,10 @@ export function useRestaurants() {
         }
 
         if (fetchCount.current !== myFetch) return
-        const enrichedMap = new Map(enriched.map((e) => [e.osm_id, e]))
-        const combined = osmPlaces.map((orig) => {
-          const found = enrichedMap.get(orig.osm_id)
-          return found ?? { ...orig, is_favorite: favoriteIdsRef.current.has(orig.osm_id) }
-        })
-        const scored = annotateScores(annotateDistances(combined, bbox.centerLat, bbox.centerLon))
+        // Re-score the full merged base. enriched already holds every place
+        // (Google + OSM); rebuilding from osmPlaces here would drop the Google
+        // viewport places (the hero) after this batch publishes.
+        const scored = annotateScores(annotateDistances(enriched, bbox.centerLat, bbox.centerLon))
         const withFav = scored.map((p) => ({
           ...p,
           is_favorite: favoriteIdsRef.current.has(p.osm_id),
@@ -389,14 +424,13 @@ export function useRestaurants() {
       // RICH_CAP places by current score: the scraper hits Google directly and
       // must stay light to avoid blocks / burning a provider quota. The route
       // degrades gracefully when no provider is available.
-      const RICH_CAP = 10
-      const topIds = new Set(
-        [...enriched]
-          .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-          .slice(0, RICH_CAP)
-          .map((p) => p.osm_id)
-      )
-      const richBatch = osmPlaces.filter((p) => topIds.has(p.osm_id))
+      // Top places still MISSING a photo, across BOTH origins. Google viewport
+      // places carry a rating but no photo blob, so the hero/top cards need a
+      // per-place scrape — filtering osmPlaces here would skip them entirely.
+      const richBatch = [...enriched]
+        .filter((p) => !p.fsq?.photos?.length)
+        .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+        .slice(0, PHOTO_CAP)
 
       if (richBatch.length && fetchCount.current === myFetch) {
         try {
@@ -438,12 +472,7 @@ export function useRestaurants() {
         }
 
         if (fetchCount.current !== myFetch) return
-        const gMap = new Map(enriched.map((e) => [e.osm_id, e]))
-        const gCombined = osmPlaces.map((orig) => {
-          const found = gMap.get(orig.osm_id)
-          return found ?? { ...orig, is_favorite: favoriteIdsRef.current.has(orig.osm_id) }
-        })
-        const gScored = annotateScores(annotateDistances(gCombined, bbox.centerLat, bbox.centerLon))
+        const gScored = annotateScores(annotateDistances(enriched, bbox.centerLat, bbox.centerLon))
         const gWithFav = gScored.map((p) => ({
           ...p,
           is_favorite: favoriteIdsRef.current.has(p.osm_id),
