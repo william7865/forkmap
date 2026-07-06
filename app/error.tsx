@@ -45,7 +45,7 @@ export default function GlobalError({ error, reset }: Props) {
             maxWidth: 420,
             width: '100%',
             margin: '0 24px',
-            background: '#ffffff',
+            background: 'var(--bg)',
             borderRadius: 20,
             boxShadow: '0 24px 64px rgba(28,25,23,0.14), 0 0 0 1px rgba(28,25,23,0.07)',
             overflow: 'hidden',

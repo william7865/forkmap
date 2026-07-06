@@ -397,7 +397,7 @@ const PlaceCard = memo(function PlaceCard({
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
-          color: isSelected ? 'white' : 'var(--text-3)',
+          color: isSelected ? 'var(--on-accent)' : 'var(--text-3)',
           transition: 'background 150ms ease, color 150ms ease',
         }}
       >

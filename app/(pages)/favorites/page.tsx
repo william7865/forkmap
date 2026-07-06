@@ -531,7 +531,7 @@ function NoteDrawer({
               borderRadius: 'var(--r-md)',
               border: 'none',
               background: saved ? 'var(--accent)' : 'var(--ember)',
-              color: 'white',
+              color: 'var(--on-accent)',
               cursor: 'pointer',
               fontSize: 13,
               fontWeight: 600,
@@ -2201,7 +2201,7 @@ function FavoritesPageInner() {
                           fontWeight: 600,
                           whiteSpace: 'nowrap',
                           background: active ? 'var(--accent)' : 'var(--surface-2)',
-                          color: active ? '#fff' : 'var(--text-2)',
+                          color: active ? 'var(--on-accent)' : 'var(--text-2)',
                         }}
                       >
                         {chip.label}
@@ -2394,7 +2394,7 @@ function FavoritesPageInner() {
                     borderRadius: 'var(--r-md)',
                     border: `1px solid ${selectMode ? 'var(--accent)' : 'var(--border)'}`,
                     background: selectMode ? 'var(--accent)' : 'var(--white)',
-                    color: selectMode ? '#fff' : 'var(--text-2)',
+                    color: selectMode ? 'var(--on-accent)' : 'var(--text-2)',
                     fontSize: 11,
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -2448,7 +2448,7 @@ function FavoritesPageInner() {
                         justifyContent: 'center',
                         border: 'none',
                         background: viewMode === m ? 'var(--accent)' : 'transparent',
-                        color: viewMode === m ? 'white' : 'var(--text-2)',
+                        color: viewMode === m ? 'var(--on-accent)' : 'var(--text-2)',
                         cursor: 'pointer',
                         transition: 'all 120ms',
                       }}
@@ -2697,7 +2697,7 @@ function FavoritesPageInner() {
                     onClick={() => router.push('/')}
                     style={{
                       background: 'var(--accent)',
-                      color: '#fff',
+                      color: 'var(--on-accent)',
                       border: 'none',
                       borderRadius: 999,
                       padding: '11px 20px',
@@ -3041,7 +3041,7 @@ function FavoritesPageInner() {
               borderRadius: 'var(--r-pill)',
               border: 'none',
               background: 'var(--ember)',
-              color: '#fff',
+              color: 'var(--on-accent)',
               fontSize: 12.5,
               fontWeight: 700,
               fontFamily: 'var(--font-body)',

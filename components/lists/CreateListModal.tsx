@@ -231,7 +231,7 @@ export function CreateListModal({ initial, onSave, onClose }: Props) {
                 width: 18,
                 height: 18,
                 borderRadius: '50%',
-                background: 'white',
+                background: isPublic ? 'var(--on-accent)' : 'white',
                 boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
                 transition: 'left 200ms',
               }}

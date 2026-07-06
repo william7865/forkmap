@@ -609,7 +609,7 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
                 borderRadius: 'var(--r-md)',
                 border: 'none',
                 background: saved ? 'var(--green)' : 'var(--forest-mid)',
-                color: 'white',
+                color: 'var(--on-accent)',
                 cursor: saving || saved ? 'not-allowed' : 'pointer',
                 fontSize: 14,
                 fontWeight: 700,

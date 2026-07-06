@@ -23,6 +23,7 @@
   --accent-hover: #9f4d22;
   --accent-light: #f6e7da;
   --accent-text: #a8521f;
+  --on-accent: #fff; /* text/icon on accent fills (flips in native dark) */
 
   /* ── Ember = alias rétrocompat de l'accent (plus de seconde couleur) ── */
   --ember: var(--accent);
@@ -144,6 +145,7 @@ html.native-app {
   --accent-hover: #000000;
   --accent-light: #f3f4f5;
   --accent-text: #1a1a1a;
+  --on-accent: #fff; /* text/icon on accent fills (dark theme flips this) */
 
   /* Surfaces — gris très clair (f8f9fa) + blanc cartes */
   --bg: #ffffff; /* cartes, panneaux, modales (surface-container-lowest) */
@@ -191,6 +193,61 @@ html.native-app {
 
   /* Deck : accent secondaire → gris neutre en natif monochrome */
   --deck-warm: #52525b;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   APP NATIF — DARK MODE
+   Scopé à html.native-app[data-theme='dark'] (posé par CapacitorInit),
+   donc JAMAIS actif sur le web. Monochrome sombre : gris chauds neutres,
+   accent inversé (clair) + texte sombre via --on-accent. La plupart des
+   composants lisent des var() → re-thème automatique.
+   ═══════════════════════════════════════════════════════════════ */
+html.native-app[data-theme='dark'] {
+  /* Accent inversé : fill clair, texte sombre */
+  --accent: #f2f2f3;
+  --accent-hover: #ffffff;
+  --accent-light: #2a2a2c;
+  --accent-text: #f2f2f3;
+  --on-accent: #14140f;
+
+  /* Surfaces — gris très sombres neutres */
+  --bg: #1c1c1e; /* cartes, panneaux, modales */
+  --surface: #0f0f10; /* canvas de page */
+  --surface-2: #2c2c2e; /* remplissages secondaires / pressés */
+  --border: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.22);
+
+  /* Texte — encre claire */
+  --text: #f2f2f3;
+  --text-2: #b0b2b4;
+  --text-3: #85888a;
+  --text-4: #5a5c5e;
+
+  /* Sémantique — assombrir les fonds, garder les teintes lisibles */
+  --open: #34c77b;
+  --open-bg: #16321f;
+  --closed: #ff6a5c;
+  --closed-bg: #3a1c19;
+  --star: #f5a623;
+
+  /* Ombres — noir plus opaque sur fond sombre */
+  --s1: 0 1px 4px rgba(0, 0, 0, 0.4);
+  --s2: 0 3px 14px rgba(0, 0, 0, 0.5);
+  --s3: 0 8px 26px rgba(0, 0, 0, 0.55);
+  --s4: 0 16px 44px rgba(0, 0, 0, 0.6);
+  --s-accent: 0 6px 22px rgba(0, 0, 0, 0.5);
+  --s-ember: 0 8px 24px rgba(0, 0, 0, 0.55);
+  --s-focus: 0 0 0 3px rgba(242, 242, 243, 0.28);
+
+  /* Alias en dur réalignés */
+  --ink-80: #d8d8da;
+  --bone: #2c2c2e;
+  --stone: #48484a;
+  --b1: rgba(255, 255, 255, 0.06);
+  --b2: rgba(255, 255, 255, 0.11);
+  --b3: rgba(255, 255, 255, 0.18);
+
+  --deck-warm: #a1a1aa;
 }
 
 *,
@@ -588,7 +645,7 @@ h3 {
   font-weight: 600;
   font-family: var(--font-body);
   background: var(--forest-mid);
-  color: white;
+  color: var(--on-accent);
   box-shadow: var(--s-forest);
   transition:
     background 120ms ease,
@@ -646,7 +703,7 @@ h3 {
   font-weight: 700;
   font-family: var(--font-body);
   background: var(--ember);
-  color: #fff;
+  color: var(--on-accent);
   box-shadow: var(--s-ember);
   transition:
     background 120ms ease,

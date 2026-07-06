@@ -61,7 +61,7 @@ function dpal() {
   return {
     n,
     overlayBg: n
-      ? 'linear-gradient(180deg, #ffffff 0%, #f5f5f6 100%)'
+      ? 'linear-gradient(180deg, var(--bg) 0%, var(--surface) 100%)'
       : 'linear-gradient(155deg, #2a2018 0%, #1c1611 60%, #0f0b08 100%)',
     fg: n ? 'var(--text)' : 'var(--bg)',
     faint: n ? 'var(--text-3)' : 'rgba(255,253,248,0.45)',
@@ -369,7 +369,7 @@ export default function SurpriseSheet({
     fontFamily: 'var(--font-body)',
     border: `1px solid ${active ? 'var(--accent)' : pal.chipBorder}`,
     background: active ? 'var(--accent)' : pal.chipBg,
-    color: active ? '#fff' : pal.chipFg,
+    color: active ? 'var(--on-accent)' : pal.chipFg,
     transition: 'all 140ms var(--ease-out)',
     whiteSpace: 'nowrap',
     backdropFilter: 'blur(4px)',
@@ -764,7 +764,7 @@ export default function SurpriseSheet({
                 borderRadius: 999,
                 border: 'none',
                 background: 'var(--accent)',
-                color: '#fff',
+                color: 'var(--on-accent)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -790,9 +790,9 @@ export default function SurpriseSheet({
           <button
             onClick={() => decide('save')}
             aria-label="Garder"
-            style={roundBtn(58, 'var(--ember)', '#fff')}
+            style={roundBtn(58, 'var(--ember)', 'var(--on-accent)')}
           >
-            <Heart size={24} strokeWidth={2.5} fill="#fff" />
+            <Heart size={24} strokeWidth={2.5} fill="var(--on-accent)" />
           </button>
         </div>
       )}
@@ -1010,11 +1010,11 @@ function DeckCard({
             padding: '5px 11px',
             borderRadius: 'var(--r-pill)',
             background: 'var(--ember)',
-            color: '#fff',
+            color: 'var(--on-accent)',
             zIndex: 4,
           }}
         >
-          <Heart size={11} strokeWidth={2.5} fill="#fff" /> Déjà enregistré
+          <Heart size={11} strokeWidth={2.5} fill="var(--on-accent)" /> Déjà enregistré
         </span>
       )}
 
@@ -1032,7 +1032,7 @@ function DeckCard({
             fontWeight: 700,
             padding: '5px 11px',
             borderRadius: 'var(--r-pill)',
-            background: 'rgba(255,253,248,0.95)',
+            background: 'var(--bg)',
             color: 'var(--ember-text)',
             zIndex: 4,
           }}
@@ -1279,7 +1279,7 @@ function DeckMessage({
               border: 'none',
               cursor: 'pointer',
               background: 'var(--ember)',
-              color: '#fff',
+              color: 'var(--on-accent)',
               fontSize: 13,
               fontWeight: 700,
               fontFamily: 'var(--font-body)',
@@ -1330,7 +1330,7 @@ function glassBtn(active: boolean): React.CSSProperties {
     justifyContent: 'center',
     flexShrink: 0,
     background: active ? 'var(--accent)' : pal.glassBg,
-    color: active ? '#fff' : pal.glassFg,
+    color: active ? 'var(--on-accent)' : pal.glassFg,
     backdropFilter: 'blur(6px)',
     transition: 'background 140ms ease',
   }
@@ -1386,7 +1386,11 @@ function Seg({ items }: { items: { label: string; active: boolean; onClick: () =
             fontWeight: 700,
             fontFamily: 'var(--font-body)',
             background: it.active ? 'var(--accent)' : 'transparent',
-            color: it.active ? '#fff' : pal.n ? 'var(--text-2)' : 'rgba(255,253,248,0.7)',
+            color: it.active
+              ? 'var(--on-accent)'
+              : pal.n
+                ? 'var(--text-2)'
+                : 'rgba(255,253,248,0.7)',
             transition: 'background 120ms ease, color 120ms ease',
             whiteSpace: 'nowrap',
           }}
@@ -1425,7 +1429,7 @@ function DarkToggle({ on, onClick, label }: { on: boolean; onClick: () => void; 
             width: 16,
             height: 16,
             borderRadius: '50%',
-            background: '#fff',
+            background: on ? 'var(--on-accent)' : '#fff',
             boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
             transition: 'left 160ms var(--ease-out)',
           }}

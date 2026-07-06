@@ -161,7 +161,12 @@ function DropdownPanel({ anchorRef, auth, onClose }: PanelProps) {
             <Image src={avatar} alt={name} width={36} height={36} style={{ objectFit: 'cover' }} />
           ) : (
             <span
-              style={{ fontSize: 13, fontWeight: 600, color: 'white', letterSpacing: '-0.02em' }}
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: 'var(--on-accent)',
+                letterSpacing: '-0.02em',
+              }}
             >
               {initials}
             </span>
@@ -366,7 +371,7 @@ export default function AuthButton({ auth, onOpenModal }: Props) {
           fontWeight: 600,
           fontFamily: 'var(--font-body)',
           background: 'var(--forest-mid)',
-          color: 'white',
+          color: 'var(--on-accent)',
           border: 'none',
           boxShadow: 'var(--s-forest)',
           transition: 'background var(--t2) ease',

@@ -336,7 +336,7 @@ function DeleteModal({
               cursor: input === email ? 'pointer' : 'not-allowed',
               fontSize: 13,
               fontWeight: 600,
-              color: input === email ? '#fff' : 'var(--text-3)',
+              color: input === email ? 'var(--on-accent)' : 'var(--text-3)',
               fontFamily: 'inherit',
               transition: 'all 150ms',
             }}
@@ -1760,7 +1760,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                 padding: '12px 22px',
                 borderRadius: 'var(--r-lg)',
                 background: 'var(--accent)',
-                color: '#fff',
+                color: 'var(--on-accent)',
                 textDecoration: 'none',
                 fontSize: 13,
                 fontWeight: 700,

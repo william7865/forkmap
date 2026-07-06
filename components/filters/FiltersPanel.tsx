@@ -171,7 +171,7 @@ function PriceSegments({
               fontWeight: 700,
               fontFamily: 'var(--font-body)',
               background: active ? 'var(--accent)' : 'transparent',
-              color: active ? '#fff' : 'var(--text-2)',
+              color: active ? 'var(--on-accent)' : 'var(--text-2)',
               transition: 'background 120ms ease, color 120ms ease',
               whiteSpace: 'nowrap',
             }}
@@ -210,7 +210,7 @@ function OpenToggle({ on, onChange }: { on: boolean; onChange: () => void }) {
             width: 16,
             height: 16,
             borderRadius: '50%',
-            background: '#fff',
+            background: on ? 'var(--on-accent)' : '#fff',
             boxShadow: 'var(--s1)',
             transition: 'left 160ms var(--ease-out)',
           }}
