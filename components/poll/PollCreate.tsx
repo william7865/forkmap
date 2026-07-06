@@ -11,6 +11,7 @@ import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { nativeShare } from '@/lib/native/share'
 import { frCuisine } from '@/lib/cuisine'
 import PlaceThumb from '@/components/place/PlaceThumb'
+import SharePollSheet from '@/components/poll/SharePollSheet'
 
 const POLL_BASE = 'https://forkmap.vercel.app'
 const MIN = 2
@@ -36,6 +37,8 @@ export default function PollCreate({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [shareUrl, setShareUrl] = useState<string | null>(null)
+  const [pollId, setPollId] = useState<string | null>(null)
+  const [sharingApp, setSharingApp] = useState(false)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -93,6 +96,7 @@ export default function PollCreate({ onClose }: { onClose: () => void }) {
       }
       const { data } = await res.json()
       const url = `${POLL_BASE}/sondage/${data.id}`
+      setPollId(data.id)
       setShareUrl(url)
       // Fire the native share sheet immediately; web falls through to the link UI.
       await nativeShare({
@@ -189,7 +193,13 @@ export default function PollCreate({ onClose }: { onClose: () => void }) {
         </div>
 
         {shareUrl ? (
-          <ShareResult url={shareUrl} copied={copied} onCopy={copy} onDone={onClose} />
+          <ShareResult
+            url={shareUrl}
+            copied={copied}
+            onCopy={copy}
+            onShareApp={() => setSharingApp(true)}
+            onDone={onClose}
+          />
         ) : (
           <>
             <input
@@ -325,6 +335,9 @@ export default function PollCreate({ onClose }: { onClose: () => void }) {
           </>
         )}
       </div>
+      {sharingApp && pollId && (
+        <SharePollSheet pollId={pollId} title={title} onClose={() => setSharingApp(false)} />
+      )}
     </div>
   )
 }
@@ -333,17 +346,19 @@ function ShareResult({
   url,
   copied,
   onCopy,
+  onShareApp,
   onDone,
 }: {
   url: string
   copied: boolean
   onCopy: () => void
+  onShareApp: () => void
   onDone: () => void
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <p style={{ margin: 0, fontSize: 14, color: 'var(--text-2)', lineHeight: 1.45 }}>
-        Partage ce lien avec ton groupe. Chacun peut voter, même sans compte.
+        Partage-le avec ton groupe. Chacun peut voter, même sans compte.
       </p>
       <div
         style={{
@@ -360,8 +375,24 @@ function ShareResult({
       >
         {url.replace('https://', '')}
       </div>
-      <button className="btn-primary" onClick={onCopy}>
-        {copied ? 'Lien copié ✓' : 'Partager le lien'}
+      <button className="btn-primary" onClick={onShareApp}>
+        Partager à des amis
+      </button>
+      <button
+        onClick={onCopy}
+        style={{
+          background: 'var(--white)',
+          border: '1.5px solid var(--b2)',
+          borderRadius: 12,
+          padding: 12,
+          cursor: 'pointer',
+          color: 'var(--ink)',
+          fontSize: 14.5,
+          fontWeight: 700,
+          fontFamily: 'inherit',
+        }}
+      >
+        {copied ? 'Lien copié ✓' : 'Copier / partager le lien'}
       </button>
       <button
         onClick={onDone}

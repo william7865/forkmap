@@ -12,11 +12,15 @@ const PlacePayload = z.object({
   lon: z.number().optional(),
   photo: z.string().nullable().optional(),
 })
+const PollPayload = z.object({
+  poll_id: z.string().min(1),
+  title: z.string().min(1).max(80),
+})
 const SendSchema = z.object({
   toUserId: z.string().uuid(),
   content: z.string().trim().min(1).max(2000),
-  type: z.enum(['text', 'place']).optional(),
-  payload: PlacePayload.optional(),
+  type: z.enum(['text', 'place', 'poll']).optional(),
+  payload: z.union([PlacePayload, PollPayload]).optional(),
   replyTo: z.string().uuid().nullable().optional(),
 })
 
