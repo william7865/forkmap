@@ -64,5 +64,7 @@
 	<string>Forkmap accède à vos photos pour votre photo de profil.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Forkmap enregistre votre photo de profil dans votre photothèque.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Forkmap utilise votre position pour trouver les restaurants autour de vous.</string>
 </dict>
 </plist>
