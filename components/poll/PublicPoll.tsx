@@ -9,6 +9,7 @@ import type { PollPublic } from '@/types'
 import { apiFetch } from '@/lib/api'
 import { getVoterToken, getVoterName, setVoterName } from '@/lib/poll-token'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
+import { getAuthHeaders } from '@/lib/auth-headers'
 import { frCuisine } from '@/lib/cuisine'
 import PlaceThumb from '@/components/place/PlaceThumb'
 
@@ -26,13 +27,19 @@ export default function PublicPoll({ id: idProp, onClose }: { id?: string; onClo
   const [name, setName] = useState('')
   const [status, setStatus] = useState<'loading' | 'ready' | 'notfound'>('loading')
   const [voting, setVoting] = useState<string | null>(null)
-  const [isOwner, setIsOwner] = useState(false)
 
   const load = useCallback(async () => {
-    if (!id || id === '__placeholder__') return
+    if (!id || id === '__placeholder__') {
+      setStatus('notfound')
+      return
+    }
     try {
       const token = getVoterToken()
-      const res = await apiFetch(`/api/polls/${id}?token=${encodeURIComponent(token)}`)
+      // Send the auth token when logged in so the server can flag isOwner
+      // (it never returns the owner's user id to anonymous viewers).
+      const res = await apiFetch(`/api/polls/${id}?token=${encodeURIComponent(token)}`, {
+        headers: await getAuthHeaders(),
+      })
       if (res.status === 404) {
         setStatus('notfound')
         return
@@ -50,22 +57,6 @@ export default function PublicPoll({ id: idProp, onClose }: { id?: string; onClo
     setName(getVoterName())
     load()
   }, [load])
-
-  // Detect the creator (logged-in owner) to show the "close" control.
-  useEffect(() => {
-    if (!poll) return
-    ;(async () => {
-      try {
-        const sb = getSupabaseBrowserClient()
-        const {
-          data: { user },
-        } = await sb.auth.getUser()
-        setIsOwner(!!user && user.id === poll.owner_id)
-      } catch {
-        setIsOwner(false)
-      }
-    })()
-  }, [poll])
 
   const vote = async (optionId: string) => {
     if (!poll || poll.closed) return
@@ -339,7 +330,7 @@ export default function PublicPoll({ id: idProp, onClose }: { id?: string; onClo
           </div>
         )}
 
-        {isOwner && !poll.closed && (
+        {poll.isOwner && !poll.closed && (
           <button
             onClick={close}
             style={{

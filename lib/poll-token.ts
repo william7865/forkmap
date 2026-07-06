@@ -4,18 +4,35 @@
 
 const KEY = 'forkmap_voter'
 
-/** Get (or lazily create) this device's anonymous voter token. SSR-safe. */
+/** Session fallback when localStorage is unavailable (private mode / disabled).
+ *  Kept module-level so repeated calls in one page load return the SAME token —
+ *  otherwise the load and the vote would use different ids. */
+let memToken = ''
+
+function randomId(): string {
+  try {
+    return crypto.randomUUID()
+  } catch {
+    // Non-secure context: crypto.randomUUID may be missing.
+    return `v-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e9).toString(36)}`
+  }
+}
+
+/** Get (or lazily create) this device's anonymous voter token. SSR-safe.
+ *  Never returns '' on the client — a stable per-session token still lets a
+ *  voter change their vote and keeps distinct voters distinct. */
 export function getVoterToken(): string {
   if (typeof window === 'undefined') return ''
   try {
     let t = localStorage.getItem(KEY)
     if (!t) {
-      t = crypto.randomUUID()
+      t = randomId()
       localStorage.setItem(KEY, t)
     }
     return t
   } catch {
-    return ''
+    if (!memToken) memToken = randomId()
+    return memToken
   }
 }
 

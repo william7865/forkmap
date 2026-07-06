@@ -298,7 +298,8 @@ export interface PollPublic {
   id: string
   title: string
   closed: boolean
-  owner_id: string
+  /** Whether the requester is the poll's creator (from an optional bearer token). */
+  isOwner: boolean
   options: PollOptionPublic[]
   results: PollResults
 }

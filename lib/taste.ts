@@ -88,7 +88,9 @@ export function setDeclaredCuisines(
   for (const k of optionKeys) {
     const existing = cuisines[k] ?? 0
     if (selected.has(k)) cuisines[k] = Math.max(existing, value)
-    else if (existing >= value) cuisines[k] = 0
+    // Only retract a pure declaration (exactly the seed); keep affinity the deck
+    // learned beyond it (> value) — a settings toggle must not wipe earned taste.
+    else if (existing === value) cuisines[k] = 0
   }
   return { cuisines }
 }
