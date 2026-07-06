@@ -415,17 +415,34 @@ export function useHomeState() {
   // Tap an off-viewport search result → fly there, then open it once the fetch
   // for that area loads the matching place (matched by osm_id).
   const searchSelectPlace = useCallback(
-    (r: { osm_id?: string; name: string; lat: number; lon: number }) => {
-      const target = { osm_id: r.osm_id, name: r.name, lat: r.lat, lon: r.lon }
-      pendingSearchSelectRef.current = target
+    (r: { osm_id?: string; name: string; lat: number; lon: number; fsq?: PlaceCard['fsq'] }) => {
       setNameQuery('')
       mapRef.current?.flyTo(r.lat, r.lon, 17)
-      // Give up after a while so a later unrelated fetch never auto-opens it.
+
+      // Google result: OSM may have no such place, so open a card built straight
+      // from the Google data (name/rating/photos/hours) — don't wait on a match.
+      if (r.fsq) {
+        handleMarkerClick({
+          osm_id: r.osm_id ?? `g/${r.lat.toFixed(5)},${r.lon.toFixed(5)}`,
+          osm_type: 'node',
+          name: r.name,
+          lat: r.lat,
+          lon: r.lon,
+          tags: {},
+          fsq: r.fsq,
+          fsq_rating: r.fsq.rating,
+        })
+        return
+      }
+
+      // OSM (Nominatim) result: open it once the area's fetch loads the place.
+      const target = { osm_id: r.osm_id, name: r.name, lat: r.lat, lon: r.lon }
+      pendingSearchSelectRef.current = target
       setTimeout(() => {
         if (pendingSearchSelectRef.current === target) pendingSearchSelectRef.current = null
       }, 8000)
     },
-    []
+    [handleMarkerClick]
   )
 
   useEffect(() => {

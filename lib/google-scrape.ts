@@ -85,7 +85,8 @@ export interface ScrapeSearchResult {
   name: string
   lat: number
   lon: number
-  rating?: number
+  /** Full enrichment (rating/photos/hours) so a card can open from Google alone. */
+  fsq: FoursquareData
 }
 
 /** Map one Google result entry (entry[14] is the place node) to normalized data. */
@@ -140,7 +141,7 @@ export function parseScrapeResults(text: string): ScrapeSearchResult[] {
   for (const e of entries) {
     const m = mapScrapeEntry(e)
     if (m && typeof m.lat === 'number' && typeof m.lon === 'number') {
-      out.push({ name: m.name, lat: m.lat, lon: m.lon, rating: m.fsq.rating })
+      out.push({ name: m.name, lat: m.lat, lon: m.lon, fsq: m.fsq })
     }
   }
   return out

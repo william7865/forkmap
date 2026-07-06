@@ -8,6 +8,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import type { FoursquareData } from '@/types'
 import { searchGoogleNearby } from '@/lib/google-client'
 
 export interface PlaceSearchResult {
@@ -21,6 +22,8 @@ export interface PlaceSearchResult {
   lon: number
   category?: string
   rating?: number // Google rating (0–10) when available
+  /** Full Google enrichment — lets a card open even when OSM has no such place. */
+  fsq?: FoursquareData
   source: 'google' | 'osm'
 }
 
@@ -94,7 +97,8 @@ async function search(q: string, center: [number, number] | null): Promise<Place
       context: 'Google Maps',
       lat: r.lat,
       lon: r.lon,
-      rating: r.rating,
+      rating: r.fsq.rating,
+      fsq: r.fsq,
       source: 'google' as const,
     }))
   } catch {
