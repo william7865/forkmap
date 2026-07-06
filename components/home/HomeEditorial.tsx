@@ -9,7 +9,9 @@ import { Star, Bookmark, MapPin, Sparkles } from 'lucide-react'
 import { frCuisine } from '@/lib/cuisine'
 import { getMoment, momentEyebrow } from '@/lib/context'
 import { loadTasteProfile, tasteBoost, isMadeForYou, emptyProfile } from '@/lib/taste'
+import { buildCollections } from '@/lib/collections'
 import PlaceThumb from '@/components/place/PlaceThumb'
+import CollectionRail from '@/components/home/CollectionRail'
 
 interface Props {
   places: PlaceCard[]
@@ -96,7 +98,7 @@ const HomeEditorial = memo(function HomeEditorial({ places, onSelect, onToggleFa
     return (a.distance ?? Infinity) - (b.distance ?? Infinity)
   }
   const hero = [...places].sort(heroRank)[0] ?? places[0]
-  const rail = places.filter((p) => p.osm_id !== hero.osm_id).slice(0, 8)
+  const collections = buildCollections(places, taste, hero.osm_id)
   const baseBadge = badgeFor(hero)
   // "Fait pour toi" when the hero matches your taste (Michelin still wins).
   const heroBadge =
@@ -240,104 +242,16 @@ const HomeEditorial = memo(function HomeEditorial({ places, onSelect, onToggleFa
         </div>
       </div>
 
-      {/* Collection rail */}
-      {rail.length >= 2 && (
-        <div style={{ marginTop: 26 }}>
-          <Eyebrow>Coups de cœur du quartier</Eyebrow>
-          <div
-            className="no-scrollbar"
-            style={{
-              display: 'flex',
-              gap: 12,
-              overflowX: 'auto',
-              padding: '2px 4px 4px',
-              scrollSnapType: 'x proximity',
-            }}
-          >
-            {rail.map((p) => {
-              const c = p.cuisine ?? p.fsq?.categories?.[0]?.name
-              return (
-                <button
-                  key={p.osm_id}
-                  onClick={() => onSelect(p)}
-                  style={{
-                    flex: '0 0 132px',
-                    border: 'none',
-                    background: 'none',
-                    padding: 0,
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    scrollSnapAlign: 'start',
-                  }}
-                >
-                  <div
-                    style={{
-                      height: 96,
-                      borderRadius: 16,
-                      overflow: 'hidden',
-                      position: 'relative',
-                    }}
-                  >
-                    <PlaceThumb place={p} initialSize={38} />
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: 15,
-                      fontWeight: 600,
-                      color: 'var(--text)',
-                      letterSpacing: '-0.01em',
-                      lineHeight: 1.12,
-                      marginTop: 8,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {p.name}
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 5,
-                      marginTop: 2,
-                      fontSize: 11.5,
-                      color: 'var(--text-2)',
-                    }}
-                  >
-                    {p.fsq?.rating != null && (
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 2,
-                          fontWeight: 700,
-                          color: 'var(--text)',
-                        }}
-                      >
-                        <Star size={11} strokeWidth={0} fill="var(--star)" />
-                        {p.fsq.rating.toFixed(1)}
-                      </span>
-                    )}
-                    {c && (
-                      <span
-                        style={{
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {frCuisine(c)}
-                      </span>
-                    )}
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
+      {/* Editorial collections — themed rails built from the fetched places. */}
+      {collections.map((c) => (
+        <CollectionRail
+          key={c.id}
+          title={c.title}
+          icon={c.icon}
+          places={c.places}
+          onSelect={onSelect}
+        />
+      ))}
     </div>
   )
 })
