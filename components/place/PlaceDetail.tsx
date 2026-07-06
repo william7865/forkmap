@@ -14,7 +14,6 @@ import {
   IcoPen,
   IcoShare,
   IcoVisit,
-  IcoX,
   IcoMap,
   IcoPhone,
   IcoGlobe,
