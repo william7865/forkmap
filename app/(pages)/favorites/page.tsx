@@ -20,6 +20,7 @@ import { useIsNative } from '@/lib/native/platform'
 import { useLists, type ListRow as HookListRow } from '@/lib/hooks/useLists'
 import { ListCard, NewListCard } from '@/components/lists/ListCard'
 import { CreateListModal } from '@/components/lists/CreateListModal'
+import PollCreate from '@/components/poll/PollCreate'
 import { SaveToListPopup } from '@/components/lists/SaveToListPopup'
 import { placeGradient } from '@/lib/gradients'
 import { placeInitial } from '@/components/place/PlaceThumb'
@@ -1830,6 +1831,7 @@ function FavoritesPageInner() {
 
   // ── Multi-select ──
   const [selectMode, setSelectMode] = useState(false)
+  const [pollOpen, setPollOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [showBulkList, setShowBulkList] = useState(false)
@@ -2054,6 +2056,33 @@ function FavoritesPageInner() {
                 : `${favorites.length} restaurant${favorites.length !== 1 ? 's' : ''} · ${lists.length} liste${lists.length !== 1 ? 's' : ''}`}
             </p>
           </div>
+
+          {/* Lancer un sondage de groupe — « où on mange ce soir ? » */}
+          {isNative && !activeListId && !loading && favorites.length >= 2 && (
+            <button
+              onClick={() => setPollOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                width: '100%',
+                padding: '12px',
+                marginBottom: 16,
+                borderRadius: 14,
+                border: '1.5px solid var(--b2)',
+                background: 'var(--white)',
+                boxShadow: 'var(--s1)',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+                fontSize: 14.5,
+                fontWeight: 700,
+                color: 'var(--ink)',
+              }}
+            >
+              🗳️ Lancer un sondage de groupe
+            </button>
+          )}
 
           {/* À essayer / Déjà testé (natif) — active le journal de visites */}
           {isNative &&
@@ -3042,6 +3071,7 @@ function FavoritesPageInner() {
         />
       )}
       {shareTarget && <ShareDrawer fav={shareTarget} onClose={() => setShareTarget(null)} />}
+      {pollOpen && <PollCreate onClose={() => setPollOpen(false)} />}
       {noteTarget && (
         <NoteDrawer
           fav={noteTarget}

@@ -57,6 +57,7 @@ Exécuter les fichiers SQL dans l'éditeur SQL de Supabase **dans cet ordre** :
 4. `sql/profiles.sql` — table `profiles` + RLS (profils publics).
 5. `sql/avatars-storage.sql` — bucket Storage `avatars` + politiques d'accès.
 6. `sql/notes.sql` — table `notes` + RLS (notes perso synchronisées, ex-localStorage).
+7. `sql/polls.sql` — tables `polls`, `poll_options`, `poll_votes` + RLS (sondages de groupe ; vote anonyme par lien via routes service-role).
 
 Pour l'OAuth Google, activer le provider Google dans Supabase Auth et ajouter la redirection vers `/auth/callback`.
 
@@ -116,28 +117,32 @@ Score composite dans `[0,1]` : **note 40 % + popularité 20 % + distance 30 % + 
 
 ### Routes API (`app/api/`)
 
-| Route                       | Méthodes            | Notes                                                |
-| --------------------------- | ------------------- | ---------------------------------------------------- |
-| `osm/overpass`              | GET                 | POI bruts. Cache, limité à 30/min.                   |
-| `places/enrich-osm`         | POST                | Tags OSM détaillés + Wikidata optionnel. Gratuit.    |
-| `places/enrich`             | POST                | Foursquare. Limité à 20/min.                         |
+| Route                       | Méthodes            | Notes                                                  |
+| --------------------------- | ------------------- | ------------------------------------------------------ |
+| `osm/overpass`              | GET                 | POI bruts. Cache, limité à 30/min.                     |
+| `places/enrich-osm`         | POST                | Tags OSM détaillés + Wikidata optionnel. Gratuit.      |
+| `places/enrich`             | POST                | Foursquare. Limité à 20/min.                           |
 | `places/enrich-google`      | POST                | Google Places New (note/prix/photos/horaires). 20/min. |
-| `places/google-photo`       | GET                 | Proxy image Google (clé côté serveur, non stockée).  |
-| `places/social`             | GET                 | Amis ayant enregistré/visité un lieu (`?osm_id=`).   |
-| `notes`                     | GET / PUT           | Notes perso synchronisées (`?`/body `osm_id`+`text`). |
-| `favorites`                 | GET / POST / DELETE | Liste / ajout / vidage des favoris.                  |
-| `favorites/[osmId]`         | DELETE              | Supprime un favori.                                  |
-| `lists`                     | GET / POST          | Listes utilisateur.                                  |
-| `lists/[id]`                | PATCH / DELETE      | Renomme/recolore / supprime une liste.               |
-| `lists/[id]/items`          | GET / POST          | Membres d'une liste.                                 |
-| `lists/[id]/items/[osm_id]` | DELETE              | Retire un lieu d'une liste.                          |
-| `lists/for-place`           | GET                 | Quelles listes contiennent un lieu donné.            |
-| `visits`                    | GET / POST          | Liste / consigne une visite.                         |
-| `visits/[visitId]`          | PATCH / DELETE      | Édite / supprime une visite.                         |
-| `visits/stats`              | GET                 | Statistiques de visites agrégées (totaux, dépenses). |
-| `push-tokens`               | POST                | Enregistre un token push d'appareil (mobile).        |
-| `account`                   | DELETE              | Supprime le compte + toutes les données utilisateur. |
-| `contact`                   | POST                | Formulaire de contact.                               |
+| `places/google-photo`       | GET                 | Proxy image Google (clé côté serveur, non stockée).    |
+| `places/social`             | GET                 | Amis ayant enregistré/visité un lieu (`?osm_id=`).     |
+| `notes`                     | GET / PUT           | Notes perso synchronisées (`?`/body `osm_id`+`text`).  |
+| `favorites`                 | GET / POST / DELETE | Liste / ajout / vidage des favoris.                    |
+| `favorites/[osmId]`         | DELETE              | Supprime un favori.                                    |
+| `lists`                     | GET / POST          | Listes utilisateur.                                    |
+| `lists/[id]`                | PATCH / DELETE      | Renomme/recolore / supprime une liste.                 |
+| `lists/[id]/items`          | GET / POST          | Membres d'une liste.                                   |
+| `lists/[id]/items/[osm_id]` | DELETE              | Retire un lieu d'une liste.                            |
+| `lists/for-place`           | GET                 | Quelles listes contiennent un lieu donné.              |
+| `visits`                    | GET / POST          | Liste / consigne une visite.                           |
+| `visits/[visitId]`          | PATCH / DELETE      | Édite / supprime une visite.                           |
+| `visits/stats`              | GET                 | Statistiques de visites agrégées (totaux, dépenses).   |
+| `push-tokens`               | POST                | Enregistre un token push d'appareil (mobile).          |
+| `polls`                     | GET / POST          | Mes sondages / création (requireUser, 2–6 options).    |
+| `polls/[id]`                | GET                 | **Public** — sondage + décompte live + `?token=`.      |
+| `polls/[id]/vote`           | POST                | **Public** — vote anonyme (upsert par `voter_token`).  |
+| `polls/[id]/close`          | POST                | Clôture (owner).                                       |
+| `account`                   | DELETE              | Supprime le compte + toutes les données utilisateur.   |
+| `contact`                   | POST                | Formulaire de contact.                                 |
 
 Toutes les routes mutantes/utilisateur appellent `requireUser(req)` et renvoient des erreurs françaises via `friendlyError`. Valider les corps de requête avec **Zod**.
 

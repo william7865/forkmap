@@ -14,6 +14,8 @@ import type {
   NotificationItem,
   OsmFsqMapping,
   PlaceCard,
+  PollPublic,
+  PollSummary,
   Profile,
   PublicListCard,
   PublicListDetail,
@@ -22,6 +24,7 @@ import type {
 } from '@/types'
 import { canChangeUsername } from '@/lib/username'
 import { relationFrom } from '@/lib/friends'
+import { tallyVotes } from '@/lib/polls'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -1538,4 +1541,157 @@ export async function getConversations(meId: string): Promise<ConversationSummar
     })
     .filter((c): c is ConversationSummary => c !== null)
     .sort((a, b) => (a.last_at < b.last_at ? 1 : -1))
+}
+
+// ---------- Group polls ("où on mange ce soir ?") ----------
+
+/** Create a poll with 2–6 place options. Returns the new poll id. */
+export async function createPoll(
+  ownerId: string,
+  title: string,
+  places: PlaceCard[]
+): Promise<{ id: string }> {
+  const { data: poll, error } = await db
+    .from('polls')
+    .insert({ owner_id: ownerId, title })
+    .select('id')
+    .single()
+  if (error) throw error
+  const pollId = (poll as { id: string }).id
+
+  const rows = places.map((p, i) => ({
+    poll_id: pollId,
+    osm_id: p.osm_id,
+    place_snapshot: p,
+    position: i,
+  }))
+  const { error: optErr } = await db.from('poll_options').insert(rows)
+  if (optErr) throw optErr
+  return { id: pollId }
+}
+
+/** Public poll view: options (snapshots) + aggregated results. null if absent. */
+export async function getPollPublic(pollId: string): Promise<PollPublic | null> {
+  const { data: poll, error } = await db
+    .from('polls')
+    .select('id, title, closed, owner_id')
+    .eq('id', pollId)
+    .maybeSingle()
+  if (error) throw error
+  if (!poll) return null
+  const p = poll as { id: string; title: string; closed: boolean; owner_id: string }
+
+  const { data: opts, error: optErr } = await db
+    .from('poll_options')
+    .select('id, place_snapshot, position')
+    .eq('poll_id', pollId)
+    .order('position', { ascending: true })
+  if (optErr) throw optErr
+
+  const { data: votes, error: voteErr } = await db
+    .from('poll_votes')
+    .select('option_id')
+    .eq('poll_id', pollId)
+  if (voteErr) throw voteErr
+
+  const options = (opts ?? []).map((o) => {
+    const row = o as { id: string; place_snapshot: PlaceCard }
+    return { id: row.id, place: row.place_snapshot }
+  })
+  const results = tallyVotes(
+    options.map((o) => o.id),
+    (votes ?? []) as { option_id: string }[]
+  )
+  return { id: p.id, title: p.title, closed: p.closed, owner_id: p.owner_id, options, results }
+}
+
+/** Cast (or change) an anonymous vote. Throws 'closed' if the poll is closed,
+ *  'invalid_option' if the option doesn't belong to the poll. */
+export async function castVote(
+  pollId: string,
+  optionId: string,
+  voterToken: string,
+  voterName?: string | null
+): Promise<void> {
+  const { data: poll, error } = await db
+    .from('polls')
+    .select('closed')
+    .eq('id', pollId)
+    .maybeSingle()
+  if (error) throw error
+  if (!poll) throw new Error('not_found')
+  if ((poll as { closed: boolean }).closed) throw new Error('closed')
+
+  // Guard: the option must belong to this poll.
+  const { data: opt, error: optErr } = await db
+    .from('poll_options')
+    .select('id')
+    .eq('id', optionId)
+    .eq('poll_id', pollId)
+    .maybeSingle()
+  if (optErr) throw optErr
+  if (!opt) throw new Error('invalid_option')
+
+  const { error: upErr } = await db.from('poll_votes').upsert(
+    {
+      poll_id: pollId,
+      option_id: optionId,
+      voter_token: voterToken,
+      voter_name: voterName ?? null,
+    },
+    { onConflict: 'poll_id,voter_token' }
+  )
+  if (upErr) throw upErr
+}
+
+/** The option this voter picked, or null. */
+export async function getMyVote(pollId: string, voterToken: string): Promise<string | null> {
+  const { data, error } = await db
+    .from('poll_votes')
+    .select('option_id')
+    .eq('poll_id', pollId)
+    .eq('voter_token', voterToken)
+    .maybeSingle()
+  if (error) throw error
+  return data ? (data as { option_id: string }).option_id : null
+}
+
+/** Close a poll (owner only). Returns false if not owned / not found. */
+export async function closePoll(pollId: string, ownerId: string): Promise<boolean> {
+  const { data, error } = await db
+    .from('polls')
+    .update({ closed: true })
+    .eq('id', pollId)
+    .eq('owner_id', ownerId)
+    .select('id')
+    .maybeSingle()
+  if (error) throw error
+  return !!data
+}
+
+/** The creator's polls, newest first, with total vote counts. */
+export async function getMyPolls(ownerId: string): Promise<PollSummary[]> {
+  const { data: polls, error } = await db
+    .from('polls')
+    .select('id, title, closed, created_at')
+    .eq('owner_id', ownerId)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  const rows = (polls ?? []) as Omit<PollSummary, 'total'>[]
+  if (rows.length === 0) return []
+
+  const { data: votes, error: voteErr } = await db
+    .from('poll_votes')
+    .select('poll_id')
+    .in(
+      'poll_id',
+      rows.map((r) => r.id)
+    )
+  if (voteErr) throw voteErr
+  const counts = new Map<string, number>()
+  for (const v of votes ?? []) {
+    const id = (v as { poll_id: string }).poll_id
+    counts.set(id, (counts.get(id) ?? 0) + 1)
+  }
+  return rows.map((r) => ({ ...r, total: counts.get(r.id) ?? 0 }))
 }
