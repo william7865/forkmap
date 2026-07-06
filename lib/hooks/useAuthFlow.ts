@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/hooks/useAuth'
 import { useProfile } from '@/lib/hooks/useProfile'
 import { validateUsername } from '@/lib/username'
 import { signupProgress, type FlowStep, type FlowPath } from '@/lib/auth-flow'
+import { loadTasteProfile, saveTasteProfile, seedProfile } from '@/lib/taste'
 
 export function useAuthFlow(onDone: () => void) {
   const auth = useAuth()
@@ -20,6 +21,7 @@ export function useAuthFlow(onDone: () => void) {
   const [username, setUsername] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [selectedCuisines, setSelectedCuisines] = useState<Set<string>>(new Set())
   const [resumed, setResumed] = useState(false)
 
   // Resume at handle when authed but profileless (Google return / legacy).
@@ -70,6 +72,7 @@ export function useAuthFlow(onDone: () => void) {
     reset()
     if (step === 'email' || step === 'signin') setStep('welcome')
     else if (step === 'avatar') setStep('handle')
+    else if (step === 'taste') setStep('avatar')
     // 'handle' has no back when it's the resumed Google entry → keep welcome.
     else if (step === 'handle') setStep(path === 'signup_email' ? 'email' : 'welcome')
   }
@@ -119,7 +122,7 @@ export function useAuthFlow(onDone: () => void) {
         setStep('handle')
         return
       }
-      setStep('done')
+      setStep('taste')
     } catch {
       setError('Connexion impossible. Réessaie.')
       setStep('handle')
@@ -127,6 +130,24 @@ export function useAuthFlow(onDone: () => void) {
       setBusy(false)
     }
   }
+
+  const toggleCuisine = (key: string) => {
+    setSelectedCuisines((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  const submitTaste = () => {
+    if (selectedCuisines.size > 0) {
+      saveTasteProfile(seedProfile(loadTasteProfile(), [...selectedCuisines]))
+    }
+    setStep('done')
+  }
+
+  const skipTaste = () => setStep('done')
 
   const [resetSent, setResetSent] = useState(false)
 
@@ -224,6 +245,10 @@ export function useAuthFlow(onDone: () => void) {
     avatarBusy,
     pickAvatar,
     submitAvatar,
+    selectedCuisines,
+    toggleCuisine,
+    submitTaste,
+    skipTaste,
     goWelcome,
     startEmailSignup,
     startSignin,

@@ -39,6 +39,60 @@ export function loadTasteProfile(): TasteProfile {
   }
 }
 
+/** Persist the taste profile to localStorage (pendant of loadTasteProfile). */
+export function saveTasteProfile(profile: TasteProfile): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(TASTE_STORAGE_KEY, JSON.stringify(profile))
+  } catch {
+    /* storage full / disabled — non-fatal */
+  }
+}
+
+/** Affinity granted to a cuisine the user explicitly declares they love. */
+export const TASTE_SEED_VALUE = 3
+
+/**
+ * Additively seed liked cuisines (onboarding quiz). For each key,
+ * `cuisines[k] = max(existing, value)` — never lowers a learned affinity.
+ * Returns a new profile.
+ */
+export function seedProfile(
+  profile: TasteProfile,
+  keys: string[],
+  value = TASTE_SEED_VALUE
+): TasteProfile {
+  const cuisines = { ...profile.cuisines }
+  for (const k of keys) {
+    cuisines[k] = Math.max(cuisines[k] ?? 0, value)
+  }
+  return { cuisines }
+}
+
+/**
+ * Reconcile declared cuisines when re-editing tastes from settings.
+ * `optionKeys` is the full set of quiz options currently on screen.
+ *  - selected key            → max(existing, value)  (declare / reinforce)
+ *  - unselected & ≥ value    → 0                      (retract the declaration)
+ *  - unselected & < value    → unchanged              (keep learned small/neg values)
+ * Returns a new profile.
+ */
+export function setDeclaredCuisines(
+  profile: TasteProfile,
+  optionKeys: string[],
+  selectedKeys: string[],
+  value = TASTE_SEED_VALUE
+): TasteProfile {
+  const selected = new Set(selectedKeys)
+  const cuisines = { ...profile.cuisines }
+  for (const k of optionKeys) {
+    const existing = cuisines[k] ?? 0
+    if (selected.has(k)) cuisines[k] = Math.max(existing, value)
+    else if (existing >= value) cuisines[k] = 0
+  }
+  return { cuisines }
+}
+
 /** Distinct lowercased cuisine + FSQ category keys for a place. */
 export function cuisineKeys(place: PlaceCard): string[] {
   const keys: string[] = []

@@ -6,7 +6,10 @@ import {
   tasteBoost,
   isMadeForYou,
   cuisineKeys,
+  seedProfile,
+  setDeclaredCuisines,
   TASTE_MAX_BIAS,
+  TASTE_SEED_VALUE,
 } from '@/lib/taste'
 import type { PlaceCard } from '@/types'
 
@@ -101,5 +104,62 @@ describe('isMadeForYou', () => {
 
   it('does not flag unknown cuisines', () => {
     expect(isMadeForYou(emptyProfile(), makePlace({ cuisine: 'Pizza' }))).toBe(false)
+  })
+})
+
+describe('seedProfile', () => {
+  it('sets declared cuisines to the seed value', () => {
+    const p = seedProfile(emptyProfile(), ['italian', 'sushi'])
+    expect(p.cuisines['italian']).toBe(TASTE_SEED_VALUE)
+    expect(p.cuisines['sushi']).toBe(TASTE_SEED_VALUE)
+  })
+
+  it('is additive — never lowers a stronger learned affinity', () => {
+    const base = { cuisines: { pizza: 5 } }
+    const p = seedProfile(base, ['pizza'])
+    expect(p.cuisines['pizza']).toBe(5)
+  })
+
+  it('raises a weak learned affinity up to the seed value', () => {
+    const p = seedProfile({ cuisines: { thai: 1 } }, ['thai'])
+    expect(p.cuisines['thai']).toBe(TASTE_SEED_VALUE)
+  })
+
+  it('is immutable', () => {
+    const base = emptyProfile()
+    const next = seedProfile(base, ['italian'])
+    expect(base.cuisines).toEqual({})
+    expect(next).not.toBe(base)
+  })
+
+  it('makes a seeded single-cuisine place "made for you"', () => {
+    const p = seedProfile(emptyProfile(), ['italian'])
+    expect(isMadeForYou(p, makePlace({ cuisine: 'Italian' }))).toBe(true)
+  })
+})
+
+describe('setDeclaredCuisines', () => {
+  const OPTS = ['italian', 'sushi', 'thai']
+
+  it('declares selected and retracts previously-declared unselected', () => {
+    const base = { cuisines: { italian: TASTE_SEED_VALUE, sushi: TASTE_SEED_VALUE } }
+    const p = setDeclaredCuisines(base, OPTS, ['italian', 'thai'])
+    expect(p.cuisines['italian']).toBe(TASTE_SEED_VALUE) // kept
+    expect(p.cuisines['thai']).toBe(TASTE_SEED_VALUE) // added
+    expect(p.cuisines['sushi']).toBe(0) // retracted
+  })
+
+  it('leaves learned small/negative affinities untouched when unselected', () => {
+    const base = { cuisines: { sushi: -2, thai: 1 } }
+    const p = setDeclaredCuisines(base, OPTS, [])
+    expect(p.cuisines['sushi']).toBe(-2)
+    expect(p.cuisines['thai']).toBe(1)
+  })
+
+  it('is immutable', () => {
+    const base = { cuisines: { italian: TASTE_SEED_VALUE } }
+    const next = setDeclaredCuisines(base, OPTS, [])
+    expect(base.cuisines['italian']).toBe(TASTE_SEED_VALUE)
+    expect(next).not.toBe(base)
   })
 })
