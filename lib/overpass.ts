@@ -58,16 +58,18 @@ interface OverpassResponse {
 }
 
 /**
- * Fetch from Overpass with automatic endpoint fallback and timeout.
+ * Fetch from Overpass, RACING all endpoints in parallel and taking the first
+ * that responds. Public Overpass mirrors have wildly variable load (one may be
+ * <1s while another hangs for 20s), so sequential fallback made a slow/dead
+ * first mirror block the whole request. Racing = as fast as the fastest mirror.
+ * Losing requests are aborted once a winner returns.
  */
 export async function fetchOverpass(query: string): Promise<OverpassResponse> {
-  let lastError: Error | null = null
+  const controllers = OVERPASS_ENDPOINTS.map(() => new AbortController())
 
-  for (const endpoint of OVERPASS_ENDPOINTS) {
+  const attempts = OVERPASS_ENDPOINTS.map(async (endpoint, i) => {
+    const timer = setTimeout(() => controllers[i].abort(), TIMEOUT_MS)
     try {
-      const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
-
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -76,24 +78,24 @@ export async function fetchOverpass(query: string): Promise<OverpassResponse> {
           'User-Agent': 'Forkmap/1.0 (https://forkmap.vercel.app)',
         },
         body: `data=${encodeURIComponent(query)}`,
-        signal: controller.signal,
+        signal: controllers[i].signal,
       })
-
+      if (!res.ok) throw new Error(`Overpass HTTP ${res.status} from ${endpoint}`)
+      return (await res.json()) as OverpassResponse
+    } finally {
       clearTimeout(timer)
-
-      if (!res.ok) {
-        throw new Error(`Overpass HTTP ${res.status} from ${endpoint}`)
-      }
-
-      const json = (await res.json()) as OverpassResponse
-      return json
-    } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err))
-      console.warn(`Overpass endpoint failed (${endpoint}):`, lastError.message)
     }
-  }
+  })
 
-  throw lastError ?? new Error('All Overpass endpoints failed')
+  try {
+    const winner = await Promise.any(attempts)
+    // Cancel the still-running losers to free sockets.
+    controllers.forEach((c) => c.abort())
+    return winner
+  } catch {
+    controllers.forEach((c) => c.abort())
+    throw new Error('All Overpass endpoints failed')
+  }
 }
 
 // ---------- Normalizer ----------
