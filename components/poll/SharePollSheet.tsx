@@ -53,6 +53,9 @@ export default function SharePollSheet({
 
   return (
     <div
+      // Stop clicks from bubbling to PollCreate's backdrop onClose (which would
+      // tear down the whole poll flow on any tap inside this sheet).
+      onClick={(e) => e.stopPropagation()}
       style={{
         position: 'fixed',
         inset: 0,
@@ -148,7 +151,7 @@ export default function SharePollSheet({
                 border: 'none',
                 cursor: sent ? 'default' : 'pointer',
                 background: sent ? 'var(--surface-2)' : 'var(--accent)',
-                color: sent ? 'var(--text-2)' : '#fff',
+                color: sent ? 'var(--text-2)' : 'var(--on-accent)',
                 fontSize: 13,
                 fontWeight: 700,
                 fontFamily: 'var(--font-body)',

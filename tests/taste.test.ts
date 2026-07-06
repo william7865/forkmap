@@ -162,4 +162,12 @@ describe('setDeclaredCuisines', () => {
     expect(base.cuisines['italian']).toBe(TASTE_SEED_VALUE)
     expect(next).not.toBe(base)
   })
+
+  it('keeps affinity LEARNED beyond the seed when deselected (not wiped)', () => {
+    // sushi was learned to 5 by the deck, not merely declared — deselecting it
+    // in settings must not reset it to 0.
+    const base = { cuisines: { sushi: 5 } }
+    const p = setDeclaredCuisines(base, OPTS, [])
+    expect(p.cuisines['sushi']).toBe(5)
+  })
 })

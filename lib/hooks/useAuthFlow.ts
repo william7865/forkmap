@@ -104,8 +104,16 @@ export function useAuthFlow(onDone: () => void) {
     }
   }
 
+  // Guards re-creating the profile when the user steps back from 'taste' to
+  // 'avatar' and continues again (createProfile would 409 on the own row).
+  const profileCreatedRef = useRef(false)
+
   const submitAvatar = async () => {
     setError(null)
+    if (profileCreatedRef.current) {
+      setStep('taste')
+      return
+    }
     setBusy(true)
     try {
       const r = await createProfile({
@@ -122,6 +130,7 @@ export function useAuthFlow(onDone: () => void) {
         setStep('handle')
         return
       }
+      profileCreatedRef.current = true
       setStep('taste')
     } catch {
       setError('Connexion impossible. Réessaie.')

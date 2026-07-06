@@ -3,8 +3,10 @@ import { z } from 'zod'
 import { rateLimit } from '@/lib/rate-limit'
 import { castVote } from '@/lib/db'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 const VoteSchema = z.object({
-  optionId: z.string().min(1),
+  optionId: z.string().uuid(),
   voterToken: z.string().min(1).max(80),
   voterName: z.string().max(40).nullable().optional(),
 })
@@ -15,6 +17,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (limited) return limited
 
   const { id } = await params
+  if (!UUID_RE.test(id)) {
+    return NextResponse.json({ error: 'Sondage introuvable.' }, { status: 404 })
+  }
   const body = await req.json().catch(() => null)
   const parsed = VoteSchema.safeParse(body)
   if (!parsed.success) {

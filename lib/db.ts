@@ -1716,12 +1716,20 @@ export async function createPoll(
     position: i,
   }))
   const { error: optErr } = await db.from('poll_options').insert(rows)
-  if (optErr) throw optErr
+  if (optErr) {
+    // Roll back the orphan poll so it never surfaces optionless/un-votable.
+    await db.from('polls').delete().eq('id', pollId)
+    throw optErr
+  }
   return { id: pollId }
 }
 
-/** Public poll view: options (snapshots) + aggregated results. null if absent. */
-export async function getPollPublic(pollId: string): Promise<PollPublic | null> {
+/** Public poll view: options (snapshots) + aggregated results. null if absent.
+ *  Returns owner_id for the caller to derive `isOwner`; the public API route
+ *  strips it so anonymous viewers never receive the creator's user id. */
+export async function getPollPublic(
+  pollId: string
+): Promise<(Omit<PollPublic, 'isOwner'> & { owner_id: string }) | null> {
   const { data: poll, error } = await db
     .from('polls')
     .select('id, title, closed, owner_id')
@@ -1782,15 +1790,17 @@ export async function castVote(
   if (optErr) throw optErr
   if (!opt) throw new Error('invalid_option')
 
-  const { error: upErr } = await db.from('poll_votes').upsert(
-    {
-      poll_id: pollId,
-      option_id: optionId,
-      voter_token: voterToken,
-      voter_name: voterName ?? null,
-    },
-    { onConflict: 'poll_id,voter_token' }
-  )
+  const row: Record<string, unknown> = {
+    poll_id: pollId,
+    option_id: optionId,
+    voter_token: voterToken,
+  }
+  // Only write voter_name when provided, so changing one's vote without
+  // re-sending a name doesn't wipe the name recorded on the first vote.
+  if (voterName) row.voter_name = voterName
+  const { error: upErr } = await db
+    .from('poll_votes')
+    .upsert(row, { onConflict: 'poll_id,voter_token' })
   if (upErr) throw upErr
 }
 

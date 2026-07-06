@@ -12,10 +12,11 @@ import { resolveTheme, getThemePref, applyTheme, systemPrefersDark } from '@/lib
 
 /** Resolve + apply the theme and sync the native status bar to match. */
 async function syncTheme() {
-  const isNative = Capacitor.isNativePlatform()
-  const theme = resolveTheme(getThemePref(), systemPrefersDark(), isNative)
+  // Web is never themed here — leave <html> without data-theme (the dark CSS is
+  // scoped to html.native-app[data-theme='dark'] and never matches on web).
+  if (!Capacitor.isNativePlatform()) return
+  const theme = resolveTheme(getThemePref(), systemPrefersDark(), true)
   applyTheme(theme)
-  if (!isNative) return
   try {
     const { StatusBar, Style } = await import('@capacitor/status-bar')
     await StatusBar.setStyle({ style: theme === 'dark' ? Style.Dark : Style.Light })

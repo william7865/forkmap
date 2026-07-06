@@ -32,7 +32,7 @@ export default function GlobalError({ error, reset }: Props) {
           padding: 0,
           height: '100%',
           fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-          background: '#faf9f7',
+          background: 'var(--surface)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
