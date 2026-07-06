@@ -80,7 +80,8 @@ describe('parseScrapeResults', () => {
     ])
     const results = parseScrapeResults(body)
     expect(results).toHaveLength(2)
-    expect(results[0]).toMatchObject({ name: 'Le Comptoir', lat: 48.85, lon: 2.34, rating: 9.2 })
+    expect(results[0]).toMatchObject({ name: 'Le Comptoir', lat: 48.85, lon: 2.34 })
+    expect(results[0].fsq.rating).toBe(9.2)
     expect(results[1].name).toBe('Chez Denise')
   })
 

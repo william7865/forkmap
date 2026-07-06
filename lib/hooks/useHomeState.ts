@@ -309,7 +309,7 @@ export function useHomeState() {
   const handleLocationChange = useCallback((lat: number, lon: number, label: string) => {
     setUserLocation([lat, lon])
     setLocationLabel(label)
-    mapRef.current?.flyTo(lat, lon, 15)
+    mapRef.current?.flyToUser(lat, lon, 15)
   }, [])
 
   const locate = useCallback(() => {
@@ -320,7 +320,7 @@ export function useHomeState() {
       .then(({ lat, lng: lon }) => {
         setUserLocation([lat, lon])
         setLocationLabel(null)
-        mapRef.current?.flyTo(lat, lon, 15)
+        mapRef.current?.flyToUser(lat, lon, 15)
         setLocating(false)
       })
       .catch(() => {
@@ -341,9 +341,11 @@ export function useHomeState() {
     if (params?.get('select') || params?.get('surprise')) return
 
     let tries = 0
+    // Wait for the (dynamically imported) MapView handle to mount, then hand off
+    // to flyToUser, which itself waits for the async Leaflet map to be ready.
     const flyWhenReady = (lat: number, lon: number) => {
-      if (mapRef.current) mapRef.current.flyTo(lat, lon, 15)
-      else if (tries++ < 20) setTimeout(() => flyWhenReady(lat, lon), 150)
+      if (mapRef.current) mapRef.current.flyToUser(lat, lon, 15)
+      else if (tries++ < 30) setTimeout(() => flyWhenReady(lat, lon), 150)
     }
     getCurrentPosition()
       .then(({ lat, lng: lon }) => {

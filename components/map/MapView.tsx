@@ -20,6 +20,10 @@ function mapPulseRing(): string {
 
 export interface MapViewHandle {
   flyTo: (lat: number, lon: number, zoom?: number) => void
+  /** Fly to the user's own location. Waits for the (async-loaded) Leaflet map to
+   *  be ready, then on mobile shifts the target up so the dot lands in the strip
+   *  above the bottom sheet instead of dead-center behind it. */
+  flyToUser: (lat: number, lon: number, zoom?: number) => void
   fitBounds: (points: [number, number][]) => void
   drawRoute: (coords: [number, number][], color?: string) => void
   clearRoute: () => void
@@ -317,6 +321,29 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
     flyTo(lat, lon, zoom = 15) {
       mapRef.current?.flyTo([lat, lon], zoom, { animate: true, duration: 0.7 })
     },
+    flyToUser(lat, lon, zoom = 15) {
+      // The Leaflet map loads asynchronously (CDN), so a fast GPS fix can arrive
+      // before it exists. Retry until the map is laid out, then fly.
+      let tries = 0
+      const go = () => {
+        const map = mapRef.current
+        const size = map?.getSize?.()
+        if (!map || !size || size.y === 0) {
+          if (tries++ < 30) setTimeout(go, 150)
+          return
+        }
+        // On mobile the bottom sheet covers the lower half, so a dead-center fly
+        // hides the user dot. Shift the target down (south) in projected space so
+        // the point renders ~24% above center, in the visible strip.
+        if (size.x < 700) {
+          const p = map.project([lat, lon], zoom).add([0, size.y * 0.24])
+          map.flyTo(map.unproject(p, zoom), zoom, { animate: true, duration: 0.7 })
+        } else {
+          map.flyTo([lat, lon], zoom, { animate: true, duration: 0.7 })
+        }
+      }
+      go()
+    },
     fitBounds(points) {
       const L: A = (window as A).L
       const map = mapRef.current
@@ -487,19 +514,34 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
 
   // ── User location dot ──────────────────────────────────
   useEffect(() => {
-    const L: A = (window as A).L
-    const map = mapRef.current
-    if (!L || !map || !userLocation) return
-    userMarkerRef.current?.remove()
-    userMarkerRef.current = L.marker(userLocation, {
-      icon: L.divIcon({
-        className: '',
-        html: userDotHTML(),
-        iconSize: [18, 18],
-        iconAnchor: [9, 9],
-      }),
-      zIndexOffset: 3000,
-    }).addTo(map)
+    if (!userLocation) return
+    let cancelled = false
+    let tries = 0
+    // The map loads asynchronously; if the location arrives first, retry until
+    // it's ready so the dot is never silently dropped.
+    const place = () => {
+      if (cancelled) return
+      const L: A = (window as A).L
+      const map = mapRef.current
+      if (!L || !map) {
+        if (tries++ < 30) setTimeout(place, 150)
+        return
+      }
+      userMarkerRef.current?.remove()
+      userMarkerRef.current = L.marker(userLocation, {
+        icon: L.divIcon({
+          className: '',
+          html: userDotHTML(),
+          iconSize: [18, 18],
+          iconAnchor: [9, 9],
+        }),
+        zIndexOffset: 3000,
+      }).addTo(map)
+    }
+    place()
+    return () => {
+      cancelled = true
+    }
   }, [userLocation])
 
   // ── Sync restaurant markers (clustered, signature-diffed) ──
