@@ -369,7 +369,7 @@ export default function SurpriseSheet({
     fontFamily: 'var(--font-body)',
     border: `1px solid ${active ? 'var(--accent)' : pal.chipBorder}`,
     background: active ? 'var(--accent)' : pal.chipBg,
-    color: active ? '#fff' : pal.chipFg,
+    color: active ? 'var(--on-accent)' : pal.chipFg,
     transition: 'all 140ms var(--ease-out)',
     whiteSpace: 'nowrap',
     backdropFilter: 'blur(4px)',
@@ -790,9 +790,9 @@ export default function SurpriseSheet({
           <button
             onClick={() => decide('save')}
             aria-label="Garder"
-            style={roundBtn(58, 'var(--ember)', '#fff')}
+            style={roundBtn(58, 'var(--ember)', 'var(--on-accent)')}
           >
-            <Heart size={24} strokeWidth={2.5} fill="#fff" />
+            <Heart size={24} strokeWidth={2.5} fill="var(--on-accent)" />
           </button>
         </div>
       )}
@@ -1014,7 +1014,7 @@ function DeckCard({
             zIndex: 4,
           }}
         >
-          <Heart size={11} strokeWidth={2.5} fill="#fff" /> Déjà enregistré
+          <Heart size={11} strokeWidth={2.5} fill="var(--on-accent)" /> Déjà enregistré
         </span>
       )}
 
@@ -1330,7 +1330,7 @@ function glassBtn(active: boolean): React.CSSProperties {
     justifyContent: 'center',
     flexShrink: 0,
     background: active ? 'var(--accent)' : pal.glassBg,
-    color: active ? '#fff' : pal.glassFg,
+    color: active ? 'var(--on-accent)' : pal.glassFg,
     backdropFilter: 'blur(6px)',
     transition: 'background 140ms ease',
   }
@@ -1386,7 +1386,11 @@ function Seg({ items }: { items: { label: string; active: boolean; onClick: () =
             fontWeight: 700,
             fontFamily: 'var(--font-body)',
             background: it.active ? 'var(--accent)' : 'transparent',
-            color: it.active ? '#fff' : pal.n ? 'var(--text-2)' : 'rgba(255,253,248,0.7)',
+            color: it.active
+              ? 'var(--on-accent)'
+              : pal.n
+                ? 'var(--text-2)'
+                : 'rgba(255,253,248,0.7)',
             transition: 'background 120ms ease, color 120ms ease',
             whiteSpace: 'nowrap',
           }}
