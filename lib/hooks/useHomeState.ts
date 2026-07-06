@@ -7,6 +7,7 @@ import { useRouteCache, type TransportMode } from '@/lib/hooks/useRouteCache'
 import { useAuth, getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { apiFetch } from '@/lib/api'
 import { haversineDistance } from '@/lib/scoring'
+import { nameSimilarity } from '@/lib/foursquare'
 import { useToast } from '@/lib/hooks/useToast'
 import { useIsMobile } from '@/lib/hooks/useMediaQuery'
 import { useLanguage } from '@/lib/i18n/useLanguage'
@@ -41,8 +42,14 @@ export function useHomeState() {
   const [nameQuery, setNameQuery] = useState('')
   // Current map center — biases the off-viewport (Nominatim) search toward here.
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null)
-  // osm_id of a searched place to auto-open once a fetch loads it (fly → open).
-  const pendingSearchSelectRef = useRef<string | null>(null)
+  // A searched place to auto-open once a fetch loads it (fly → open). Matched by
+  // osm_id (Nominatim) or by name + proximity (Google results carry no osm_id).
+  const pendingSearchSelectRef = useRef<{
+    osm_id?: string
+    name: string
+    lat: number
+    lon: number
+  } | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [showSurprise, setShowSurprise] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
@@ -407,20 +414,30 @@ export function useHomeState() {
 
   // Tap an off-viewport search result → fly there, then open it once the fetch
   // for that area loads the matching place (matched by osm_id).
-  const searchSelectPlace = useCallback((r: { osm_id: string; lat: number; lon: number }) => {
-    pendingSearchSelectRef.current = r.osm_id
-    setNameQuery('')
-    mapRef.current?.flyTo(r.lat, r.lon, 17)
-    // Give up after a while so a later unrelated fetch never auto-opens it.
-    setTimeout(() => {
-      if (pendingSearchSelectRef.current === r.osm_id) pendingSearchSelectRef.current = null
-    }, 8000)
-  }, [])
+  const searchSelectPlace = useCallback(
+    (r: { osm_id?: string; name: string; lat: number; lon: number }) => {
+      const target = { osm_id: r.osm_id, name: r.name, lat: r.lat, lon: r.lon }
+      pendingSearchSelectRef.current = target
+      setNameQuery('')
+      mapRef.current?.flyTo(r.lat, r.lon, 17)
+      // Give up after a while so a later unrelated fetch never auto-opens it.
+      setTimeout(() => {
+        if (pendingSearchSelectRef.current === target) pendingSearchSelectRef.current = null
+      }, 8000)
+    },
+    []
+  )
 
   useEffect(() => {
-    const id = pendingSearchSelectRef.current
-    if (!id) return
-    const found = places.find((p) => p.osm_id === id)
+    const t = pendingSearchSelectRef.current
+    if (!t) return
+    const found = t.osm_id
+      ? places.find((p) => p.osm_id === t.osm_id)
+      : places.find(
+          (p) =>
+            nameSimilarity(t.name, p.name) >= 0.55 &&
+            haversineDistance(t.lat, t.lon, p.lat, p.lon) < 200
+        )
     if (found) {
       pendingSearchSelectRef.current = null
       handleMarkerClick(found)

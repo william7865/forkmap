@@ -25,6 +25,7 @@ import {
   X,
   SlidersHorizontal,
   MapPin,
+  Star,
   ChevronLeft,
   ChevronRight,
   Bookmark,
@@ -716,7 +717,7 @@ export default function HomePage() {
                   )}
                   {awayFiltered.map((r) => (
                     <button
-                      key={r.osm_id}
+                      key={r.id}
                       onMouseDown={() => {
                         saveSearch(r.name)
                         setSearchFocused(false)
@@ -749,19 +750,34 @@ export default function HomePage() {
                       >
                         {r.name}
                       </span>
-                      {r.context && (
+                      {r.rating != null && (
                         <span
                           style={{
-                            fontSize: 11,
-                            color: 'var(--text-3)',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 2,
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            color: 'var(--text)',
+                            flexShrink: 0,
                           }}
                         >
-                          {r.context}
+                          <Star size={10} strokeWidth={0} fill="var(--star)" />
+                          {r.rating.toFixed(1)}
                         </span>
                       )}
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: 'var(--text-3)',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          flex: 1,
+                        }}
+                      >
+                        {r.context}
+                      </span>
                     </button>
                   ))}
                 </>

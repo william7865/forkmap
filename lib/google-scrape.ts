@@ -75,7 +75,17 @@ type Node = any
 
 interface ScrapePlace {
   name: string
+  lat?: number
+  lon?: number
   fsq: FoursquareData
+}
+
+/** A place from a Google text SEARCH (multiple results), for the search bar. */
+export interface ScrapeSearchResult {
+  name: string
+  lat: number
+  lon: number
+  rating?: number
 }
 
 /** Map one Google result entry (entry[14] is the place node) to normalized data. */
@@ -111,7 +121,29 @@ function mapScrapeEntry(entry: Node): ScrapePlace | null {
     photos: photoMatch ? [scrapePhoto(photoMatch[0])] : undefined,
     hours: hasHours ? { open_now: openNow, display: display || undefined } : undefined,
   }
-  return { name: p[11], fsq }
+  return { name: p[11], lat: p[9]?.[2], lon: p[9]?.[3], fsq }
+}
+
+/**
+ * Parse a Google text-search body into a ranked list of places (name + coords +
+ * rating), preserving Google's own relevance order. Empty when blocked.
+ */
+export function parseScrapeResults(text: string): ScrapeSearchResult[] {
+  if (scrapeIsBlocked(text)) return []
+  let entries: unknown[]
+  try {
+    entries = parseScrapeBody(text)
+  } catch {
+    return []
+  }
+  const out: ScrapeSearchResult[] = []
+  for (const e of entries) {
+    const m = mapScrapeEntry(e)
+    if (m && typeof m.lat === 'number' && typeof m.lon === 'number') {
+      out.push({ name: m.name, lat: m.lat, lon: m.lon, rating: m.fsq.rating })
+    }
+  }
+  return out
 }
 
 /**
