@@ -29,13 +29,11 @@
 		<string>$(PRODUCT_MODULE_NAME).ShareViewController</string>
 		<key>NSExtensionAttributes</key>
 		<dict>
+			<!-- Appear for any shared item (link, text…). A stricter predicate can
+			     replace this later, but AND-combining URL+text made TikTok's
+			     URL-only share fail to trigger the extension. -->
 			<key>NSExtensionActivationRule</key>
-			<dict>
-				<key>NSExtensionActivationSupportsWebURLWithMaxCount</key>
-				<integer>1</integer>
-				<key>NSExtensionActivationSupportsText</key>
-				<true/>
-			</dict>
+			<string>TRUEPREDICATE</string>
 		</dict>
 	</dict>
 </dict>

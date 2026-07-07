@@ -5,9 +5,11 @@
 import { nativeHttpGetText } from '@/lib/native/http'
 import { extractOgTags, platformFromUrl, type OgMeta } from '@/lib/import/parse'
 
+// TikTok/Instagram serve a JS-only shell to normal browser UAs (no Open Graph
+// in the HTML). They DO serve og:title/og:description to link-preview crawlers.
+// So we fetch as a crawler to actually get the caption/title.
 const HEADERS = {
-  'User-Agent':
-    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+  'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
   Accept: 'text/html,application/xhtml+xml',
 }
 
