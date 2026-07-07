@@ -5,6 +5,15 @@
 
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS verified BOOLEAN NOT NULL DEFAULT false;
 
+-- CRITICAL: the existing `profiles_write_own` policy (profiles.sql) is FOR ALL
+-- with `auth.uid() = id`, and Postgres RLS is row-level only — it cannot stop a
+-- user from writing the new `verified` column. Without this, any signed-in user
+-- could PATCH their own profile row with the anon key and self-grant the badge,
+-- bypassing the whole admin flow. The app never writes profiles from the client
+-- (all writes go through the service-role /api/profile route), so revoke direct
+-- DML from anon/authenticated entirely. SELECT (public read) is untouched.
+REVOKE INSERT, UPDATE, DELETE ON profiles FROM anon, authenticated;
+
 CREATE TABLE IF NOT EXISTS verification_requests (
   id           UUID        NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id      UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,

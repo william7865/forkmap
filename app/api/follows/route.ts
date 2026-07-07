@@ -53,7 +53,9 @@ export async function DELETE(req: NextRequest) {
   if (auth.error) return auth.error
 
   const followeeId = req.nextUrl.searchParams.get('followee_id')
-  if (!followeeId) return NextResponse.json({ error: 'followee_id requis' }, { status: 400 })
+  if (!followeeId || !z.string().uuid().safeParse(followeeId).success) {
+    return NextResponse.json({ error: 'followee_id invalide' }, { status: 400 })
+  }
 
   try {
     await unfollowUser(auth.userId, followeeId)
