@@ -47,12 +47,42 @@ function Stars({ rating, size = 13 }: { rating: number; size?: number }) {
 }
 
 function ReviewItem({ r }: { r: UserReview }) {
+  // Verified tastemakers' reviews get an accent-tinted card + a label — their
+  // voice is the most visible on the place.
+  const featured = !!r.author.verified
   return (
-    <div style={{ display: 'flex', gap: 11 }}>
+    <div
+      style={{
+        display: 'flex',
+        gap: 11,
+        ...(featured
+          ? {
+              padding: 12,
+              borderRadius: 'var(--r-lg)',
+              background: 'var(--accent-light)',
+              border: '1px solid var(--accent)',
+            }
+          : {}),
+      }}
+    >
       <div style={{ flexShrink: 0 }}>
         <Avatar name={r.author.display_name} src={r.author.avatar_url} id={r.user_id} size={34} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
+        {featured && (
+          <div
+            style={{
+              fontSize: 9,
+              fontWeight: 800,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'var(--accent-text, var(--accent))',
+              marginBottom: 3,
+            }}
+          >
+            Tastemaker
+          </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <b
             style={{
@@ -137,6 +167,13 @@ export default function ReviewsSection({
       ? 'Donne le premier avis'
       : 'Donner mon avis'
 
+  // Verified tastemakers first (stable sort keeps the API's newest-first order
+  // within each group); count them for the "N tastemakers ont noté ici" signal.
+  const sortedReviews = [...reviews].sort(
+    (a, b) => (b.author.verified ? 1 : 0) - (a.author.verified ? 1 : 0)
+  )
+  const tastemakerCount = reviews.filter((r) => r.author.verified).length
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* Header: eyebrow + prominent average (the section's one loud element) */}
@@ -166,6 +203,28 @@ export default function ReviewsSection({
         </div>
         {summary.count > 0 && <Stars rating={Math.round(summary.average)} size={15} />}
       </div>
+
+      {/* Quality signal: verified tastemakers who reviewed here (D) */}
+      {tastemakerCount > 0 && (
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            alignSelf: 'flex-start',
+            padding: '5px 10px',
+            borderRadius: 'var(--r-pill)',
+            background: 'var(--accent-light)',
+            color: 'var(--accent-text, var(--accent))',
+            fontSize: 12,
+            fontWeight: 700,
+          }}
+        >
+          <VerifiedBadge verified size={13} />
+          {tastemakerCount} tastemaker{tastemakerCount > 1 ? 's' : ''}{' '}
+          {tastemakerCount > 1 ? 'ont' : 'a'} noté ici
+        </div>
+      )}
 
       {/* CTA — matches the fiche's secondary-action buttons */}
       {isSignedIn ? (
@@ -204,7 +263,7 @@ export default function ReviewsSection({
       ) : (
         reviews.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {reviews.map((r) => (
+            {sortedReviews.map((r) => (
               <ReviewItem key={r.id} r={r} />
             ))}
           </div>
