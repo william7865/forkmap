@@ -1,6 +1,7 @@
 -- sql/reviews.sql — run in the Supabase SQL editor after schema.sql & profiles.sql.
 -- Community reviews: one review per (user, place) with rating, text and up to 4 photos.
--- Reviews are PUBLIC to read (community content); only the owner can write/delete.
+-- Reviews are PUBLIC to read (community content); writes are SERVER-ONLY (service-role
+-- via /api/reviews, authorized by userId) — no client write policy is granted.
 
 -- ── Table ────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS reviews (
