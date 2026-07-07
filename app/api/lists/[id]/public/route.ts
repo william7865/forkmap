@@ -14,7 +14,7 @@ export async function GET(
   const { id } = await params
 
   try {
-    const detail = await getPublicListWithItems(id)
+    const detail = await getPublicListWithItems(id, auth.userId)
     if (!detail) return NextResponse.json({ error: 'Liste introuvable.' }, { status: 404 })
     return NextResponse.json({ data: detail })
   } catch (err) {

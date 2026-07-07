@@ -260,6 +260,9 @@ export interface FriendRequests {
   sent: Profile[]
 }
 
+/** Who can see a list. */
+export type ListVisibility = 'private' | 'friends' | 'public'
+
 export interface PublicListCard {
   id: string
   name: string

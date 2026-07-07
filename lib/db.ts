@@ -19,6 +19,7 @@ import type {
   Profile,
   PublicListCard,
   PublicListDetail,
+  ListVisibility,
   PublicProfileBundle,
   TastemakerFeedItem,
   UserReview,
@@ -466,6 +467,7 @@ export interface ListRow {
   name: string
   description: string | null
   is_public: boolean
+  visibility: ListVisibility
   color_hue: number
   created_at: string
   updated_at: string
@@ -496,6 +498,8 @@ function mapListRow(row: unknown, extra: Partial<ListRow> = {}): ListRow {
     name: list.name as string,
     description: list.description as string | null,
     is_public: list.is_public as boolean,
+    // Fallback keeps things working before the visibility migration is run.
+    visibility: (list.visibility as ListVisibility) ?? (list.is_public ? 'public' : 'private'),
     color_hue: list.color_hue as number,
     created_at: list.created_at as string,
     updated_at: list.updated_at as string,
@@ -667,33 +671,46 @@ export async function createList(
   userId: string,
   name: string,
   description: string | null,
-  isPublic: boolean
+  visibility: ListVisibility
 ): Promise<ListRow> {
   const hue = name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360
-  const { data, error } = await db
-    .from('lists')
-    .insert({ user_id: userId, name, description, is_public: isPublic, color_hue: hue })
-    .select()
-    .single()
-  if (error) throw error
-  return data as ListRow
+  const base = { user_id: userId, name, description, is_public: visibility === 'public', color_hue: hue }
+  // Try with `visibility`; if the column isn't there yet (pre-migration), fall
+  // back to is_public only so list creation never breaks.
+  let res = await db.from('lists').insert({ ...base, visibility }).select().single()
+  if (res.error) res = await db.from('lists').insert(base).select().single()
+  if (res.error) throw res.error
+  return mapListRow(res.data)
 }
 
 export async function updateList(
   listId: string,
   userId: string,
-  patch: { name?: string; description?: string | null; is_public?: boolean }
+  patch: { name?: string; description?: string | null; visibility?: ListVisibility }
 ): Promise<ListRow> {
-  const { data, error } = await db
-    .from('lists')
-    .update({ ...patch, updated_at: new Date().toISOString() })
-    .eq('id', listId)
-    .eq('user_id', userId)
-    .select()
-    .single()
-  if (error) throw error
-  if (!data) throw new Error('Not found')
-  return data as ListRow
+  const full: Record<string, unknown> = { ...patch, updated_at: new Date().toISOString() }
+  if (patch.visibility !== undefined) full.is_public = patch.visibility === 'public'
+  const run = (payload: Record<string, unknown>) =>
+    db.from('lists').update(payload).eq('id', listId).eq('user_id', userId).select().single()
+  let res = await run(full)
+  if (res.error && patch.visibility !== undefined) {
+    // Pre-migration fallback: drop `visibility`, keep is_public in sync.
+    const { visibility: _v, ...rest } = full
+    res = await run(rest)
+  }
+  if (res.error) throw res.error
+  if (!res.data) throw new Error('Not found')
+  return mapListRow(res.data)
+}
+
+/** Visibilities the viewer is allowed to see for a given owner's lists. */
+async function allowedVisibilities(
+  viewerId: string,
+  ownerId: string
+): Promise<ListVisibility[]> {
+  if (viewerId === ownerId) return ['private', 'friends', 'public']
+  const row = await getFriendshipRow(viewerId, ownerId)
+  return row?.status === 'accepted' ? ['public', 'friends'] : ['public']
 }
 
 export async function deleteList(listId: string, userId: string): Promise<void> {
@@ -764,15 +781,33 @@ export async function getListsForPlace(userId: string, osmId: string): Promise<s
   return (data ?? []).map((row: { list_id: string }) => row.list_id)
 }
 
-export async function getPublicListWithItems(listId: string): Promise<PublicListDetail | null> {
-  const { data: list, error: listErr } = await db
+export async function getPublicListWithItems(
+  listId: string,
+  viewerId: string
+): Promise<PublicListDetail | null> {
+  let { data: list, error: listErr } = await db
     .from('lists')
-    .select('id, name, color_hue, is_public')
+    .select('id, name, color_hue, user_id, visibility, is_public')
     .eq('id', listId)
-    .eq('is_public', true)
     .maybeSingle()
+  if (listErr) {
+    // Pre-migration fallback (no `visibility` column).
+    const r = await db
+      .from('lists')
+      .select('id, name, color_hue, user_id, is_public')
+      .eq('id', listId)
+      .maybeSingle()
+    list = r.data as typeof list
+    listErr = r.error
+  }
   if (listErr) throw listErr
   if (!list) return null
+
+  // Enforce visibility relative to the viewer.
+  const l0 = list as { user_id: string; visibility?: ListVisibility; is_public: boolean }
+  const visibility: ListVisibility = l0.visibility ?? (l0.is_public ? 'public' : 'private')
+  const allowed = await allowedVisibilities(viewerId, l0.user_id)
+  if (!allowed.includes(visibility)) return null
 
   const { data: items, error: itemsErr } = await db
     .from('list_items')
@@ -1755,13 +1790,29 @@ export async function notifyFollowers(
   }
 }
 
-export async function getPublicLists(userId: string): Promise<PublicListCard[]> {
-  const { data, error } = await db
+export async function getPublicLists(
+  ownerId: string,
+  viewerId: string
+): Promise<PublicListCard[]> {
+  const allowed = await allowedVisibilities(viewerId, ownerId)
+  let { data, error } = await db
     .from('lists')
-    .select('id, name, color_hue, list_items(count)')
-    .eq('user_id', userId)
-    .eq('is_public', true)
+    .select('id, name, color_hue, visibility, list_items(count)')
+    .eq('user_id', ownerId)
+    .in('visibility', allowed)
     .order('created_at', { ascending: false })
+  if (error) {
+    // Pre-migration fallback (no `visibility` column): friends lists didn't
+    // exist yet, so is_public maps cleanly. Owner sees all; others see public.
+    const base = db
+      .from('lists')
+      .select('id, name, color_hue, list_items(count)')
+      .eq('user_id', ownerId)
+      .order('created_at', { ascending: false })
+    const r = viewerId === ownerId ? await base : await base.eq('is_public', true)
+    data = r.data as typeof data
+    error = r.error
+  }
   if (error) throw error
   return (data ?? []).map((row: unknown) => {
     const l = row as Record<string, unknown>
@@ -1785,7 +1836,7 @@ export async function getPublicProfileBundle(
     await Promise.all([
       getFriendshipRow(meId, profile.id),
       countFriends(profile.id),
-      getPublicLists(profile.id),
+      getPublicLists(profile.id, meId),
       meId === profile.id ? Promise.resolve(0) : countMutualFriends(meId, profile.id),
       meId === profile.id ? Promise.resolve(false) : hasBlocked(meId, profile.id),
       // Fault-tolerant: if sql/follows.sql hasn't been run yet, degrade to

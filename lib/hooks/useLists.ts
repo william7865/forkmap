@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { apiFetch } from '@/lib/api'
+import type { ListVisibility } from '@/types'
 
 export interface CollaboratorLite {
   id: string
@@ -16,6 +17,7 @@ export interface ListRow {
   name: string
   description: string | null
   is_public: boolean
+  visibility: ListVisibility
   color_hue: number
   created_at: string
   updated_at: string
@@ -59,12 +61,16 @@ export function useLists() {
   }, [])
 
   const createList = useCallback(
-    async (name: string, description: string | null, isPublic: boolean): Promise<ListRow> => {
+    async (
+      name: string,
+      description: string | null,
+      visibility: ListVisibility
+    ): Promise<ListRow> => {
       const headers = await getAuthHeaders()
       const res = await apiFetch('/api/lists', {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, is_public: isPublic }),
+        body: JSON.stringify({ name, description, visibility }),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = await res.json()
@@ -78,7 +84,7 @@ export function useLists() {
   const updateList = useCallback(
     async (
       id: string,
-      patch: { name?: string; description?: string | null; is_public?: boolean }
+      patch: { name?: string; description?: string | null; visibility?: ListVisibility }
     ): Promise<void> => {
       const headers = await getAuthHeaders()
       const res = await apiFetch(`/api/lists/${id}`, {

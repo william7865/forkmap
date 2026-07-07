@@ -23,7 +23,9 @@ export async function GET(req: NextRequest) {
 const CreateListSchema = z.object({
   name: z.string().min(1).max(40),
   description: z.string().max(120).nullable().optional(),
-  is_public: z.boolean().optional().default(false),
+  visibility: z.enum(['private', 'friends', 'public']).optional(),
+  // Legacy field (older clients) — used only if `visibility` is absent.
+  is_public: z.boolean().optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -39,14 +41,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.message }, { status: 400 })
   }
 
+  const visibility =
+    parsed.data.visibility ?? (parsed.data.is_public ? 'public' : 'private')
   try {
     const list = await createList(
       auth.userId,
       parsed.data.name,
       parsed.data.description ?? null,
-      parsed.data.is_public
+      visibility
     )
-    if (parsed.data.is_public) {
+    if (visibility === 'public') {
       await recordActivity(auth.userId, { type: 'list', list_name: parsed.data.name })
     }
     return NextResponse.json({ data: list }, { status: 201 })
