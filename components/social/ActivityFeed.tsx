@@ -6,10 +6,11 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, Bookmark, MapPin, Star, ListPlus, Users } from 'lucide-react'
 import { Avatar } from '@/components/social/Avatar'
+import VerifiedBadge from '@/components/social/VerifiedBadge'
 import { apiFetch } from '@/lib/api'
 import { getAuthHeaders } from '@/lib/auth-headers'
 import { frCuisine } from '@/lib/cuisine'
-import type { ActivityItem } from '@/types'
+import type { ActivityItem, TastemakerFeedItem } from '@/types'
 
 function timeAgo(iso: string): string {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
@@ -59,10 +60,167 @@ function TypeIcon({ type }: { type: ActivityItem['type'] }) {
   )
 }
 
+function TastemakerFeed({
+  feed,
+  loading,
+  onOpenProfile,
+}: {
+  feed: TastemakerFeedItem[] | null
+  loading: boolean
+  onOpenProfile: (username: string) => void
+}) {
+  if (loading || feed === null) {
+    return (
+      <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-3)', fontSize: 13 }}>
+        Chargement…
+      </div>
+    )
+  }
+  if (feed.length === 0) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 14,
+          padding: '56px 32px',
+          textAlign: 'center',
+        }}
+      >
+        <div
+          style={{
+            width: 60,
+            height: 60,
+            borderRadius: 18,
+            background: 'var(--surface-2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--text-3)',
+          }}
+        >
+          <Star size={26} strokeWidth={1.6} />
+        </div>
+        <div>
+          <div
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 18,
+              fontWeight: 600,
+              color: 'var(--text)',
+            }}
+          >
+            Suis des tastemakers
+          </div>
+          <p style={{ margin: '6px 0 0', fontSize: 13.5, color: 'var(--text-2)', lineHeight: 1.5 }}>
+            Suis des gens dont tu aimes le goût — leurs avis apparaîtront ici.
+          </p>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {feed.map((it) => (
+        <button
+          key={it.id}
+          onClick={() => it.author.username && onOpenProfile(it.author.username)}
+          style={{
+            display: 'flex',
+            gap: 12,
+            padding: '13px 16px',
+            background: 'none',
+            border: 'none',
+            borderBottom: '1px solid var(--border)',
+            cursor: 'pointer',
+            textAlign: 'left',
+            width: '100%',
+            fontFamily: 'inherit',
+          }}
+        >
+          <Avatar
+            name={it.author.display_name}
+            src={it.author.avatar_url}
+            id={it.author.id}
+            size={42}
+          />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.4 }}>
+              <b
+                style={{
+                  color: 'var(--text)',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                {it.author.display_name}
+                <VerifiedBadge verified={it.author.verified} size={13} />
+              </b>{' '}
+              a noté{' '}
+              <b
+                style={{ color: 'var(--text)', fontWeight: 600, fontFamily: 'var(--font-display)' }}
+              >
+                {it.place_name}
+              </b>
+            </span>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 7,
+                marginTop: 3,
+                fontSize: 11.5,
+                color: 'var(--text-3)',
+              }}
+            >
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  color: 'var(--text-2)',
+                  fontWeight: 700,
+                }}
+              >
+                <Star size={11} strokeWidth={0} fill="var(--accent)" />
+                {it.rating}/5
+              </span>
+              <span style={{ opacity: 0.6 }}>·</span>
+              <span>{timeAgo(it.created_at)}</span>
+            </div>
+            {it.text && (
+              <p
+                style={{
+                  margin: '6px 0 0',
+                  fontSize: 13,
+                  color: 'var(--text-2)',
+                  lineHeight: 1.4,
+                  overflow: 'hidden',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                }}
+              >
+                {it.text}
+              </p>
+            )}
+          </div>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function ActivityFeed({ onClose }: { onClose: () => void }) {
   const router = useRouter()
+  const [tab, setTab] = useState<'friends' | 'tastemakers'>('friends')
   const [items, setItems] = useState<ActivityItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [feed, setFeed] = useState<TastemakerFeedItem[] | null>(null)
+  const [feedLoading, setFeedLoading] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -81,6 +239,29 @@ export default function ActivityFeed({ onClose }: { onClose: () => void }) {
       cancelled = true
     }
   }, [])
+
+  // Lazy-load the tastemaker feed the first time the tab is opened.
+  useEffect(() => {
+    if (tab !== 'tastemakers' || feed !== null) return
+    let cancelled = false
+    setFeedLoading(true)
+    getAuthHeaders().then((headers) =>
+      apiFetch('/api/tastemakers/feed', { headers })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j: { data?: TastemakerFeedItem[] } | null) => {
+          if (!cancelled) setFeed(j?.data ?? [])
+        })
+        .catch(() => {
+          if (!cancelled) setFeed([])
+        })
+        .finally(() => {
+          if (!cancelled) setFeedLoading(false)
+        })
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [tab, feed])
 
   return (
     <div
@@ -130,9 +311,44 @@ export default function ActivityFeed({ onClose }: { onClose: () => void }) {
         </span>
       </div>
 
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 4, padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
+        {(['friends', 'tastemakers'] as const).map((t) => {
+          const active = tab === t
+          return (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              aria-pressed={active}
+              style={{
+                flex: 1,
+                padding: '9px 4px',
+                borderRadius: 9,
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 700,
+                fontFamily: 'inherit',
+                background: active ? 'var(--accent)' : 'var(--surface-2)',
+                color: active ? 'var(--on-accent, #fff)' : 'var(--text-2)',
+                transition: 'background 140ms',
+              }}
+            >
+              {t === 'friends' ? 'Amis' : 'Tastemakers'}
+            </button>
+          )
+        })}
+      </div>
+
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
-        {loading ? (
+        {tab === 'tastemakers' ? (
+          <TastemakerFeed
+            feed={feed}
+            loading={feedLoading}
+            onOpenProfile={(username) => router.push(`/u/${username}`)}
+          />
+        ) : loading ? (
           <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-3)', fontSize: 13 }}>
             Chargement…
           </div>

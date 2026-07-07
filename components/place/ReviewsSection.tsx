@@ -8,6 +8,7 @@ import type { UserReview } from '@/types'
 import type { UseReviews } from '@/lib/hooks/useReviews'
 import { useIsNative } from '@/lib/native/platform'
 import { Avatar } from '@/components/social/Avatar'
+import VerifiedBadge from '@/components/social/VerifiedBadge'
 import ReviewComposer from '@/components/place/ReviewComposer'
 
 /** "aujourd'hui" · "il y a 3 j" · "il y a 2 sem" · "12 mars 2026" */
@@ -53,8 +54,18 @@ function ReviewItem({ r }: { r: UserReview }) {
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <b style={{ fontSize: 13.5, color: 'var(--text)', fontWeight: 700 }}>
+          <b
+            style={{
+              fontSize: 13.5,
+              color: 'var(--text)',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
             {r.author.display_name}
+            <VerifiedBadge verified={r.author.verified} size={13} />
           </b>
           <span style={{ fontSize: 11.5, color: 'var(--text-3)' }}>{relDate(r.created_at)}</span>
         </div>
