@@ -152,6 +152,7 @@ export interface FriendLite {
   username: string
   display_name: string
   avatar_url: string | null
+  verified?: boolean
 }
 
 /** DB row: favorites table */
@@ -276,6 +277,37 @@ export interface PublicProfileBundle {
   is_following: boolean
   followers_count: number
   following_count: number
+}
+
+/** One entry in the "Tes tastemakers" feed: a review by someone you follow. */
+export interface TastemakerFeedItem {
+  id: string
+  created_at: string
+  author: FriendLite
+  osm_id: string
+  place_name: string
+  rating: number
+  text: string | null
+  photo_urls: string[]
+  place_snapshot: PlaceCard | null
+}
+
+export type VerificationStatus = 'none' | 'pending' | 'approved' | 'rejected'
+
+export interface VerificationRequest {
+  id: string
+  user_id: string
+  note: string | null
+  links: string[]
+  status: Exclude<VerificationStatus, 'none'>
+  reviewer_note: string | null
+  created_at: string
+  reviewed_at: string | null
+}
+
+/** A pending request joined with the requester's public profile (admin view). */
+export interface VerificationRequestWithProfile extends VerificationRequest {
+  profile: FriendLite
 }
 
 export interface FriendSuggestion {

@@ -6,7 +6,7 @@
 // ============================================================
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useProfile } from '@/lib/hooks/useProfile'
@@ -24,9 +24,15 @@ import {
   Map,
   UserPlus,
   Utensils,
+  BadgeCheck,
+  ShieldCheck,
 } from 'lucide-react'
 import { nativeShare } from '@/lib/native/share'
+import { apiFetch } from '@/lib/api'
+import { getAuthHeaders } from '@/lib/auth-headers'
 import TasteEditor from '@/components/settings/TasteEditor'
+import VerificationSheet from '@/components/settings/VerificationSheet'
+import AdminVerificationsSheet from '@/components/settings/AdminVerificationsSheet'
 import { getThemePref, setThemePref, type ThemePref } from '@/lib/theme'
 import { refreshTheme } from '@/components/native/CapacitorInit'
 
@@ -164,6 +170,23 @@ export default function SettingsHub() {
   const [editing, setEditing] = useState(false)
   const [editingTaste, setEditingTaste] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [showVerification, setShowVerification] = useState(false)
+  const [showAdmin, setShowAdmin] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  // Probe admin access once (route is admin-gated → hide the row for everyone else).
+  useEffect(() => {
+    let cancelled = false
+    getAuthHeaders().then((headers) => {
+      if (!headers.Authorization) return
+      apiFetch('/api/admin/verifications', { headers })
+        .then((r) => !cancelled && setIsAdmin(r.ok))
+        .catch(() => {})
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const signOut = async () => {
     setSigningOut(true)
@@ -300,6 +323,25 @@ export default function SettingsHub() {
           <HubRow icon={Utensils} label="Tes goûts" onClick={() => setEditingTaste(true)} />
         </Section>
 
+        {/* Section: TASTEMAKER */}
+        <Section label="TASTEMAKER">
+          <HubRow
+            icon={BadgeCheck}
+            label="Vérification"
+            onClick={() => setShowVerification(true)}
+          />
+          {isAdmin && (
+            <>
+              <Divider />
+              <HubRow
+                icon={ShieldCheck}
+                label="Demandes de vérification"
+                onClick={() => setShowAdmin(true)}
+              />
+            </>
+          )}
+        </Section>
+
         {/* Section: PARTAGER */}
         <Section label="PARTAGER">
           <HubRow icon={UserPlus} label="Inviter des amis" onClick={inviteFriends} />
@@ -363,6 +405,8 @@ export default function SettingsHub() {
 
       {editing && <ProfileEdit onClose={() => setEditing(false)} allowUsername />}
       {editingTaste && <TasteEditor onClose={() => setEditingTaste(false)} />}
+      {showVerification && <VerificationSheet onClose={() => setShowVerification(false)} />}
+      {showAdmin && <AdminVerificationsSheet onClose={() => setShowAdmin(false)} />}
     </div>
   )
 }

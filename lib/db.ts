@@ -20,8 +20,11 @@ import type {
   PublicListCard,
   PublicListDetail,
   PublicProfileBundle,
+  TastemakerFeedItem,
   UserReview,
   UserSearchResult,
+  VerificationRequest,
+  VerificationRequestWithProfile,
 } from '@/types'
 import { canChangeUsername } from '@/lib/username'
 import { relationFrom } from '@/lib/friends'
@@ -151,16 +154,26 @@ async function getProfilesFriendLite(
   const map = new Map<string, UserReview['author']>()
   const unique = [...new Set(ids)]
   if (unique.length === 0) return map
-  const { data } = await db
-    .from('profiles')
-    .select('id, username, display_name, avatar_url')
-    .in('id', unique)
-  for (const p of (data ?? []) as UserReview['author'][]) {
+  // Select `verified`, but fall back gracefully if sql/verification.sql hasn't
+  // added the column yet (otherwise this would break the already-live reviews).
+  let rows = (
+    await db
+      .from('profiles')
+      .select('id, username, display_name, avatar_url, verified')
+      .in('id', unique)
+  ).data as (UserReview['author'] & { verified?: boolean })[] | null
+  if (rows === null) {
+    rows = (
+      await db.from('profiles').select('id, username, display_name, avatar_url').in('id', unique)
+    ).data as UserReview['author'][] | null
+  }
+  for (const p of rows ?? []) {
     map.set(p.id, {
       id: p.id,
       username: p.username ?? '',
       display_name: p.display_name ?? 'Utilisateur',
       avatar_url: p.avatar_url ?? null,
+      verified: (p as { verified?: boolean }).verified ?? false,
     })
   }
   return map
@@ -1498,6 +1511,127 @@ export async function countFriends(userId: string): Promise<number> {
     .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
   if (error) throw error
   return count ?? 0
+}
+
+// ---------- Verification (tastemaker badge) ----------
+
+/** Create or re-open the user's verification request (back to pending). */
+export async function createVerificationRequest(
+  userId: string,
+  note: string | null,
+  links: string[]
+): Promise<VerificationRequest> {
+  const { data, error } = await db
+    .from('verification_requests')
+    .upsert(
+      {
+        user_id: userId,
+        note,
+        links,
+        status: 'pending',
+        reviewer_note: null,
+        reviewed_at: null,
+        created_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
+    )
+    .select('*')
+    .single()
+  if (error) throw error
+  return data as VerificationRequest
+}
+
+export async function getMyVerificationRequest(
+  userId: string
+): Promise<VerificationRequest | null> {
+  const { data, error } = await db
+    .from('verification_requests')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (error) throw error
+  return (data as VerificationRequest) ?? null
+}
+
+/** Pending requests joined with the requester's public profile (admin view). */
+export async function getPendingVerificationRequests(): Promise<VerificationRequestWithProfile[]> {
+  const { data, error } = await db
+    .from('verification_requests')
+    .select('*')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  const rows = (data ?? []) as VerificationRequest[]
+  const profiles = await getProfilesFriendLite(rows.map((r) => r.user_id))
+  return rows.map((r) => ({
+    ...r,
+    profile: profiles.get(r.user_id) ?? {
+      id: r.user_id,
+      username: '',
+      display_name: 'Utilisateur',
+      avatar_url: null,
+    },
+  }))
+}
+
+/** Approve or reject a request; approval flips profiles.verified to true. */
+export async function decideVerification(
+  requestId: string,
+  decision: 'approve' | 'reject',
+  reviewerNote: string | null
+): Promise<void> {
+  const status = decision === 'approve' ? 'approved' : 'rejected'
+  const { data, error } = await db
+    .from('verification_requests')
+    .update({ status, reviewer_note: reviewerNote, reviewed_at: new Date().toISOString() })
+    .eq('id', requestId)
+    .select('user_id')
+    .single()
+  if (error) throw error
+  const userId = (data as { user_id: string }).user_id
+  const { error: pErr } = await db
+    .from('profiles')
+    .update({ verified: decision === 'approve' })
+    .eq('id', userId)
+  if (pErr) throw pErr
+}
+
+// ---------- Tastemaker feed ----------
+
+/** Recent reviews from the people this user follows (newest first). */
+export async function getTastemakerFeed(
+  meId: string,
+  limit = 40
+): Promise<TastemakerFeedItem[]> {
+  const followeeIds = await getFollowingIds(meId)
+  if (followeeIds.length === 0) return []
+
+  const { data, error } = await db
+    .from('reviews')
+    .select('id, user_id, osm_id, rating, text, photo_urls, place_snapshot, created_at')
+    .in('user_id', followeeIds)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  const rows = (data ?? []) as (ReviewDbRow & { place_snapshot: PlaceCard | null })[]
+
+  const profiles = await getProfilesFriendLite(rows.map((r) => r.user_id))
+  return rows.map((r) => ({
+    id: r.id,
+    created_at: r.created_at,
+    author: profiles.get(r.user_id) ?? {
+      id: r.user_id,
+      username: '',
+      display_name: 'Utilisateur',
+      avatar_url: null,
+    },
+    osm_id: r.osm_id,
+    place_name: r.place_snapshot?.name ?? 'un restaurant',
+    rating: r.rating,
+    text: r.text,
+    photo_urls: r.photo_urls ?? [],
+    place_snapshot: r.place_snapshot ?? null,
+  }))
 }
 
 // ---------- Follows (tastemakers) ----------

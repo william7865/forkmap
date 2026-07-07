@@ -5,6 +5,7 @@ import { ChevronLeft, MessageSquare, MoreHorizontal } from 'lucide-react'
 import { Avatar } from '@/components/social/Avatar'
 import FriendButton from '@/components/social/FriendButton'
 import FollowButton from '@/components/social/FollowButton'
+import VerifiedBadge from '@/components/social/VerifiedBadge'
 import ChatThread from '@/components/social/ChatThread'
 import PublicListSheet from '@/components/social/PublicListSheet'
 import { useIsNative } from '@/lib/native/platform'
@@ -206,9 +207,13 @@ export default function PublicProfile({
             fontSize: 24,
             letterSpacing: '-0.02em',
             color: 'var(--ink)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
           }}
         >
           {p.display_name}
+          <VerifiedBadge verified={p.verified} size={17} />
         </h1>
         <span style={{ fontSize: 14, color: 'var(--text-3)' }}>@{p.username}</span>
         {p.bio && (
