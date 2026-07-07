@@ -2555,9 +2555,11 @@ function FavoritesPageInner() {
                     {activeList.item_count} lieu{activeList.item_count !== 1 ? 'x' : ''} ·{' '}
                     {activeList.is_collaborator
                       ? `Partagée par ${activeList.shared_by ?? 'un ami'}`
-                      : activeList.is_public
+                      : activeList.visibility === 'public'
                         ? 'Publique'
-                        : 'Privée'}
+                        : activeList.visibility === 'friends'
+                          ? 'Amis'
+                          : 'Privée'}
                   </p>
                   {!activeList.is_collaborator &&
                     activeList.collaborators &&
@@ -3144,8 +3146,8 @@ function FavoritesPageInner() {
       {editingList && (
         <CreateListModal
           initial={editingList}
-          onSave={async (name, desc, pub) => {
-            await updateList(editingList.id, { name, description: desc, is_public: pub })
+          onSave={async (name, desc, visibility) => {
+            await updateList(editingList.id, { name, description: desc, visibility })
             setEditingList(null)
           }}
           onClose={() => setEditingList(null)}

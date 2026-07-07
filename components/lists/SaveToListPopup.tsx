@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useLists } from '@/lib/hooks/useLists'
+import type { ListVisibility } from '@/types'
 import { CreateListModal } from './CreateListModal'
 
 interface Props {
@@ -86,8 +87,12 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
     }
   }
 
-  const handleCreate = async (name: string, description: string | null, isPublic: boolean) => {
-    const created = await createList(name, description, isPublic)
+  const handleCreate = async (
+    name: string,
+    description: string | null,
+    visibility: ListVisibility
+  ) => {
+    const created = await createList(name, description, visibility)
     await addItemToList(created.id, osmId, placeSnapshot)
     setCheckedIds((prev) => new Set(prev).add(created.id))
     setShowCreate(false)
