@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { ChevronLeft, MessageSquare, MoreHorizontal } from 'lucide-react'
 import { Avatar } from '@/components/social/Avatar'
 import FriendButton from '@/components/social/FriendButton'
+import FollowButton from '@/components/social/FollowButton'
 import ChatThread from '@/components/social/ChatThread'
 import PublicListSheet from '@/components/social/PublicListSheet'
 import { useIsNative } from '@/lib/native/platform'
@@ -243,6 +244,17 @@ export default function PublicProfile({
             </span>
           ) : (
             <>
+              <FollowButton
+                userId={p.id}
+                initialFollowing={bundle.is_following}
+                onChange={(f) =>
+                  setBundle((b) =>
+                    b
+                      ? { ...b, is_following: f, followers_count: b.followers_count + (f ? 1 : -1) }
+                      : b
+                  )
+                }
+              />
               <FriendButton userId={p.id} status={bundle.status} />
               {bundle.status === 'friends' && (
                 <button
@@ -261,6 +273,26 @@ export default function PublicProfile({
               )}
             </>
           )}
+        </div>
+
+        {/* Followers / following (tastemakers) */}
+        <div
+          style={{
+            marginTop: 12,
+            display: 'flex',
+            gap: 16,
+            fontSize: 13,
+            color: 'var(--text-2)',
+          }}
+        >
+          <span>
+            <b style={{ color: 'var(--text)', fontWeight: 800 }}>{bundle.followers_count}</b>{' '}
+            abonné{bundle.followers_count > 1 ? 's' : ''}
+          </span>
+          <span>
+            <b style={{ color: 'var(--text)', fontWeight: 800 }}>{bundle.following_count}</b>{' '}
+            abonnement{bundle.following_count > 1 ? 's' : ''}
+          </span>
         </div>
       </div>
 

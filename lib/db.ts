@@ -1500,6 +1500,65 @@ export async function countFriends(userId: string): Promise<number> {
   return count ?? 0
 }
 
+// ---------- Follows (tastemakers) ----------
+
+export async function followUser(followerId: string, followeeId: string): Promise<void> {
+  if (followerId === followeeId) return
+  const { error } = await db
+    .from('follows')
+    .upsert(
+      { follower_id: followerId, followee_id: followeeId },
+      { onConflict: 'follower_id,followee_id', ignoreDuplicates: true }
+    )
+  if (error) throw error
+}
+
+export async function unfollowUser(followerId: string, followeeId: string): Promise<void> {
+  const { error } = await db
+    .from('follows')
+    .delete()
+    .eq('follower_id', followerId)
+    .eq('followee_id', followeeId)
+  if (error) throw error
+}
+
+export async function isFollowing(followerId: string, followeeId: string): Promise<boolean> {
+  const { count, error } = await db
+    .from('follows')
+    .select('follower_id', { count: 'exact', head: true })
+    .eq('follower_id', followerId)
+    .eq('followee_id', followeeId)
+  if (error) throw error
+  return (count ?? 0) > 0
+}
+
+/** How many people follow this user. */
+export async function countFollowers(userId: string): Promise<number> {
+  const { count, error } = await db
+    .from('follows')
+    .select('follower_id', { count: 'exact', head: true })
+    .eq('followee_id', userId)
+  if (error) throw error
+  return count ?? 0
+}
+
+/** How many people this user follows. */
+export async function countFollowing(userId: string): Promise<number> {
+  const { count, error } = await db
+    .from('follows')
+    .select('followee_id', { count: 'exact', head: true })
+    .eq('follower_id', userId)
+  if (error) throw error
+  return count ?? 0
+}
+
+/** Ids this user follows (for the tastemaker feed / social proof). */
+export async function getFollowingIds(userId: string): Promise<string[]> {
+  const { data, error } = await db.from('follows').select('followee_id').eq('follower_id', userId)
+  if (error) throw error
+  return (data ?? []).map((r) => (r as { followee_id: string }).followee_id)
+}
+
 export async function getPublicLists(userId: string): Promise<PublicListCard[]> {
   const { data, error } = await db
     .from('lists')
@@ -1526,13 +1585,19 @@ export async function getPublicProfileBundle(
   const profile = await getProfileByUsername(username)
   if (!profile) return null
 
-  const [row, friends_count, lists, mutuals, blocked] = await Promise.all([
-    getFriendshipRow(meId, profile.id),
-    countFriends(profile.id),
-    getPublicLists(profile.id),
-    meId === profile.id ? Promise.resolve(0) : countMutualFriends(meId, profile.id),
-    meId === profile.id ? Promise.resolve(false) : hasBlocked(meId, profile.id),
-  ])
+  const [row, friends_count, lists, mutuals, blocked, is_following, followers_count, following_count] =
+    await Promise.all([
+      getFriendshipRow(meId, profile.id),
+      countFriends(profile.id),
+      getPublicLists(profile.id),
+      meId === profile.id ? Promise.resolve(0) : countMutualFriends(meId, profile.id),
+      meId === profile.id ? Promise.resolve(false) : hasBlocked(meId, profile.id),
+      // Fault-tolerant: if sql/follows.sql hasn't been run yet, degrade to
+      // 0/false instead of breaking the whole profile page.
+      meId === profile.id ? Promise.resolve(false) : isFollowing(meId, profile.id).catch(() => false),
+      countFollowers(profile.id).catch(() => 0),
+      countFollowing(profile.id).catch(() => 0),
+    ])
 
   // Agrégat lieux + cuisines depuis les items des listes publiques (données publiques).
   // Lieux distincts par osm_id (un même lieu dans 2 listes ne compte qu'une fois).
@@ -1562,6 +1627,9 @@ export async function getPublicProfileBundle(
     blocked,
     stats: { lists: lists.length, places, cuisines: cuisines.size },
     lists,
+    is_following,
+    followers_count,
+    following_count,
   }
 }
 

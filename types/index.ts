@@ -227,6 +227,8 @@ export interface Profile {
   bio?: string | null
   username_changed_at: string | null
   created_at: string
+  /** Verified tastemaker badge (granted via the verification flow). */
+  verified?: boolean
 }
 
 // Amis — Étape A (FriendshipStatus défini dans lib/friends.ts, ré-exporté ici)
@@ -270,6 +272,10 @@ export interface PublicProfileBundle {
   blocked: boolean
   stats: { lists: number; places: number; cuisines: number }
   lists: PublicListCard[]
+  /** Whether the viewer follows this profile (tastemakers). */
+  is_following: boolean
+  followers_count: number
+  following_count: number
 }
 
 export interface FriendSuggestion {
