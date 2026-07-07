@@ -4,6 +4,10 @@
 // ============================================================
 
 import { cacheGet, cacheSet } from './cache'
+// The pure implementation now lives in lib/michelin.ts so it can be used
+// client-side; re-exported here for existing importers (e.g. the enrich-osm route).
+import { extractMichelinFromTags } from './michelin'
+export { extractMichelinFromTags }
 
 const WIKIDATA_ENTITY = 'https://www.wikidata.org/wiki/Special:EntityData'
 const WIKIPEDIA_API = 'https://fr.wikipedia.org/api/rest_v1/page/summary'
@@ -128,30 +132,6 @@ export async function enrichFromOsmTags(
 }
 
 // ── Michelin from OSM tags ───────────────────────────────────
-export function extractMichelinFromTags(tags: Record<string, string>): Partial<WikidataData> {
-  const stars = tags['stars'] ?? tags['michelin:stars'] ?? tags['award:michelin']
-  const result: Partial<WikidataData> = {}
-  const distinctions: string[] = []
-
-  if (stars) {
-    const n = Number(stars)
-    if (!isNaN(n) && n >= 1 && n <= 3) {
-      result.michelin_stars = n
-      distinctions.push('⭐'.repeat(n) + ' Michelin')
-    }
-  }
-
-  if (tags['award:bib_gourmand'] === 'yes' || tags['michelin:bib_gourmand'] === 'yes') {
-    distinctions.push('Bib Gourmand')
-  }
-  if (tags['award:michelin_plate'] === 'yes') {
-    distinctions.push('Assiette Michelin')
-  }
-
-  if (distinctions.length) result.distinctions = distinctions
-  return result
-}
-
 // ── Main enrichment function ─────────────────────────────────
 export async function enrichWithWikidata(
   _osmId: string,

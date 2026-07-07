@@ -15,6 +15,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import type { PlaceCard, FilterState, PlaceBase, FavoriteRow } from '@/types'
 import { annotateDistances, annotateScores, applyFilters, haversineDistance } from '@/lib/scoring'
 import { nameSimilarity } from '@/lib/foursquare'
+import { enrichOsmClient } from '@/lib/osm-enrichment'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { apiFetch } from '@/lib/api'
 import { canScrapeOnDevice, enrichPlacesViaScrape, searchGoogleViewport } from '@/lib/google-client'
@@ -219,6 +220,11 @@ export function useRestaurants() {
 
     const myFetch = ++fetchCount.current
     displayOrderRef.current = [] // fresh order for this fetch
+    // Per-fetch flag: has the main OSM pipeline painted yet? Guards the fast
+    // Google paint below. (Using placesRef.current.length would stay true from
+    // the *previous* fetch — never reset — so the fast paint only ever fired
+    // once per session.)
+    let mainPainted = false
     setLoading(true)
     setError(null)
 
@@ -227,7 +233,7 @@ export function useRestaurants() {
     // enriched, while public Overpass mirrors are slow/uneven from Vercel's IP.
     const googlePromise = searchGoogleViewport([bbox.centerLat, bbox.centerLon])
     void googlePromise.then((g) => {
-      if (fetchCount.current !== myFetch || g.length === 0 || placesRef.current.length > 0) return
+      if (fetchCount.current !== myFetch || g.length === 0 || mainPainted) return
       const scored = annotateScores(
         annotateDistances(
           g.map((p) => ({ ...p, is_favorite: favoriteIdsRef.current.has(p.osm_id) })),
@@ -261,6 +267,7 @@ export function useRestaurants() {
         }))
         if (fetchCount.current !== myFetch) return
         const scored = annotateScores(annotateDistances(google, bbox.centerLat, bbox.centerLon))
+        mainPainted = true
         placesRef.current = scored
         setPlaces(scored)
         setFilteredPlaces(applyFilters(scored, currentFilters.current))
@@ -300,6 +307,7 @@ export function useRestaurants() {
       const raw = annotateScores(
         annotateDistances(mergeGoogleIntoOsm(google, osmCards), bbox.centerLat, bbox.centerLon)
       )
+      mainPainted = true
       placesRef.current = raw
       setPlaces(raw)
       // stabilize (not reset) so the early-painted Google order is preserved.
@@ -347,12 +355,31 @@ export function useRestaurants() {
       }
 
       // ── Step 1: OSM deep enrichment (free, fast — opening hours, features, etc.)
-      // Run for all places immediately since it's free and instant
+      // The Overpass normalizer already attached osm_enriched + open_now. For the
+      // common path the only net-new data is today_hours + Michelin distinctions,
+      // both derivable from tags already in hand → compute CLIENT-SIDE (instant,
+      // no network). This drops ceil(N/30) HTTP round-trips per fetch that used to
+      // block the photo layer. Only wiki-tagged places still hit the server (for
+      // the Wikidata image/description lookup).
       const OSM_BATCH = 30
-      const osmBatches: PlaceBase[][] = chunk(osmPlaces, OSM_BATCH)
-      let osmEnriched: PlaceCard[] = [...raw]
+      let osmEnriched: PlaceCard[] = raw.map((p) => ({
+        ...enrichOsmClient(p),
+        is_favorite: favoriteIdsRef.current.has(p.osm_id),
+      }))
+      {
+        const scoredOsm = annotateScores(
+          annotateDistances(osmEnriched, bbox.centerLat, bbox.centerLon)
+        )
+        publish(
+          scoredOsm.map((p) => ({ ...p, is_favorite: favoriteIdsRef.current.has(p.osm_id) }))
+        )
+      }
 
-      for (const batch of osmBatches) {
+      const wikiPlaces = osmPlaces.filter((p) => {
+        const t = (p as { tags?: Record<string, string> }).tags
+        return !!(t?.['wikidata'] || t?.['wikipedia'])
+      })
+      for (const batch of chunk(wikiPlaces, OSM_BATCH)) {
         if (fetchCount.current !== myFetch) return
         try {
           const res = await apiFetch('/api/places/enrich-osm', {
@@ -373,18 +400,16 @@ export function useRestaurants() {
             })
           }
         } catch {
-          /* silently fall back to raw */
+          /* silently keep the client-enriched cards */
         }
 
         if (fetchCount.current !== myFetch) return
         const scoredOsm = annotateScores(
           annotateDistances(osmEnriched, bbox.centerLat, bbox.centerLon)
         )
-        const withFavOsm = scoredOsm.map((p) => ({
-          ...p,
-          is_favorite: favoriteIdsRef.current.has(p.osm_id),
-        }))
-        publish(withFavOsm)
+        publish(
+          scoredOsm.map((p) => ({ ...p, is_favorite: favoriteIdsRef.current.has(p.osm_id) }))
+        )
       }
 
       // ── Step 2: Foursquare enrichment (ratings, photos, categories)
@@ -608,20 +633,42 @@ export function useRestaurants() {
   // exact places it renders; we scrape a real photo for the ones still missing
   // one and merge it in. Deduped by osm_id (a place is scraped at most once) and
   // native-only (no-op on web / when everything already has a photo).
-  const photoRequestedRef = useRef<Set<string>>(new Set())
+  // Photo request tracking. `settled` = has a photo OR gave up after retries;
+  // `inFlight` = a scrape is currently running (dedup). A miss doesn't settle
+  // immediately: it's retried up to PHOTO_MAX_TRIES so transient scrape failures
+  // (blocked IP, timeout) can recover on the next request wave, while places that
+  // truly have no photo stop being re-scraped forever.
+  const photoSettledRef = useRef<Set<string>>(new Set())
+  const photoInFlightRef = useRef<Set<string>>(new Set())
+  const photoFailRef = useRef<Map<string, number>>(new Map())
+  const PHOTO_MAX_TRIES = 2
   const requestPhotos = useCallback((wanted: PlaceCard[]) => {
     if (!canScrapeOnDevice() || wanted.length === 0) return
     const need = wanted.filter(
-      (p) => !p.fsq?.photos?.length && !photoRequestedRef.current.has(p.osm_id)
+      (p) =>
+        !p.fsq?.photos?.length &&
+        !photoSettledRef.current.has(p.osm_id) &&
+        !photoInFlightRef.current.has(p.osm_id)
     )
     if (!need.length) return
-    need.forEach((p) => photoRequestedRef.current.add(p.osm_id))
+    need.forEach((p) => photoInFlightRef.current.add(p.osm_id))
     void (async () => {
       const done = await enrichPlacesViaScrape(need)
       // enrichPlacesViaScrape returns each place with its fsq fully merged.
       const fsqById = new Map(
         done.filter((e) => e.fsq?.photos?.length).map((e) => [e.osm_id, e.fsq])
       )
+      // Update tracking: success → settled; miss → count, give up after MAX.
+      need.forEach((p) => {
+        photoInFlightRef.current.delete(p.osm_id)
+        if (fsqById.has(p.osm_id)) {
+          photoSettledRef.current.add(p.osm_id)
+          return
+        }
+        const tries = (photoFailRef.current.get(p.osm_id) ?? 0) + 1
+        photoFailRef.current.set(p.osm_id, tries)
+        if (tries >= PHOTO_MAX_TRIES) photoSettledRef.current.add(p.osm_id)
+      })
       if (fsqById.size === 0) return
       // Merge only fsq/fsq_rating onto the CURRENT place so a concurrent update
       // (e.g. favorite toggle) isn't clobbered by a stale snapshot.

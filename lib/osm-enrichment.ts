@@ -4,8 +4,9 @@
 // This is free, instant, no API calls needed.
 // ============================================================
 
-import type { OsmTags, OsmEnrichedData } from '@/types'
+import type { OsmTags, OsmEnrichedData, PlaceCard } from '@/types'
 import { isOpenNow, getTodayHours } from './opening-hours'
+import { extractMichelinFromTags } from './michelin'
 
 // `OsmEnrichedData` is defined once in types/index.ts (single source of
 // truth). Re-exported here so existing `./osm-enrichment` type imports
@@ -127,4 +128,45 @@ export function extractOsmEnrichment(tags: OsmTags): OsmEnrichedData {
   })
 
   return result
+}
+
+/**
+ * Client-side equivalent of POST /api/places/enrich-osm for the common
+ * (deep=false, no wiki tag) path. The Overpass normalizer already attaches
+ * `osm_enriched` + `open_now`; the only net-new data the server produced was
+ * `today_hours` and the Michelin distinctions — both derivable from tags we
+ * already hold. Computing them here lets us skip N HTTP round-trips per fetch.
+ * Wiki-tagged places still go to the server for the Wikidata lookup.
+ */
+export function enrichOsmClient(place: PlaceCard): PlaceCard {
+  const tags = (place.tags ?? {}) as OsmTags
+  const osm_enriched: OsmEnrichedData = { ...(place.osm_enriched ?? {}) }
+
+  const oh = place.opening_hours ?? tags['opening_hours']
+  if (oh) {
+    if (osm_enriched.open_now === undefined) {
+      const openNow = isOpenNow(oh)
+      if (openNow !== null) osm_enriched.open_now = openNow
+    }
+    const todayHours = getTodayHours(oh)
+    if (todayHours) osm_enriched.today_hours = todayHours
+  }
+
+  const michelin = extractMichelinFromTags(tags)
+  if (michelin.michelin_stars) osm_enriched.michelin = michelin.michelin_stars
+
+  let wikidata = place.wikidata
+  if (michelin.distinctions?.length) {
+    wikidata = {
+      ...(wikidata ?? {}),
+      distinctions: [...(wikidata?.distinctions ?? []), ...michelin.distinctions],
+    }
+  }
+
+  return {
+    ...place,
+    osm_enriched,
+    wikidata,
+    open_now: osm_enriched.open_now ?? place.open_now,
+  }
 }

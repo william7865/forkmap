@@ -28,6 +28,15 @@ export function useSocialProof(places: PlaceCard[]): PlaceCard[] {
   const ids = useMemo(() => places.slice(0, MAX_IDS).map((p) => p.osm_id), [places])
   const idsKey = useMemo(() => [...ids].sort().join(','), [ids])
 
+  // Debounce the fetch trigger: filtering the search box changes the visible id
+  // set on every keystroke, which would otherwise fire an authenticated
+  // /social-batch POST per character. Coalesce to ~300ms of stability.
+  const [debouncedKey, setDebouncedKey] = useState(idsKey)
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedKey(idsKey), 300)
+    return () => clearTimeout(t)
+  }, [idsKey])
+
   useEffect(() => {
     if (!ids.length) {
       setProof({})
@@ -51,7 +60,7 @@ export function useSocialProof(places: PlaceCard[]): PlaceCard[] {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idsKey])
+  }, [debouncedKey])
 
   return useMemo(() => {
     if (Object.keys(proof).length === 0) return places
