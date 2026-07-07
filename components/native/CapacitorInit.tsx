@@ -90,6 +90,12 @@ export default function CapacitorInit() {
               router.replace('/')
             }
           }
+          // Shared from another app: com.forkmap.app://import?url=<social link>
+          // (iOS Share Extension / Android SEND intent hand the link here.)
+          else if (parsed.hostname === 'import') {
+            const shared = parsed.searchParams.get('url')
+            if (shared) router.replace(`/?import=${encodeURIComponent(shared)}`)
+          }
         } catch {
           // Malformed URL — ignore
         }

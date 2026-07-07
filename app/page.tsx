@@ -74,6 +74,21 @@ function SurpriseParamWatcher({ onOpen }: { onOpen: () => void }) {
   return null
 }
 
+function ImportParamWatcher({ onImport }: { onImport: (url: string) => void }) {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  useEffect(() => {
+    const raw = searchParams.get('import')
+    if (!raw) return
+    onImport(raw)
+    const params = new URLSearchParams(Array.from(searchParams.entries()))
+    params.delete('import')
+    const qs = params.toString()
+    router.replace(qs ? `/?${qs}` : '/', { scroll: false })
+  }, [searchParams, onImport, router])
+  return null
+}
+
 function SelectParamWatcher({ onSelect }: { onSelect: (osmId: string) => void }) {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -181,6 +196,7 @@ export default function HomePage() {
   // Natif : sélection → carte flottante (aperçu) ; « Voir la fiche » → détail plein écran.
   const [detailExpanded, setDetailExpanded] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [importUrl, setImportUrl] = useState<string | null>(null)
   useEffect(() => {
     setDetailExpanded(false)
   }, [selectedPlace?.osm_id])
@@ -1542,6 +1558,12 @@ export default function HomePage() {
         <AuthRequiredWatcher onOpen={() => setShowAuthModal(true)} />
         <SurpriseParamWatcher onOpen={() => setShowSurprise(true)} />
         <SelectParamWatcher onSelect={handleDeepSelect} />
+        <ImportParamWatcher
+          onImport={(u) => {
+            setImportUrl(u)
+            setShowImport(true)
+          }}
+        />
       </Suspense>
 
       {showSurprise && (
@@ -1570,7 +1592,11 @@ export default function HomePage() {
         <ImportSheet
           center={mapCenter}
           onPick={searchSelectPlace}
-          onClose={() => setShowImport(false)}
+          initialUrl={importUrl ?? undefined}
+          onClose={() => {
+            setShowImport(false)
+            setImportUrl(null)
+          }}
         />
       )}
 
