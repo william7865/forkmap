@@ -81,6 +81,15 @@ async function nominatim(q: string, center: [number, number] | null): Promise<Pl
   return mapped.slice(0, 6)
 }
 
+/** One-shot off-viewport place search (Google-first, OSM fallback). Reusable
+ * outside the debounced hook — e.g. resolving an imported social link. */
+export async function searchPlacesOnce(
+  q: string,
+  center: [number, number] | null
+): Promise<PlaceSearchResult[]> {
+  return search(q, center)
+}
+
 async function search(q: string, center: [number, number] | null): Promise<PlaceSearchResult[]> {
   const key = `${q.toLowerCase().trim()}|${center ? center.map((n) => n.toFixed(2)).join(',') : ''}`
   const cached = CACHE.get(key)
