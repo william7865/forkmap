@@ -7,8 +7,6 @@ import type { ReviewSummary } from '@/types'
 
 export const REVIEW_TEXT_MAX = 500
 export const REVIEW_PHOTOS_MAX = 4
-/** Cap on how many photos the banner gallery shows (user photos + FSQ/Google). */
-export const GALLERY_PHOTOS_MAX = 12
 
 /** Aggregate a list of ratings into `{ count, average }` (average = 0 when empty). */
 export function computeSummary(reviews: ReadonlyArray<{ rating: number }>): ReviewSummary {
@@ -30,24 +28,4 @@ export function canSubmit(draft: ReviewDraft): boolean {
   const textOk = draft.text.length <= REVIEW_TEXT_MAX
   const photosOk = draft.photoCount >= 0 && draft.photoCount <= REVIEW_PHOTOS_MAX
   return ratingOk && textOk && photosOk
-}
-
-/**
- * Merge user-uploaded photo URLs (shown first — real, current) with the
- * FSQ/Google gallery URLs, de-duplicating and capping the total.
- */
-export function mergePhotos(
-  userUrls: ReadonlyArray<string>,
-  fsqUrls: ReadonlyArray<string>,
-  cap = GALLERY_PHOTOS_MAX
-): string[] {
-  const out: string[] = []
-  const seen = new Set<string>()
-  for (const url of [...userUrls, ...fsqUrls]) {
-    if (!url || seen.has(url)) continue
-    seen.add(url)
-    out.push(url)
-    if (out.length >= cap) break
-  }
-  return out
 }

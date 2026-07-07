@@ -53,7 +53,6 @@ import PhotoGallery, { buildPhotoUrl } from '@/components/place/PhotoGallery'
 import ReviewsSection from '@/components/place/ReviewsSection'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useReviews } from '@/lib/hooks/useReviews'
-import { mergePhotos } from '@/lib/reviews'
 
 // dirflg Apple Maps : w=marche, d=voiture (vélo retombe sur voiture)
 const APPLE_FLAG: Record<string, string> = { walking: 'w', bicycling: 'd', driving: 'd' }
@@ -276,23 +275,13 @@ export default function PlaceDetail({
   const currentMode = MODES.find((m) => m.id === routeMode) ?? MODES[0]
   const photos = useMemo(() => place.fsq?.photos ?? [], [place.fsq?.photos])
 
-  // Community reviews (native-only UI). User photos are prepended to the banner
-  // gallery — real, current photos before FSQ/Google.
+  // Community reviews (native-only UI). Review photos live only in the reviews
+  // section below — they never touch the banner (the place's own photo stays the
+  // hero). Memoized so the gallery keeps a stable `urls` reference across
+  // re-renders (otherwise its reset effect would snap the swipe back to photo 1).
   const { user } = useAuth()
   const reviewsApi = useReviews(place, user?.id ?? null)
-  const userPhotoUrls = useMemo(
-    () => reviewsApi.reviews.flatMap((r) => r.photo_urls),
-    [reviewsApi.reviews]
-  )
-  const hasUserPhotos = userPhotoUrls.length > 0
-  // Memoized so the gallery keeps a stable `urls` reference across unrelated
-  // re-renders (otherwise its reset effect would snap the swipe back to photo 1).
-  // With no user photos (always the case on web) we pass the raw FSQ URLs
-  // untouched — identical banner behavior to before this feature.
-  const galleryUrls = useMemo(() => {
-    const fsqUrls = photos.map((p) => buildPhotoUrl(p, 600))
-    return hasUserPhotos ? mergePhotos(userPhotoUrls, fsqUrls) : fsqUrls
-  }, [photos, userPhotoUrls, hasUserPhotos])
+  const galleryUrls = useMemo(() => photos.map((p) => buildPhotoUrl(p, 600)), [photos])
 
   return (
     <div
@@ -345,12 +334,8 @@ export default function PlaceDetail({
             }}
           >
             {galleryUrls.length > 1 ? (
-              // Multiple photos → swipeable gallery (dots + snap). No FSQ credit
-              // when community photos are mixed in.
-              <PhotoGallery
-                urls={galleryUrls}
-                attribution={hasUserPhotos ? undefined : 'Foursquare'}
-              />
+              // Multiple photos → swipeable gallery (dots + snap)
+              <PhotoGallery urls={galleryUrls} attribution="Foursquare" />
             ) : photoUrl ? (
               <Image
                 src={photoUrl}
