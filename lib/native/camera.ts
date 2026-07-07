@@ -39,6 +39,31 @@ export async function pickAvatarPhoto(): Promise<Blob | null> {
     }
   }
   // Web fallback
+  return pickFromFileInput()
+}
+
+// Pick a full-frame photo (no square crop) — used for review photos.
+export async function pickPhoto(): Promise<Blob | null> {
+  if (isNativeRuntime()) {
+    const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera')
+    try {
+      const photo = await Camera.getPhoto({
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Prompt,
+        quality: 80,
+      })
+      if (!photo.dataUrl) return null
+      return dataUrlToBlob(photo.dataUrl)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      if (/cancel/i.test(msg)) return null
+      throw new Error(msg)
+    }
+  }
+  return pickFromFileInput()
+}
+
+function pickFromFileInput(): Promise<Blob | null> {
   return new Promise((resolve) => {
     const input = document.createElement('input')
     input.type = 'file'

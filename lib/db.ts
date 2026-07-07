@@ -20,6 +20,7 @@ import type {
   PublicListCard,
   PublicListDetail,
   PublicProfileBundle,
+  UserReview,
   UserSearchResult,
 } from '@/types'
 import { canChangeUsername } from '@/lib/username'
@@ -104,6 +105,139 @@ export async function upsertNote(userId: string, osmId: string, text: string): P
 export async function deleteNote(userId: string, osmId: string): Promise<void> {
   const { error } = await db.from('notes').delete().eq('user_id', userId).eq('osm_id', osmId)
   if (error) throw error
+}
+
+// ---------- Community reviews ----------
+
+interface ReviewDbRow {
+  id: string
+  user_id: string
+  osm_id: string
+  rating: number
+  text: string | null
+  photo_urls: string[] | null
+  created_at: string
+}
+
+const FALLBACK_AUTHOR = { username: '', display_name: 'Utilisateur', avatar_url: null }
+
+/** All reviews for a place (newest first), with public author profiles joined. */
+export async function getReviews(osmId: string): Promise<UserReview[]> {
+  const { data, error } = await db
+    .from('reviews')
+    .select('id, user_id, osm_id, rating, text, photo_urls, created_at')
+    .eq('osm_id', osmId)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  const rows = (data ?? []) as ReviewDbRow[]
+
+  const profiles = await getProfilesFriendLite(rows.map((r) => r.user_id))
+  return rows.map((r) => ({
+    id: r.id,
+    osm_id: r.osm_id,
+    user_id: r.user_id,
+    author: profiles.get(r.user_id) ?? { id: r.user_id, ...FALLBACK_AUTHOR },
+    rating: r.rating,
+    text: r.text,
+    photo_urls: r.photo_urls ?? [],
+    created_at: r.created_at,
+  }))
+}
+
+/** Public author profiles (id/username/name/avatar) for a set of user ids. */
+async function getProfilesFriendLite(
+  ids: string[]
+): Promise<Map<string, UserReview['author']>> {
+  const map = new Map<string, UserReview['author']>()
+  const unique = [...new Set(ids)]
+  if (unique.length === 0) return map
+  const { data } = await db
+    .from('profiles')
+    .select('id, username, display_name, avatar_url')
+    .in('id', unique)
+  for (const p of (data ?? []) as UserReview['author'][]) {
+    map.set(p.id, {
+      id: p.id,
+      username: p.username ?? '',
+      display_name: p.display_name ?? 'Utilisateur',
+      avatar_url: p.avatar_url ?? null,
+    })
+  }
+  return map
+}
+
+export interface ReviewInput {
+  osm_id: string
+  rating: number
+  text: string | null
+  photo_urls: string[]
+  place_snapshot?: PlaceCard
+}
+
+/**
+ * Upsert the user's review for a place (one per user per place).
+ * Returns the saved review plus any previously-attached photos that are no
+ * longer referenced (so the caller can clean them from Storage on edit).
+ */
+export async function upsertReview(
+  userId: string,
+  input: ReviewInput
+): Promise<{ review: UserReview; orphanedPhotos: string[] }> {
+  // Existing photos, to detect ones dropped by this edit.
+  const { data: prev } = await db
+    .from('reviews')
+    .select('photo_urls')
+    .eq('user_id', userId)
+    .eq('osm_id', input.osm_id)
+    .maybeSingle()
+  const prevPhotos = ((prev as { photo_urls: string[] | null } | null)?.photo_urls ?? []) as string[]
+
+  const { data, error } = await db
+    .from('reviews')
+    .upsert(
+      {
+        user_id: userId,
+        osm_id: input.osm_id,
+        rating: input.rating,
+        text: input.text,
+        photo_urls: input.photo_urls,
+        place_snapshot: input.place_snapshot ?? null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id,osm_id' }
+    )
+    .select('id, user_id, osm_id, rating, text, photo_urls, created_at')
+    .single()
+  if (error) throw error
+  const row = data as ReviewDbRow
+  const profiles = await getProfilesFriendLite([userId])
+  const orphanedPhotos = prevPhotos.filter((u) => !input.photo_urls.includes(u))
+  return {
+    review: {
+      id: row.id,
+      osm_id: row.osm_id,
+      user_id: row.user_id,
+      author: profiles.get(userId) ?? { id: userId, ...FALLBACK_AUTHOR },
+      rating: row.rating,
+      text: row.text,
+      photo_urls: row.photo_urls ?? [],
+      created_at: row.created_at,
+    },
+    orphanedPhotos,
+  }
+}
+
+/** Delete the user's review for a place; returns the removed photo URLs (for storage cleanup). */
+export async function deleteReview(userId: string, osmId: string): Promise<string[]> {
+  const { data, error } = await db
+    .from('reviews')
+    .delete()
+    .eq('user_id', userId)
+    .eq('osm_id', osmId)
+    .select('photo_urls')
+  if (error) throw error
+  const rows = (data ?? []) as { photo_urls: string[] | null }[]
+  return rows[0]?.photo_urls ?? []
 }
 
 // ---------- OSM ↔ FSQ mapping ----------

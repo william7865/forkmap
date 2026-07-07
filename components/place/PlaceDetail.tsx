@@ -1,12 +1,12 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import ShareModal from '@/components/place/ShareModal'
 import VisitModal from '@/components/place/VisitModal'
 import NoteModal, { getNote } from '@/components/place/NoteModal'
 import HeartButton from '@/components/ui/HeartButton'
 import StartPanel from '@/components/location/StartPanel'
-import type { PlaceCard, FoursquarePhoto } from '@/types'
+import type { PlaceCard } from '@/types'
 import {
   IcoWalk,
   IcoBike,
@@ -23,7 +23,6 @@ import {
   IcoStar,
 } from '@/components/icons'
 import {
-  Camera,
   Trees,
   Wifi,
   ShoppingBag,
@@ -50,6 +49,11 @@ import { nativeShare } from '@/lib/native/share'
 import { placeGradient } from '@/lib/gradients'
 import PlaceThumb, { placeInitial } from '@/components/place/PlaceThumb'
 import PlaceSocialProof from '@/components/place/PlaceSocialProof'
+import PhotoGallery, { buildPhotoUrl } from '@/components/place/PhotoGallery'
+import ReviewsSection from '@/components/place/ReviewsSection'
+import { useAuth } from '@/lib/hooks/useAuth'
+import { useReviews } from '@/lib/hooks/useReviews'
+import { mergePhotos } from '@/lib/reviews'
 
 // dirflg Apple Maps : w=marche, d=voiture (vélo retombe sur voiture)
 const APPLE_FLAG: Record<string, string> = { walking: 'w', bicycling: 'd', driving: 'd' }
@@ -109,110 +113,7 @@ function fmtDist(m: number) {
   return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`
 }
 
-// ── Photo gallery ──────────────────────────────────────────
-function buildPhotoUrl(photo: FoursquarePhoto, width = 600): string {
-  return `${photo.prefix}${width}x${Math.round(width * (photo.height / photo.width))}${photo.suffix}`
-}
-
-function PhotoGallery({ photos }: { photos: FoursquarePhoto[] }) {
-  const [activePhoto, setActivePhoto] = useState(0)
-  const galleryRef = useRef<HTMLDivElement>(null)
-
-  // Reset when photos change (new place selected)
-  useEffect(() => {
-    setActivePhoto(0)
-    if (galleryRef.current) galleryRef.current.scrollLeft = 0
-  }, [photos])
-
-  if (!photos.length) return null
-
-  const handleGalleryScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const idx = Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth)
-    setActivePhoto(idx)
-  }
-
-  const urls = photos.map((p) => buildPhotoUrl(p, 600))
-
-  return (
-    <div style={{ position: 'relative', flexShrink: 0 }}>
-      {/* Horizontal scrollable strip */}
-      <div
-        ref={galleryRef}
-        onScroll={handleGalleryScroll}
-        className="no-scrollbar"
-        style={{
-          display: 'flex',
-          overflowX: 'auto',
-          scrollSnapType: 'x mandatory',
-          gap: 0,
-        }}
-      >
-        {urls.map((url, i) => (
-          <div
-            key={i}
-            style={{
-              flexShrink: 0,
-              width: '100%',
-              height: 200,
-              scrollSnapAlign: 'start',
-              position: 'relative',
-            }}
-          >
-            <Image src={url} alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} />
-          </div>
-        ))}
-      </div>
-      {/* Dot indicators */}
-      {photos.length > 1 && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 6,
-            left: 0,
-            right: 0,
-            display: 'flex',
-            justifyContent: 'center',
-            gap: 4,
-          }}
-        >
-          {photos.slice(0, 5).map((_, i) => (
-            <div
-              key={i}
-              style={{
-                width: 5,
-                height: 5,
-                borderRadius: '50%',
-                background: i === activePhoto ? 'white' : 'rgba(255,255,255,0.45)',
-                transition: 'background 150ms',
-              }}
-            />
-          ))}
-          {photos.length > 5 && (
-            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', alignSelf: 'center' }}>
-              +{photos.length - 5}
-            </span>
-          )}
-        </div>
-      )}
-      {/* Attribution */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 4,
-          right: 8,
-          fontSize: 9,
-          color: 'rgba(255,255,255,0.55)',
-          fontWeight: 500,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 3,
-        }}
-      >
-        <Camera size={9} strokeWidth={1.5} /> Foursquare
-      </div>
-    </div>
-  )
-}
+// PhotoGallery + buildPhotoUrl extracted to components/place/PhotoGallery.tsx
 
 // Animated rating bar
 function RatingBar({ rating }: { rating: number }) {
@@ -373,7 +274,25 @@ export default function PlaceDetail({
 
   const cuisine = place.cuisine ?? place.fsq?.categories?.[0]?.name
   const currentMode = MODES.find((m) => m.id === routeMode) ?? MODES[0]
-  const photos = place.fsq?.photos ?? []
+  const photos = useMemo(() => place.fsq?.photos ?? [], [place.fsq?.photos])
+
+  // Community reviews (native-only UI). User photos are prepended to the banner
+  // gallery — real, current photos before FSQ/Google.
+  const { user } = useAuth()
+  const reviewsApi = useReviews(place, user?.id ?? null)
+  const userPhotoUrls = useMemo(
+    () => reviewsApi.reviews.flatMap((r) => r.photo_urls),
+    [reviewsApi.reviews]
+  )
+  const hasUserPhotos = userPhotoUrls.length > 0
+  // Memoized so the gallery keeps a stable `urls` reference across unrelated
+  // re-renders (otherwise its reset effect would snap the swipe back to photo 1).
+  // With no user photos (always the case on web) we pass the raw FSQ URLs
+  // untouched — identical banner behavior to before this feature.
+  const galleryUrls = useMemo(() => {
+    const fsqUrls = photos.map((p) => buildPhotoUrl(p, 600))
+    return hasUserPhotos ? mergePhotos(userPhotoUrls, fsqUrls) : fsqUrls
+  }, [photos, userPhotoUrls, hasUserPhotos])
 
   return (
     <div
@@ -395,11 +314,9 @@ export default function PlaceDetail({
     >
       {/* ── Photo banner with overlay ── */}
       {(() => {
-        const firstPhoto = photos[0]
-        // Free photo fallback: Wikidata/Wikimedia image when no Foursquare photo
-        const photoUrl = firstPhoto
-          ? buildPhotoUrl(firstPhoto, 600)
-          : (place.wikidata?.image_url ?? null)
+        // Banner photo: first gallery photo (user photos first, then FSQ/Google),
+        // falling back to a free Wikidata/Wikimedia image.
+        const photoUrl = galleryUrls[0] ?? place.wikidata?.image_url ?? null
 
         const glassBtnStyle: React.CSSProperties = {
           width: 36,
@@ -427,9 +344,13 @@ export default function PlaceDetail({
               overflow: 'hidden',
             }}
           >
-            {photos.length > 1 ? (
-              // Multiple photos → swipeable gallery (dots + snap)
-              <PhotoGallery photos={photos} />
+            {galleryUrls.length > 1 ? (
+              // Multiple photos → swipeable gallery (dots + snap). No FSQ credit
+              // when community photos are mixed in.
+              <PhotoGallery
+                urls={galleryUrls}
+                attribution={hasUserPhotos ? undefined : 'Foursquare'}
+              />
             ) : photoUrl ? (
               <Image
                 src={photoUrl}
@@ -703,6 +624,9 @@ export default function PlaceDetail({
       >
         {/* Friends who saved / visited this place (renders nothing if none) */}
         <PlaceSocialProof osmId={place.osm_id} />
+
+        {/* Community reviews (rating + text + photos) */}
+        <ReviewsSection api={reviewsApi} isSignedIn={!!user} placeName={place.name} />
 
         {/* Secondary actions: Note + Visite + cuisine filter */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
