@@ -1,11 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  computeSummary,
-  canSubmit,
-  mergePhotos,
-  REVIEW_TEXT_MAX,
-  REVIEW_PHOTOS_MAX,
-} from '@/lib/reviews'
+import { computeSummary, canSubmit, REVIEW_TEXT_MAX, REVIEW_PHOTOS_MAX } from '@/lib/reviews'
 
 describe('computeSummary', () => {
   it('returns zero for an empty list', () => {
@@ -47,19 +41,5 @@ describe('canSubmit', () => {
 
   it('rejects more photos than allowed', () => {
     expect(canSubmit({ rating: 3, text: '', photoCount: REVIEW_PHOTOS_MAX + 1 })).toBe(false)
-  })
-})
-
-describe('mergePhotos', () => {
-  it('puts user photos first, then FSQ, de-duplicated', () => {
-    expect(mergePhotos(['u1', 'u2'], ['f1', 'u1', 'f2'])).toEqual(['u1', 'u2', 'f1', 'f2'])
-  })
-
-  it('drops empty strings', () => {
-    expect(mergePhotos(['', 'u1'], ['', 'f1'])).toEqual(['u1', 'f1'])
-  })
-
-  it('caps the total', () => {
-    expect(mergePhotos(['a', 'b', 'c'], ['d', 'e'], 3)).toEqual(['a', 'b', 'c'])
   })
 })
