@@ -4,9 +4,9 @@
 //  main app via `com.forkmap.app://import?url=<link>`. The app (CapacitorInit
 //  appUrlOpen handler) turns that into `/?import=<link>` and opens the import sheet.
 //
-//  Opening the container app from an extension is timing-sensitive: it only works
-//  once the view is in a window (so the responder chain reaches UIApplication),
-//  hence the open runs from viewDidAppear, not viewDidLoad.
+//  We give the extension a real view (loadView) so it presents properly and its
+//  view enters a window — otherwise viewDidAppear never fires and the responder
+//  chain never reaches UIApplication, so openURL silently no-ops.
 
 import UIKit
 import UniformTypeIdentifiers
@@ -15,6 +15,23 @@ class ShareViewController: UIViewController {
 
   private var pendingURL: URL?
   private var didOpen = false
+
+  // A minimal visible view guarantees the VC is presented in a window.
+  override func loadView() {
+    let root = UIView()
+    root.backgroundColor = UIColor.systemBackground
+    let label = UILabel()
+    label.text = "Forkmap…"
+    label.textColor = UIColor.label
+    label.font = .systemFont(ofSize: 17, weight: .semibold)
+    label.translatesAutoresizingMaskIntoConstraints = false
+    root.addSubview(label)
+    NSLayoutConstraint.activate([
+      label.centerXAnchor.constraint(equalTo: root.centerXAnchor),
+      label.centerYAnchor.constraint(equalTo: root.centerYAnchor),
+    ])
+    self.view = root
+  }
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -59,21 +76,17 @@ class ShareViewController: UIViewController {
         let url = URL(string: "com.forkmap.app://import?url=\(enc)")
       else { return self.complete() }
       self.pendingURL = url
-      self.tryOpen() // in case the item loaded after viewDidAppear
+      self.tryOpen()
     }
   }
 
-  // MARK: - Open the container app
+  // MARK: - Open the container app (VC is alive and in a window here)
 
-  // The reliable pattern: finish the extension request FIRST, then open the host
-  // app from the completion handler. Opening while the extension UI is still up
-  // is what silently no-ops on modern iOS.
   private func tryOpen() {
     guard !didOpen, isViewLoaded, view.window != nil, let url = pendingURL else { return }
     didOpen = true
-    extensionContext?.completeRequest(returningItems: []) { [weak self] _ in
-      self?.openURL(url)
-    }
+    openURL(url)
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in self?.complete() }
   }
 
   @discardableResult
@@ -85,7 +98,6 @@ class ShareViewController: UIViewController {
       }
       responder = r.next
     }
-    // Fallback for contexts where UIApplication isn't in the chain.
     extensionContext?.open(url, completionHandler: nil)
     return false
   }
