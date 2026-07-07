@@ -2,17 +2,24 @@
 
 import React, { useState, useEffect } from 'react'
 import type { ListRow } from '@/lib/hooks/useLists'
+import type { ListVisibility } from '@/types'
+
+const VISIBILITY_OPTIONS: { key: ListVisibility; label: string; hint: string }[] = [
+  { key: 'private', label: 'Privée', hint: 'Visible uniquement par toi.' },
+  { key: 'friends', label: 'Amis', hint: 'Visible par tes amis seulement.' },
+  { key: 'public', label: 'Publique', hint: 'Visible par tout le monde.' },
+]
 
 interface Props {
   initial?: ListRow
-  onSave: (name: string, description: string | null, isPublic: boolean) => Promise<void>
+  onSave: (name: string, description: string | null, visibility: ListVisibility) => Promise<void>
   onClose: () => void
 }
 
 export function CreateListModal({ initial, onSave, onClose }: Props) {
   const [name, setName] = useState(initial?.name ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
-  const [isPublic, setIsPublic] = useState(initial?.is_public ?? false)
+  const [visibility, setVisibility] = useState<ListVisibility>(initial?.visibility ?? 'private')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -28,7 +35,7 @@ export function CreateListModal({ initial, onSave, onClose }: Props) {
     if (!name.trim()) return
     setSaving(true)
     try {
-      await onSave(name.trim(), description.trim() || null, isPublic)
+      await onSave(name.trim(), description.trim() || null, visibility)
       onClose()
     } finally {
       setSaving(false)
@@ -187,56 +194,38 @@ export function CreateListModal({ initial, onSave, onClose }: Props) {
           />
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '12px 14px',
-            borderRadius: 'var(--r-md)',
-            border: '1px solid var(--border)',
-            background: 'var(--surface)',
-          }}
-        >
-          <div>
-            <p style={{ margin: '0 0 2px', fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-              {isPublic ? 'Publique' : 'Privée'}
-            </p>
-            <p style={{ margin: 0, fontSize: 11, color: 'var(--text-3)' }}>
-              {isPublic ? 'Visible par tes amis' : 'Visible uniquement par toi'}
-            </p>
+        <div>
+          <div style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--surface)', borderRadius: 'var(--r-md)', border: '1px solid var(--border)' }}>
+            {VISIBILITY_OPTIONS.map((o) => {
+              const active = visibility === o.key
+              return (
+                <button
+                  key={o.key}
+                  type="button"
+                  onClick={() => setVisibility(o.key)}
+                  aria-pressed={active}
+                  style={{
+                    flex: 1,
+                    padding: '8px 4px',
+                    borderRadius: 8,
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    fontFamily: 'inherit',
+                    background: active ? 'var(--accent)' : 'transparent',
+                    color: active ? 'var(--on-accent)' : 'var(--text-2)',
+                    transition: 'background 150ms',
+                  }}
+                >
+                  {o.label}
+                </button>
+              )
+            })}
           </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={isPublic}
-            onClick={() => setIsPublic((v) => !v)}
-            style={{
-              width: 44,
-              height: 24,
-              borderRadius: 12,
-              border: 'none',
-              background: isPublic ? 'var(--accent)' : 'var(--bone)',
-              cursor: 'pointer',
-              position: 'relative',
-              transition: 'background 200ms',
-              flexShrink: 0,
-            }}
-          >
-            <div
-              style={{
-                position: 'absolute',
-                top: 3,
-                left: isPublic ? 23 : 3,
-                width: 18,
-                height: 18,
-                borderRadius: '50%',
-                background: isPublic ? 'var(--on-accent)' : 'white',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-                transition: 'left 200ms',
-              }}
-            />
-          </button>
+          <p style={{ margin: '6px 2px 0', fontSize: 11.5, color: 'var(--text-3)' }}>
+            {VISIBILITY_OPTIONS.find((o) => o.key === visibility)?.hint}
+          </p>
         </div>
 
         <div style={{ display: 'flex', gap: 8 }}>

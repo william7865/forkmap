@@ -7,7 +7,8 @@ import { updateList, deleteList } from '@/lib/db'
 const PatchSchema = z.object({
   name: z.string().min(1).max(40).optional(),
   description: z.string().max(120).nullable().optional(),
-  is_public: z.boolean().optional(),
+  visibility: z.enum(['private', 'friends', 'public']).optional(),
+  is_public: z.boolean().optional(), // legacy — mapped to visibility below
 })
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -24,8 +25,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: parsed.error.message }, { status: 400 })
   }
 
+  const { name, description, visibility, is_public } = parsed.data
+  const patch = {
+    ...(name !== undefined ? { name } : {}),
+    ...(description !== undefined ? { description } : {}),
+    ...(visibility !== undefined
+      ? { visibility }
+      : is_public !== undefined
+        ? { visibility: is_public ? ('public' as const) : ('private' as const) }
+        : {}),
+  }
   try {
-    const list = await updateList(id, auth.userId, parsed.data)
+    const list = await updateList(id, auth.userId, patch)
     return NextResponse.json({ data: list })
   } catch (err) {
     console.error('[PATCH /api/lists/[id]]', err)
