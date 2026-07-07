@@ -49,9 +49,11 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 
 const REFETCH_THRESHOLD = 0.004
 
-// How many top places (by score) get a per-place photo scrape. Kept small: the
-// scraper hits Google directly and must stay light. Covers the hero + first rails.
-const PHOTO_CAP = 10
+// How many top places (by score) get a per-place photo scrape. Covers the hero
+// plus the first cards of the visible rails. Streamed in PHOTO_CHUNK-sized waves
+// (hero shows first); the scraper hits Google directly so the cap stays modest.
+const PHOTO_CAP = 15
+const PHOTO_CHUNK = 5
 
 function bboxChanged(prev: BBox | null, next: BBox): boolean {
   if (!prev) return true
@@ -95,22 +97,40 @@ function stabilize(sorted: PlaceCard[], orderIds: string[]): PlaceCard[] {
 
 /**
  * Upgrade the top-scored places that still LACK a photo with a real one from a
- * per-place Google scrape, then return the list with those photos merged in.
- * The Google viewport listing returns ratings but no photo blob, so its places
- * (the hero + first rail cards) would otherwise show a gradient placeholder.
- * Native-only: a no-op (returns the input untouched) on web or when every top
- * place already has a photo.
+ * per-place Google scrape. The Google viewport listing returns ratings but no
+ * photo blob, so its places (the hero + rail cards) would otherwise show a
+ * gradient placeholder.
+ *
+ * Streams in chunks: after each chunk resolves it calls `onChunk` with the list
+ * merged so far, so the hero's photo shows in ~1 chunk instead of waiting for
+ * the whole cap. Returns the fully-merged list. Native-only — a no-op (returns
+ * the input untouched) on web or when every top place already has a photo.
  */
-async function enrichTopPhotos(list: PlaceCard[], cap: number): Promise<PlaceCard[]> {
+async function streamTopPhotos(
+  list: PlaceCard[],
+  cap: number,
+  chunkSize: number,
+  isCurrent: () => boolean,
+  onChunk: (updated: PlaceCard[]) => void
+): Promise<PlaceCard[]> {
   if (!canScrapeOnDevice()) return list
   const need = [...list]
     .filter((p) => !p.fsq?.photos?.length)
     .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
     .slice(0, cap)
   if (!need.length) return list
-  const done = await enrichPlacesViaScrape(need)
-  const byId = new Map(done.map((e) => [e.osm_id, e]))
-  return list.map((p) => byId.get(p.osm_id) ?? p)
+
+  const byId = new Map<string, PlaceCard>()
+  let current = list
+  for (let i = 0; i < need.length; i += chunkSize) {
+    if (!isCurrent()) break
+    const done = await enrichPlacesViaScrape(need.slice(i, i + chunkSize))
+    for (const e of done) byId.set(e.osm_id, e)
+    current = current.map((p) => byId.get(p.osm_id) ?? p)
+    if (!isCurrent()) break
+    onChunk(current)
+  }
+  return current
 }
 
 export function useRestaurants() {
@@ -246,18 +266,22 @@ export function useRestaurants() {
         setFilteredPlaces(applyFilters(scored, currentFilters.current))
         setLoading(false)
         // The viewport listing has no photos — upgrade the top places (hero +
-        // first rails) with a real one, then re-publish.
-        const withPhotos = await enrichTopPhotos(scored, PHOTO_CAP)
-        if (fetchCount.current !== myFetch) return
-        if (withPhotos !== scored) {
-          const reFav = withPhotos.map((p) => ({
-            ...p,
-            is_favorite: favoriteIdsRef.current.has(p.osm_id),
-          }))
-          placesRef.current = reFav
-          setPlaces(reFav)
-          setFilteredPlaces(applyFilters(reFav, currentFilters.current))
-        }
+        // rail cards) with real ones, streaming each wave as it resolves.
+        await streamTopPhotos(
+          scored,
+          PHOTO_CAP,
+          PHOTO_CHUNK,
+          () => fetchCount.current === myFetch,
+          (updated) => {
+            const reFav = updated.map((p) => ({
+              ...p,
+              is_favorite: favoriteIdsRef.current.has(p.osm_id),
+            }))
+            placesRef.current = reFav
+            setPlaces(reFav)
+            setFilteredPlaces(applyFilters(reFav, currentFilters.current))
+          }
+        )
         setEnriching(false)
         return
       }
@@ -419,27 +443,31 @@ export function useRestaurants() {
         publish(withFav)
       }
 
-      // ── Step 3: Google enrichment (rating, photos, hours) via the DIY
-      // scraper (or a keyed provider — see lib/google.ts). CAPPED to the top
-      // RICH_CAP places by current score: the scraper hits Google directly and
-      // must stay light to avoid blocks / burning a provider quota. The route
-      // degrades gracefully when no provider is available.
-      // Top places still MISSING a photo, across BOTH origins. Google viewport
-      // places carry a rating but no photo blob, so the hero/top cards need a
-      // per-place scrape — filtering osmPlaces here would skip them entirely.
-      const richBatch = [...enriched]
-        .filter((p) => !p.fsq?.photos?.length)
-        .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-        .slice(0, PHOTO_CAP)
-
-      if (richBatch.length && fetchCount.current === myFetch) {
-        try {
-          // Native scrapes Google straight from the device (residential IP → not
-          // blocked). Web falls back to the server route (blocked on Vercel's IP).
-          let googleBatch: PlaceCard[]
-          if (canScrapeOnDevice()) {
-            googleBatch = await enrichPlacesViaScrape(richBatch)
-          } else {
+      // ── Step 3: Google enrichment (rating, photos, hours). The Google viewport
+      // listing has no photo blob, so the hero + rail cards need a per-place
+      // scrape to get a real photo. NATIVE scrapes Google straight from the
+      // device (residential IP → not blocked) and STREAMS the top-PHOTO_CAP
+      // no-photo places in waves (hero first). WEB falls back to the server route
+      // (blocked on Vercel's IP → degrades gracefully) in a single shot.
+      if (canScrapeOnDevice()) {
+        enriched = await streamTopPhotos(
+          enriched,
+          PHOTO_CAP,
+          PHOTO_CHUNK,
+          () => fetchCount.current === myFetch,
+          (updated) => {
+            enriched = updated
+            const s = annotateScores(annotateDistances(updated, bbox.centerLat, bbox.centerLon))
+            publish(s.map((p) => ({ ...p, is_favorite: favoriteIdsRef.current.has(p.osm_id) })))
+          }
+        )
+      } else {
+        const richBatch = [...enriched]
+          .filter((p) => !p.fsq?.photos?.length)
+          .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+          .slice(0, PHOTO_CAP)
+        if (richBatch.length && fetchCount.current === myFetch) {
+          try {
             const res = await apiFetch('/api/places/enrich-google', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -447,37 +475,34 @@ export function useRestaurants() {
               signal,
             })
             const data = await res.json()
-            googleBatch = data.data ?? richBatch
+            const googleBatch: PlaceCard[] = data.data ?? richBatch
+            const googleMap = new Map(googleBatch.map((e) => [e.osm_id, e]))
+            enriched = enriched.map((orig) => {
+              const g = googleMap.get(orig.osm_id)
+              if (!g?.fsq) return orig
+              // Merge Google rich fields onto FSQ/OSM base; keep FSQ categories.
+              const mergedFsq = {
+                ...orig.fsq,
+                ...g.fsq,
+                categories: orig.fsq?.categories ?? g.fsq?.categories,
+              }
+              return {
+                ...orig,
+                fsq: mergedFsq,
+                fsq_rating: mergedFsq.rating ?? orig.fsq_rating,
+                open_now: orig.open_now ?? g.open_now,
+                is_favorite: favoriteIdsRef.current.has(orig.osm_id),
+              }
+            })
+          } catch {
+            // Google failed — keep FSQ/OSM-enriched data, still useful.
           }
-          const googleMap = new Map(googleBatch.map((e) => [e.osm_id, e]))
-          enriched = enriched.map((orig) => {
-            const g = googleMap.get(orig.osm_id)
-            if (!g?.fsq) return orig
-            // Merge Google rich fields onto FSQ/OSM base; keep FSQ categories.
-            const mergedFsq = {
-              ...orig.fsq,
-              ...g.fsq,
-              categories: orig.fsq?.categories ?? g.fsq?.categories,
-            }
-            return {
-              ...orig,
-              fsq: mergedFsq,
-              fsq_rating: mergedFsq.rating ?? orig.fsq_rating,
-              open_now: orig.open_now ?? g.open_now,
-              is_favorite: favoriteIdsRef.current.has(orig.osm_id),
-            }
-          })
-        } catch {
-          // Google failed — keep FSQ/OSM-enriched data, still useful.
+          if (fetchCount.current !== myFetch) return
+          const gScored = annotateScores(
+            annotateDistances(enriched, bbox.centerLat, bbox.centerLon)
+          )
+          publish(gScored.map((p) => ({ ...p, is_favorite: favoriteIdsRef.current.has(p.osm_id) })))
         }
-
-        if (fetchCount.current !== myFetch) return
-        const gScored = annotateScores(annotateDistances(enriched, bbox.centerLat, bbox.centerLon))
-        const gWithFav = gScored.map((p) => ({
-          ...p,
-          is_favorite: favoriteIdsRef.current.has(p.osm_id),
-        }))
-        publish(gWithFav)
       }
 
       // Final settle — reset the frozen order so the list re-sorts ONCE by the
