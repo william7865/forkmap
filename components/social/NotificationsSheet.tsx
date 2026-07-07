@@ -19,8 +19,12 @@ type FeedItem = {
 
 function notifText(n: NotificationItem): string {
   const who = n.actor?.display_name ?? 'Quelqu’un'
+  const d = (n.data ?? {}) as { place_name?: string; list_name?: string }
   if (n.type === 'friend_request') return `${who} t'a envoyé une demande d'ami`
   if (n.type === 'friend_accept') return `${who} a accepté ta demande d'ami`
+  if (n.type === 'tastemaker_save') return `${who} a enregistré ${d.place_name ?? 'un resto'}`
+  if (n.type === 'tastemaker_list')
+    return `${who} a mis à jour sa liste ${d.list_name ?? ''}`.trim()
   return `${who} t'a envoyé un message`
 }
 function activityText(a: ActivityItem): string {

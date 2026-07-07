@@ -73,6 +73,7 @@ const PatchSchema = z.object({
   avatar_url: z.string().url().nullable().optional(),
   username: z.string().min(1).optional(),
   bio: z.string().max(200).nullable().optional(),
+  follower_notify_pref: z.enum(['saves', 'lists', 'off']).optional(),
 })
 
 export async function PATCH(req: NextRequest) {
@@ -90,10 +91,13 @@ export async function PATCH(req: NextRequest) {
     avatar_url?: string | null
     username?: string
     bio?: string | null
+    follower_notify_pref?: 'saves' | 'lists' | 'off'
   } = {}
   if (parsed.data.display_name !== undefined) patch.display_name = parsed.data.display_name
   if (parsed.data.avatar_url !== undefined) patch.avatar_url = parsed.data.avatar_url
   if (parsed.data.bio !== undefined) patch.bio = parsed.data.bio
+  if (parsed.data.follower_notify_pref !== undefined)
+    patch.follower_notify_pref = parsed.data.follower_notify_pref
   if (parsed.data.username !== undefined) {
     const v = validateUsername(parsed.data.username)
     if (!v.ok) return NextResponse.json({ error: v.reason }, { status: 400 })
