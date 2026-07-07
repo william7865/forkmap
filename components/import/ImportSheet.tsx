@@ -49,7 +49,9 @@ export default function ImportSheet({ center, onPick, onClose, initialUrl }: Pro
       }
       const candidate = buildImportCandidate(og, link)
       setBlurb(candidate.description || candidate.title)
-      const found = await searchPlacesOnce(candidate.query, center)
+      // searchGoogleNearby needs a center; mapCenter can still be null right
+      // after launch. Fall back to Paris so the resolve never silently no-ops.
+      const found = await searchPlacesOnce(candidate.query, center ?? [48.8566, 2.3522])
       if (found.length === 0) {
         setErrMsg(`Aucun resto trouvé pour « ${candidate.query} ». Essaie un autre lien.`)
         setPhase('error')
