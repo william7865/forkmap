@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { Star, X, Camera, Trash2 } from 'lucide-react'
 import type { UserReview } from '@/types'
 import { pickPhoto } from '@/lib/native/camera'
+import { lightTap } from '@/lib/native/haptics'
 import { canSubmit, REVIEW_TEXT_MAX, REVIEW_PHOTOS_MAX } from '@/lib/reviews'
 
 interface PhotoSlot {
@@ -164,7 +165,10 @@ export default function ReviewComposer({ initial, placeName, onClose, onSubmit, 
             return (
               <button
                 key={n}
-                onClick={() => setRating(n)}
+                onClick={() => {
+                  setRating(n)
+                  void lightTap()
+                }}
                 onMouseEnter={() => setHover(n)}
                 onMouseLeave={() => setHover(0)}
                 aria-label={`${n} étoile${n > 1 ? 's' : ''}`}
@@ -174,6 +178,8 @@ export default function ReviewComposer({ initial, placeName, onClose, onSubmit, 
                   padding: 2,
                   cursor: 'pointer',
                   lineHeight: 0,
+                  transform: rating === n ? 'scale(1.14)' : 'scale(1)',
+                  transition: 'transform 140ms cubic-bezier(0.34, 1.56, 0.64, 1)',
                 }}
               >
                 <Star

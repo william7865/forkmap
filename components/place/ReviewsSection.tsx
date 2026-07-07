@@ -1,7 +1,7 @@
 'use client'
 // ReviewsSection — community reviews block on the place detail (native-only UI).
 // Shows the aggregate rating, the list of reviews, and a CTA to write/edit one.
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import Image from 'next/image'
 import { Star } from 'lucide-react'
 import type { UserReview } from '@/types'
@@ -19,6 +19,14 @@ function relDate(iso: string): string {
   if (days < 7) return `il y a ${days} j`
   if (days < 30) return `il y a ${Math.floor(days / 7)} sem`
   return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+const EYEBROW: CSSProperties = {
+  fontSize: 9,
+  fontWeight: 700,
+  letterSpacing: '0.1em',
+  textTransform: 'uppercase',
+  color: 'var(--text-3)',
 }
 
 function Stars({ rating, size = 13 }: { rating: number; size?: number }) {
@@ -75,6 +83,25 @@ function ReviewItem({ r }: { r: UserReview }) {
   )
 }
 
+/** Two greyed placeholder rows shown while the first fetch is in flight. */
+function ReviewsSkeleton() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} aria-hidden>
+      {[0, 1].map((i) => (
+        <div key={i} style={{ display: 'flex', gap: 11, opacity: 0.5 }}>
+          <div
+            style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--border)', flexShrink: 0 }}
+          />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6, paddingTop: 3 }}>
+            <div style={{ width: '38%', height: 9, borderRadius: 4, background: 'var(--border)' }} />
+            <div style={{ width: '72%', height: 9, borderRadius: 4, background: 'var(--border)' }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function ReviewsSection({
   api,
   isSignedIn,
@@ -86,51 +113,62 @@ export default function ReviewsSection({
 }) {
   const native = useIsNative()
   const [composerOpen, setComposerOpen] = useState(false)
-  const { reviews, summary, myReview, submit, remove } = api
+  const { reviews, summary, loading, myReview, submit, remove } = api
 
   // App-only feature — never render on web (keeps web output frozen).
   if (!native) return null
   // Nothing to show and nothing to do → don't render an empty shell.
-  if (reviews.length === 0 && !isSignedIn) return null
+  if (reviews.length === 0 && !isSignedIn && !loading) return null
+
+  const ctaLabel = myReview
+    ? 'Modifier mon avis'
+    : reviews.length === 0
+      ? 'Donne le premier avis'
+      : 'Donner mon avis'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* Header + aggregate */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h3
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 16,
-            fontWeight: 600,
-            color: 'var(--text)',
-            margin: 0,
-          }}
-        >
-          Avis de la communauté
-        </h3>
-        {summary.count > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Stars rating={Math.round(summary.average)} size={14} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
-              {summary.average.toFixed(1)}
-            </span>
-            <span style={{ fontSize: 12, color: 'var(--text-3)' }}>({summary.count})</span>
+      {/* Header: eyebrow + prominent average (the section's one loud element) */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ ...EYEBROW, marginBottom: summary.count > 0 ? 4 : 0 }}>
+            Avis de la communauté
           </div>
-        )}
+          {summary.count > 0 && (
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <span
+                style={{
+                  fontSize: 26,
+                  fontWeight: 800,
+                  color: 'var(--text)',
+                  letterSpacing: '-0.04em',
+                  lineHeight: 1,
+                }}
+              >
+                {summary.average.toFixed(1)}
+              </span>
+              <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
+                / 5 · {summary.count} avis
+              </span>
+            </div>
+          )}
+        </div>
+        {summary.count > 0 && <Stars rating={Math.round(summary.average)} size={15} />}
       </div>
 
-      {/* CTA */}
+      {/* CTA — matches the fiche's secondary-action buttons */}
       {isSignedIn ? (
         <button
           onClick={() => setComposerOpen(true)}
           style={{
             alignSelf: 'flex-start',
+            height: 36,
+            padding: '0 14px',
             border: '1px solid var(--border)',
             background: 'var(--surface)',
-            borderRadius: 'var(--r-lg)',
-            padding: '9px 15px',
-            fontSize: 13.5,
-            fontWeight: 600,
+            borderRadius: 'var(--r-sm)',
+            fontSize: 12.5,
+            fontWeight: 700,
             color: 'var(--text)',
             cursor: 'pointer',
             display: 'flex',
@@ -138,22 +176,28 @@ export default function ReviewsSection({
             gap: 7,
           }}
         >
-          <Star size={15} strokeWidth={1.8} color="var(--accent)" fill="var(--accent)" />
-          {myReview ? 'Modifier mon avis' : reviews.length === 0 ? 'Sois le premier à donner ton avis' : 'Donner mon avis'}
+          <Star size={14} strokeWidth={1.8} color="var(--accent)" fill="var(--accent)" />
+          {ctaLabel}
         </button>
       ) : (
-        <p style={{ fontSize: 12.5, color: 'var(--text-3)', margin: 0 }}>
-          Connecte-toi pour laisser un avis.
-        </p>
+        reviews.length > 0 && (
+          <p style={{ fontSize: 12.5, color: 'var(--text-3)', margin: 0 }}>
+            Connecte-toi pour laisser un avis.
+          </p>
+        )
       )}
 
-      {/* List */}
-      {reviews.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {reviews.map((r) => (
-            <ReviewItem key={r.id} r={r} />
-          ))}
-        </div>
+      {/* List / skeleton */}
+      {loading && reviews.length === 0 ? (
+        <ReviewsSkeleton />
+      ) : (
+        reviews.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {reviews.map((r) => (
+              <ReviewItem key={r.id} r={r} />
+            ))}
+          </div>
+        )
       )}
 
       {composerOpen && (
