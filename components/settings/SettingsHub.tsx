@@ -26,12 +26,14 @@ import {
   Utensils,
   BadgeCheck,
   ShieldCheck,
+  Bell,
 } from 'lucide-react'
 import { nativeShare } from '@/lib/native/share'
 import { apiFetch } from '@/lib/api'
 import { getAuthHeaders } from '@/lib/auth-headers'
 import TasteEditor from '@/components/settings/TasteEditor'
 import VerificationSheet from '@/components/settings/VerificationSheet'
+import NotifyPrefSheet from '@/components/settings/NotifyPrefSheet'
 import AdminVerificationsSheet from '@/components/settings/AdminVerificationsSheet'
 import { getThemePref, setThemePref, type ThemePref } from '@/lib/theme'
 import { refreshTheme } from '@/components/native/CapacitorInit'
@@ -171,6 +173,7 @@ export default function SettingsHub() {
   const [editingTaste, setEditingTaste] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const [showVerification, setShowVerification] = useState(false)
+  const [showNotifyPref, setShowNotifyPref] = useState(false)
   const [showAdmin, setShowAdmin] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
 
@@ -330,6 +333,16 @@ export default function SettingsHub() {
             label="Vérification"
             onClick={() => setShowVerification(true)}
           />
+          {profile?.verified && (
+            <>
+              <Divider />
+              <HubRow
+                icon={Bell}
+                label="Prévenir mes abonnés"
+                onClick={() => setShowNotifyPref(true)}
+              />
+            </>
+          )}
           {isAdmin && (
             <>
               <Divider />
@@ -406,6 +419,7 @@ export default function SettingsHub() {
       {editing && <ProfileEdit onClose={() => setEditing(false)} allowUsername />}
       {editingTaste && <TasteEditor onClose={() => setEditingTaste(false)} />}
       {showVerification && <VerificationSheet onClose={() => setShowVerification(false)} />}
+      {showNotifyPref && <NotifyPrefSheet onClose={() => setShowNotifyPref(false)} />}
       {showAdmin && <AdminVerificationsSheet onClose={() => setShowAdmin(false)} />}
     </div>
   )

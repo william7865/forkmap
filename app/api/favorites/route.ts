@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { getFavorites, addFavorite, recordActivity } from '@/lib/db'
+import { getFavorites, addFavorite, recordActivity, notifyFollowers } from '@/lib/db'
 import { requireUser } from '@/lib/api-auth'
 import { rateLimit } from '@/lib/rate-limit'
 
@@ -69,6 +69,13 @@ export async function POST(req: NextRequest) {
       place_name: pl.name,
       cuisine: pl.cuisine ?? null,
     })
+    // Ping followers if this user opted into "notify on every save" (best-effort).
+    void notifyFollowers(
+      auth.userId,
+      'save',
+      { osm_id: pl.osm_id, place_name: pl.name },
+      `a enregistré ${pl.name}`
+    )
     return NextResponse.json({ data: row }, { status: 201 })
   } catch (err) {
     console.error('[POST /api/favorites]', err)

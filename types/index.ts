@@ -230,6 +230,8 @@ export interface Profile {
   created_at: string
   /** Verified tastemaker badge (granted via the verification flow). */
   verified?: boolean
+  /** What pings this user's followers: every save, only public lists, or off. */
+  follower_notify_pref?: 'saves' | 'lists' | 'off'
 }
 
 // Amis — Étape A (FriendshipStatus défini dans lib/friends.ts, ré-exporté ici)
@@ -323,7 +325,7 @@ export interface FriendSuggestion {
 
 export interface NotificationItem {
   id: string
-  type: 'friend_request' | 'friend_accept' | 'message'
+  type: 'friend_request' | 'friend_accept' | 'message' | 'tastemaker_save' | 'tastemaker_list'
   data: Record<string, unknown> | null
   read_at: string | null
   created_at: string

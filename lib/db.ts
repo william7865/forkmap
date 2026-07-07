@@ -759,6 +759,18 @@ export async function removeListItem(listId: string, userId: string, osmId: stri
   if (error) throw error
 }
 
+/** Owner + public flag + name of a list, for follower-notification decisions. */
+export async function getListNotifyMeta(
+  listId: string
+): Promise<{ user_id: string; is_public: boolean; name: string } | null> {
+  const { data } = await db
+    .from('lists')
+    .select('user_id, is_public, name')
+    .eq('id', listId)
+    .maybeSingle()
+  return (data as { user_id: string; is_public: boolean; name: string }) ?? null
+}
+
 export async function getListsForPlace(userId: string, osmId: string): Promise<string[]> {
   const { data, error } = await db
     .from('list_items')
@@ -901,12 +913,15 @@ export async function updateProfile(
     avatar_url?: string | null
     username?: string
     bio?: string | null
+    follower_notify_pref?: 'saves' | 'lists' | 'off'
   }
 ): Promise<Profile> {
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (patch.display_name !== undefined) update.display_name = patch.display_name
   if (patch.avatar_url !== undefined) update.avatar_url = patch.avatar_url
   if (patch.bio !== undefined) update.bio = patch.bio
+  if (patch.follower_notify_pref !== undefined)
+    update.follower_notify_pref = patch.follower_notify_pref
 
   if (patch.username !== undefined) {
     const current = await getProfile(userId)
@@ -1726,6 +1741,53 @@ export async function getFollowingIds(userId: string): Promise<string[]> {
   const { data, error } = await db.from('follows').select('followee_id').eq('follower_id', userId)
   if (error) throw error
   return (data ?? []).map((r) => (r as { followee_id: string }).followee_id)
+}
+
+/** Ids that follow this user (their audience for tastemaker notifications). */
+export async function getFollowerIds(userId: string): Promise<string[]> {
+  const { data, error } = await db.from('follows').select('follower_id').eq('followee_id', userId)
+  if (error) throw error
+  return (data ?? []).map((r) => (r as { follower_id: string }).follower_id)
+}
+
+/**
+ * Fan out a notification to everyone who follows `actorId`, IF the actor's
+ * preference matches this event kind. Best-effort: never throws (a failed
+ * notification must not break the save/list action that triggered it).
+ * `kind` 'save' fires only when pref='saves'; 'list' only when pref='lists'.
+ */
+export async function notifyFollowers(
+  actorId: string,
+  kind: 'save' | 'list',
+  data: Record<string, unknown>,
+  pushBody: string
+): Promise<void> {
+  try {
+    // Resolve the actor's preference (default 'lists' if the column isn't there yet).
+    const { data: prof } = await db
+      .from('profiles')
+      .select('follower_notify_pref, display_name')
+      .eq('id', actorId)
+      .maybeSingle()
+    const pref = (prof as { follower_notify_pref?: string } | null)?.follower_notify_pref ?? 'lists'
+    const wanted = kind === 'save' ? 'saves' : 'lists'
+    if (pref !== wanted) return
+
+    const followerIds = await getFollowerIds(actorId)
+    if (followerIds.length === 0) return
+
+    const type = kind === 'save' ? 'tastemaker_save' : 'tastemaker_list'
+    const rows = followerIds.map((uid) => ({ user_id: uid, actor_id: actorId, type, data }))
+    await db.from('notifications').insert(rows)
+
+    // Best-effort push (no-op unless PUSH_WEBHOOK_URL is set).
+    const name = (prof as { display_name?: string } | null)?.display_name ?? 'Un tastemaker'
+    for (const uid of followerIds) {
+      void sendPushToUser(uid, name, pushBody, { type, ...data })
+    }
+  } catch (err) {
+    console.warn('[notifyFollowers] ignoré', err)
+  }
 }
 
 export async function getPublicLists(

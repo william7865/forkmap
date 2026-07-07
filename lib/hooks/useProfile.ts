@@ -105,6 +105,7 @@ export function useProfile() {
       avatar_url?: string | null
       username?: string
       bio?: string | null
+      follower_notify_pref?: 'saves' | 'lists' | 'off'
     }) => {
       const res = await apiFetch('/api/profile', {
         method: 'PATCH',
