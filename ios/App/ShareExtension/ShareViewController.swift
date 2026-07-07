@@ -65,27 +65,29 @@ class ShareViewController: UIViewController {
 
   // MARK: - Open the container app
 
+  // The reliable pattern: finish the extension request FIRST, then open the host
+  // app from the completion handler. Opening while the extension UI is still up
+  // is what silently no-ops on modern iOS.
   private func tryOpen() {
     guard !didOpen, isViewLoaded, view.window != nil, let url = pendingURL else { return }
     didOpen = true
-    openHostApp(url)
-    // Give the openURL a beat before dismissing the extension.
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in self?.complete() }
+    extensionContext?.completeRequest(returningItems: []) { [weak self] _ in
+      self?.openURL(url)
+    }
   }
 
-  private func openHostApp(_ url: URL) {
-    // Walk the responder chain to the UIApplication and call openURL: on it.
+  @discardableResult
+  @objc private func openURL(_ url: URL) -> Bool {
     var responder: UIResponder? = self
-    let selector = sel_registerName("openURL:")
     while let r = responder {
-      if let app = r as? UIApplication, app.responds(to: selector) {
-        app.perform(selector, with: url)
-        return
+      if let app = r as? UIApplication {
+        return app.perform(#selector(openURL(_:)), with: url) != nil
       }
       responder = r.next
     }
-    // Fallback path.
+    // Fallback for contexts where UIApplication isn't in the chain.
     extensionContext?.open(url, completionHandler: nil)
+    return false
   }
 
   private func firstURL(in text: String) -> String? {
