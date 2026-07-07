@@ -601,6 +601,41 @@ export function useRestaurants() {
     [favoriteIds]
   )
 
+  // ── View-driven photo enrichment ───────────────────────────
+  // The editorial rails surface places by criteria other than global score
+  // (Michelin, cuisine, proximity…), so the score-capped Step-3 scrape misses
+  // the deeper rail cards → gradient placeholders. The view calls this with the
+  // exact places it renders; we scrape a real photo for the ones still missing
+  // one and merge it in. Deduped by osm_id (a place is scraped at most once) and
+  // native-only (no-op on web / when everything already has a photo).
+  const photoRequestedRef = useRef<Set<string>>(new Set())
+  const requestPhotos = useCallback((wanted: PlaceCard[]) => {
+    if (!canScrapeOnDevice() || wanted.length === 0) return
+    const need = wanted.filter(
+      (p) => !p.fsq?.photos?.length && !photoRequestedRef.current.has(p.osm_id)
+    )
+    if (!need.length) return
+    need.forEach((p) => photoRequestedRef.current.add(p.osm_id))
+    void (async () => {
+      const done = await enrichPlacesViaScrape(need)
+      // enrichPlacesViaScrape returns each place with its fsq fully merged.
+      const fsqById = new Map(
+        done.filter((e) => e.fsq?.photos?.length).map((e) => [e.osm_id, e.fsq])
+      )
+      if (fsqById.size === 0) return
+      // Merge only fsq/fsq_rating onto the CURRENT place so a concurrent update
+      // (e.g. favorite toggle) isn't clobbered by a stale snapshot.
+      const merge = (arr: PlaceCard[]) =>
+        arr.map((p) => {
+          const fsq = fsqById.get(p.osm_id)
+          return fsq ? { ...p, fsq, fsq_rating: fsq.rating ?? p.fsq_rating } : p
+        })
+      placesRef.current = merge(placesRef.current)
+      setPlaces(placesRef.current)
+      setFilteredPlaces((prev) => merge(prev))
+    })()
+  }, [])
+
   return {
     places,
     filteredPlaces,
@@ -611,6 +646,7 @@ export function useRestaurants() {
     applyClientFilters,
     favoriteIds,
     toggleFavorite,
+    requestPhotos,
   }
 }
 

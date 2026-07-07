@@ -3,7 +3,7 @@
 // « Ce soir près de toi » + un rail « Coups de cœur du quartier ». Donne une
 // accroche à l'accueil au lieu d'une simple liste. Rendu uniquement en natif,
 // hors mode « enregistrés », quand il y a des lieux.
-import { memo, useEffect, useState } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 import type { PlaceCard } from '@/types'
 import { Star, Bookmark, MapPin, Sparkles } from 'lucide-react'
 import { frCuisine } from '@/lib/cuisine'
@@ -17,6 +17,9 @@ interface Props {
   places: PlaceCard[]
   onSelect: (p: PlaceCard) => void
   onToggleFavorite: (p: PlaceCard) => void
+  /** Request real photos for the exact cards rendered here (hero + rails) that
+   *  still lack one — the score-capped fetch misses rail-specific picks. */
+  onNeedPhotos?: (places: PlaceCard[]) => void
 }
 
 function walkTime(m?: number): string | null {
@@ -65,7 +68,12 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   )
 }
 
-const HomeEditorial = memo(function HomeEditorial({ places, onSelect, onToggleFavorite }: Props) {
+const HomeEditorial = memo(function HomeEditorial({
+  places,
+  onSelect,
+  onToggleFavorite,
+  onNeedPhotos,
+}: Props) {
   // Contextual eyebrow ("Pour la pause déj", "Ce soir près de toi", "Ouvert
   // maintenant"…) — computed client-side so the static bundle doesn't hydrate
   // with the build-time clock.
@@ -77,28 +85,49 @@ const HomeEditorial = memo(function HomeEditorial({ places, onSelect, onToggleFa
     setTaste(loadTasteProfile())
   }, [])
 
-  if (places.length === 0) return null
-
   // Hero = a genuine gem near you. Don't hard-filter by open_now (chains have
   // machine-readable hours while real gems often don't → an open-only filter
   // biases toward fast-food). Rank by rating (Michelin > rating); when no
   // rating is known, push fast-food/chains down so the hero is never a burger
   // joint, then prefer open-now, then proximity.
   // Rating + a small taste nudge (from the deck) so the hero leans to your taste.
-  const rating = (p: PlaceCard) =>
-    (p.wikidata?.michelin_stars ? 10 : 0) + (p.fsq?.rating ?? 0) + tasteBoost(taste, p)
-  const isChainish = (p: PlaceCard) =>
-    /fast_food|burger/i.test(`${p.cuisine ?? ''} ${p.fsq?.categories?.[0]?.name ?? ''}`)
-  const heroRank = (a: PlaceCard, b: PlaceCard) => {
-    if (rating(b) !== rating(a)) return rating(b) - rating(a)
-    const chain = (p: PlaceCard) => (isChainish(p) ? 1 : 0)
-    if (chain(a) !== chain(b)) return chain(a) - chain(b)
-    const open = (p: PlaceCard) => (p.open_now === true ? 1 : 0)
-    if (open(b) !== open(a)) return open(b) - open(a)
-    return (a.distance ?? Infinity) - (b.distance ?? Infinity)
-  }
-  const hero = [...places].sort(heroRank)[0] ?? places[0]
-  const collections = buildCollections(places, taste, hero.osm_id)
+  const view = useMemo(() => {
+    if (places.length === 0) return null
+    const rating = (p: PlaceCard) =>
+      (p.wikidata?.michelin_stars ? 10 : 0) + (p.fsq?.rating ?? 0) + tasteBoost(taste, p)
+    const isChainish = (p: PlaceCard) =>
+      /fast_food|burger/i.test(`${p.cuisine ?? ''} ${p.fsq?.categories?.[0]?.name ?? ''}`)
+    const heroRank = (a: PlaceCard, b: PlaceCard) => {
+      if (rating(b) !== rating(a)) return rating(b) - rating(a)
+      const chain = (p: PlaceCard) => (isChainish(p) ? 1 : 0)
+      if (chain(a) !== chain(b)) return chain(a) - chain(b)
+      const open = (p: PlaceCard) => (p.open_now === true ? 1 : 0)
+      if (open(b) !== open(a)) return open(b) - open(a)
+      return (a.distance ?? Infinity) - (b.distance ?? Infinity)
+    }
+    const hero = [...places].sort(heroRank)[0] ?? places[0]
+    const collections = buildCollections(places, taste, hero.osm_id)
+    return { hero, collections }
+  }, [places, taste])
+
+  // Request real photos for the exact cards we render (hero + rail cards) that
+  // still lack one — the score-capped fetch misses rail-specific picks. Keyed on
+  // the set of no-photo ids so it re-fires only when that set changes; the hook
+  // dedups by osm_id, so extra calls are cheap no-ops.
+  const missingPhotoIds = view
+    ? [view.hero, ...view.collections.flatMap((c) => c.places)]
+        .filter((p) => !p.fsq?.photos?.length)
+        .map((p) => p.osm_id)
+        .join(',')
+    : ''
+  useEffect(() => {
+    if (!view || !onNeedPhotos || !missingPhotoIds) return
+    onNeedPhotos([view.hero, ...view.collections.flatMap((c) => c.places)])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [missingPhotoIds])
+
+  if (!view) return null
+  const { hero, collections } = view
   const baseBadge = badgeFor(hero)
   // "Fait pour toi" when the hero matches your taste (Michelin still wins).
   const heroBadge =

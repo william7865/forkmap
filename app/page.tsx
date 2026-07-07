@@ -101,6 +101,7 @@ export default function HomePage() {
     error,
     places,
     fetchRestaurants,
+    requestPhotos,
     favoriteIds,
     savedOnly,
     toggleSavedOnly,
@@ -1345,6 +1346,7 @@ export default function HomePage() {
                       setTimeout(() => setDetailExpanded(true), 0)
                     }}
                     onToggleFavorite={handleToggleFavorite}
+                    onNeedPhotos={requestPhotos}
                   />
                 )}
                 {native ? (

@@ -34,6 +34,7 @@ export function useHomeState() {
     applyClientFilters,
     toggleFavorite,
     favoriteIds,
+    requestPhotos,
   } = useRestaurants()
 
   const [selectedPlace, setSelectedPlace] = useState<PlaceCard | null>(null)
@@ -577,6 +578,7 @@ export function useHomeState() {
     error,
     places,
     fetchRestaurants,
+    requestPhotos,
     favoriteIds,
     savedOnly,
     toggleSavedOnly,
