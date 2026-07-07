@@ -127,6 +127,25 @@ export interface PlaceCard extends PlaceBase {
   friendsSaved?: FriendLite[]
 }
 
+/** A community review left by a user on a place. */
+export interface UserReview {
+  id: string
+  osm_id: string
+  user_id: string
+  author: FriendLite
+  rating: number
+  text: string | null
+  photo_urls: string[]
+  created_at: string
+}
+
+/** Aggregate of a place's community reviews. */
+export interface ReviewSummary {
+  count: number
+  /** Mean rating rounded to one decimal, 0 when no reviews. */
+  average: number
+}
+
 /** Minimal public profile shape for social-proof avatars. */
 export interface FriendLite {
   id: string
