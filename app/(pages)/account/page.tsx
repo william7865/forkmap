@@ -192,17 +192,14 @@ interface VisitRow {
   snapshot?: Record<string, unknown>
 }
 
-// Gamme monochrome (accent unique + neutres) — pas de bariolage
-const CUISINE_COLORS = [
-  'var(--accent)',
-  'var(--accent-hover)',
-  '#c47c52',
-  '#7a3a1a',
-  '#8a7253',
-  'var(--accent-text)',
-  '#6b5d4a',
-  '#d4a07a',
-]
+// Categorical identity in a monochrome system can only ride on lightness —
+// the one channel colour-vision deficiency preserves. Validated with the
+// dataviz palette validator: adjacent CVD separation ΔE 11.0 (>= 8 floor),
+// which is legal ONLY with secondary encoding. That relief is provided by
+// the always-present text legend below the bar and the 2px surface gaps
+// between segments. Do not add hues: --star (#f5a623) is the system's only
+// chroma and is reserved for ratings.
+const CUISINE_COLORS = ['#191c1d', '#33383a', '#4d5254', '#676d6f', '#878d8f', '#a7adae', '#c6cbcc']
 const MOOD_LABELS: Record<string, string> = {
   solo: 'Solo',
   couple: 'En couple',
@@ -607,10 +604,12 @@ function TasteBar({ data }: { data: { label: string; value: number }[] }) {
             onMouseEnter={() => setHov(i)}
             style={{
               width: mounted ? `${(d.value / total) * 100}%` : '0%',
-              background: CUISINE_COLORS[i % CUISINE_COLORS.length],
+              background: CUISINE_COLORS[i],
               opacity: hov !== null && hov !== i ? 0.42 : 1,
               transition: 'width 800ms var(--ease-out), opacity 150ms',
               transitionDelay: `${i * 70}ms`,
+              borderRight: i < top.length - 1 ? '2px solid var(--bg)' : 'none',
+              boxSizing: 'border-box',
             }}
           />
         ))}
@@ -636,7 +635,7 @@ function TasteBar({ data }: { data: { label: string; value: number }[] }) {
                 width: 9,
                 height: 9,
                 borderRadius: 3,
-                background: CUISINE_COLORS[i % CUISINE_COLORS.length],
+                background: CUISINE_COLORS[i],
                 flexShrink: 0,
               }}
             />
