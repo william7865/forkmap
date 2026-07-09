@@ -361,7 +361,6 @@ const PlaceCard = memo(function PlaceCard({
         overflow: 'hidden',
         background: cardBg,
         border: cardBorder,
-        borderLeft: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
         boxShadow: cardShadow,
         cursor: 'pointer',
         transform: cardTransform,

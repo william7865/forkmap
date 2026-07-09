@@ -1586,7 +1586,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                     fontWeight: 600,
                     letterSpacing: '-0.045em',
                     lineHeight: 0.95,
-                    color: f.error ? 'var(--text-4)' : 'var(--text)',
+                    color: f.error ? 'var(--text-3)' : 'var(--text)',
                     fontVariantNumeric: 'tabular-nums',
                     marginBottom: 7,
                   }}

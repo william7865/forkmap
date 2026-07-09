@@ -43,7 +43,7 @@
   --text-2: #444748;
   /* ⚠️ diverge de l'app (#747878 = 4.47:1, sous le seuil AA de 4.5:1) */
   --text-3: #6b6f6f;
-  --text-4: #b7bbbb; /* décoratif uniquement — ne porte jamais de texte à lire */
+  --text-4: #8a8e8e; /* 3.14:1 sur --surface : bordures, icones desactivees, chiffres decoratifs. JAMAIS de texte courant. */
 
   /* ── Chroma UNIQUE — l'étoile de la note, et rien d'autre ── */
   --star: #f5a623;
@@ -870,4 +870,16 @@ a:focus:not(:focus-visible) {
 .native-app textarea,
 .native-app select {
   font-size: 16px !important;
+}
+
+/* Reduced motion is not optional: neutralise every animation and transition. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

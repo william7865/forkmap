@@ -192,6 +192,12 @@ export function InfoPage({
   maxWidth?: number
 }) {
   const isNative = useIsNative()
+  const isMobile = useIsMobile()
+  // BottomNav (mobile web, <768px) is `position: fixed` at the viewport bottom
+  // (~56px content + 1px border) and sits above the GlobalFooter in DOM order,
+  // so it overlaps the last legal links unless the page reserves that space.
+  // Desktop has no fixed nav, so no reservation is added there.
+  const reserveForFixedNav = !isNative && isMobile
   return (
     <div
       style={{
@@ -201,6 +207,7 @@ export function InfoPage({
         fontFamily: 'var(--font-body)',
         display: 'flex',
         flexDirection: 'column',
+        paddingBottom: reserveForFixedNav ? 'calc(57px + var(--safe-bottom))' : undefined,
       }}
     >
       {!isNative && <PageHeader current={headerLabel} actions={headerActions} />}
@@ -307,7 +314,7 @@ export function GlobalFooter() {
             >
               Trouvez les meilleurs restaurants autour de vous, grâce aux données ouvertes.
             </p>
-            <p style={{ margin: 0, fontSize: 11, color: 'var(--ink-20)' }}>
+            <p style={{ margin: 0, fontSize: 11, color: 'var(--text-3)' }}>
               © OpenStreetMap contributors
             </p>
           </div>
@@ -363,7 +370,7 @@ export function GlobalFooter() {
             gap: 8,
           }}
         >
-          <span style={{ fontSize: 11, color: 'var(--ink-20)' }}>
+          <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
             © {year} Forkmap · Données © OpenStreetMap contributors (ODbL)
           </span>
           <div style={{ display: 'flex', gap: 18 }}>
@@ -377,12 +384,12 @@ export function GlobalFooter() {
                 href={l.href}
                 style={{
                   fontSize: 11,
-                  color: 'var(--ink-20)',
+                  color: 'var(--text-2)',
                   textDecoration: 'none',
                   transition: 'color 120ms ease',
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--ink-60)')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--ink-20)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-2)')}
               >
                 {l.label}
               </Link>

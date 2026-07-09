@@ -83,7 +83,8 @@ describe('palette monochrome', () => {
       '--text-2': '#444748',
       // diverge volontairement de l'app : #747878 échoue au contraste AA
       '--text-3': '#6b6f6f',
-      '--text-4': '#b7bbbb',
+      // diverge volontairement de l'app : #b7bbbb échoue meme au seuil UI (3:1)
+      '--text-4': '#8a8e8e',
       // sémantique : valeurs web conservées, celles de l'app échouent en AA
       '--open': '#1d7a4e',
       '--closed': '#b0432f',

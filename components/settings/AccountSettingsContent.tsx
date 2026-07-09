@@ -312,7 +312,7 @@ export default function AccountSettingsContent({ isMobile }: { isMobile: boolean
                 fontWeight: 700,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase' as const,
-                color: 'var(--text-4)',
+                color: 'var(--text-3)',
               }}
             >
               {isGoogleUser ? 'Google' : 'Vérifiée'}
@@ -583,7 +583,7 @@ function Row({
               fontFamily: 'var(--font-display)',
               fontSize: 12,
               fontWeight: 600,
-              color: 'var(--text-4)',
+              color: 'var(--text-3)',
               fontVariantNumeric: 'tabular-nums',
             }}
           >
