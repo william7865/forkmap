@@ -37,17 +37,24 @@ setInterval(() => {
 
 /**
  * Extract the client IP from the request headers.
- * Uses the rightmost entry in x-forwarded-for (set by the trusted proxy),
- * falling back to x-real-ip, then a default.
+ *
+ * Order matters. `x-vercel-forwarded-for` and `x-real-ip` are stamped by the
+ * platform and cannot be forged by the caller. `x-forwarded-for` is a
+ * client-supplied header that the proxy appends to, so only its rightmost entry
+ * is trustworthy — and only when a trusted proxy is actually in front. Behind no
+ * proxy at all, every caller previously collapsed onto the shared `127.0.0.1`
+ * bucket, so one client could exhaust the limit for everybody.
  */
 function getClientIp(req: NextRequest): string {
-  // Rightmost IP in x-forwarded-for is set by the trusted proxy
+  const platformIp = req.headers.get('x-vercel-forwarded-for') ?? req.headers.get('x-real-ip')
+  if (platformIp) return platformIp.trim()
+
   const xff = req.headers.get('x-forwarded-for')
   if (xff) {
     const ips = xff.split(',').map((s) => s.trim())
     return ips[ips.length - 1]
   }
-  return req.headers.get('x-real-ip') ?? '127.0.0.1'
+  return 'unknown'
 }
 
 /**

@@ -21,7 +21,13 @@ function parseWidth(sz: string | null): number {
 }
 
 async function streamImage(url: string): Promise<Response> {
-  const res = await fetch(url, { signal: AbortSignal.timeout(10_000) })
+  // `redirect: 'manual'` — the host allowlist below only vets the URL we ask for.
+  // Following a 3xx would let an allowed host bounce us anywhere, internal hosts
+  // included. Defence in depth against SSRF; these CDNs never redirect.
+  const res = await fetch(url, { signal: AbortSignal.timeout(10_000), redirect: 'manual' })
+  if (res.status >= 300 && res.status < 400) {
+    return new NextResponse('Photo host redirected', { status: 502 })
+  }
   if (!res.ok) return new NextResponse('Photo fetch failed', { status: 502 })
   const buf = await res.arrayBuffer()
   return new Response(buf, {
@@ -66,7 +72,9 @@ export async function GET(req: NextRequest): Promise<NextResponse | Response> {
   if (ref) {
     if (!key) return new NextResponse('Google photos unavailable', { status: 404 })
     // Only accept genuine photo references — avoids an open proxy / SSRF.
-    if (!/^places\/[^/]+\/photos\/[^/]+$/.test(ref)) {
+    // `[^/]+` still admitted `?` and `&`, letting a caller graft query params
+    // onto the Google request. Restrict to the character set of a real reference.
+    if (!/^places\/[A-Za-z0-9_-]+\/photos\/[A-Za-z0-9_-]+$/.test(ref)) {
       return new NextResponse('Invalid photo reference', { status: 400 })
     }
     try {

@@ -46,6 +46,16 @@ CREATE POLICY "Users see own favorites" ON favorites
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
+-- Shared OSM → Foursquare cache. Written only by server routes (service role,
+-- which bypasses RLS), so no client write policy exists. Without RLS, the anon
+-- key — public by design — could purge or poison the cache for everyone.
+ALTER TABLE osm_fsq_mapping ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "osm_fsq_mapping_public_read" ON osm_fsq_mapping
+  FOR SELECT USING (true);
+
+REVOKE INSERT, UPDATE, DELETE ON osm_fsq_mapping FROM anon, authenticated;
+
 -- Allow service role to bypass RLS (used by server routes)
 -- This is automatic for the service role key
 

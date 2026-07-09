@@ -5,17 +5,17 @@ import type { PlaceCard } from '@/types'
 import { lightTap } from '@/lib/native/haptics'
 import { isNativeRuntime } from '@/lib/native/platform'
 
-// Accent des marqueurs : noir dans l'app native (monochrome), terracotta sur le web (rendu web inchangé).
+// Accent des marqueurs : noir monochrome (unifié avec l'app native).
 function mapAccent(): string {
-  return isNativeRuntime() ? '#0a0a0a' : '#bb5e2e'
+  return '#0a0a0a'
 }
-// Encre du corps de marqueur : noir pur en natif, brun chaud sur le web.
+// Encre du corps de marqueur : noir pur (unifié avec l'app native).
 function mapInk(): string {
-  return isNativeRuntime() ? '#0a0a0a' : '#241f18'
+  return '#0a0a0a'
 }
-// Anneau de pulsation (sélection) : neutre en natif, terracotta sur le web.
+// Anneau de pulsation (sélection) : noir monochrome (unifié avec l'app native).
 function mapPulseRing(): string {
-  return isNativeRuntime() ? 'rgba(10,10,10,0.30)' : 'rgba(187,94,46,0.32)'
+  return 'rgba(10,10,10,0.30)'
 }
 
 export interface MapViewHandle {
@@ -69,15 +69,26 @@ function loadAsset(
   attrs: Record<string, string>
 ): Promise<void> {
   return new Promise((res) => {
-    if (document.getElementById(id)) {
-      res()
+    const existing = document.getElementById(id) as HTMLElement | null
+    if (existing) {
+      // An element left behind by an earlier mount may still be in flight. Resolving
+      // on its mere presence let leaflet.markercluster run before `window.L` existed.
+      if (existing.dataset.settled === '1') res()
+      else {
+        existing.addEventListener('load', () => res(), { once: true })
+        existing.addEventListener('error', () => res(), { once: true })
+      }
       return
     }
     const el = document.createElement(tag)
     el.id = id
     Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v))
-    el.onload = () => res()
-    el.onerror = () => res()
+    const settle = () => {
+      el.dataset.settled = '1'
+      res()
+    }
+    el.onload = settle
+    el.onerror = settle
     document.head.appendChild(el)
   })
 }
@@ -158,7 +169,7 @@ function markerHTML(state: MState, rating?: number): string {
     const r = Math.round(size * 0.3)
     inner =
       `<circle cx="${size / 2}" cy="${cy}" r="${r}" fill="white" opacity=".95"/>` +
-      `<text x="${size / 2}" y="${cy + 4}" text-anchor="middle" font-size="9" font-weight="700" fill="${mapInk()}" font-family="Hanken Grotesk,system-ui">${rating.toFixed(1)}</text>`
+      `<text x="${size / 2}" y="${cy + 4}" text-anchor="middle" font-size="9" font-weight="700" fill="${mapInk()}" font-family="Inter,system-ui">${rating.toFixed(1)}</text>`
   } else if (isFav) {
     // Favori — cercle blanc + coeur SVG
     const cy = Math.round(size * 0.44)
@@ -236,17 +247,14 @@ function makeDivIcon(L: A, state: MState, rating?: number): A {
   })
 }
 
-// ── Cluster bubble — brandbook (papier + anneau terracotta, chiffre serif) ──
+// ── Cluster bubble — monochrome (papier + anneau noir, chiffre serif) ──
 function clusterIconHTML(count: number): string {
   const s = count < 10 ? 38 : count < 100 ? 44 : 50
   const fs = count < 100 ? 14 : 13
-  const native = isNativeRuntime()
-  const bg = native ? 'rgba(255,255,255,0.97)' : 'rgba(255,253,248,0.95)'
-  const ring = native ? '#0a0a0a' : '#bb5e2e'
-  const numFont = native
-    ? "'Playfair Display',Georgia,serif"
-    : "'Bricolage Grotesque',system-ui,sans-serif"
-  const ink = native ? '#111112' : '#241f18'
+  const bg = 'rgba(255,255,255,0.97)'
+  const ring = '#0a0a0a'
+  const numFont = "'Playfair Display',Georgia,serif"
+  const ink = '#111112'
   return `<div style="width:${s}px;height:${s}px;border-radius:50%;background:${bg};border:2px solid ${ring};box-shadow:0 3px 12px rgba(20,22,43,0.20);display:flex;align-items:center;justify-content:center;font-family:${numFont};font-weight:700;font-size:${fs}px;color:${ink}">${count}</div>`
 }
 
@@ -254,8 +262,8 @@ function clusterIconHTML(count: number): string {
 function userDotHTML(): string {
   return `
     <div style="position:relative;width:18px;height:18px">
-      <div style="position:absolute;inset:-6px;border-radius:50%;background:rgba(36,31,24,0.12);animation:pulse-ring 2.4s ease-out infinite"></div>
-      <div style="width:18px;height:18px;border-radius:50%;background:#241f18;border:2.5px solid white;box-shadow:0 2px 8px rgba(36,31,24,0.35)"></div>
+      <div style="position:absolute;inset:-6px;border-radius:50%;background:rgba(10,10,10,0.12);animation:pulse-ring 2.4s ease-out infinite"></div>
+      <div style="width:18px;height:18px;border-radius:50%;background:#0a0a0a;border:2.5px solid white;box-shadow:0 2px 8px rgba(10,10,10,0.35)"></div>
     </div>`
 }
 
@@ -266,7 +274,7 @@ function startDotHTML(): string {
       <div style="width:20px;height:20px;border-radius:50%;background:${mapAccent()};border:2.5px solid white;box-shadow:0 2px 8px rgba(20,22,43,0.4);display:flex;align-items:center;justify-content:center">
         <div style="width:7px;height:7px;border-radius:50%;background:white"></div>
       </div>
-      <div style="background:rgba(36,31,24,0.88);color:white;font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;white-space:nowrap;letter-spacing:0.03em">Départ</div>
+      <div style="background:rgba(10,10,10,0.88);color:white;font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;white-space:nowrap;letter-spacing:0.03em">Départ</div>
     </div>`
 }
 
@@ -419,14 +427,18 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
         src: 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
         crossorigin: '',
       })
-      // Marker clustering (declutters + lifts the 200-pin cap, much faster)
-      await loadAsset('link', 'mc-css', {
-        rel: 'stylesheet',
-        href: 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',
-      })
-      await loadAsset('script', 'mc-js', {
-        src: 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js',
-      })
+      // Marker clustering (declutters + lifts the 200-pin cap, much faster).
+      // The plugin reads the `L` global at parse time, so it must not be requested
+      // until Leaflet has actually published it.
+      if ((window as A).L) {
+        await loadAsset('link', 'mc-css', {
+          rel: 'stylesheet',
+          href: 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',
+        })
+        await loadAsset('script', 'mc-js', {
+          src: 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js',
+        })
+      }
 
       const L: A = (window as A).L
       if (!L || !containerRef.current) return
@@ -444,7 +456,7 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         attribution:
-          '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a> | <a href="/attribution">Data attribution</a>',
+          '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">les contributeurs d’OpenStreetMap</a> | <a href="/attribution">Attribution des données</a>',
         subdomains: 'abcd',
         maxZoom: 20,
       }).addTo(map)
@@ -576,8 +588,13 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
 
       if (!existing) {
         const id = place.osm_id
+        // Leaflet innerHTMLs a string tooltip. Place names come from OpenStreetMap,
+        // which anyone can edit, so a name like `<img src=x onerror=…>` would run.
+        // An element is inserted as a node — textContent can't become markup.
+        const tip = document.createElement('span')
+        tip.textContent = place.name
         const marker = L.marker([place.lat, place.lon], { icon: makeDivIcon(L, state, rating) })
-          .bindTooltip(place.name, {
+          .bindTooltip(tip, {
             direction: 'top',
             offset: [0, -34],
             opacity: 1,

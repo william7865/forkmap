@@ -20,7 +20,8 @@ export default function ShareProfileSheet({
     QRCode.toDataURL(url, {
       width: 320,
       margin: 1,
-      color: { dark: '#241f18', light: '#fffdf8' },
+      // qrcode's canvas renderer requires literal hex (no CSS var() support) — kept in sync with --text/--bg.
+      color: { dark: '#191c1d', light: '#ffffff' },
     })
       .then((d) => {
         if (alive) setQr(d)

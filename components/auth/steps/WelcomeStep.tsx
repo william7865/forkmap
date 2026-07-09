@@ -28,7 +28,7 @@ export default function WelcomeStep({
             justifyContent: 'center',
           }}
         >
-          <LogoMark size={24} color="#fffdf8" />
+          <LogoMark size={24} color="var(--bg)" />
         </div>
       </div>
       {flow.error && <ErrorText msg={flow.error} />}

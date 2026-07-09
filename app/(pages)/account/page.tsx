@@ -192,17 +192,14 @@ interface VisitRow {
   snapshot?: Record<string, unknown>
 }
 
-// Gamme chaude monochrome (camaïeu terracotta → neutres) — pas de bariolage
-const CUISINE_COLORS = [
-  '#bb5e2e',
-  '#9f4d22',
-  '#c47c52',
-  '#7a3a1a',
-  '#8a7253',
-  '#a8521f',
-  '#6b5d4a',
-  '#d4a07a',
-]
+// Categorical identity in a monochrome system can only ride on lightness —
+// the one channel colour-vision deficiency preserves. Validated with the
+// dataviz palette validator: adjacent CVD separation ΔE 11.0 (>= 8 floor),
+// which is legal ONLY with secondary encoding. That relief is provided by
+// the always-present text legend below the bar and the 2px surface gaps
+// between segments. Do not add hues: --star (#f5a623) is the system's only
+// chroma and is reserved for ratings.
+const CUISINE_COLORS = ['#191c1d', '#33383a', '#4d5254', '#676d6f', '#878d8f', '#a7adae', '#c6cbcc']
 const MOOD_LABELS: Record<string, string> = {
   solo: 'Solo',
   couple: 'En couple',
@@ -237,7 +234,7 @@ function DeleteModal({
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'rgba(36,31,24,0.5)',
+          background: 'rgba(25,28,29,0.5)',
           backdropFilter: 'blur(8px)',
         }}
       />
@@ -584,7 +581,7 @@ function TasteBar({ data }: { data: { label: string; value: number }[] }) {
     const id = requestAnimationFrame(() => setMounted(true))
     return () => cancelAnimationFrame(id)
   }, [])
-  const top = data.slice(0, 7)
+  const top = data.slice(0, CUISINE_COLORS.length)
   const total = top.reduce((s, d) => s + d.value, 0)
   if (!total) return null
   return (
@@ -607,10 +604,12 @@ function TasteBar({ data }: { data: { label: string; value: number }[] }) {
             onMouseEnter={() => setHov(i)}
             style={{
               width: mounted ? `${(d.value / total) * 100}%` : '0%',
-              background: CUISINE_COLORS[i % CUISINE_COLORS.length],
+              background: CUISINE_COLORS[i],
               opacity: hov !== null && hov !== i ? 0.42 : 1,
               transition: 'width 800ms var(--ease-out), opacity 150ms',
               transitionDelay: `${i * 70}ms`,
+              borderRight: i < top.length - 1 ? '2px solid var(--bg)' : 'none',
+              boxSizing: 'border-box',
             }}
           />
         ))}
@@ -636,7 +635,7 @@ function TasteBar({ data }: { data: { label: string; value: number }[] }) {
                 width: 9,
                 height: 9,
                 borderRadius: 3,
-                background: CUISINE_COLORS[i % CUISINE_COLORS.length],
+                background: CUISINE_COLORS[i],
                 flexShrink: 0,
               }}
             />
@@ -745,10 +744,8 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
         color: 'var(--accent)',
         display: 'flex',
         alignItems: 'center',
-        gap: 10,
       }}
     >
-      <span style={{ width: 18, height: 1.5, background: 'var(--accent)', flexShrink: 0 }} />
       {children}
     </div>
   )
@@ -1382,7 +1379,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
           padding: isNative
             ? 'calc(var(--safe-top) + 6px) 20px calc(var(--safe-bottom) + 100px)'
             : isMobile
-              ? '20px 20px 100px'
+              ? '20px 20px 80px'
               : '44px 40px 90px',
           width: '100%',
           position: 'relative',
@@ -1454,7 +1451,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
               left: -90,
               width: 320,
               height: 320,
-              background: 'radial-gradient(circle, rgba(187,94,46,0.07), transparent 68%)',
+              background: 'radial-gradient(circle, rgba(25,28,29,0.07), transparent 68%)',
               pointerEvents: 'none',
             }}
           />
@@ -1587,7 +1584,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                     fontWeight: 600,
                     letterSpacing: '-0.045em',
                     lineHeight: 0.95,
-                    color: f.error ? 'var(--text-4)' : 'var(--text)',
+                    color: f.error ? 'var(--text-3)' : 'var(--text)',
                     fontVariantNumeric: 'tabular-nums',
                     marginBottom: 7,
                   }}

@@ -214,19 +214,19 @@ const CUISINE_GRADIENTS: Record<string, string> = {
   sushi: 'linear-gradient(120deg,#0c2d3a 0%,#1a5468 50%,#2980a0 100%)',
   italien: 'linear-gradient(160deg,#2d1a0e 0%,#7c4422 100%)',
   pizza: 'linear-gradient(160deg,#2d1a0e 0%,#7c4422 100%)',
-  français: 'linear-gradient(135deg,#1a2e1a 0%,#2d5a2d 60%,#3d7e3d 100%)',
+  français: 'linear-gradient(135deg,var(--text) 0%,#2d5a2d 60%,#3d7e3d 100%)',
   burger: 'linear-gradient(135deg,#1a1200 0%,#7c5a00 100%)',
   chinois: 'linear-gradient(120deg,#1a0a0a 0%,#8b1a1a 100%)',
   indien: 'linear-gradient(120deg,#2d1400 0%,#c45c00 100%)',
 }
 
 function getCuisineGradient(cuisine?: string) {
-  if (!cuisine) return 'linear-gradient(135deg,#1a2e1a 0%,#2d4a2d 60%,#3d6e3d 100%)'
+  if (!cuisine) return 'linear-gradient(135deg,var(--text) 0%,#2d4a2d 60%,#3d6e3d 100%)'
   const key = cuisine.toLowerCase()
   for (const [k, v] of Object.entries(CUISINE_GRADIENTS)) {
     if (key.includes(k)) return v
   }
-  return 'linear-gradient(135deg,#1a2e1a 0%,#2d4a2d 60%,#3d6e3d 100%)'
+  return 'linear-gradient(135deg,var(--text) 0%,#2d4a2d 60%,#3d6e3d 100%)'
 }
 
 export default function ShareModal({ place, onClose }: Props) {
@@ -474,7 +474,7 @@ export default function ShareModal({ place, onClose }: Props) {
                 onClick={handleNativeShare}
                 color="var(--forest-mid)"
                 bg="var(--forest-pale)"
-                border="rgba(187,94,46,0.3)"
+                border="rgba(25,28,29,0.3)"
               />
             )}
           </div>
@@ -505,7 +505,7 @@ export default function ShareModal({ place, onClose }: Props) {
               padding: '10px 10px 10px 14px',
               borderRadius: 'var(--r-md)',
               background: 'var(--off-white)',
-              border: `1px solid ${copied ? 'rgba(187,94,46,0.4)' : 'var(--ink-10)'}`,
+              border: `1px solid ${copied ? 'rgba(25,28,29,0.4)' : 'var(--ink-10)'}`,
               transition: 'border-color 200ms ease',
             }}
           >
@@ -530,7 +530,7 @@ export default function ShareModal({ place, onClose }: Props) {
                 padding: '6px 12px',
                 borderRadius: 'var(--r-sm)',
                 background: copied ? 'var(--forest-pale)' : 'var(--white)',
-                border: `1px solid ${copied ? 'rgba(187,94,46,0.4)' : 'var(--ink-10)'}`,
+                border: `1px solid ${copied ? 'rgba(25,28,29,0.4)' : 'var(--ink-10)'}`,
                 cursor: 'pointer',
                 fontSize: 11,
                 fontWeight: 600,

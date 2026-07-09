@@ -178,9 +178,11 @@ export function useRestaurants() {
 
     getAuthHeaders().then((authHeaders) => {
       if (cancelled) return
+      // Signed-out visitors have no favorites to sync; asking anyway only bought
+      // a 401 in the console on every first paint.
+      if (!('Authorization' in authHeaders)) return
       apiFetch('/api/favorites', { headers: authHeaders })
         .then((r) => {
-          // 401 = not logged in — completely normal, just skip silently
           if (r.status === 401) return null
           return r.ok ? r.json() : null
         })
@@ -370,9 +372,7 @@ export function useRestaurants() {
         const scoredOsm = annotateScores(
           annotateDistances(osmEnriched, bbox.centerLat, bbox.centerLon)
         )
-        publish(
-          scoredOsm.map((p) => ({ ...p, is_favorite: favoriteIdsRef.current.has(p.osm_id) }))
-        )
+        publish(scoredOsm.map((p) => ({ ...p, is_favorite: favoriteIdsRef.current.has(p.osm_id) })))
       }
 
       const wikiPlaces = osmPlaces.filter((p) => {
@@ -407,9 +407,7 @@ export function useRestaurants() {
         const scoredOsm = annotateScores(
           annotateDistances(osmEnriched, bbox.centerLat, bbox.centerLon)
         )
-        publish(
-          scoredOsm.map((p) => ({ ...p, is_favorite: favoriteIdsRef.current.has(p.osm_id) }))
-        )
+        publish(scoredOsm.map((p) => ({ ...p, is_favorite: favoriteIdsRef.current.has(p.osm_id) })))
       }
 
       // ── Step 2: Foursquare enrichment (ratings, photos, categories)

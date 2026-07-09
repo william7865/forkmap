@@ -8,8 +8,11 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { useIsMobile } from '@/lib/hooks/useMediaQuery'
 import { useIsNative } from '@/lib/native/platform'
+import { LogoMark } from '@/components/icons/Logo'
 
-// ── Logo fourchette brandbook ────────────────────────────
+// ── Logo brandbook — le bol fumant, la marque courante ───
+// Dessinait encore l'ancienne fourchette, alors que NavRail, AppTabBar et le
+// favicon portent LogoMark : le logo différait selon l'écran.
 export function ForkmapLogo({ size = 30 }: { size?: number }) {
   const r = Math.round(size * 0.267)
   const ico = Math.round(size * 0.6)
@@ -27,30 +30,29 @@ export function ForkmapLogo({ size = 30 }: { size?: number }) {
         boxShadow: 'var(--s2)',
       }}
     >
-      <svg width={ico} height={ico} viewBox="0 0 24 24" fill="none">
-        <path
-          d="M9 4v8c0 2.5 1 4 3 4.5V21M15 4v5c0 1-.7 1.5-1.5 1.5S12 10 12 9V4M15 9.5c0 2 1.5 3 3 3V21"
-          stroke="white"
-          strokeWidth="1.7"
-          strokeLinecap="round"
-        />
-      </svg>
+      <LogoMark size={ico} color="white" />
     </div>
   )
 }
 
 // ── Wordmark brandbook — Fraunces italic ─────────────────
-export function ForkmapWordmark({ compact = false }: { compact?: boolean }) {
-  return (
-    <Link
-      href="/"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: compact ? 7 : 9,
-        textDecoration: 'none',
-      }}
-    >
+// `asLink={false}` for surfaces that already carry a link to the map (PageHeader),
+// where a clickable wordmark would be a second identical target.
+export function ForkmapWordmark({
+  compact = false,
+  asLink = true,
+}: {
+  compact?: boolean
+  asLink?: boolean
+}) {
+  const style = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: compact ? 7 : 9,
+    textDecoration: 'none',
+  } as const
+  const inner = (
+    <>
       <ForkmapLogo size={compact ? 24 : 30} />
       {!compact && (
         <span
@@ -66,6 +68,12 @@ export function ForkmapWordmark({ compact = false }: { compact?: boolean }) {
           fork<em style={{ fontStyle: 'italic', color: 'var(--forest-mid)' }}>map</em>
         </span>
       )}
+    </>
+  )
+  if (!asLink) return <div style={style}>{inner}</div>
+  return (
+    <Link href="/" style={style}>
+      {inner}
     </Link>
   )
 }
@@ -127,7 +135,7 @@ export function PageHeader({ current, actions }: { current: string; actions?: Re
         onMouseEnter={(e) => {
           e.currentTarget.style.color = 'var(--forest-mid)'
           e.currentTarget.style.background = 'var(--forest-pale)'
-          e.currentTarget.style.borderColor = 'rgba(187,94,46,0.2)'
+          e.currentTarget.style.borderColor = 'rgba(25,28,29,0.2)'
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.color = 'var(--ink-40)'
@@ -142,8 +150,9 @@ export function PageHeader({ current, actions }: { current: string; actions?: Re
       {/* Separator */}
       <div style={{ width: 1, height: 16, background: 'var(--ink-10)', flexShrink: 0 }} />
 
-      {/* Logo — icon only on mobile, full wordmark on desktop */}
-      {isMobile ? <ForkmapLogo size={28} /> : <ForkmapWordmark />}
+      {/* Logo — icon only on mobile, full wordmark on desktop. Not a link: the
+          back arrow beside it already goes to the map. */}
+      {isMobile ? <ForkmapLogo size={28} /> : <ForkmapWordmark asLink={false} />}
 
       <div style={{ flex: 1 }} />
 
@@ -155,27 +164,65 @@ export function PageHeader({ current, actions }: { current: string; actions?: Re
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 6,
           fontSize: 10,
           fontWeight: 600,
           color: 'var(--forest-mid)',
           letterSpacing: '0.12em',
           textTransform: 'uppercase',
-          padding: '4px 10px',
+          // letter-spacing trails the last glyph, so the right padding is trimmed to match
+          padding: '4px 10px 4px 12px',
           borderRadius: 'var(--r-pill)',
           background: 'var(--forest-pale)',
-          border: '1px solid rgba(187,94,46,0.18)',
+          border: '1px solid rgba(25,28,29,0.18)',
           fontFamily: 'var(--font-body)',
           flexShrink: 0,
           whiteSpace: 'nowrap' as const,
         }}
       >
-        <span
-          style={{ display: 'block', width: 10, height: 1.5, background: 'var(--forest-mid)' }}
-        />
         {current}
       </span>
     </header>
+  )
+}
+
+// ── LegalSection — titre + corps des pages légales (privacy, terms) ──
+// The rule stops at the text measure rather than spanning the container:
+// a hairline running past the last word reads as a border, not as typography.
+export const PROSE_MEASURE = 620
+
+export function LegalSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div style={{ marginBottom: 44 }}>
+      <h2
+        style={{
+          fontSize: 17,
+          fontWeight: 600,
+          letterSpacing: '-0.02em',
+          color: 'var(--text)',
+          margin: '0 0 16px',
+          paddingBottom: 10,
+          borderBottom: '1px solid var(--border)',
+          maxWidth: PROSE_MEASURE,
+        }}
+      >
+        {title}
+      </h2>
+      <div
+        style={{
+          fontSize: 14.5,
+          // Long-form legal prose sits one step darker than UI copy: --ink-80, not --text-2.
+          color: 'var(--ink-80)',
+          lineHeight: 1.75,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+          maxWidth: PROSE_MEASURE,
+          textWrap: 'pretty',
+        }}
+      >
+        {children}
+      </div>
+    </div>
   )
 }
 
@@ -248,16 +295,9 @@ export function GlobalFooter() {
   const isMobile = useIsMobile()
   const year = new Date().getFullYear()
 
+  // No "Navigation" column: NavRail (desktop) and BottomNav (mobile) already carry
+  // Carte / Lieux enregistrés / Mon compte / Paramètres on every page.
   const cols = [
-    {
-      label: 'Navigation',
-      links: [
-        { href: '/', label: 'Carte' },
-        { href: '/favorites', label: 'Lieux sauvegardés' },
-        { href: '/account', label: 'Mon compte' },
-        { href: '/settings', label: 'Paramètres' },
-      ],
-    },
     {
       label: 'Découvrir',
       links: [
@@ -288,8 +328,8 @@ export function GlobalFooter() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : '1fr repeat(3, auto)',
-            gap: isMobile ? 28 : 48,
+            gridTemplateColumns: isMobile ? '1fr' : '1fr repeat(2, auto)',
+            gap: isMobile ? 28 : 64,
             marginBottom: 40,
           }}
         >
@@ -298,17 +338,14 @@ export function GlobalFooter() {
             <ForkmapWordmark />
             <p
               style={{
-                margin: '14px 0 10px',
+                margin: '14px 0 0',
                 fontSize: 12,
                 color: 'var(--ink-40)',
                 lineHeight: 1.7,
                 maxWidth: 200,
               }}
             >
-              Trouvez les meilleurs restaurants autour de vous, grâce aux données ouvertes.
-            </p>
-            <p style={{ margin: 0, fontSize: 11, color: 'var(--ink-20)' }}>
-              © OpenStreetMap contributors
+              Trouvez les meilleurs restaurants autour de vous.
             </p>
           </div>
 
@@ -350,44 +387,9 @@ export function GlobalFooter() {
           ))}
         </div>
 
-        {/* Bottom bar */}
-        <div
-          style={{
-            borderTop: '1px solid var(--ink-10)',
-            paddingTop: 20,
-            display: 'flex',
-            flexDirection: isMobile ? 'column' : 'row',
-            justifyContent: isMobile ? 'flex-start' : 'space-between',
-            alignItems: isMobile ? 'flex-start' : 'center',
-            flexWrap: 'wrap',
-            gap: 8,
-          }}
-        >
-          <span style={{ fontSize: 11, color: 'var(--ink-20)' }}>
-            © {year} Forkmap · Données © OpenStreetMap contributors (ODbL)
-          </span>
-          <div style={{ display: 'flex', gap: 18 }}>
-            {[
-              { href: '/privacy', label: 'Confidentialité' },
-              { href: '/terms', label: 'Conditions' },
-              { href: '/attribution', label: 'Attribution' },
-            ].map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                style={{
-                  fontSize: 11,
-                  color: 'var(--ink-20)',
-                  textDecoration: 'none',
-                  transition: 'color 120ms ease',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--ink-60)')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--ink-20)')}
-              >
-                {l.label}
-              </Link>
-            ))}
-          </div>
+        {/* Bottom bar — copyright only; the legal links live in their own column above */}
+        <div style={{ borderTop: '1px solid var(--ink-10)', paddingTop: 20 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-3)' }}>© {year} Forkmap</span>
         </div>
       </div>
     </footer>

@@ -1,11 +1,12 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Map, User, Settings } from 'lucide-react'
+import { Map, Bookmark, User, Settings } from 'lucide-react'
 import { LogoMark } from '@/components/icons/Logo'
 
 const NAV = [
   { href: '/', Icon: Map, label: 'Carte' },
+  { href: '/favorites', Icon: Bookmark, label: 'Lieux enregistrés' },
   { href: '/account', Icon: User, label: 'Compte' },
 ]
 

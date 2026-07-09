@@ -1,12 +1,11 @@
 // ============================================================
-// app/(pages)/favorites/page.tsx — Lieux sauvegardés
+// app/(pages)/favorites/page.tsx — Lieux enregistrés
 // Lieux enregistrés : listes collections + vue liste/grille des favoris
 // ============================================================
 'use client'
 
 import React, { Suspense, useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { createPortal } from 'react-dom'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { FavoriteRow } from '@/types'
@@ -227,7 +226,7 @@ function DeleteModal({
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'rgba(36,31,24,0.45)',
+          background: 'rgba(25,28,29,0.45)',
           backdropFilter: 'blur(4px)',
         }}
       />
@@ -278,7 +277,7 @@ function DeleteModal({
         </h3>
         <p style={{ margin: '0 0 22px', fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>
           <strong style={{ color: 'var(--ink-80)' }}>{name}</strong> sera retiré de vos lieux
-          sauvegardés.
+          enregistrés.
         </p>
         <div style={{ display: 'flex', gap: 8 }}>
           <button
@@ -362,7 +361,7 @@ function NoteDrawer({
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'rgba(36,31,24,0.45)',
+          background: 'rgba(25,28,29,0.45)',
           backdropFilter: 'blur(6px)',
         }}
       />
@@ -588,7 +587,7 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'rgba(36,31,24,0.45)',
+          background: 'rgba(25,28,29,0.45)',
           backdropFilter: 'blur(6px)',
         }}
       />
@@ -803,6 +802,37 @@ function favPhoto(fav: FavoriteRow, w = 240): string | null {
   return fav.snapshot?.wikidata?.image_url ?? null
 }
 
+/**
+ * Snapshot photos are plain `<img>`, never `next/image`.
+ *
+ * A snapshot stores whatever URL the client held when the place was saved, and a
+ * mobile build stamps an absolute `https://forkmap.vercel.app/api/places/google-photo?…`
+ * prefix. `next/image` throws "Invalid src prop" on any host missing from
+ * `images.remotePatterns`, which took the whole page down with it. The proxy already
+ * serves a sized image, so there is nothing left to optimise. On error the tile falls
+ * back to its gradient, exactly like PlaceThumb does everywhere else.
+ */
+function FavPhoto({ src }: { src: string }) {
+  const [broken, setBroken] = useState(false)
+  if (broken) return null
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+      onError={() => setBroken(true)}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+      }}
+    />
+  )
+}
+
 const IcoUtensils = () => (
   <svg
     width="22"
@@ -1006,7 +1036,7 @@ function BulkListModal({
         position: 'fixed',
         inset: 0,
         zIndex: 1000,
-        background: 'rgba(36,31,24,0.5)',
+        background: 'rgba(25,28,29,0.5)',
         backdropFilter: 'blur(6px)',
         display: 'flex',
         alignItems: 'center',
@@ -1398,7 +1428,7 @@ function FavCardList({
         }}
       >
         {photo ? (
-          <Image src={photo} alt="" fill sizes="68px" style={{ objectFit: 'cover' }} />
+          <FavPhoto src={photo} />
         ) : (
           <span
             style={{
@@ -1601,7 +1631,7 @@ function FavCardGrid({
         }}
       >
         {photo ? (
-          <Image src={photo} alt="" fill sizes="240px" style={{ objectFit: 'cover' }} />
+          <FavPhoto src={photo} />
         ) : (
           <span
             style={{
@@ -1643,7 +1673,7 @@ function FavCardGrid({
               borderRadius: 'var(--r-pill)',
               fontSize: 11,
               fontWeight: 700,
-              background: 'rgba(255,253,248,0.95)',
+              background: 'rgba(255,255,255,0.95)',
               color: 'var(--ember-text)',
             }}
           >
@@ -2034,7 +2064,7 @@ function FavoritesPageInner() {
             padding: isNative
               ? 'calc(var(--safe-top) + 16px) 16px calc(var(--safe-bottom) + 88px)'
               : isMobile
-                ? '24px 16px 100px'
+                ? '24px 16px 80px'
                 : '36px 20px 80px',
           }}
         >
@@ -2051,7 +2081,7 @@ function FavoritesPageInner() {
                 color: 'var(--ink)',
               }}
             >
-              Enregistré
+              Enregistrés
             </h1>
             <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-60)' }}>
               {loading
@@ -2273,7 +2303,7 @@ function FavoritesPageInner() {
                       letterSpacing: '0.04em',
                       padding: '5px 11px',
                       borderRadius: 'var(--r-pill)',
-                      background: 'rgba(255,253,248,0.95)',
+                      background: 'rgba(255,255,255,0.95)',
                       color: 'var(--ember-text)',
                     }}
                   >
@@ -2293,7 +2323,7 @@ function FavoritesPageInner() {
                         fontFamily: 'var(--font-display)',
                         fontStyle: 'italic',
                         fontSize: 12.5,
-                        color: 'rgba(255,253,248,0.85)',
+                        color: 'rgba(255,255,255,0.85)',
                         marginBottom: 5,
                       }}
                     >
@@ -2329,7 +2359,7 @@ function FavoritesPageInner() {
                             gap: 3,
                             fontWeight: 700,
                             fontSize: 13,
-                            color: '#ffd9b8',
+                            color: 'var(--star)',
                           }}
                         >
                           <IcoStar /> {rating.toFixed(1)}
@@ -2343,7 +2373,7 @@ function FavoritesPageInner() {
                             gap: 2,
                             fontSize: 12,
                             fontWeight: 700,
-                            color: '#ffd9b8',
+                            color: 'var(--star)',
                           }}
                         >
                           {Array.from({ length: michelin }).map((_, i) => (
@@ -2950,7 +2980,7 @@ function FavoritesPageInner() {
                     {favTab === 'todo'
                       ? 'Tous tes favoris sont déjà testés 🎉'
                       : favTab === 'done'
-                        ? 'Rien de testé pour l’instant — logue une visite depuis une fiche.'
+                        ? 'Rien de testé pour l’instant. Logue une visite depuis une fiche.'
                         : 'Aucun favori ici.'}
                   </div>
                 )}

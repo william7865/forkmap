@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap');
 /* App natif — "Monochrome Premium" (chargé aussi sur web, utilisé uniquement sous html.native-app) */
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&family=Geist:wght@300;400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -8,21 +7,22 @@
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════════════
-   FORKMAP — Design System 5.1 "Éditorial Chaleureux"
-   Bricolage Grotesque (display) · Hanken Grotesk (UI) · Papier crème
-   Vert Forêt (ancre/repères) + Terracotta (caractère/appétit)
+   FORKMAP — Design System 7 "Monochrome Premium"
+   Playfair Display (display) · Inter (UI) · Blanc / gris neutres
+   Accent UNIQUE Encre (#1a1a1a) + étoile dorée (seule vraie couleur)
+   Aligné sur la palette de l'app native (avec 3 divergences AA, voir plus bas)
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
   /* ── Polices ── */
-  --font-body: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
-  --font-display: 'Bricolage Grotesque', system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Playfair Display', ui-serif, Georgia, serif;
 
-  /* ── Accent UNIQUE — Terracotta (actions, scores, sélection, liens, focus) ── */
-  --accent: #bb5e2e;
-  --accent-hover: #9f4d22;
-  --accent-light: #f6e7da;
-  --accent-text: #a8521f;
+  /* ── Accent UNIQUE — Encre (actions, sélection, liens, focus) ── */
+  --accent: #1a1a1a;
+  --accent-hover: #000000;
+  --accent-light: #f3f4f5;
+  --accent-text: #1a1a1a;
   --on-accent: #fff; /* text/icon on accent fills (flips in native dark) */
 
   /* ── Ember = alias rétrocompat de l'accent (plus de seconde couleur) ── */
@@ -31,38 +31,43 @@
   --ember-light: var(--accent-light);
   --ember-text: var(--accent-text);
 
-  /* ── Surfaces — papier crème + blanc chaud ── */
-  --bg: #fffdf8; /* cartes, panneaux, modales (blanc chaud) */
-  --surface: #f6efe1; /* canvas de page + remplissages subtils (papier) */
-  --surface-2: #ece1cd; /* remplissages secondaires / pressés */
-  --border: rgba(61, 44, 24, 0.1);
-  --border-strong: rgba(61, 44, 24, 0.17);
+  /* ── Surfaces — blanc pur + gris neutres ── */
+  --bg: #ffffff; /* cartes, panneaux, modales */
+  --surface: #f8f9fa; /* canvas de page + remplissages subtils */
+  --surface-2: #e7e8e9; /* remplissages secondaires / pressés */
+  --border: rgba(25, 28, 29, 0.1);
+  --border-strong: rgba(25, 28, 29, 0.16);
 
-  /* ── Texte — encre chaude ── */
-  --text: #241f18;
-  --text-2: #6b6253;
-  --text-3: #9a9081;
-  --text-4: #c2b8a6;
+  /* ── Texte — encre neutre ── */
+  --text: #191c1d;
+  --text-2: #444748;
+  /* ⚠️ diverge de l'app (#747878 = 4.47:1, sous le seuil AA de 4.5:1) */
+  --text-3: #6b6f6f;
+  --text-4: #8a8e8e; /* 3.14:1 sur --surface : bordures, icones desactivees, chiffres decoratifs. JAMAIS de texte courant. */
 
-  /* ── Sémantique — vert "ouvert" + UN seul rouge "fermé"/danger ── */
-  --open: #1d7a4e; /* seule subsistance du vert */
+  /* ── Chroma UNIQUE — l'étoile de la note, et rien d'autre ── */
+  --star: #f5a623;
+
+  /* ── Sémantique — conserve les valeurs web : celles de l'app échouent en AA
+     (#17945a = 3.87:1, #dc4b3e = 4.10:1) alors que « Ouvert »/« Fermé » sont du texte ── */
+  --open: #1d7a4e;
   --open-bg: #dcefe1;
-  --closed: #b0432f; /* rouge discret, unique (fermé + danger) */
+  --closed: #b0432f;
   --closed-bg: #f7ece8;
   --amber: var(--accent); /* ancien ambre → accent unique */
   --amber-pale: var(--accent-light);
   --coral: var(--closed); /* ancien rouge d'erreur → rouge unique */
   --coral-pale: var(--closed-bg);
 
-  /* ── Shadows (réchauffées, douces) ── */
+  /* ── Shadows (neutres, douces) ── */
   --s0: none;
-  --s1: 0 1px 4px rgba(61, 44, 24, 0.07);
-  --s2: 0 3px 14px rgba(61, 44, 24, 0.09);
-  --s3: 0 6px 26px rgba(61, 44, 24, 0.12);
-  --s4: 0 12px 44px rgba(61, 44, 24, 0.16);
-  --s-accent: 0 6px 22px rgba(187, 94, 46, 0.22);
-  --s-ember: 0 8px 22px rgba(187, 94, 46, 0.28);
-  --s-focus: 0 0 0 3px rgba(187, 94, 46, 0.25);
+  --s1: 0 1px 4px rgba(25, 28, 29, 0.06);
+  --s2: 0 3px 14px rgba(25, 28, 29, 0.08);
+  --s3: 0 6px 26px rgba(25, 28, 29, 0.11);
+  --s4: 0 12px 44px rgba(25, 28, 29, 0.15);
+  --s-accent: 0 6px 22px rgba(25, 28, 29, 0.18);
+  --s-ember: 0 8px 22px rgba(25, 28, 29, 0.22);
+  --s-focus: 0 0 0 3px rgba(25, 28, 29, 0.2);
 
   /* ── Motion ── */
   --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
@@ -86,21 +91,21 @@
   --white: var(--bg);
   --off-white: var(--surface);
   --cream: var(--surface-2);
-  --bone: #e3d8c4;
-  --stone: #cdbfa8;
+  --bone: var(--surface-2);
+  --stone: var(--text-4);
   --forest: var(--accent-hover);
   --forest-mid: var(--accent);
   --forest-bright: var(--accent);
   --forest-pale: var(--accent-light);
   --ink: var(--text);
-  --ink-80: #3f372c;
+  --ink-80: #2e3132; /* encre 80% : entre --text (#191c1d) et --text-2 (#444748) */
   --ink-60: var(--text-2);
   --ink-40: var(--text-3);
   --ink-20: var(--text-4);
   --ink-10: var(--border);
-  --b1: rgba(61, 44, 24, 0.06);
-  --b2: rgba(61, 44, 24, 0.1);
-  --b3: rgba(61, 44, 24, 0.17);
+  --b1: rgba(25, 28, 29, 0.06);
+  --b2: var(--border); /* rgba(25, 28, 29, 0.1) — strictement identique */
+  --b3: var(--border-strong); /* rgba(25, 28, 29, 0.16) */
   --state-open: var(--open);
   --state-open-bg: var(--open-bg);
   --state-closed: var(--closed);
@@ -116,8 +121,8 @@
   --s-forest: var(--s-accent);
   --green: var(--open);
 
-  /* ── Deck "Surprends-moi" : accent secondaire chaud (peach) ── */
-  --deck-warm: #e9a06a;
+  /* ── Deck "Surprends-moi" : plus de second accent chaud, alias sur l'accent unique ── */
+  --deck-warm: var(--accent); /* la seule chroma du système est --star, réservée à la note */
 
   /* ── Safe areas (encoche / home indicator) ── */
   --safe-top: env(safe-area-inset-top, 0px);
@@ -865,4 +870,16 @@ a:focus:not(:focus-visible) {
 .native-app textarea,
 .native-app select {
   font-size: 16px !important;
+}
+
+/* Reduced motion is not optional: neutralise every animation and transition. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

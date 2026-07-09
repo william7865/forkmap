@@ -312,7 +312,7 @@ export default function AccountSettingsContent({ isMobile }: { isMobile: boolean
                 fontWeight: 700,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase' as const,
-                color: 'var(--text-4)',
+                color: 'var(--text-3)',
               }}
             >
               {isGoogleUser ? 'Google' : 'Vérifiée'}
@@ -415,7 +415,7 @@ export default function AccountSettingsContent({ isMobile }: { isMobile: boolean
             style={{
               position: 'absolute',
               inset: 0,
-              background: 'rgba(36,31,24,0.5)',
+              background: 'rgba(25,28,29,0.5)',
               backdropFilter: 'blur(8px)',
             }}
           />
@@ -583,7 +583,7 @@ function Row({
               fontFamily: 'var(--font-display)',
               fontSize: 12,
               fontWeight: 600,
-              color: 'var(--text-4)',
+              color: 'var(--text-3)',
               fontVariantNumeric: 'tabular-nums',
             }}
           >
@@ -633,10 +633,8 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
         color: 'var(--accent)',
         display: 'flex',
         alignItems: 'center',
-        gap: 10,
       }}
     >
-      <span style={{ width: 18, height: 1.5, background: 'var(--accent)', flexShrink: 0 }} />
       {children}
     </div>
   )
