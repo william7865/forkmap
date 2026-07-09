@@ -66,6 +66,8 @@ Exécuter les fichiers SQL dans l'éditeur SQL de Supabase **dans cet ordre** :
 
 Migrations ponctuelles dans `sql/migrations/` (à appliquer après les schémas de base) — ex. `2026-07-06-messages-poll-type.sql` élargit la contrainte `messages.type` à `'poll'` (partage de sondage en DM).
 
+⚠️ **`2026-07-09-security-hardening.sql` est obligatoire sur toute base existante.** Il active la RLS sur `osm_fsq_mapping` (sans elle, la clé anon — publique par conception — permet de vider ou d'empoisonner le cache OSM→Foursquare de tous les utilisateurs) et ajoute la contrainte liant `poll_votes.option_id` à son `poll_id`.
+
 Pour l'OAuth Google, activer le provider Google dans Supabase Auth et ajouter la redirection vers `/auth/callback`.
 
 ## Architecture

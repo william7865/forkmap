@@ -69,15 +69,26 @@ function loadAsset(
   attrs: Record<string, string>
 ): Promise<void> {
   return new Promise((res) => {
-    if (document.getElementById(id)) {
-      res()
+    const existing = document.getElementById(id) as HTMLElement | null
+    if (existing) {
+      // An element left behind by an earlier mount may still be in flight. Resolving
+      // on its mere presence let leaflet.markercluster run before `window.L` existed.
+      if (existing.dataset.settled === '1') res()
+      else {
+        existing.addEventListener('load', () => res(), { once: true })
+        existing.addEventListener('error', () => res(), { once: true })
+      }
       return
     }
     const el = document.createElement(tag)
     el.id = id
     Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v))
-    el.onload = () => res()
-    el.onerror = () => res()
+    const settle = () => {
+      el.dataset.settled = '1'
+      res()
+    }
+    el.onload = settle
+    el.onerror = settle
     document.head.appendChild(el)
   })
 }
@@ -416,14 +427,18 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
         src: 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
         crossorigin: '',
       })
-      // Marker clustering (declutters + lifts the 200-pin cap, much faster)
-      await loadAsset('link', 'mc-css', {
-        rel: 'stylesheet',
-        href: 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',
-      })
-      await loadAsset('script', 'mc-js', {
-        src: 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js',
-      })
+      // Marker clustering (declutters + lifts the 200-pin cap, much faster).
+      // The plugin reads the `L` global at parse time, so it must not be requested
+      // until Leaflet has actually published it.
+      if ((window as A).L) {
+        await loadAsset('link', 'mc-css', {
+          rel: 'stylesheet',
+          href: 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',
+        })
+        await loadAsset('script', 'mc-js', {
+          src: 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js',
+        })
+      }
 
       const L: A = (window as A).L
       if (!L || !containerRef.current) return
@@ -441,7 +456,7 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         attribution:
-          '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a> | <a href="/attribution">Data attribution</a>',
+          '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">les contributeurs d’OpenStreetMap</a> | <a href="/attribution">Attribution des données</a>',
         subdomains: 'abcd',
         maxZoom: 20,
       }).addTo(map)
@@ -573,8 +588,13 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
 
       if (!existing) {
         const id = place.osm_id
+        // Leaflet innerHTMLs a string tooltip. Place names come from OpenStreetMap,
+        // which anyone can edit, so a name like `<img src=x onerror=…>` would run.
+        // An element is inserted as a node — textContent can't become markup.
+        const tip = document.createElement('span')
+        tip.textContent = place.name
         const marker = L.marker([place.lat, place.lon], { icon: makeDivIcon(L, state, rating) })
-          .bindTooltip(place.name, {
+          .bindTooltip(tip, {
             direction: 'top',
             offset: [0, -34],
             opacity: 1,

@@ -67,3 +67,6 @@ docs/superpowers/
 
 # Claude SDK agent worktrees
 .claude/worktrees/
+
+# Env copié dans la coque iOS au build
+ios/App/App/.env.local

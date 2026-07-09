@@ -14,6 +14,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { rateLimit } from '@/lib/rate-limit'
 
+const HTML_ESCAPES: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+}
+
+/**
+ * Every submitted field lands in the HTML body of the mail we send ourselves.
+ * `name` and `topic` used to go in raw, so a submitter could plant a phishing
+ * link or active content in the message we open. Escape all of them.
+ */
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => HTML_ESCAPES[c])
+}
+
 const BodySchema = z.object({
   name: z.string().min(1).max(100),
   email: z.string().email().max(200),
@@ -66,10 +83,10 @@ export async function POST(req: NextRequest) {
           subject: `[Forkmap] ${topic} · ${name}`,
           text: [`From: ${name} <${email}>`, `Topic: ${topic}`, '', message].join('\n'),
           html: `
-            <p><strong>From:</strong> ${name} &lt;${email}&gt;</p>
-            <p><strong>Topic:</strong> ${topic}</p>
+            <p><strong>From:</strong> ${escapeHtml(name)} &lt;${escapeHtml(email)}&gt;</p>
+            <p><strong>Topic:</strong> ${escapeHtml(topic)}</p>
             <hr/>
-            <p style="white-space:pre-wrap">${message.replace(/</g, '&lt;')}</p>
+            <p style="white-space:pre-wrap">${escapeHtml(message)}</p>
           `,
         }),
       })

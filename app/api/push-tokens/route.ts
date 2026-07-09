@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireUser } from '@/lib/api-auth'
+import { rateLimit } from '@/lib/rate-limit'
 import { savePushToken } from '@/lib/db'
 
 const PushTokenSchema = z.object({
@@ -11,6 +12,9 @@ const PushTokenSchema = z.object({
 })
 
 export async function POST(req: NextRequest) {
+  const limited = rateLimit(req, { limit: 20, windowMs: 60_000 })
+  if (limited) return limited
+
   const auth = await requireUser(req)
   if (auth.error) return auth.error
   const { userId } = auth as { userId: string; error: null }

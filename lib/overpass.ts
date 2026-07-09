@@ -14,6 +14,10 @@ const OVERPASS_ENDPOINTS = [
 
 const TIMEOUT_MS = 15_000
 
+/** The only amenity values ever allowed inside an Overpass QL string literal. */
+export const AMENITY_TYPES = ['restaurant', 'fast_food', 'cafe', 'bar'] as const
+type AmenityType = (typeof AMENITY_TYPES)[number]
+
 // ---------- Overpass QL builder ----------
 
 /**
@@ -22,9 +26,15 @@ const TIMEOUT_MS = 15_000
  */
 export function buildOverpassQuery(params: OverpassParams): string {
   const { minLat, minLon, maxLat, maxLon, includeTypes = ['restaurant'] } = params
-  const bbox = `${minLat},${minLon},${maxLat},${maxLon}`
+  const bbox = [minLat, minLon, maxLat, maxLon].map(Number).join(',')
 
-  const amenityFilters = includeTypes
+  // Values are interpolated into Overpass QL string literals, so anything but a
+  // known amenity is dropped here too — the caller's validation is not this
+  // function's contract. `Number()` above does the same for the bbox.
+  const safeTypes = includeTypes.filter((t) => AMENITY_TYPES.includes(t as AmenityType))
+  if (safeTypes.length === 0) safeTypes.push('restaurant')
+
+  const amenityFilters = safeTypes
     .map(
       (type) => `
     node["amenity"="${type}"](${bbox});

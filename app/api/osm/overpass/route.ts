@@ -11,13 +11,19 @@ import { cacheAside, buildBboxKey } from '@/lib/cache'
 import { rateLimit } from '@/lib/rate-limit'
 import type { OverpassApiResponse } from '@/types'
 
+const AMENITY_TYPES = ['restaurant', 'fast_food', 'cafe', 'bar'] as const
+
 const QuerySchema = z.object({
   bbox: z.string().regex(/^-?\d+\.?\d*,-?\d+\.?\d*,-?\d+\.?\d*,-?\d+\.?\d*$/),
+  // `.transform(s => s.split(',') as Array<...>)` was a compile-time cast with no
+  // runtime check, and each element lands inside an Overpass QL string literal.
+  // `?types=x"](−90,−180,90,180);out;//` escaped the filter. Enumerate instead.
   types: z
     .string()
     .optional()
     .default('restaurant,fast_food,cafe,bar')
-    .transform((s) => s.split(',') as Array<'restaurant' | 'cafe' | 'bar' | 'fast_food'>),
+    .transform((s) => s.split(','))
+    .pipe(z.array(z.enum(AMENITY_TYPES)).min(1).max(AMENITY_TYPES.length)),
 })
 
 const MAX_BBOX_DEGREES = 0.3

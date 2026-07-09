@@ -22,9 +22,17 @@ const nextConfig: NextConfig = {
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+          {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
+              // No plugins, no <base> hijacking, no form posts to third parties.
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
               `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://unpkg.com`,
               "style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com",
               "img-src 'self' data: blob: https://fastly.4sqi.net https://*.4sqi.net https://*.googleusercontent.com https://*.basemaps.cartocdn.com https://unpkg.com https://upload.wikimedia.org https://commons.wikimedia.org",
@@ -55,6 +63,11 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '*.googleusercontent.com' },
       { protocol: 'https', hostname: 'upload.wikimedia.org' },
       { protocol: 'https', hostname: 'commons.wikimedia.org' },
+      // Our own image proxy. A mobile build stamps this absolute origin into the
+      // photo prefixes it saves in place snapshots, so a snapshot rendered later on
+      // the web hands next/image a forkmap.vercel.app URL. Without this entry that
+      // throws "Invalid src prop" and takes the page down.
+      { protocol: 'https', hostname: 'forkmap.vercel.app', pathname: '/api/places/**' },
     ],
   },
 
