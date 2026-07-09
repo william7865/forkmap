@@ -27,6 +27,11 @@ function walk(dir: string, out: string[] = []): string[] {
   return out
 }
 
+/** Isole le bloc :root de globals.css, en excluant html.native-app qui a sa propre palette légitime. */
+function extractRootBlock(css: string): string {
+  return css.slice(css.indexOf(':root {'), css.indexOf('html.native-app {')).toLowerCase()
+}
+
 describe('palette monochrome', () => {
   it("ne laisse aucune couleur de l'ancienne palette dans les sources", () => {
     const files = [...walk('components'), ...walk('app')].filter(
@@ -42,7 +47,7 @@ describe('palette monochrome', () => {
 
   it("définit :root sur les valeurs exactes de l'app native", () => {
     const css = readFileSync('app/globals.css', 'utf8')
-    const root = css.slice(css.indexOf(':root {'), css.indexOf('html.native-app {')).toLowerCase()
+    const root = extractRootBlock(css)
     const expected: Record<string, string> = {
       '--accent': '#1a1a1a',
       '--accent-hover': '#000000',
@@ -62,5 +67,26 @@ describe('palette monochrome', () => {
     for (const [token, value] of Object.entries(expected)) {
       expect(root, `${token} doit valoir ${value}`).toContain(`${token}: ${value}`)
     }
+  })
+
+  it("ne laisse aucune couleur de l'ancienne palette dans le bloc :root de globals.css", () => {
+    const css = readFileSync('app/globals.css', 'utf8')
+    const root = extractRootBlock(css)
+    const forbiddenValues = [
+      'rgba(61, 44, 24',
+      'rgba(61,44,24',
+      '#e3d8c4',
+      '#cdbfa8',
+      '#3f372c',
+      '#e9a06a',
+      ...FORBIDDEN,
+    ]
+    const offenders = [...new Set(forbiddenValues)].filter((value) =>
+      root.includes(value.toLowerCase())
+    )
+    expect(
+      offenders,
+      `valeurs de l'ancienne palette trouvées dans :root : ${offenders.join(', ')}`
+    ).toEqual([])
   })
 })

@@ -92,21 +92,21 @@
   --white: var(--bg);
   --off-white: var(--surface);
   --cream: var(--surface-2);
-  --bone: #e3d8c4;
-  --stone: #cdbfa8;
+  --bone: var(--surface-2);
+  --stone: var(--text-4);
   --forest: var(--accent-hover);
   --forest-mid: var(--accent);
   --forest-bright: var(--accent);
   --forest-pale: var(--accent-light);
   --ink: var(--text);
-  --ink-80: #3f372c;
+  --ink-80: #2e3132; /* encre 80% : entre --text (#191c1d) et --text-2 (#444748) */
   --ink-60: var(--text-2);
   --ink-40: var(--text-3);
   --ink-20: var(--text-4);
   --ink-10: var(--border);
-  --b1: rgba(61, 44, 24, 0.06);
-  --b2: rgba(61, 44, 24, 0.1);
-  --b3: rgba(61, 44, 24, 0.17);
+  --b1: rgba(25, 28, 29, 0.06);
+  --b2: var(--border); /* rgba(25, 28, 29, 0.1) — strictement identique */
+  --b3: var(--border-strong); /* rgba(25, 28, 29, 0.16) */
   --state-open: var(--open);
   --state-open-bg: var(--open-bg);
   --state-closed: var(--closed);
@@ -122,8 +122,8 @@
   --s-forest: var(--s-accent);
   --green: var(--open);
 
-  /* ── Deck "Surprends-moi" : accent secondaire chaud (peach) ── */
-  --deck-warm: #e9a06a;
+  /* ── Deck "Surprends-moi" : plus de second accent chaud, alias sur l'accent unique ── */
+  --deck-warm: var(--accent); /* la seule chroma du système est --star, réservée à la note */
 
   /* ── Safe areas (encoche / home indicator) ── */
   --safe-top: env(safe-area-inset-top, 0px);
