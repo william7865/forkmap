@@ -17,9 +17,35 @@ export const metadata: Metadata = {
     'Trouvez où manger près de chez vous. Vraies données, carte interactive, itinéraires.',
 }
 
+// The native shell loads the bundle from disk, so there is no HTTP response and
+// `headers()` in next.config.ts never runs — the app shipped with no CSP at all.
+// A <meta> element is the only way to carry one there. Emitted for the static
+// export only; on the web the real headers do the job (and a meta would just
+// duplicate them). `frame-ancestors` is ignored in meta form, hence omitted.
+const isExport = process.env.NEXT_EXPORT === 'true'
+const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL ?? ''
+
+const NATIVE_CSP = [
+  "default-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  `script-src 'self' 'unsafe-inline' https://unpkg.com`,
+  "style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com",
+  `img-src 'self' data: blob: ${API_ORIGIN} https://fastly.4sqi.net https://*.4sqi.net https://*.googleusercontent.com https://*.basemaps.cartocdn.com https://unpkg.com https://upload.wikimedia.org https://commons.wikimedia.org`,
+  `connect-src 'self' ${API_ORIGIN} https://*.supabase.co wss://*.supabase.co https://overpass-api.de https://api.foursquare.com https://router.project-osrm.org https://overpass.kumi.systems https://overpass.openstreetmap.ru https://maps.mail.ru https://nominatim.openstreetmap.org`,
+  "font-src 'self' https://fonts.gstatic.com",
+]
+  .join('; ')
+  .replace(/\s+/g, ' ')
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" style={{ height: '100%', colorScheme: 'light' }} suppressHydrationWarning>
+      {isExport && (
+        <head>
+          <meta httpEquiv="Content-Security-Policy" content={NATIVE_CSP} />
+        </head>
+      )}
       <body style={{ height: '100%', margin: 0, padding: 0 }}>
         <LanguageProvider>
           <ErrorBoundary>

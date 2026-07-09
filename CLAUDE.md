@@ -50,6 +50,7 @@ SERPAPI_KEY=                                       # optionnel — provider serp
 GOOGLE_PLACES_API_KEY=AIzaxxxxx                    # optionnel — provider google (API Places New, nécessite facturation)
 RESEND_API_KEY=re_xxxxx                            # optionnel — sans elle, le formulaire de contact n'envoie pas d'email
 CONTACT_EMAIL_TO=hello@forkmap.app                 # optionnel — destinataire du formulaire de contact (défaut : hello@forkmap.app)
+POLL_TOKEN_SECRET=                                 # optionnel — signe le cookie de votant anonyme. Défaut : SUPABASE_SERVICE_ROLE_KEY. Le définir permet d'invalider tous les jetons de vote sans changer les identifiants BDD.
 NEXT_PUBLIC_API_URL=https://forkmap.vercel.app     # UNIQUEMENT pour les builds mobiles — pointe l'app statique vers l'API. Laisser vide sur Vercel (appels relatifs).
 ```
 

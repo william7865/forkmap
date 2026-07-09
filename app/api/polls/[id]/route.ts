@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit } from '@/lib/rate-limit'
 import { requireUser } from '@/lib/api-auth'
 import { getPollPublic, getMyVote } from '@/lib/db'
+import { resolveVoter } from '@/lib/vote-token'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -16,7 +17,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!UUID_RE.test(id)) {
     return NextResponse.json({ error: 'Sondage introuvable.' }, { status: 404 })
   }
-  const token = req.nextUrl.searchParams.get('token')
+  // Identity comes from the signed cookie. `?token=` survives only for the
+  // native WebView, whose cross-origin request carries no cookie.
+  const { token } = resolveVoter(req, req.nextUrl.searchParams.get('token'))
 
   try {
     const poll = await getPollPublic(id)

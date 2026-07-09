@@ -27,12 +27,22 @@ const PlaceBaseSchema = z.object({
 })
 
 const BodySchema = z.object({
-  places: z.array(PlaceBaseSchema).max(50, 'Max 50 places per request'),
+  places: z.array(PlaceBaseSchema).max(25, 'Max 25 places per request'),
 })
 
 export async function POST(req: NextRequest): Promise<NextResponse<EnrichApiResponse>> {
-  // Google billed calls are expensive — 20 batches/min is plenty for browsing.
-  const limited = rateLimit(req, { limit: 20, windowMs: 60_000 })
+  // Public by design: browsing the map without an account must still show
+  // ratings. Each place can cost a billed provider call, so the batch is small,
+  // bursts are tight, and an hourly ceiling caps what one address can spend.
+  // This raises the cost of abuse; it does not eliminate it. A determined
+  // attacker with many addresses still burns quota — the durable answer is
+  // requiring an account, which would take ratings away from signed-out
+  // visitors. Per-place results are cached for an hour, which is what keeps
+  // normal browsing far below these limits.
+  const burst = rateLimit(req, { limit: 10, windowMs: 60_000 })
+  if (burst) return burst
+
+  const limited = rateLimit(req, { limit: 200, windowMs: 3_600_000, bucket: 'hourly' })
   if (limited) return limited
 
   let body: unknown

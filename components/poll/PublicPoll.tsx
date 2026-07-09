@@ -1,12 +1,16 @@
 'use client'
 // PublicPoll — the shareable, no-login poll page rendered at /sondage/[id].
-// Anyone with the link can vote (deduped by an anonymous localStorage token);
-// the creator (if logged in) can close the poll.
+// Anyone with the link can vote; the creator (if logged in) can close the poll.
+//
+// Voter identity comes from a signed httpOnly cookie the server issues, so it
+// cannot be forged. Only the native WebView still sends a locally generated
+// token: it calls the API cross-origin, where the cookie is not attached.
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Star, Check, Trophy, X } from 'lucide-react'
 import type { PollPublic } from '@/types'
 import { apiFetch } from '@/lib/api'
+import { useIsNative } from '@/lib/native/platform'
 import { getVoterToken, getVoterName, setVoterName } from '@/lib/poll-token'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { getAuthHeaders } from '@/lib/auth-headers'
@@ -21,6 +25,7 @@ import PlaceThumb from '@/components/place/PlaceThumb'
 export default function PublicPoll({ id: idProp, onClose }: { id?: string; onClose?: () => void }) {
   const params = useParams<{ id: string }>()
   const id = idProp ?? params?.id ?? ''
+  const isNative = useIsNative()
 
   const [poll, setPoll] = useState<PollPublic | null>(null)
   const [myVote, setMyVote] = useState<string | null>(null)
@@ -34,10 +39,12 @@ export default function PublicPoll({ id: idProp, onClose }: { id?: string; onClo
       return
     }
     try {
-      const token = getVoterToken()
+      // On the web the server reads its own cookie; sending a client token here
+      // would override it and it would never issue one. Native has no cookie.
+      const qs = isNative ? `?token=${encodeURIComponent(getVoterToken())}` : ''
       // Send the auth token when logged in so the server can flag isOwner
       // (it never returns the owner's user id to anonymous viewers).
-      const res = await apiFetch(`/api/polls/${id}?token=${encodeURIComponent(token)}`, {
+      const res = await apiFetch(`/api/polls/${id}${qs}`, {
         headers: await getAuthHeaders(),
       })
       if (res.status === 404) {
@@ -51,7 +58,7 @@ export default function PublicPoll({ id: idProp, onClose }: { id?: string; onClo
     } catch {
       setStatus('notfound')
     }
-  }, [id])
+  }, [id, isNative])
 
   useEffect(() => {
     setName(getVoterName())
@@ -69,7 +76,7 @@ export default function PublicPoll({ id: idProp, onClose }: { id?: string; onClo
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           optionId,
-          voterToken: getVoterToken(),
+          ...(isNative ? { voterToken: getVoterToken() } : {}),
           voterName: trimmed || null,
         }),
       })

@@ -19,6 +19,12 @@ interface Options {
   windowMs: number
   /** Human-readable message returned in the 429 body */
   message?: string
+  /**
+   * Distinguishes two limiters on the same route. Without it, a burst limiter
+   * and a long-window limiter share one key and each call appends a timestamp
+   * to the other's window, so both count double.
+   */
+  bucket?: string
 }
 
 // Global store — survives across requests within the same process
@@ -65,12 +71,17 @@ export function rateLimit(
   req: NextRequest,
   options: Options
 ): NextResponse<{ error: string }> | null {
-  const { limit, windowMs, message = 'Too many requests. Please try again later.' } = options
+  const {
+    limit,
+    windowMs,
+    message = 'Too many requests. Please try again later.',
+    bucket,
+  } = options
 
-  // Identify the caller using the rightmost (trusted proxy-set) IP
+  // Identify the caller using the platform-stamped IP where available
   const ip = getClientIp(req)
 
-  const key = `${ip}:${new URL(req.url).pathname}`
+  const key = `${ip}:${new URL(req.url).pathname}${bucket ? `:${bucket}` : ''}`
   const now = Date.now()
   const since = now - windowMs
 
