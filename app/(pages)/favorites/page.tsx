@@ -227,7 +227,7 @@ function DeleteModal({
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'rgba(36,31,24,0.45)',
+          background: 'rgba(25,28,29,0.45)',
           backdropFilter: 'blur(4px)',
         }}
       />
@@ -362,7 +362,7 @@ function NoteDrawer({
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'rgba(36,31,24,0.45)',
+          background: 'rgba(25,28,29,0.45)',
           backdropFilter: 'blur(6px)',
         }}
       />
@@ -588,7 +588,7 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'rgba(36,31,24,0.45)',
+          background: 'rgba(25,28,29,0.45)',
           backdropFilter: 'blur(6px)',
         }}
       />
@@ -1006,7 +1006,7 @@ function BulkListModal({
         position: 'fixed',
         inset: 0,
         zIndex: 1000,
-        background: 'rgba(36,31,24,0.5)',
+        background: 'rgba(25,28,29,0.5)',
         backdropFilter: 'blur(6px)',
         display: 'flex',
         alignItems: 'center',
@@ -2329,7 +2329,7 @@ function FavoritesPageInner() {
                             gap: 3,
                             fontWeight: 700,
                             fontSize: 13,
-                            color: '#ffd9b8',
+                            color: 'var(--star)',
                           }}
                         >
                           <IcoStar /> {rating.toFixed(1)}
@@ -2343,7 +2343,7 @@ function FavoritesPageInner() {
                             gap: 2,
                             fontSize: 12,
                             fontWeight: 700,
-                            color: '#ffd9b8',
+                            color: 'var(--star)',
                           }}
                         >
                           {Array.from({ length: michelin }).map((_, i) => (

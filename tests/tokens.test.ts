@@ -15,6 +15,24 @@ const FORBIDDEN = [
   '#1a2e1a', // vert forêt résiduel
 ]
 
+/** Formes non-hex de l'ancienne palette : le decimal rgba echappe a une liste de hex. */
+const FORBIDDEN_PATTERNS = [
+  'rgba(36, 31, 24', // #241f18 en decimal — encre chaude
+  'rgba(36,31,24',
+  'rgba(61, 44, 24', // teinte brune des bordures/ombres
+  'rgba(61,44,24',
+  '#ffd9b8', // peche terracotta clair
+  '#c47c52', // bruns de l'ancienne palette de graphique
+  '#7a3a1a',
+  '#8a7253',
+  '#6b5d4a',
+  '#d4a07a',
+  '#e9a06a',
+  '#e3d8c4',
+  '#cdbfa8',
+  '#3f372c',
+]
+
 /** PlaceThumb porte des rampes de dégradé volontaires : elles ne sont pas des tokens. */
 const EXEMPT = ['components/place/PlaceThumb.tsx']
 
@@ -40,7 +58,8 @@ describe('palette monochrome', () => {
     const offenders: string[] = []
     for (const f of files) {
       const src = readFileSync(f, 'utf8').toLowerCase()
-      for (const hex of FORBIDDEN) if (src.includes(hex)) offenders.push(`${f} - ${hex}`)
+      for (const value of [...FORBIDDEN, ...FORBIDDEN_PATTERNS])
+        if (src.includes(value.toLowerCase())) offenders.push(`${f} - ${value}`)
     }
     expect(offenders).toEqual([])
   })
@@ -72,15 +91,7 @@ describe('palette monochrome', () => {
   it("ne laisse aucune couleur de l'ancienne palette dans le bloc :root de globals.css", () => {
     const css = readFileSync('app/globals.css', 'utf8')
     const root = extractRootBlock(css)
-    const forbiddenValues = [
-      'rgba(61, 44, 24',
-      'rgba(61,44,24',
-      '#e3d8c4',
-      '#cdbfa8',
-      '#3f372c',
-      '#e9a06a',
-      ...FORBIDDEN,
-    ]
+    const forbiddenValues = [...FORBIDDEN, ...FORBIDDEN_PATTERNS]
     const offenders = [...new Set(forbiddenValues)].filter((value) =>
       root.includes(value.toLowerCase())
     )

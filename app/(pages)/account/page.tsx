@@ -234,7 +234,7 @@ function DeleteModal({
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'rgba(36,31,24,0.5)',
+          background: 'rgba(25,28,29,0.5)',
           backdropFilter: 'blur(8px)',
         }}
       />
@@ -581,7 +581,7 @@ function TasteBar({ data }: { data: { label: string; value: number }[] }) {
     const id = requestAnimationFrame(() => setMounted(true))
     return () => cancelAnimationFrame(id)
   }, [])
-  const top = data.slice(0, 7)
+  const top = data.slice(0, CUISINE_COLORS.length)
   const total = top.reduce((s, d) => s + d.value, 0)
   if (!total) return null
   return (

@@ -415,7 +415,7 @@ export default function AccountSettingsContent({ isMobile }: { isMobile: boolean
             style={{
               position: 'absolute',
               inset: 0,
-              background: 'rgba(36,31,24,0.5)',
+              background: 'rgba(25,28,29,0.5)',
               backdropFilter: 'blur(8px)',
             }}
           />

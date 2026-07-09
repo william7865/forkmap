@@ -454,7 +454,7 @@ export default function AccountSettingsNative({ isMobile: _isMobile }: { isMobil
             style={{
               position: 'absolute',
               inset: 0,
-              background: 'rgba(36,31,24,0.5)',
+              background: 'rgba(25,28,29,0.5)',
               backdropFilter: 'blur(8px)',
             }}
           />

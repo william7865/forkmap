@@ -1128,11 +1128,10 @@ function DeckCard({
                 gap: 4,
                 fontWeight: 700,
                 fontSize: 14,
-                color: pal.n ? '#fff' : '#ffd9b8',
+                color: '#fff',
               }}
             >
-              <Star size={13} fill={pal.n ? 'var(--star)' : '#ffd9b8'} strokeWidth={0} />{' '}
-              {rating.toFixed(1)}
+              <Star size={13} fill="var(--star)" strokeWidth={0} /> {rating.toFixed(1)}
               {p.fsq?.total_ratings ? (
                 <span style={{ fontWeight: 500, fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>
                   ({p.fsq.total_ratings})
