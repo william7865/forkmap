@@ -474,7 +474,7 @@ export default function ShareModal({ place, onClose }: Props) {
                 onClick={handleNativeShare}
                 color="var(--forest-mid)"
                 bg="var(--forest-pale)"
-                border="rgba(187,94,46,0.3)"
+                border="rgba(25,28,29,0.3)"
               />
             )}
           </div>
@@ -505,7 +505,7 @@ export default function ShareModal({ place, onClose }: Props) {
               padding: '10px 10px 10px 14px',
               borderRadius: 'var(--r-md)',
               background: 'var(--off-white)',
-              border: `1px solid ${copied ? 'rgba(187,94,46,0.4)' : 'var(--ink-10)'}`,
+              border: `1px solid ${copied ? 'rgba(25,28,29,0.4)' : 'var(--ink-10)'}`,
               transition: 'border-color 200ms ease',
             }}
           >
@@ -530,7 +530,7 @@ export default function ShareModal({ place, onClose }: Props) {
                 padding: '6px 12px',
                 borderRadius: 'var(--r-sm)',
                 background: copied ? 'var(--forest-pale)' : 'var(--white)',
-                border: `1px solid ${copied ? 'rgba(187,94,46,0.4)' : 'var(--ink-10)'}`,
+                border: `1px solid ${copied ? 'rgba(25,28,29,0.4)' : 'var(--ink-10)'}`,
                 cursor: 'pointer',
                 fontSize: 11,
                 fontWeight: 600,

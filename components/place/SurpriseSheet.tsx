@@ -64,18 +64,18 @@ function dpal() {
       ? 'linear-gradient(180deg, var(--bg) 0%, var(--surface) 100%)'
       : 'linear-gradient(155deg, #2a2018 0%, #1c1611 60%, #0f0b08 100%)',
     fg: n ? 'var(--text)' : 'var(--bg)',
-    faint: n ? 'var(--text-3)' : 'rgba(255,253,248,0.45)',
-    hint: n ? 'var(--text-3)' : 'rgba(255,253,248,0.5)',
+    faint: n ? 'var(--text-3)' : 'rgba(255,255,255,0.45)',
+    hint: n ? 'var(--text-3)' : 'rgba(255,255,255,0.5)',
     chipBorder: n ? 'var(--border)' : 'rgba(255,255,255,0.28)',
     chipBg: n ? 'var(--bg)' : 'rgba(255,255,255,0.1)',
-    chipFg: n ? 'var(--text-2)' : 'rgba(255,253,248,0.92)',
+    chipFg: n ? 'var(--text-2)' : 'rgba(255,255,255,0.92)',
     glassBg: n ? 'var(--surface)' : 'rgba(255,255,255,0.12)',
     glassFg: n ? 'var(--text)' : '#fff',
     roundBg: n ? 'var(--surface)' : 'rgba(255,255,255,0.1)',
     roundFg: n ? 'var(--text)' : '#fff',
     ok: n ? 'var(--open)' : '#7ee0a8',
     softChipBg: n ? 'var(--surface)' : 'rgba(255,255,255,0.16)',
-    softChipFg: n ? 'var(--text-2)' : 'rgba(255,253,248,0.95)',
+    softChipFg: n ? 'var(--text-2)' : 'rgba(255,255,255,0.95)',
   }
 }
 
@@ -657,7 +657,7 @@ export default function SurpriseSheet({
                       animation: 'fmHeartPop 820ms var(--ease-spring) both',
                       filter: pal.n
                         ? 'drop-shadow(0 10px 34px rgba(17,17,18,0.4))'
-                        : 'drop-shadow(0 10px 34px rgba(187,94,46,0.6))',
+                        : 'drop-shadow(0 10px 34px rgba(25,28,29,0.6))',
                     }}
                   />
                   {[0, 1, 2, 3, 4, 5].map((i) => {
@@ -1191,7 +1191,7 @@ function Chip({ children }: { children: React.ReactNode }) {
         padding: '4px 10px',
         borderRadius: 'var(--r-pill)',
         background: 'rgba(255,255,255,0.16)',
-        color: 'rgba(255,253,248,0.95)',
+        color: 'rgba(255,255,255,0.95)',
         backdropFilter: 'blur(4px)',
       }}
     >
@@ -1259,7 +1259,7 @@ function DeckMessage({
         style={{
           margin: '0 0 18px',
           fontSize: 13.5,
-          color: pal.n ? 'var(--text-2)' : 'rgba(255,253,248,0.7)',
+          color: pal.n ? 'var(--text-2)' : 'rgba(255,255,255,0.7)',
           lineHeight: 1.55,
         }}
       >
@@ -1302,7 +1302,7 @@ function DeckMessage({
                 : 'none',
               cursor: 'pointer',
               background: action2 ? 'transparent' : 'var(--ember)',
-              color: action2 ? (pal.n ? 'var(--text)' : 'rgba(255,253,248,0.92)') : '#fff',
+              color: action2 ? (pal.n ? 'var(--text)' : 'rgba(255,255,255,0.92)') : '#fff',
               fontSize: 13,
               fontWeight: 700,
               fontFamily: 'var(--font-body)',
@@ -1389,7 +1389,7 @@ function Seg({ items }: { items: { label: string; active: boolean; onClick: () =
               ? 'var(--on-accent)'
               : pal.n
                 ? 'var(--text-2)'
-                : 'rgba(255,253,248,0.7)',
+                : 'rgba(255,255,255,0.7)',
             transition: 'background 120ms ease, color 120ms ease',
             whiteSpace: 'nowrap',
           }}
@@ -1438,7 +1438,7 @@ function DarkToggle({ on, onClick, label }: { on: boolean; onClick: () => void; 
         style={{
           fontSize: 13,
           fontWeight: 600,
-          color: pal.n ? 'var(--text)' : 'rgba(255,253,248,0.92)',
+          color: pal.n ? 'var(--text)' : 'rgba(255,255,255,0.92)',
           whiteSpace: 'nowrap',
         }}
       >
@@ -1457,7 +1457,7 @@ function RefineLabel({ children }: { children: React.ReactNode }) {
         fontWeight: 700,
         letterSpacing: '0.1em',
         textTransform: 'uppercase',
-        color: pal.n ? 'var(--text-3)' : 'rgba(255,253,248,0.45)',
+        color: pal.n ? 'var(--text-3)' : 'rgba(255,255,255,0.45)',
         minWidth: 62,
       }}
     >

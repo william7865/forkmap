@@ -623,7 +623,7 @@ export default function PlaceDetail({
               height: 34,
               padding: '0 12px',
               borderRadius: 'var(--r-sm)',
-              border: `1px solid ${note ? 'rgba(187,94,46,0.35)' : 'var(--ink-10)'}`,
+              border: `1px solid ${note ? 'rgba(25,28,29,0.35)' : 'var(--ink-10)'}`,
               background: note ? 'var(--forest-pale)' : 'var(--off-white)',
               color: note ? 'var(--forest-mid)' : 'var(--ink-60)',
               cursor: 'pointer',
@@ -638,12 +638,12 @@ export default function PlaceDetail({
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'var(--forest-pale)'
-              e.currentTarget.style.borderColor = 'rgba(187,94,46,0.3)'
+              e.currentTarget.style.borderColor = 'rgba(25,28,29,0.3)'
               e.currentTarget.style.color = 'var(--forest-mid)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = note ? 'var(--forest-pale)' : 'var(--off-white)'
-              e.currentTarget.style.borderColor = note ? 'rgba(187,94,46,0.35)' : 'var(--ink-10)'
+              e.currentTarget.style.borderColor = note ? 'rgba(25,28,29,0.35)' : 'var(--ink-10)'
               e.currentTarget.style.color = note ? 'var(--forest-mid)' : 'var(--ink-60)'
             }}
           >
@@ -674,7 +674,7 @@ export default function PlaceDetail({
               height: 34,
               padding: '0 12px',
               borderRadius: 'var(--r-sm)',
-              border: `1px solid ${visitCount ? 'rgba(196,124,43,0.35)' : 'var(--ink-10)'}`,
+              border: `1px solid ${visitCount ? 'rgba(25,28,29,0.35)' : 'var(--ink-10)'}`,
               background: visitCount ? 'var(--amber-pale)' : 'var(--off-white)',
               color: visitCount ? 'var(--amber)' : 'var(--ink-60)',
               cursor: 'pointer',
@@ -689,7 +689,7 @@ export default function PlaceDetail({
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'var(--amber-pale)'
-              e.currentTarget.style.borderColor = 'rgba(196,124,43,0.4)'
+              e.currentTarget.style.borderColor = 'rgba(25,28,29,0.4)'
               e.currentTarget.style.color = 'var(--amber)'
             }}
             onMouseLeave={(e) => {
@@ -697,7 +697,7 @@ export default function PlaceDetail({
                 ? 'var(--amber-pale)'
                 : 'var(--off-white)'
               e.currentTarget.style.borderColor = visitCount
-                ? 'rgba(196,124,43,0.35)'
+                ? 'rgba(25,28,29,0.35)'
                 : 'var(--ink-10)'
               e.currentTarget.style.color = visitCount ? 'var(--amber)' : 'var(--ink-60)'
             }}
@@ -1043,7 +1043,7 @@ export default function PlaceDetail({
                   fontWeight: 700,
                   background: 'var(--amber-pale)',
                   color: 'var(--amber)',
-                  border: '1px solid rgba(196,124,43,0.25)',
+                  border: '1px solid rgba(25,28,29,0.25)',
                 }}
               >
                 <span style={{ display: 'inline-flex', gap: 1 }}>
@@ -1071,7 +1071,7 @@ export default function PlaceDetail({
                     fontWeight: 700,
                     background: 'var(--amber-pale)',
                     color: 'var(--amber)',
-                    border: '1px solid rgba(196,124,43,0.25)',
+                    border: '1px solid rgba(25,28,29,0.25)',
                   }}
                 >
                   {d}
@@ -1389,7 +1389,7 @@ export default function PlaceDetail({
                 textDecoration: 'none',
                 fontSize: 12,
                 fontWeight: 700,
-                boxShadow: '0 4px 12px rgba(196,124,43,0.3)',
+                boxShadow: '0 4px 12px rgba(25,28,29,0.3)',
                 letterSpacing: '-0.01em',
                 whiteSpace: 'nowrap',
               }}
@@ -1432,7 +1432,7 @@ export default function PlaceDetail({
               gap: 9,
               padding: '10px 12px',
               background: 'var(--forest-pale)',
-              border: '1px solid rgba(187,94,46,0.2)',
+              border: '1px solid rgba(25,28,29,0.2)',
               borderLeft: '3px solid var(--forest-mid)',
               borderRadius: 'var(--r-md)',
               cursor: 'pointer',
@@ -1633,7 +1633,7 @@ export default function PlaceDetail({
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background = 'var(--amber-pale)'
-                      e.currentTarget.style.borderColor = 'rgba(196,124,43,0.35)'
+                      e.currentTarget.style.borderColor = 'rgba(25,28,29,0.35)'
                       e.currentTarget.style.color = 'var(--amber)'
                     }}
                     onMouseLeave={(e) => {
@@ -1703,7 +1703,7 @@ export default function PlaceDetail({
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background = 'var(--forest-pale)'
-                      e.currentTarget.style.borderColor = 'rgba(187,94,46,0.25)'
+                      e.currentTarget.style.borderColor = 'rgba(25,28,29,0.25)'
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = 'var(--off-white)'

@@ -31,6 +31,12 @@ const FORBIDDEN_PATTERNS = [
   '#e3d8c4',
   '#cdbfa8',
   '#3f372c',
+  'rgba(187, 94, 46', // #bb5e2e terracotta, forme decimale
+  'rgba(187,94,46',
+  'rgba(196, 124, 43', // terracotta clair, forme decimale
+  'rgba(196,124,43',
+  'rgba(255, 253, 248', // #fffdf8 blanc creme, forme decimale
+  'rgba(255,253,248',
 ]
 
 /** PlaceThumb porte des rampes de dégradé volontaires : elles ne sont pas des tokens. */

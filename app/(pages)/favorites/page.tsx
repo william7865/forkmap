@@ -1643,7 +1643,7 @@ function FavCardGrid({
               borderRadius: 'var(--r-pill)',
               fontSize: 11,
               fontWeight: 700,
-              background: 'rgba(255,253,248,0.95)',
+              background: 'rgba(255,255,255,0.95)',
               color: 'var(--ember-text)',
             }}
           >
@@ -2273,7 +2273,7 @@ function FavoritesPageInner() {
                       letterSpacing: '0.04em',
                       padding: '5px 11px',
                       borderRadius: 'var(--r-pill)',
-                      background: 'rgba(255,253,248,0.95)',
+                      background: 'rgba(255,255,255,0.95)',
                       color: 'var(--ember-text)',
                     }}
                   >
@@ -2293,7 +2293,7 @@ function FavoritesPageInner() {
                         fontFamily: 'var(--font-display)',
                         fontStyle: 'italic',
                         fontSize: 12.5,
-                        color: 'rgba(255,253,248,0.85)',
+                        color: 'rgba(255,255,255,0.85)',
                         marginBottom: 5,
                       }}
                     >

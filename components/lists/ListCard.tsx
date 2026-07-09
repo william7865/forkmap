@@ -101,7 +101,7 @@ export function NewListCard({ onClick }: { onClick: () => void }) {
           width: 36,
           height: 36,
           borderRadius: '50%',
-          background: hovered ? 'rgba(187,94,46,0.15)' : 'var(--bone)',
+          background: hovered ? 'rgba(25,28,29,0.15)' : 'var(--bone)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

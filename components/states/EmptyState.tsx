@@ -99,7 +99,7 @@ export default function EmptyState({ variant, searchQuery, onReset, onExplore }:
             padding: '8px 18px',
             borderRadius: 999,
             border: '1.5px solid var(--accent)',
-            background: 'rgba(187,94,46,0.15)',
+            background: 'rgba(25,28,29,0.15)',
             color: 'var(--accent)',
             fontSize: 12,
             fontWeight: 600,
@@ -112,7 +112,7 @@ export default function EmptyState({ variant, searchQuery, onReset, onExplore }:
             e.currentTarget.style.color = 'white'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(187,94,46,0.15)'
+            e.currentTarget.style.background = 'rgba(25,28,29,0.15)'
             e.currentTarget.style.color = 'var(--accent)'
           }}
         >

@@ -115,7 +115,7 @@ function PillSelect({
             width: full ? '100%' : undefined,
             background: active ? 'var(--accent-light)' : 'var(--surface)',
             color: active ? 'var(--accent-text)' : 'var(--text)',
-            border: `1px solid ${active ? 'rgba(187,94,46,0.35)' : 'var(--border)'}`,
+            border: `1px solid ${active ? 'rgba(25,28,29,0.35)' : 'var(--border)'}`,
             borderRadius: 'var(--r-pill)',
             padding: '9px 32px 9px 14px',
             fontSize: 12.5,

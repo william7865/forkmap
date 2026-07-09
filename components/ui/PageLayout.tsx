@@ -127,7 +127,7 @@ export function PageHeader({ current, actions }: { current: string; actions?: Re
         onMouseEnter={(e) => {
           e.currentTarget.style.color = 'var(--forest-mid)'
           e.currentTarget.style.background = 'var(--forest-pale)'
-          e.currentTarget.style.borderColor = 'rgba(187,94,46,0.2)'
+          e.currentTarget.style.borderColor = 'rgba(25,28,29,0.2)'
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.color = 'var(--ink-40)'
@@ -164,7 +164,7 @@ export function PageHeader({ current, actions }: { current: string; actions?: Re
           padding: '4px 10px',
           borderRadius: 'var(--r-pill)',
           background: 'var(--forest-pale)',
-          border: '1px solid rgba(187,94,46,0.18)',
+          border: '1px solid rgba(25,28,29,0.18)',
           fontFamily: 'var(--font-body)',
           flexShrink: 0,
           whiteSpace: 'nowrap' as const,

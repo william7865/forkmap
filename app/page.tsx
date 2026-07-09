@@ -1044,7 +1044,7 @@ export default function HomePage() {
                     fontWeight: 500,
                     fontFamily: 'var(--font-body)',
                     background: pinDropActive ? 'var(--accent-light)' : 'transparent',
-                    border: `1px solid ${pinDropActive ? 'rgba(187,94,46,0.3)' : 'var(--border)'}`,
+                    border: `1px solid ${pinDropActive ? 'rgba(25,28,29,0.3)' : 'var(--border)'}`,
                     color: pinDropActive ? 'var(--accent)' : 'var(--text-2)',
                     transition: 'all 150ms ease',
                   }}

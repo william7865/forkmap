@@ -1453,7 +1453,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
               left: -90,
               width: 320,
               height: 320,
-              background: 'radial-gradient(circle, rgba(187,94,46,0.07), transparent 68%)',
+              background: 'radial-gradient(circle, rgba(25,28,29,0.07), transparent 68%)',
               pointerEvents: 'none',
             }}
           />
