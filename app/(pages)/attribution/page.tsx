@@ -139,7 +139,7 @@ export default function AttributionPage() {
         </p>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 36 }}>
         {sources.map((src) => (
           <div
             key={src.name}
@@ -224,6 +224,45 @@ export default function AttributionPage() {
               </a>
             </div>
           </div>
+        ))}
+      </div>
+
+      {/* Technologies — reuses the source badge pill style above (badgeColor/badgeBg) */}
+      <h2
+        style={{
+          fontSize: 16,
+          fontWeight: 700,
+          letterSpacing: '-0.02em',
+          color: 'var(--ink)',
+          margin: '0 0 14px',
+        }}
+      >
+        Technologies
+      </h2>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {[
+          'Next.js 15',
+          'TypeScript',
+          'Leaflet.js',
+          'Supabase',
+          'Tailwind CSS',
+          'Overpass API',
+          'Foursquare API',
+          'OSRM',
+        ].map((tech) => (
+          <span
+            key={tech}
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              padding: '2px 8px',
+              borderRadius: 999,
+              color: 'var(--accent)',
+              background: 'var(--accent-light)',
+            }}
+          >
+            {tech}
+          </span>
         ))}
       </div>
     </InfoPage>
