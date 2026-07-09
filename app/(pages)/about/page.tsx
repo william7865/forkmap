@@ -106,7 +106,7 @@ export default function AboutPage() {
             fontSize: 16,
             color: 'var(--text-2)',
             lineHeight: 1.75,
-            maxWidth: '58ch',
+            maxWidth: 560,
           }}
         >
           Forkmap est né d&apos;une conviction simple&nbsp;: trouver un bon resto ne devrait pas
@@ -145,7 +145,7 @@ export default function AboutPage() {
               fontSize: 14,
               color: 'var(--text-2)',
               lineHeight: 1.75,
-              maxWidth: '58ch',
+              maxWidth: 495,
             }}
           >
             Déplacez-vous, zoomez, et découvrez les restaurants d&apos;un quartier au fur et à
@@ -183,65 +183,37 @@ export default function AboutPage() {
               color: 'var(--text-2)',
               lineHeight: 1.75,
               marginBottom: 20,
-              maxWidth: '68ch',
+              maxWidth: 495,
             }}
           >
             Forkmap s&apos;appuie sur des sources de données ouvertes. Nous ne possédons ni ne
             créons les données des restaurants&nbsp;: nous les rassemblons, les enrichissons et les
             affichons.
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'grid', gap: 30 }}>
             {DATA_SOURCES.map((src) => (
-              <div
+              <p
                 key={src.name}
                 style={{
-                  display: 'flex',
-                  gap: 16,
-                  alignItems: 'flex-start',
-                  padding: '16px 18px',
-                  background: 'var(--bg)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--r-md)',
+                  margin: 0,
+                  fontSize: 13,
+                  color: 'var(--text-2)',
+                  lineHeight: 1.75,
+                  maxWidth: 460,
                 }}
               >
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-                      {src.name}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 600,
-                        color: 'var(--text-2)',
-                        background: 'var(--surface)',
-                        padding: '2px 8px',
-                        borderRadius: 'var(--r-pill)',
-                      }}
-                    >
-                      {src.badge}
-                    </span>
-                  </div>
-                  <p style={{ margin: 0, fontSize: 13, color: 'var(--text-2)', lineHeight: 1.65 }}>
-                    {src.desc}
-                  </p>
-                </div>
+                <span style={{ fontWeight: 600, color: 'var(--text)' }}>{src.name}</span>{' '}
+                <span style={{ color: 'var(--text-3)', fontSize: 12 }}>· {src.badge} ·</span>{' '}
+                {src.desc}{' '}
                 <a
                   href={src.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{
-                    flexShrink: 0,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: 'var(--accent)',
-                    textDecoration: 'none',
-                    marginTop: 2,
-                  }}
+                  style={{ color: 'var(--accent)', textDecoration: 'none' }}
                 >
                   Site web →
                 </a>
-              </div>
+              </p>
             ))}
           </div>
         </Section>
