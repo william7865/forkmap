@@ -744,10 +744,8 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
         color: 'var(--accent)',
         display: 'flex',
         alignItems: 'center',
-        gap: 10,
       }}
     >
-      <span style={{ width: 18, height: 1.5, background: 'var(--accent)', flexShrink: 0 }} />
       {children}
     </div>
   )
@@ -1381,7 +1379,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
           padding: isNative
             ? 'calc(var(--safe-top) + 6px) 20px calc(var(--safe-bottom) + 100px)'
             : isMobile
-              ? '20px 20px 100px'
+              ? '20px 20px 80px'
               : '44px 40px 90px',
           width: '100%',
           position: 'relative',

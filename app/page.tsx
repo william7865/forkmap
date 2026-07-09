@@ -131,7 +131,6 @@ export default function HomePage() {
     hoveredId,
     setHoveredId,
     filters,
-    setFilters,
     nameQuery,
     setNameQuery,
     showFilters,
@@ -357,24 +356,32 @@ export default function HomePage() {
           type ChipDef = { id: string; label: string; active: boolean; onToggle: () => void }
           const openCount = places.filter((p) => p.open_now === true).length
           const chips: ChipDef[] = [
+            // Go through handleFilters, never the raw setter: it is the only path that
+            // re-runs applyClientFilters. setFilters lit the chip and changed nothing else.
+            // Turning a chip off clears its key so it stops counting toward the badge.
             {
               id: 'open',
               label: openCount > 0 ? `Ouvert · ${openCount}` : 'Ouvert',
               active: !!filters.openNow,
-              onToggle: () => setFilters((f) => ({ ...f, openNow: !f.openNow })),
+              onToggle: () =>
+                handleFilters({ ...filters, openNow: filters.openNow ? undefined : true }),
             },
             {
               id: 'rating4',
               label: '8+ / 10',
               active: (filters.minRating ?? 0) >= 8,
               onToggle: () =>
-                setFilters((f) => ({ ...f, minRating: (f.minRating ?? 0) >= 8 ? 0 : 8 })),
+                handleFilters({
+                  ...filters,
+                  minRating: (filters.minRating ?? 0) >= 8 ? undefined : 8,
+                }),
             },
             ...topCuisines.map((c) => ({
               id: `cuisine-${c}`,
               label: frCuisine(c),
               active: filters.cuisine === c,
-              onToggle: () => setFilters((f) => ({ ...f, cuisine: f.cuisine === c ? '' : c })),
+              onToggle: () =>
+                handleFilters({ ...filters, cuisine: filters.cuisine === c ? undefined : c }),
             })),
           ]
           return (
@@ -1065,21 +1072,28 @@ export default function HomePage() {
                     id: 'open',
                     label: 'Ouvert',
                     active: !!filters.openNow,
-                    onToggle: () => setFilters((f) => ({ ...f, openNow: !f.openNow })),
+                    onToggle: () =>
+                      handleFilters({ ...filters, openNow: filters.openNow ? undefined : true }),
                   },
                   {
                     id: 'rating4',
                     label: '8+ / 10',
                     active: (filters.minRating ?? 0) >= 8,
                     onToggle: () =>
-                      setFilters((f) => ({ ...f, minRating: (f.minRating ?? 0) >= 8 ? 0 : 8 })),
+                      handleFilters({
+                        ...filters,
+                        minRating: (filters.minRating ?? 0) >= 8 ? undefined : 8,
+                      }),
                   },
                   ...topCuisines.map((c) => ({
                     id: `cuisine-${c}`,
-                    label: c,
+                    label: frCuisine(c),
                     active: filters.cuisine === c,
                     onToggle: () =>
-                      setFilters((f) => ({ ...f, cuisine: f.cuisine === c ? '' : c })),
+                      handleFilters({
+                        ...filters,
+                        cuisine: filters.cuisine === c ? undefined : c,
+                      }),
                   })),
                 ]
                 return (

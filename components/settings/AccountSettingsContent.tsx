@@ -633,10 +633,8 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
         color: 'var(--accent)',
         display: 'flex',
         alignItems: 'center',
-        gap: 10,
       }}
     >
-      <span style={{ width: 18, height: 1.5, background: 'var(--accent)', flexShrink: 0 }} />
       {children}
     </div>
   )

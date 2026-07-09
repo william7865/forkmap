@@ -3,10 +3,12 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect, useMemo } from 'react'
 import { useAuth, getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
-import { Map, User, MoreHorizontal, LogOut } from 'lucide-react'
+import { Map, Bookmark, User, MoreHorizontal, LogOut } from 'lucide-react'
 
+// Mirrors NavRail so the same destinations are reachable on both breakpoints.
 const TABS = [
   { href: '/', Icon: Map, label: 'Carte' },
+  { href: '/favorites', Icon: Bookmark, label: 'Enregistrés' },
   { href: '/account', Icon: User, label: 'Compte' },
 ]
 

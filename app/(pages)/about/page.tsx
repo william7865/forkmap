@@ -30,38 +30,11 @@ const CAPABILITIES = [
   },
 ]
 
-const DATA_SOURCES = [
-  {
-    name: 'OpenStreetMap',
-    badge: 'ODbL',
-    desc: "Emplacements, noms, adresses, horaires d'ouverture, cuisines et numéros de téléphone proviennent d'OpenStreetMap, une carte du monde sous licence ouverte, maintenue par sa communauté.",
-    href: 'https://www.openstreetmap.org',
-  },
-  {
-    name: 'Foursquare Places',
-    badge: 'API',
-    desc: "Les notes, le nombre d'avis, les niveaux de prix, les photos et les catégories sont enrichis grâce à l'API Foursquare Places.",
-    href: 'https://developer.foursquare.com',
-  },
-  {
-    name: 'OSRM',
-    badge: 'Itinéraires',
-    desc: "Le calcul des itinéraires (temps et tracés à pied, à vélo, en voiture ou en transports) est assuré par l'Open Source Routing Machine, qui s'appuie sur les données routières d'OpenStreetMap.",
-    href: 'https://project-osrm.org',
-  },
-  {
-    name: 'Nominatim',
-    badge: 'Géocodage',
-    desc: "La conversion d'une adresse en coordonnées (géocodage) utilise Nominatim, un géocodeur fondé sur OpenStreetMap.",
-    href: 'https://nominatim.openstreetmap.org',
-  },
-]
-
 export default function AboutPage() {
   return (
     <InfoPage headerLabel="À propos">
       {/* Hero */}
-      <div className="anim-slide-up" style={{ marginBottom: 40, animationDelay: '0ms' }}>
+      <div className="anim-slide-up" style={{ marginBottom: 40 }}>
         <div
           style={{
             display: 'inline-flex',
@@ -83,13 +56,13 @@ export default function AboutPage() {
               textTransform: 'uppercase',
             }}
           >
-            Open source · Gratuit
+            Gratuit · Sans publicité
           </span>
         </div>
         <h1
           style={{
             margin: '0 0 16px',
-            fontSize: 36,
+            fontSize: 'clamp(28px, 7vw, 36px)',
             fontWeight: 600,
             letterSpacing: '-0.05em',
             color: 'var(--text)',
@@ -115,13 +88,15 @@ export default function AboutPage() {
       </div>
 
       {/* Capabilities — map promoted as a capability hero, the other five as prose */}
-      <div className="anim-slide-up" style={{ marginBottom: 56, animationDelay: '60ms' }}>
+      <div style={{ marginBottom: 56 }}>
         <div
           style={{
             background: 'var(--surface)',
             border: '1px solid var(--border)',
             borderRadius: 'var(--r-xl)',
-            padding: '40px 96px 40px 40px',
+            // The measure is held by the children's maxWidth, not by a fixed right gutter,
+            // which used to squeeze the text into a 250px column on a phone.
+            padding: 'clamp(24px, 5vw, 40px)',
             marginBottom: 40,
           }}
         >
@@ -131,10 +106,11 @@ export default function AboutPage() {
               fontFamily: 'var(--font-display)',
               fontStyle: 'italic',
               fontWeight: 400,
-              fontSize: 26,
+              fontSize: 'clamp(21px, 4.2vw, 26px)',
               lineHeight: 1.4,
               color: 'var(--text)',
               maxWidth: 560,
+              textWrap: 'balance',
             }}
           >
             Ouvrez la carte&nbsp;: chaque point est un lieu réel, pas un résultat sponsorisé.
@@ -149,8 +125,7 @@ export default function AboutPage() {
             }}
           >
             Déplacez-vous, zoomez, et découvrez les restaurants d&apos;un quartier au fur et à
-            mesure qu&apos;ils apparaissent — sans liste figée ni recherche à relancer. Les lieux
-            viennent d&apos;OpenStreetMap, les notes de Foursquare.
+            mesure qu&apos;ils apparaissent, sans liste figée ni recherche à relancer.
           </p>
         </div>
 
@@ -174,56 +149,9 @@ export default function AboutPage() {
         </div>
       </div>
 
-      {/* Data sources */}
-      <div className="anim-slide-up" style={{ marginBottom: 48, animationDelay: '120ms' }}>
-        <Section title="Sources de données">
-          <p
-            style={{
-              fontSize: 14,
-              color: 'var(--text-2)',
-              lineHeight: 1.75,
-              marginBottom: 20,
-              maxWidth: 495,
-            }}
-          >
-            Forkmap s&apos;appuie sur des sources de données ouvertes. Nous ne possédons ni ne
-            créons les données des restaurants&nbsp;: nous les rassemblons, les enrichissons et les
-            affichons.
-          </p>
-          <div style={{ display: 'grid', gap: 30 }}>
-            {DATA_SOURCES.map((src) => (
-              <p
-                key={src.name}
-                style={{
-                  margin: 0,
-                  fontSize: 13,
-                  color: 'var(--text-2)',
-                  lineHeight: 1.75,
-                  maxWidth: 460,
-                }}
-              >
-                <span style={{ fontWeight: 600, color: 'var(--text)' }}>{src.name}</span>{' '}
-                <span style={{ color: 'var(--text-3)', fontSize: 12 }}>· {src.badge} ·</span>{' '}
-                {src.desc}{' '}
-                <a
-                  href={src.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ color: 'var(--accent)', textDecoration: 'none' }}
-                >
-                  Site web →
-                </a>
-              </p>
-            ))}
-          </div>
-        </Section>
-      </div>
-
       {/* CTA */}
       <div
-        className="anim-slide-up"
         style={{
-          animationDelay: '180ms',
           background: 'var(--bg)',
           border: '1px solid var(--border)',
           borderRadius: 'var(--r-xl)',
@@ -271,26 +199,5 @@ export default function AboutPage() {
         </Link>
       </div>
     </InfoPage>
-  )
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <h2
-        style={{
-          margin: '0 0 18px',
-          fontSize: 18,
-          fontWeight: 600,
-          letterSpacing: '-0.03em',
-          color: 'var(--text)',
-          paddingBottom: 12,
-          borderBottom: '1px solid var(--border)',
-        }}
-      >
-        {title}
-      </h2>
-      {children}
-    </div>
   )
 }
