@@ -2,7 +2,7 @@
 import { memo, useState, useCallback, useEffect } from 'react'
 import { getNote } from '@/components/place/NoteModal'
 import type { PlaceCard as T } from '@/types'
-import { Bookmark, MapPin, Utensils, Star } from 'lucide-react'
+import { Bookmark, MapPin, Star } from 'lucide-react'
 import { frCuisine } from '@/lib/cuisine'
 import { useIsNative } from '@/lib/native/platform'
 import PlaceThumb from '@/components/place/PlaceThumb'
@@ -343,10 +343,10 @@ const PlaceCard = memo(function PlaceCard({
   }
 
   // ─────────────────────────────────────────── WEB — inchangé ──
-  const cardBorder = isSelected ? '1.5px solid var(--accent)' : '1px solid var(--border)'
-  const cardShadow = isSelected ? 'var(--s2)' : isHovered ? 'var(--s1)' : 'none'
-  const cardBg = isSelected ? 'var(--accent-light)' : 'var(--bg)'
-  const cardTransform = pressing ? 'scale(0.985)' : 'scale(1)'
+  const cardBorder = isSelected ? '1px solid var(--border-strong)' : '1px solid var(--border)'
+  const cardShadow = isSelected ? 'var(--s2)' : isHovered ? 'var(--s2)' : 'var(--s0)'
+  const cardBg = isSelected ? 'var(--surface)' : 'var(--bg)'
+  const cardTransform = pressing ? 'scale(0.985)' : isHovered ? 'translateY(-1px)' : 'none'
 
   return (
     <div
@@ -361,10 +361,12 @@ const PlaceCard = memo(function PlaceCard({
         overflow: 'hidden',
         background: cardBg,
         border: cardBorder,
+        borderLeft: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
         boxShadow: cardShadow,
         cursor: 'pointer',
         transform: cardTransform,
-        transition: 'box-shadow 150ms ease, transform 150ms ease, background 150ms ease',
+        transition:
+          'box-shadow 140ms var(--ease-out), transform 140ms var(--ease-out), background 140ms var(--ease-out)',
         outline: 'none',
         display: 'flex',
         alignItems: 'center',
@@ -386,22 +388,18 @@ const PlaceCard = memo(function PlaceCard({
         }
       }}
     >
-      {/* Icon square */}
+      {/* Thumb — photo si dispo, sinon initiale serif sur dégradé */}
       <div
         style={{
-          width: 44,
-          height: 44,
-          borderRadius: 10,
-          background: isSelected ? 'var(--accent)' : 'var(--surface)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          width: 52,
+          height: 52,
+          borderRadius: 12,
+          overflow: 'hidden',
           flexShrink: 0,
-          color: isSelected ? 'var(--on-accent)' : 'var(--text-3)',
-          transition: 'background 150ms ease, color 150ms ease',
+          background: 'var(--surface)',
         }}
       >
-        <Utensils size={18} strokeWidth={1.75} />
+        <PlaceThumb place={place} initialSize={22} photoSize={128} tone="light" />
       </div>
 
       {/* Content */}
@@ -411,8 +409,8 @@ const PlaceCard = memo(function PlaceCard({
           <span
             style={{
               fontFamily: 'var(--font-display)',
-              fontSize: 15.5,
-              fontWeight: 600,
+              fontSize: 16.5,
+              fontWeight: 500,
               color: 'var(--text)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
