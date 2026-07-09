@@ -6,7 +6,9 @@ import AppChrome from '@/components/ui/AppChrome'
 import CapacitorInit from '@/components/native/CapacitorInit'
 
 export const viewport: Viewport = {
-  themeColor: '#f6efe1',
+  // Static <meta name="theme-color">, emitted at build time — can't reference a CSS var().
+  // Kept in sync with --surface.
+  themeColor: '#f8f9fa',
 }
 
 export const metadata: Metadata = {

@@ -89,11 +89,11 @@ const CUISINE_GRADIENTS: Record<string, string> = {
 }
 
 function getGradient(cuisine?: string) {
-  if (!cuisine) return 'linear-gradient(135deg,#1a2e1a,#3d6e3d)'
+  if (!cuisine) return 'linear-gradient(135deg,var(--text),#3d6e3d)'
   const k = cuisine.toLowerCase()
   return (
     Object.entries(CUISINE_GRADIENTS).find(([c]) => k.includes(c))?.[1] ??
-    'linear-gradient(135deg,#1a2e1a,#3d6e3d)'
+    'linear-gradient(135deg,var(--text),#3d6e3d)'
   )
 }
 

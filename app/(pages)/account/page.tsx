@@ -192,14 +192,14 @@ interface VisitRow {
   snapshot?: Record<string, unknown>
 }
 
-// Gamme chaude monochrome (camaïeu terracotta → neutres) — pas de bariolage
+// Gamme monochrome (accent unique + neutres) — pas de bariolage
 const CUISINE_COLORS = [
-  '#bb5e2e',
-  '#9f4d22',
+  'var(--accent)',
+  'var(--accent-hover)',
   '#c47c52',
   '#7a3a1a',
   '#8a7253',
-  '#a8521f',
+  'var(--accent-text)',
   '#6b5d4a',
   '#d4a07a',
 ]
