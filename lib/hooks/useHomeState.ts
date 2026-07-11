@@ -14,6 +14,7 @@ import { useLanguage } from '@/lib/i18n/useLanguage'
 import type { MapViewHandle } from '@/components/map/MapView'
 import { getCurrentPosition } from '@/lib/native/geolocation'
 import { isNativeRuntime } from '@/lib/native/platform'
+import { interstitialAllowed, markInterstitialShown } from '@/lib/app-invite'
 
 // Sentinel collection tab: saved places that belong to no list.
 export const UNLISTED = '__unlisted__'
@@ -57,6 +58,7 @@ export function useHomeState() {
   const [showFilters, setShowFilters] = useState(false)
   const [showSurprise, setShowSurprise] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [showAppInvite, setShowAppInvite] = useState(false)
   const [showSearchHere, setShowSearchHere] = useState(false)
   const [, setLastSearchBbox] = useState<string | null>(null)
   const [pinDropActive, setPinDropActive] = useState(false)
@@ -537,6 +539,15 @@ export function useHomeState() {
         setSelectedPlace((prev) =>
           prev?.osm_id === place.osm_id ? { ...prev, is_favorite: isCurrentlyFav } : prev
         )
+        // Wanting to save is the moment the app earns its pitch. Once, on mobile
+        // web, show the app invite instead of the sign-in modal; "Continuer sur
+        // le web" (in the modal) hands back to the normal flow. Every later save
+        // goes straight to sign-in as before.
+        if (isMobile && !isNativeRuntime() && interstitialAllowed()) {
+          markInterstitialShown()
+          setShowAppInvite(true)
+          return
+        }
         setShowAuthModal(true)
         toast.info('Connectez-vous pour sauvegarder vos favoris')
         return
@@ -559,7 +570,7 @@ export function useHomeState() {
       }
       // no toast on success — HeartButton animation is enough feedback
     },
-    [toggleFavorite, favoriteIds, toast, savedOnly, fetchFavoritesData]
+    [toggleFavorite, favoriteIds, toast, savedOnly, fetchFavoritesData, isMobile]
   )
 
   return {
@@ -603,6 +614,8 @@ export function useHomeState() {
     setShowSurprise,
     showAuthModal,
     setShowAuthModal,
+    showAppInvite,
+    setShowAppInvite,
     showSearchHere,
     pinDropActive,
     routeMode,

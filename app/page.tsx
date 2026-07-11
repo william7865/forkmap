@@ -38,6 +38,7 @@ const PlaceDetail = dynamic(() => import('@/components/place/PlaceDetail'), { ss
 const FiltersPanel = dynamic(() => import('@/components/filters/FiltersPanel'), { ssr: false })
 const ShareModal = dynamic(() => import('@/components/place/ShareModal'), { ssr: false })
 const AuthFlow = dynamic(() => import('@/components/auth/AuthFlow'), { ssr: false })
+const AppInviteModal = dynamic(() => import('@/components/app/AppInviteModal'), { ssr: false })
 const SurpriseSheet = dynamic(() => import('@/components/place/SurpriseSheet'), { ssr: false })
 const ImportSheet = dynamic(() => import('@/components/import/ImportSheet'), { ssr: false })
 
@@ -139,6 +140,8 @@ export default function HomePage() {
     setShowSurprise,
     showAuthModal,
     setShowAuthModal,
+    showAppInvite,
+    setShowAppInvite,
     showSearchHere,
     pinDropActive,
     routeMode,
@@ -1599,6 +1602,15 @@ export default function HomePage() {
       )}
 
       {showAuthModal && <AuthFlow onClose={() => setShowAuthModal(false)} />}
+
+      <AppInviteModal
+        open={showAppInvite}
+        onClose={() => setShowAppInvite(false)}
+        onContinue={() => {
+          setShowAppInvite(false)
+          setShowAuthModal(true)
+        }}
+      />
 
       {sharePlace && <ShareModal place={sharePlace} onClose={() => setSharePlace(null)} />}
 

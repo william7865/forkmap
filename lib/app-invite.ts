@@ -43,3 +43,29 @@ export function detectPlatform(): DevicePlatform {
 }
 
 export const INVITE_DISMISS_KEY = 'forkmap_app_invite_dismissed'
+export const INTERSTITIAL_SHOWN_KEY = 'forkmap_app_interstitial_shown'
+
+/**
+ * Whether the one-time interstitial may fire. It appears at most once ever, and
+ * not if the visitor already dismissed the persistent banner (they've seen the
+ * pitch). Platform/native/mobile gating is the caller's job. SSR-safe.
+ */
+export function interstitialAllowed(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    if (localStorage.getItem(INTERSTITIAL_SHOWN_KEY) === '1') return false
+    if (localStorage.getItem(INVITE_DISMISS_KEY) === '1') return false
+  } catch {
+    return false
+  }
+  return true
+}
+
+/** Record that the interstitial has been shown, so it never fires again. */
+export function markInterstitialShown(): void {
+  try {
+    localStorage.setItem(INTERSTITIAL_SHOWN_KEY, '1')
+  } catch {
+    /* storage disabled — worst case it shows again next session */
+  }
+}
