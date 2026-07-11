@@ -30,6 +30,10 @@ export function extractOsmEnrichment(tags: OsmTags): OsmEnrichedData {
   result.facebook = tags['contact:facebook']
   result.booking_url =
     tags['reservation'] !== 'no' ? (tags['booking'] ?? tags['reservation:url']) : undefined
+  // Direct link to the menu when OSM has one — the closest thing to "what does
+  // this place serve" that is free and reliable. `no` means explicitly no menu.
+  const menuRaw = tags['menu'] ?? tags['website:menu'] ?? tags['contact:menu']
+  if (menuRaw && menuRaw !== 'no' && /^https?:\/\//i.test(menuRaw)) result.menu_url = menuRaw
 
   // ── Features ────────────────────────────────────────────
   const outdoorRaw = boolTag(tags, 'outdoor_seating')

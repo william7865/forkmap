@@ -80,6 +80,7 @@ export interface OsmEnrichedData {
   instagram?: string
   facebook?: string
   booking_url?: string
+  menu_url?: string
   outdoor_seating?: boolean
   takeaway?: boolean
   delivery?: boolean

@@ -40,9 +40,11 @@ import {
   ExternalLink,
   Star,
   ChevronLeft,
+  UtensilsCrossed,
 } from 'lucide-react'
 import type { TransportMode } from '@/lib/hooks/useRouteCache'
 import { apiFetch } from '@/lib/api'
+import { useDetailEnrichment } from '@/lib/hooks/useDetailEnrichment'
 import { frCuisine } from '@/lib/cuisine'
 import { isNativeRuntime } from '@/lib/native/platform'
 import { nativeShare } from '@/lib/native/share'
@@ -183,7 +185,7 @@ function Divider() {
 }
 
 export default function PlaceDetail({
-  place,
+  place: placeProp,
   onClose,
   onToggleFavorite,
   onSelectPlace,
@@ -217,6 +219,10 @@ export default function PlaceDetail({
     family: 'En famille',
     work: 'Pro',
   }
+
+  // Fetch-on-open: upgrades the card with Google data (photos/rating/hours) for
+  // the one place on screen. `place` is the enriched copy from here on.
+  const place = useDetailEnrichment(placeProp)
 
   const [showShare, setShowShare] = useState(false)
   const [showNote, setShowNote] = useState(false)
@@ -521,6 +527,9 @@ export default function PlaceDetail({
           background: 'var(--white)',
           borderBottom: '1px solid var(--ink-10)',
           display: 'flex',
+          // Wrap so a 4th action (Voir le menu) never overflows on narrow mobile;
+          // Itinéraire keeps flex:1 and fills the first row, the rest wrap under.
+          flexWrap: 'wrap',
           gap: 8,
           padding: '10px 14px',
           flexShrink: 0,
@@ -548,6 +557,29 @@ export default function PlaceDetail({
         >
           <IcoRoute /> Itinéraire
         </button>
+        {place.osm_enriched?.menu_url && (
+          <a
+            href={place.osm_enriched.menu_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '9px 12px',
+              borderRadius: 10,
+              border: '1.5px solid var(--accent)',
+              background: 'var(--accent-light)',
+              color: 'var(--accent)',
+              textDecoration: 'none',
+              fontSize: 12,
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <UtensilsCrossed size={13} strokeWidth={1.75} /> Voir le menu
+          </a>
+        )}
         {(place.fsq?.tel ?? place.phone) && (
           <a
             href={`tel:${place.fsq?.tel ?? place.phone}`}
