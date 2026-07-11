@@ -4,6 +4,7 @@ import ErrorBoundary from '@/components/states/ErrorBoundary'
 import { LanguageProvider } from '@/lib/i18n/useLanguage'
 import AppChrome from '@/components/ui/AppChrome'
 import CapacitorInit from '@/components/native/CapacitorInit'
+import GetAppBanner from '@/components/app/GetAppBanner'
 
 export const viewport: Viewport = {
   // Static <meta name="theme-color">, emitted at build time — can't reference a CSS var().
@@ -51,6 +52,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ErrorBoundary>
             <CapacitorInit />
             <AppChrome />
+            {/* Nudge web visitors to the native app (self-hides in the app). */}
+            <GetAppBanner />
             {/* Push content right on desktop, up on mobile */}
             <div className="main-content-offset">{children}</div>
             <style>{`
