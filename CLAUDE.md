@@ -66,6 +66,7 @@ Exécuter les fichiers SQL dans l'éditeur SQL de Supabase **dans cet ordre** :
 6. `sql/notes.sql` — table `notes` + RLS (notes perso synchronisées, ex-localStorage).
 7. `sql/polls.sql` — tables `polls`, `poll_options`, `poll_votes` + RLS (sondages de groupe ; vote anonyme par lien via routes service-role).
 8. `sql/list-collaborators.sql` — table `list_collaborators` + RLS (listes collaboratives ; autorisation via `canEditList` côté serveur).
+9. `sql/imports.sql` — table `imports` + RLS (posts sociaux enregistrés depuis la Share Extension).
 
 Migrations ponctuelles dans `sql/migrations/` (à appliquer après les schémas de base) — ex. `2026-07-06-messages-poll-type.sql` élargit la contrainte `messages.type` à `'poll'` (partage de sondage en DM).
 
