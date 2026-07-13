@@ -2333,12 +2333,19 @@ export async function createImport(
   input: { url: string; platform: ImportPlatform; note?: string }
 ): Promise<ImportRow> {
   // Re-sharing the same post must reopen the existing import, not duplicate it.
+  // `note` is only written when the caller supplies one: an upsert lists the
+  // columns it overwrites, so passing note:null on a re-share would silently
+  // erase a note the user had already typed.
+  const row: Record<string, unknown> = {
+    user_id: userId,
+    url: input.url,
+    platform: input.platform,
+  }
+  if (input.note !== undefined) row.note = input.note
+
   const { data, error } = await db
     .from('imports')
-    .upsert(
-      { user_id: userId, url: input.url, platform: input.platform, note: input.note ?? null },
-      { onConflict: 'user_id,url', ignoreDuplicates: false }
-    )
+    .upsert(row, { onConflict: 'user_id,url', ignoreDuplicates: false })
     .select()
     .single()
 
