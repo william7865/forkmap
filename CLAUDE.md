@@ -157,6 +157,8 @@ Score composite dans `[0,1]` : **note 40 % + popularité 20 % + distance 30 % + 
 | `polls/[id]/close`          | POST                | Clôture (owner).                                                  |
 | `account`                   | DELETE              | Supprime le compte + toutes les données utilisateur.              |
 | `contact`                   | POST                | Formulaire de contact.                                            |
+| `imports`                   | GET / POST          | Posts sociaux enregistrés (Share Extension).                      |
+| `imports/[id]`              | PATCH / DELETE      | Résolution (par l'appareil), note, suppression.                   |
 
 Toutes les routes mutantes/utilisateur appellent `requireUser(req)` et renvoient des erreurs françaises via `friendlyError`. Valider les corps de requête avec **Zod**.
 
