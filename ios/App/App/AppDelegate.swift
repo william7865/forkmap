@@ -92,11 +92,71 @@ public class RawHttpPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 }
 
-// Registers app-local plugins (RawHttp). Capacitor does not auto-discover
-// plugins defined in the app target, so we register them on the bridge here.
-// Wired via Main.storyboard (the initial view controller's custom class).
+// ============================================================
+// AppGroup — read/write the shared container (group.com.forkmap.app).
+//
+// The Share Extension is a separate process: it can't reach the WebView's
+// localStorage nor the Supabase session. The App Group is the only channel.
+//  • the app publishes its access token here (setAuthToken) so the extension
+//    can POST /api/imports on its own,
+//  • the extension queues the shares it couldn't post (no token, no network)
+//    and the app drains that queue at launch (getPendingShares/clearPendingShares).
+//
+// Keys must stay in sync with ShareExtension/ShareViewController.swift.
+// ============================================================
+@objc(AppGroupPlugin)
+public class AppGroupPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "AppGroupPlugin"
+    public let jsName = "AppGroup"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "setAuthToken", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getPendingShares", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clearPendingShares", returnType: CAPPluginReturnPromise)
+    ]
+
+    private static let suiteName = "group.com.forkmap.app"
+    private static let tokenKey = "authToken"
+    private static let pendingKey = "pendingShares"
+
+    private var shared: UserDefaults? { UserDefaults(suiteName: AppGroupPlugin.suiteName) }
+
+    @objc func setAuthToken(_ call: CAPPluginCall) {
+        guard let store = shared else {
+            call.reject("app group unavailable")
+            return
+        }
+        let token = call.getString("token")
+        if let token = token, !token.isEmpty {
+            store.set(token, forKey: AppGroupPlugin.tokenKey)
+        } else {
+            store.removeObject(forKey: AppGroupPlugin.tokenKey)
+        }
+        call.resolve()
+    }
+
+    @objc func getPendingShares(_ call: CAPPluginCall) {
+        let raw = shared?.array(forKey: AppGroupPlugin.pendingKey) as? [[String: Any]] ?? []
+        let shares: [[String: Any]] = raw.compactMap { item in
+            guard let url = item["url"] as? String, !url.isEmpty else { return nil }
+            var out: [String: Any] = ["url": url]
+            if let note = item["note"] as? String, !note.isEmpty { out["note"] = note }
+            return out
+        }
+        call.resolve(["shares": shares])
+    }
+
+    @objc func clearPendingShares(_ call: CAPPluginCall) {
+        shared?.removeObject(forKey: AppGroupPlugin.pendingKey)
+        call.resolve()
+    }
+}
+
+// Registers app-local plugins (RawHttp, AppGroup). Capacitor does not
+// auto-discover plugins defined in the app target, so we register them on the
+// bridge here. Wired via Main.storyboard (the initial view controller's class).
 class MainViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(RawHttpPlugin())
+        bridge?.registerPluginInstance(AppGroupPlugin())
     }
 }

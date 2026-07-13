@@ -1,6 +1,7 @@
 // components/native/CapacitorInit.tsx
 // Client component — runs on every page mount on native.
-// Initialises StatusBar and listens for OAuth deep links.
+// Initialises StatusBar, listens for OAuth deep links, and drains the shares
+// the iOS Share Extension couldn't post itself (offline / signed out).
 'use client'
 
 import { useEffect } from 'react'
@@ -8,6 +9,9 @@ import { useRouter } from 'next/navigation'
 import { Capacitor } from '@capacitor/core'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { registerPushNotifications } from '@/lib/native/pushNotifications'
+import { readPendingShares, clearPendingShares } from '@/lib/native/app-group'
+import { platformFromUrl } from '@/lib/import/parse'
+import { apiFetch } from '@/lib/api'
 import { resolveTheme, getThemePref, applyTheme, systemPrefersDark } from '@/lib/theme'
 
 /** Resolve + apply the theme and sync the native status bar to match. */
@@ -90,12 +94,8 @@ export default function CapacitorInit() {
               router.replace('/')
             }
           }
-          // Shared from another app: com.forkmap.app://import?url=<social link>
-          // (iOS Share Extension / Android SEND intent hand the link here.)
-          else if (parsed.hostname === 'import') {
-            const shared = parsed.searchParams.get('url')
-            if (shared) router.replace(`/?import=${encodeURIComponent(shared)}`)
-          }
+          // NB: no `import` deep link any more — the Share Extension posts the
+          // import itself and never wakes the app (the user stays in TikTok).
         } catch {
           // Malformed URL — ignore
         }
@@ -116,6 +116,65 @@ export default function CapacitorInit() {
     const handler = () => refreshTheme()
     mq.addEventListener?.('change', handler)
     return () => mq.removeEventListener?.('change', handler)
+  }, [])
+
+  // Drain the Share Extension's offline queue.
+  // The extension posts its imports itself; it only queues when it had no token
+  // (signed out) or no network. Nothing is ever lost: we post each entry here
+  // and clear the queue only once the server has taken them all.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    let cancelled = false
+    let draining = false
+
+    async function drain(token: string) {
+      if (draining || cancelled) return
+      draining = true
+      try {
+        const shares = await readPendingShares()
+        if (shares.length === 0) return
+        let allPosted = true
+        for (const share of shares) {
+          try {
+            const res = await apiFetch('/api/imports', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({
+                url: share.url,
+                platform: platformFromUrl(share.url),
+                ...(share.note ? { note: share.note } : {}),
+              }),
+            })
+            if (!res.ok) allPosted = false
+          } catch {
+            allPosted = false
+          }
+        }
+        // POST /api/imports upserts on (user_id, url), so a retried entry never
+        // duplicates — we can safely keep the queue until everything lands.
+        if (allPosted && !cancelled) await clearPendingShares()
+      } catch (err) {
+        console.warn('[CapacitorInit] pending shares drain failed', err)
+      } finally {
+        draining = false
+      }
+    }
+
+    const sb = getSupabaseBrowserClient()
+    void sb.auth.getSession().then(({ data }) => {
+      if (data.session?.access_token) void drain(data.session.access_token)
+    })
+    const {
+      data: { subscription },
+    } = sb.auth.onAuthStateChange((event, session) => {
+      // Shares queued while signed out go up as soon as the user signs in.
+      if (event === 'SIGNED_IN' && session?.access_token) void drain(session.access_token)
+    })
+
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
+    }
   }, [])
 
   // Push notification registration on sign-in
