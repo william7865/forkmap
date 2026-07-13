@@ -7,10 +7,16 @@
 // Everything else (chez X, capitalised runs, single proper nouns, the handle,
 // hashtags) is a fallback, ranked below it.
 //
-// A wrong high-confidence guess is expensive: the resolver tries the first
-// candidate first and would save the wrong restaurant. So every path goes
-// through the same guards (stopwords, generic words) and noisy paths are
-// demoted rather than dropped.
+// Downstream, a confidence gate only accepts a Google result that closely
+// matches the guess: a wrong guess degrades into "à confirmer", it never saves
+// the wrong restaurant. A *missing* guess costs exactly as much (the user has to
+// step in either way). So the rule here is: never drop a true positive to kill a
+// false one — narrow the false one instead.
+//
+// The one real trap is capitalisation. It is the backbone of the narrative path
+// ("Le Train Bleu"), and it carries *no information at all* in the two styles
+// creators actually write in: ALL CAPS and all lowercase. Both are detected and
+// routed to a case-blind extractor instead of being fed to the run scanner.
 // ============================================================
 import type { ImportCandidate } from '@/lib/import/parse'
 
@@ -36,6 +42,9 @@ const EMOJI = /[\p{Extended_Pictographic}\u{FE0F}\u{200D}\u{20E3}]/gu
 /** Combining marks, for accent-insensitive comparison. */
 const DIACRITICS = /[\u{0300}-\u{036F}]/gu
 
+/** Splits prose into segments: any punctuation, and the bullets creators use. */
+const SEGMENT_SPLIT = /[^\p{L}\p{N}'’\-\s]+/u
+
 /** How much we trust each extraction path. */
 const CONFIDENCE = {
   pin: 0.95,
@@ -49,13 +58,29 @@ const CONFIDENCE = {
   hashtag: 0.2,
 } as const
 
-/** Words that never name a venue on their own. */
-const GENERIC = new Set([
+/** Cities we can recognise — used to split "Septime Paris" into name + city. */
+const CITIES = new Set([
   'paris',
   'lyon',
   'marseille',
   'bordeaux',
   'lille',
+  'toulouse',
+  'nantes',
+  'nice',
+  'strasbourg',
+  'montpellier',
+  'rennes',
+  'bruxelles',
+])
+
+/**
+ * Words that never name a venue *on their own*. A name that merely contains one
+ * survives ("Bistrot Paris 12"), so this list can be generous with the words
+ * that fill French food captions ("Nouvelle Adresse Préférée" is all noise).
+ */
+const GENERIC = new Set([
+  ...CITIES,
   'france',
   'food',
   'foodporn',
@@ -72,15 +97,35 @@ const GENERIC = new Set([
   'bonneadresse',
   'bonnesadresses',
   'adresse',
+  'adresses',
   'cuisine',
   'chef',
+  // Caption filler that gets Title-Cased and pretends to be a name.
+  'meilleur',
+  'meilleure',
+  'meilleurs',
+  'meilleures',
+  'nouveau',
+  'nouvelle',
+  'prefere',
+  'preferee',
+  'preferes',
+  'preferees',
+  'spot',
+  'pepite',
+  'endroit',
+  'decouverte',
 ])
 
 /**
  * Words that can't start a venue name, so a capitalised run starting here is
- * noise ("Je Recommande", "Avec Thomas"). Pronouns / adverbs / prepositions
- * only — "Le", "La", "Les" are deliberately absent ("Le Train Bleu" is real,
- * and dropping it would cost more than the noise it removes).
+ * noise ("Je Recommande", "Avec Thomas", "Notre Nouvelle Adresse").
+ *
+ * Kept deliberately short: only what can NEVER open a shop sign. "Le/La/Les",
+ * "Un/Une" and the English "Best/My/This" all open real names ("Le Train Bleu",
+ * "Best Bagel", "My Little Kitchen") — banning them destroyed true positives.
+ * Filler like "Meilleur" belongs in GENERIC instead, where it only kills a name
+ * made *entirely* of filler.
  * Stored normalised (lowercase, no accent, straight apostrophe).
  */
 const STOPWORDS = new Set([
@@ -88,10 +133,17 @@ const STOPWORDS = new Set([
   "j'ai",
   'on',
   'nous',
-  'il',
-  'elle',
+  'notre',
+  'nos',
+  'mon',
+  'ma',
+  'mes',
+  'ce',
+  'cette',
   'vous',
   'tu',
+  'il',
+  'elle',
   'avec',
   'vu',
   'voici',
@@ -103,28 +155,166 @@ const STOPWORDS = new Set([
   'encore',
   'merci',
   'bref',
-  'mon',
-  'ma',
-  'mes',
-  'ce',
-  'cette',
-  'un',
-  'une',
-  // Superlatives that routinely open a caption ("Meilleur brunch de Paris…").
-  'meilleur',
-  'meilleure',
-  // English captions are common on TikTok and open the same way.
-  'this',
-  'that',
-  'these',
-  'those',
-  'we',
-  'my',
-  'best',
   'omg',
   'wow',
   'pov',
 ])
+
+/**
+ * Prose words a venue name never runs through. Used by the *case-blind* head
+ * extractor (`plainHead`), which has no capitalisation to lean on and needs a
+ * different way to know where the name ends ("chez bacchus hier soir").
+ * Articles (le/la/les/du/de/des/l') are absent on purpose: they live inside real
+ * names ("Chez la Vieille", "Le Comptoir du Relais").
+ */
+const PROSE_STOP = new Set([
+  ...STOPWORDS,
+  // pronouns / determiners
+  'ils',
+  'elles',
+  'moi',
+  'toi',
+  'lui',
+  'eux',
+  'soi',
+  'cet',
+  'ces',
+  'ton',
+  'ta',
+  'tes',
+  'son',
+  'sa',
+  'ses',
+  'votre',
+  'vos',
+  'leur',
+  'leurs',
+  'qui',
+  'que',
+  'quoi',
+  // verbs / auxiliaries
+  'est',
+  "c'est",
+  "c'etait",
+  'etait',
+  'sont',
+  'etre',
+  'ete',
+  'ai',
+  'as',
+  'ont',
+  'avait',
+  'avais',
+  'suis',
+  'sommes',
+  'va',
+  'vais',
+  'fait',
+  'faire',
+  'mange',
+  'manger',
+  'teste',
+  'adore',
+  'recommande',
+  'trouve',
+  'decouvert',
+  'alle',
+  'allee',
+  // connectors / prepositions
+  'et',
+  'ou',
+  'mais',
+  'donc',
+  'car',
+  'ni',
+  'puis',
+  'ensuite',
+  'alors',
+  'aussi',
+  'comme',
+  'quand',
+  'si',
+  'pour',
+  'par',
+  'sans',
+  'sous',
+  'sur',
+  'dans',
+  'apres',
+  'avant',
+  'depuis',
+  'entre',
+  'vers',
+  'chez',
+  'au',
+  'aux',
+  'a',
+  // intensifiers / adjectives
+  'tres',
+  'trop',
+  'plus',
+  'moins',
+  'tout',
+  'tous',
+  'toute',
+  'toutes',
+  'jamais',
+  'toujours',
+  'vraiment',
+  'franchement',
+  'honnetement',
+  'perso',
+  'juste',
+  'meme',
+  'deja',
+  'bon',
+  'bonne',
+  'bien',
+  'super',
+  'genial',
+  'geniale',
+  'incroyable',
+  'dingue',
+  'fou',
+  'folle',
+  'top',
+  'excellent',
+  'delicieux',
+  'parfait',
+  'sympa',
+  'magique',
+  'magnifique',
+  'tuerie',
+  'ouf',
+  'mortel',
+  'cache',
+  'cachee',
+  // time
+  'soir',
+  'soiree',
+  'matin',
+  'midi',
+  'weekend',
+  'semaine',
+  'jour',
+  'fois',
+  // common English prose
+  'is',
+  'are',
+  'was',
+  'and',
+  'so',
+  'very',
+  'really',
+  'insane',
+])
+
+/**
+ * "chez moi" and friends: the only shapes where "chez" is followed by a person,
+ * not a venue. Explicit list — anything else after "chez" is a name candidate,
+ * whatever its case.
+ */
+const CHEZ_EXCLUDE = new Set(['moi', 'toi', 'nous', 'eux', 'lui', 'elle', 'soi', 'vous'])
 
 /** Trailing country of a postal address — never the city we want. */
 const COUNTRIES = new Set([
@@ -138,12 +328,28 @@ const COUNTRIES = new Set([
   'japon',
 ])
 
-/** Lowercase words allowed *between* two capitalised words of a name. */
-const CONNECTORS = new Set(['de', 'du', 'des', 'le', 'la', 'les', "d'", "l'", 'a', 'aux', 'et'])
+/**
+ * Lowercase words allowed *between* two capitalised words of a name.
+ * "et" and "à" are deliberately absent: they join two *different* venues
+ * ("Septime et Clover", "Nouveau Spot à Paris"), they never sit inside one.
+ */
+const CONNECTORS = new Set(['de', 'du', 'des', 'le', 'la', 'les', "d'", "l'", 'aux'])
+
+/** A street line, never a city: "10 rue de Charonne", "3 bd Voltaire". */
+const STREET =
+  /^\d{1,3}\s*(?:bis|ter)?\s+(?:rue|av|ave|avenue|bd|boulevard|blvd|place|pl|quai|impasse|allee|allée|chemin|route|cours|faubourg|passage|square)\b/iu
+
+/** A postal line: the city is what follows the code ("75011 Paris"). */
+const POSTAL = /^\d{4,5}\s+(.+)$/u
 
 /** Lowercase, accent-free, straight apostrophes — the comparison form. */
 function normalise(s: string): string {
   return s.normalize('NFD').replace(DIACRITICS, '').replace(/[‘’]/g, "'").toLowerCase().trim()
+}
+
+/** Comparison key of a single token: normalised, punctuation-free. */
+function key(token: string): string {
+  return normalise(token).replace(/[^a-z0-9']/g, '')
 }
 
 function stripEmoji(s: string): string {
@@ -161,13 +367,31 @@ function clean(s: string): string {
 /** True when the whole name is made of generic words ("Paris", "TikTok France").
  *  A name that merely *contains* one survives ("Bistrot Paris 12"). */
 function isGeneric(name: string): boolean {
-  const words = normalise(name)
+  let words = normalise(name)
     .split(/\s+/)
     .map((w) => w.replace(/[^a-z0-9]/g, ''))
     .filter(Boolean)
   if (words.length === 0) return true
   if (GENERIC.has(words.join(''))) return true
+  // A generic word plus a number is an arrondissement, not a venue ("Paris 11").
+  // The number only *belongs* to a name that has a non-generic word too
+  // ("Bistrot Paris 12", "Holybelly 5"), so strip it before the verdict.
+  while (words.length > 1 && isNumeric(words[words.length - 1])) words = words.slice(0, -1)
   return words.every((w) => GENERIC.has(w))
+}
+
+/**
+ * A run made only of prose and filler is emphasis, never a shop sign
+ * ("TROP BON", "Je Recommande", "Meilleur Spot"). Case-blind on purpose: it is
+ * what tells an ALL-CAPS venue name ("SEPTIME") from an ALL-CAPS shout
+ * ("INSANE"), where the previous "a lone uppercase word is never a venue" rule
+ * threw both away.
+ */
+function isFiller(words: string[]): boolean {
+  return words.every((w) => {
+    const k = key(w)
+    return !k || PROSE_STOP.has(k) || GENERIC.has(k)
+  })
 }
 
 function isStopword(token: string): boolean {
@@ -179,7 +403,7 @@ function isCapitalised(token: string): boolean {
   return /^[\p{Lu}]/u.test(token) || /^[dl]['’][\p{Lu}]/u.test(token)
 }
 
-/** "12", "12e", "12ème" — arrondissement numbers do live inside names. */
+/** "12", "12e", "12ème", "47" — numbers do live inside and at the end of names. */
 function isNumeric(token: string): boolean {
   return /^\d+(?:er|e|eme|ème)?$/u.test(token)
 }
@@ -193,14 +417,51 @@ function tokenize(s: string): string[] {
 }
 
 /**
+ * A SHOUTED segment: ≥ 3 words and ≥ 80 % of its letters are uppercase.
+ * There, "starts with a capital" is true of *every* word, so the run scanner
+ * would happily return the whole sentence as a venue name. Capitalisation
+ * carries no information here and must not be read as one.
+ */
+function isShouted(segment: string): boolean {
+  const words = segment.trim().split(/\s+/).filter(Boolean)
+  if (words.length < 3) return false
+  const letters = segment.match(/\p{L}/gu)
+  if (!letters || letters.length < 3) return false
+  const upper = letters.filter((l) => l !== l.toLowerCase() && l === l.toUpperCase())
+  return upper.length / letters.length >= 0.8
+}
+
+/**
+ * Case-blind head: keep taking words while they *could* belong to a name, i.e.
+ * they are neither prose nor filler. This is the only way to read a name out of
+ * a SHOUTED or an all-lowercase caption ("chez bacchus hier soir" → "bacchus").
+ * Bounded (default 3 words) because with no case signal, the longer we run, the
+ * more likely we are swallowing the sentence.
+ */
+function plainHead(tokens: string[], max = 3): string {
+  const head: string[] = []
+  for (const tok of tokens) {
+    const k = key(tok)
+    if (!k) break
+    if (head.length >= max) break
+    if (PROSE_STOP.has(k) || GENERIC.has(k)) break
+    head.push(tok)
+  }
+  return head.join(' ')
+}
+
+/**
  * The "nominal head" of a chunk: the leading capitalised words, bridging a
  * lowercase connector between two capitalised words. Stops at the first
  * lowercase word that isn't a connector — that's where the caption goes back to
  * prose ("Septime rooftop incroyable la vue…" → "Septime").
- * Falls back to the first 4 words when nothing is capitalised (lowercase names).
+ * When there is no usable case signal (SHOUTED chunk, or nothing capitalised at
+ * all), falls back to the case-blind head.
  */
 function nominalHead(chunk: string, fallback = true): string {
   const tokens = tokenize(chunk)
+  if (isShouted(chunk)) return fallback ? plainHead(tokens, 4) : ''
+
   const head: string[] = []
   const pending: string[] = []
   for (const tok of tokens) {
@@ -213,7 +474,7 @@ function nominalHead(chunk: string, fallback = true): string {
     }
   }
   if (head.length > 0) return head.join(' ')
-  return fallback ? tokens.slice(0, 4).join(' ') : ''
+  return fallback ? plainHead(tokens, 4) : ''
 }
 
 /** "kodawari.ramen" → "kodawari ramen" */
@@ -222,40 +483,73 @@ function humanizeHandle(handle: string): string {
 }
 
 /**
+ * "Septime 🔥🔥 Paris" → { name: "Septime", city: "Paris" }.
+ * Without a comma, the head swallows the city sitting right after the name.
+ * Only fires when the name keeps at least one word.
+ */
+function detachCity(name: string): { name: string; city: string | null } {
+  const words = name.split(' ')
+  if (words.length < 2) return { name, city: null }
+  const last = words[words.length - 1]
+  if (!CITIES.has(key(last))) return { name, city: null }
+  return { name: words.slice(0, -1).join(' '), city: last }
+}
+
+/**
  * Split a pin chunk into { name, city }.
- * The name is the nominal head of the first comma-separated segment. The city
- * is the first following segment that doesn't start with a digit (a street
- * number is not a city), ignoring a trailing country ("…, Paris, France").
+ * The name is the nominal head of the first comma-separated segment. The city is
+ * the first following segment that is not a street line, ignoring a trailing
+ * country ("…, Paris, France"). A postal line keeps its tail ("75011 Paris" →
+ * "Paris"): dropping every digit-leading segment threw the city away with it.
  */
 function splitNameCity(chunk: string): { name: string; city: string | null } {
   const segments = chunk.split(',').map(clean).filter(Boolean)
-  const name = nominalHead(segments[0] ?? '')
+  const head = nominalHead(segments[0] ?? '')
 
   let rest = segments.slice(1)
   while (rest.length > 1 && COUNTRIES.has(normalise(rest[rest.length - 1])))
     rest = rest.slice(0, -1)
-  const citySeg = rest.find((s) => !/^\d/.test(s))
-  const city = citySeg ? nominalHead(citySeg) || citySeg : null
 
-  return { name, city }
+  let city: string | null = null
+  for (const seg of rest) {
+    if (STREET.test(seg)) continue
+    const postal = POSTAL.exec(seg)
+    if (postal) {
+      const tail = clean(postal[1])
+      if (tail && !/^\d/.test(tail)) {
+        city = nominalHead(tail) || tail
+        break
+      }
+      continue
+    }
+    if (/^\d/.test(seg)) continue // a street number is not a city
+    city = nominalHead(seg) || seg
+    break
+  }
+
+  if (city) return { name: head, city }
+  return detachCity(head)
 }
 
 /**
  * Capitalised runs of the text ("Le Train Bleu") and isolated proper nouns
  * ("Septime"), kept apart because they don't deserve the same confidence.
- * Punctuation and emojis break a run. A run whose first word is a stopword is
- * dropped whole — "Avec Thomas" must not end up offering "Thomas".
+ * Punctuation and emojis break a run. SHOUTED segments yield nothing: there,
+ * every word looks capitalised, so a run would be the whole sentence.
+ * A run whose first word is a stopword drops that word — "Avec Thomas" must not
+ * offer "Thomas", but "Voici Le Train Bleu" must still offer the venue.
  */
 function capitalisedRuns(text: string): { multi: string[]; single: string[] } {
   const multi: string[] = []
   const single: string[] = []
-  for (const chunk of stripEmoji(text).split(/[^\p{L}\p{N}'’\-\s]+/u)) {
+  for (const chunk of stripEmoji(text).split(SEGMENT_SPLIT)) {
+    if (isShouted(chunk)) continue
     const tokens = chunk.split(/\s+/).filter(Boolean)
     const runs: string[][] = []
     let cur: string[] = []
     let pending: string[] = []
     for (const tok of tokens) {
-      if (isCapitalised(tok)) {
+      if (isCapitalised(tok) || (cur.length > 0 && isNumeric(tok))) {
         cur.push(...pending.splice(0), tok)
       } else if (cur.length > 0 && isConnector(tok)) {
         pending.push(tok)
@@ -278,10 +572,9 @@ function capitalisedRuns(text: string): { multi: string[]; single: string[] } {
         if (words.length < 2) continue
       }
       const name = clean(words.join(' '))
-      if (name.length < 4 || isGeneric(name)) continue
+      if (name.length < 4 || isGeneric(name) || isFiller(words)) continue
       if (words.length >= 2) multi.push(name)
-      // A lone SHOUTED word ("INSANE", "TROP BON") is emphasis, not a venue.
-      else if (name !== name.toUpperCase()) single.push(name)
+      else single.push(name)
     }
   }
   return { multi, single }
@@ -289,16 +582,31 @@ function capitalisedRuns(text: string): { multi: string[]; single: string[] } {
 
 /**
  * The textual pin: "on est allé chez Bacchus" → "Bacchus".
- * A capitalised "Chez" usually belongs to the venue name ("Chez Aline"), a
- * lowercase one is just the preposition — hence the two shapes.
+ * Case-blind on purpose — a huge share of creators type without capitals, and
+ * the previous shape ("the word after chez must start with a capital") simply
+ * returned nothing for them. The name is bounded by `plainHead` (prose word,
+ * filler or punctuation ends it) and by the explicit "chez moi/toi/nous…" list.
+ * A capitalised "Chez" in normal prose belongs to the name itself ("Chez Aline")
+ * — but in a SHOUTED segment its case means nothing, so it is dropped.
  */
-function chezMatches(text: string): string[] {
-  const out: string[] = []
-  for (const m of stripEmoji(text).matchAll(/\b(chez)\s+([^\n,.!?•|]{2,60})/giu)) {
-    const head = nominalHead(m[2], false) // no lowercase fallback: "chez moi"
-    if (head.length < 3 || isStopword(head.split(' ')[0]) || isGeneric(head)) continue
-    const capitalised = /^[\p{Lu}]/u.test(m[1])
-    out.push(capitalised ? `${m[1]} ${head}` : head)
+function chezMatches(text: string): PlaceGuess[] {
+  const out: PlaceGuess[] = []
+  for (const segment of stripEmoji(text).split(SEGMENT_SPLIT)) {
+    const shouted = isShouted(segment)
+    for (const m of segment.matchAll(/(^|\s)(chez)\s+(.+)$/giu)) {
+      const tokens = tokenize(m[3])
+      if (tokens.length === 0) continue
+      if (CHEZ_EXCLUDE.has(key(tokens[0]))) continue
+      const head = plainHead(tokens, 3)
+      if (head.length < 3 || isStopword(head.split(' ')[0]) || isGeneric(head)) continue
+      const owned = !shouted && /^[\p{Lu}]/u.test(m[2])
+      const split = detachCity(head)
+      out.push({
+        name: owned ? `${m[2]} ${split.name}` : split.name,
+        city: split.city,
+        confidence: CONFIDENCE.chez,
+      })
+    }
   }
   return out
 }
@@ -326,9 +634,7 @@ export function extractPlaceCandidates(post: ImportCandidate): PlaceGuess[] {
   })
 
   // 2. "chez <Nom>" — the textual equivalent of a pin.
-  for (const name of chezMatches(text)) {
-    out.push({ name, city: null, confidence: CONFIDENCE.chez })
-  }
+  out.push(...chezMatches(text))
 
   const { multi, single } = capitalisedRuns(text)
 
@@ -357,10 +663,10 @@ export function extractPlaceCandidates(post: ImportCandidate): PlaceGuess[] {
   // Dedupe (case-insensitive), keep the highest confidence, sort desc.
   const best = new Map<string, PlaceGuess>()
   for (const g of out) {
-    const key = normalise(g.name)
-    const prev = best.get(key)
+    const k = normalise(g.name)
+    const prev = best.get(k)
     if (!prev || g.confidence > prev.confidence) {
-      best.set(key, { ...g, city: g.city ?? prev?.city ?? null })
+      best.set(k, { ...g, city: g.city ?? prev?.city ?? null })
     }
   }
   return [...best.values()].sort((a, b) => b.confidence - a.confidence)

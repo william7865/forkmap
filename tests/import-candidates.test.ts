@@ -182,4 +182,93 @@ describe('extractPlaceCandidates', () => {
       expect(out[0].city).toBe('Paris')
     })
   })
+
+  // ----------------------------------------------------------------
+  // Non-régression, 2e passe : les 7 défauts de la revue adversariale.
+  // ----------------------------------------------------------------
+  describe('non-régression (2e passe)', () => {
+    it('1. une légende tout en MAJUSCULES ne devient pas un candidat', () => {
+      const out = extractPlaceCandidates(
+        post({ description: "J'ADORE SEPTIME CE RESTAURANT EST INCROYABLE VRAIMENT" })
+      )
+      expect(names(out)).not.toContain("J'ADORE SEPTIME CE RESTAURANT EST INCROYABLE VRAIMENT")
+      expect(out).toEqual([])
+    })
+
+    it('1bis. en MAJUSCULES, « chez » ne mange pas la phrase entière', () => {
+      const out = extractPlaceCandidates(
+        post({ description: 'ON EST ALLE CHEZ BACCHUS HIER SOIR TROP BON' })
+      )
+      expect(names(out)).not.toContain('CHEZ BACCHUS HIER SOIR TROP BON')
+      expect(out[0]).toEqual({ name: 'BACCHUS', city: null, confidence: 0.8 })
+    })
+
+    it('2. « chez » en minuscules capture bien le nom qui suit', () => {
+      const out = extractPlaceCandidates(
+        post({ description: 'on est allé chez bacchus hier soir' })
+      )
+      expect(out[0]).toEqual({ name: 'bacchus', city: null, confidence: 0.8 })
+    })
+
+    it('2bis. « chez moi / nous / elle » ne sont pas des lieux', () => {
+      for (const description of [
+        'on a mangé chez moi ce soir',
+        'on dîne chez nous ce soir',
+        'je cuisine chez elle ce soir',
+      ]) {
+        expect(extractPlaceCandidates(post({ description }))).toEqual([])
+      }
+    })
+
+    it('3. « et » sépare deux lieux au lieu de les fusionner', () => {
+      const out = extractPlaceCandidates(post({ description: 'Septime et Clover' }))
+      expect(names(out)).not.toContain('Septime et Clover')
+      expect(names(out)).toContain('Septime')
+      expect(names(out)).toContain('Clover')
+    })
+
+    it('3bis. « à » ne prolonge pas un run capitalisé', () => {
+      const out = extractPlaceCandidates(post({ description: 'Mon Nouveau Spot Préféré à Paris' }))
+      expect(names(out)).not.toContain('Nouveau Spot Préféré à Paris')
+      expect(out).toEqual([])
+    })
+
+    it('4. « Best » / « My » peuvent commencer un nom d’enseigne', () => {
+      const bagel = extractPlaceCandidates(
+        post({ description: 'Best Bagel, mon spot du dimanche' })
+      )
+      expect(bagel[0].name).toBe('Best Bagel')
+
+      const kitchen = extractPlaceCandidates(post({ description: 'My Little Kitchen, une pépite' }))
+      expect(kitchen[0].name).toBe('My Little Kitchen')
+    })
+
+    it('4bis. « Notre … » ne bat pas le handle du resto', () => {
+      const out = extractPlaceCandidates(
+        post({ handle: 'bouillon.pigalle', description: 'Notre Nouvelle Adresse Préférée est ici' })
+      )
+      expect(names(out)).not.toContain('Notre Nouvelle Adresse Préférée')
+      expect(names(out)).not.toContain('Nouvelle Adresse Préférée')
+      expect(out[0].name).toBe('bouillon pigalle')
+    })
+
+    it('5. la ville collée à un code postal est récupérée', () => {
+      const out = extractPlaceCandidates(
+        post({ description: '📍 Chez Fifi, 10 rue de Charonne, 75011 Paris' })
+      )
+      expect(out[0]).toEqual({ name: 'Chez Fifi', city: 'Paris', confidence: 0.95 })
+    })
+
+    it('6. après un pin, la ville collée au nom est détachée', () => {
+      const out = extractPlaceCandidates(post({ description: '📍 Septime 🔥🔥🔥 Paris' }))
+      expect(out[0]).toEqual({ name: 'Septime', city: 'Paris', confidence: 0.95 })
+    })
+
+    it('7. un chiffre final reste dans un nom narratif', () => {
+      const out = extractPlaceCandidates(
+        post({ description: "j'ai adoré le Bouillon 47, une tuerie" })
+      )
+      expect(names(out)).toContain('Bouillon 47')
+    })
+  })
 })
