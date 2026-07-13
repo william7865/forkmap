@@ -29,7 +29,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Bookmark,
-  Link2,
 } from 'lucide-react'
 import { SigSparkle } from '@/components/icons/signature'
 
@@ -40,7 +39,6 @@ const ShareModal = dynamic(() => import('@/components/place/ShareModal'), { ssr:
 const AuthFlow = dynamic(() => import('@/components/auth/AuthFlow'), { ssr: false })
 const AppInviteModal = dynamic(() => import('@/components/app/AppInviteModal'), { ssr: false })
 const SurpriseSheet = dynamic(() => import('@/components/place/SurpriseSheet'), { ssr: false })
-const ImportSheet = dynamic(() => import('@/components/import/ImportSheet'), { ssr: false })
 
 function AuthRequiredWatcher({ onOpen }: { onOpen: () => void }) {
   const searchParams = useSearchParams()
@@ -72,21 +70,6 @@ function SurpriseParamWatcher({ onOpen }: { onOpen: () => void }) {
     const qs = params.toString()
     router.replace(qs ? `/?${qs}` : '/', { scroll: false })
   }, [searchParams, onOpen, router])
-  return null
-}
-
-function ImportParamWatcher({ onImport }: { onImport: (url: string) => void }) {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  useEffect(() => {
-    const raw = searchParams.get('import')
-    if (!raw) return
-    onImport(raw)
-    const params = new URLSearchParams(Array.from(searchParams.entries()))
-    params.delete('import')
-    const qs = params.toString()
-    router.replace(qs ? `/?${qs}` : '/', { scroll: false })
-  }, [searchParams, onImport, router])
   return null
 }
 
@@ -197,8 +180,6 @@ export default function HomePage() {
   }, [searchFocused])
   // Natif : sélection → carte flottante (aperçu) ; « Voir la fiche » → détail plein écran.
   const [detailExpanded, setDetailExpanded] = useState(false)
-  const [showImport, setShowImport] = useState(false)
-  const [importUrl, setImportUrl] = useState<string | null>(null)
   useEffect(() => {
     setDetailExpanded(false)
   }, [selectedPlace?.osm_id])
@@ -619,32 +600,6 @@ export default function HomePage() {
           >
             <Bookmark size={15} strokeWidth={1.75} fill={savedOnly ? 'currentColor' : 'none'} />
             {!isMobile && 'Enregistrés'}
-          </button>
-
-          {/* Import from a social link */}
-          <button
-            onClick={() => setShowImport(true)}
-            title="Importer un resto depuis un lien"
-            aria-label="Importer un resto depuis un lien"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 10px',
-              borderRadius: 8,
-              cursor: 'pointer',
-              fontSize: 13,
-              fontWeight: 600,
-              fontFamily: 'var(--font-body)',
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-2)',
-              flexShrink: 0,
-              transition: 'all 120ms ease',
-            }}
-          >
-            <Link2 size={15} strokeWidth={1.75} />
-            {!isMobile && 'Importer'}
           </button>
         </div>
 
@@ -1575,12 +1530,6 @@ export default function HomePage() {
         <AuthRequiredWatcher onOpen={() => setShowAuthModal(true)} />
         <SurpriseParamWatcher onOpen={() => setShowSurprise(true)} />
         <SelectParamWatcher onSelect={handleDeepSelect} />
-        <ImportParamWatcher
-          onImport={(u) => {
-            setImportUrl(u)
-            setShowImport(true)
-          }}
-        />
       </Suspense>
 
       {showSurprise && (
@@ -1613,18 +1562,6 @@ export default function HomePage() {
       />
 
       {sharePlace && <ShareModal place={sharePlace} onClose={() => setSharePlace(null)} />}
-
-      {showImport && (
-        <ImportSheet
-          center={mapCenter}
-          onPick={searchSelectPlace}
-          initialUrl={importUrl ?? undefined}
-          onClose={() => {
-            setShowImport(false)
-            setImportUrl(null)
-          }}
-        />
-      )}
 
       <ToastStack toasts={toast.toasts} onDismiss={toast.dismiss} />
 
