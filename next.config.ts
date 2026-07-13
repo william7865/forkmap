@@ -35,7 +35,9 @@ const nextConfig: NextConfig = {
               "form-action 'self'",
               `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://unpkg.com`,
               "style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com",
-              "img-src 'self' data: blob: https://fastly.4sqi.net https://*.4sqi.net https://*.googleusercontent.com https://*.basemaps.cartocdn.com https://unpkg.com https://upload.wikimedia.org https://commons.wikimedia.org",
+              // Les derniers hôtes sont les CDN des réseaux sociaux : ils servent les
+              // vignettes (post_thumb) des imports « Vus sur les réseaux ».
+              "img-src 'self' data: blob: https://fastly.4sqi.net https://*.4sqi.net https://*.googleusercontent.com https://*.basemaps.cartocdn.com https://unpkg.com https://upload.wikimedia.org https://commons.wikimedia.org https://*.tiktokcdn.com https://*.tiktokcdn-us.com https://*.cdninstagram.com https://*.fbcdn.net https://i.ytimg.com",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://overpass-api.de https://api.foursquare.com https://router.project-osrm.org https://overpass.kumi.systems https://overpass.openstreetmap.ru https://maps.mail.ru https://nominatim.openstreetmap.org",
               "font-src 'self' https://fonts.gstatic.com",
               "frame-ancestors 'none'",

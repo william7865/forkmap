@@ -120,8 +120,12 @@ function toCandidatePlace(r: PlaceSearchResult): ImportCandidatePlace | null {
 
 /** A resolved search result → the PlaceCard snapshot we persist (like `favorites`).
  *  Returns null when the result can't make a valid card — the caller must then
- *  NOT write `resolved` (invariant 1). */
-function toPlaceCard(r: PlaceSearchResult): PlaceCard | null {
+ *  NOT write `resolved` (invariant 1).
+ *
+ *  Exported because the import detail writes the same patch when the USER picks
+ *  the venue (ambiguous → chosen candidate, failed → manual search): the snapshot
+ *  must be built the exact same way, or invariant 1 holds only for the resolver. */
+export function toPlaceCard(r: PlaceSearchResult): PlaceCard | null {
   if (!isUsable(r)) return null
   const osm_id = placeId(r)
   if (!osm_id) return null
@@ -145,6 +149,32 @@ function toPlaceCard(r: PlaceSearchResult): PlaceCard | null {
   // Nominatim's `context` is a real address; Google's is the literal string
   // "Google Maps", which must never be shown as one.
   if (r.source === 'osm' && r.context) card.address = r.context
+  return card
+}
+
+/**
+ * A candidate the user picked in "C'est lequel ?" → the snapshot to persist.
+ *
+ * A candidate is a lossy projection of the search result (no `fsq` payload, just
+ * a rating), so the star is rebuilt into the `fsq` slot the whole UI reads
+ * (`place.fsq?.rating`) — otherwise a chosen venue would render without its note.
+ */
+export function candidateToPlaceCard(c: ImportCandidatePlace): PlaceCard | null {
+  const card = toPlaceCard({
+    id: c.osm_id ?? `g:${c.lat.toFixed(5)},${c.lon.toFixed(5)}`,
+    osm_id: c.osm_id,
+    name: c.name,
+    context: c.context,
+    lat: c.lat,
+    lon: c.lon,
+    rating: c.rating,
+    source: c.osm_id ? 'osm' : 'google',
+  })
+  if (!card) return null
+  if (typeof c.rating === 'number' && Number.isFinite(c.rating)) {
+    card.fsq = { fsq_id: card.osm_id, rating: c.rating }
+    card.fsq_rating = c.rating
+  }
   return card
 }
 

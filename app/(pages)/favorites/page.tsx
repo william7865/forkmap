@@ -17,6 +17,8 @@ import { apiFetch } from '@/lib/api'
 import { useIsMobile } from '@/lib/hooks/useMediaQuery'
 import { useIsNative } from '@/lib/native/platform'
 import { useLists, type ListRow as HookListRow } from '@/lib/hooks/useLists'
+import ImportsRow from '@/components/import/ImportsRow'
+import { useImportsStore } from '@/lib/hooks/useImportsContext'
 import { ListCard, NewListCard } from '@/components/lists/ListCard'
 import CollaboratorsSheet from '@/components/lists/CollaboratorsSheet'
 import { Avatar } from '@/components/social/Avatar'
@@ -1861,6 +1863,9 @@ function FavoritesPageInner() {
     addItemToList,
   } = useLists()
 
+  // Les posts partagés depuis les réseaux (store unique de l'app — voir useImportsContext).
+  const { imports } = useImportsStore()
+
   // ── Multi-select ──
   const [selectMode, setSelectMode] = useState(false)
   const [pollOpen, setPollOpen] = useState(false)
@@ -2089,6 +2094,14 @@ function FavoritesPageInner() {
                 : `${favorites.length} restaurant${favorites.length !== 1 ? 's' : ''} · ${lists.length} liste${lists.length !== 1 ? 's' : ''}`}
             </p>
           </div>
+
+          {/* « Vus sur les réseaux » — les posts partagés vers Forkmap. Full-bleed :
+              la rangée porte son propre padding de 16px et défile bord à bord. */}
+          {!activeListId && (
+            <div style={{ margin: '0 -16px' }}>
+              <ImportsRow imports={imports} />
+            </div>
+          )}
 
           {/* Lancer un sondage de groupe — « où on mange ce soir ? » */}
           {isNative && !activeListId && !loading && favorites.length >= 2 && (

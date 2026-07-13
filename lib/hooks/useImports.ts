@@ -33,6 +33,10 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 
 export function useImports(center: [number, number] | null) {
   const [imports, setImports] = useState<ImportRow[]>([])
+  /** True until the first list lands. The import detail needs it: without it, an
+   *  empty list is indistinguishable from a list still in flight, and the screen
+   *  would flash "Import introuvable" on every cold open. */
+  const [loading, setLoading] = useState(true)
   const resolving = useRef(false)
   /** Ids already attempted this session. The resolver effect depends on
    *  `imports`, which `patch` mutates — without this, a row whose PATCH fails
@@ -45,12 +49,18 @@ export function useImports(center: [number, number] | null) {
   centerRef.current = center
 
   const reload = useCallback(async () => {
-    const headers = await getAuthHeaders()
-    if (!headers.Authorization) return
-    const res = await apiFetch('/api/imports', { headers })
-    if (!res.ok) return
-    const { data } = (await res.json()) as { data: ImportRow[] }
-    setImports(data)
+    try {
+      const headers = await getAuthHeaders()
+      if (!headers.Authorization) return
+      const res = await apiFetch('/api/imports', { headers })
+      if (!res.ok) return
+      const { data } = (await res.json()) as { data: ImportRow[] }
+      setImports(data)
+    } finally {
+      // Settled either way — a signed-out visitor or a dead API must not leave
+      // the UI spinning forever.
+      setLoading(false)
+    }
   }, [])
 
   /** Persist a patch. Throws on failure so callers (and the resolver loop) can
@@ -107,6 +117,7 @@ export function useImports(center: [number, number] | null) {
 
   return {
     imports,
+    loading,
     pendingCount: imports.filter((i) => i.status === 'pending').length,
     /** Imports the user must act on — drives the Favoris tab badge. */
     needsAttentionCount: imports.filter((i) => i.status === 'ambiguous' || i.status === 'failed')
