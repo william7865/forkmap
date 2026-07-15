@@ -153,51 +153,42 @@ export default function PublicPoll({ id: idProp, onClose }: { id?: string; onClo
       <div style={{ maxWidth: 520, margin: '0 auto' }}>
         <div
           style={{
-            fontSize: 11,
-            letterSpacing: '0.16em',
+            fontSize: 10,
+            letterSpacing: '0.14em',
             textTransform: 'uppercase',
             fontWeight: 700,
-            color: 'var(--star)',
-            marginBottom: 8,
+            color: 'var(--text-3)',
+            marginBottom: 12,
           }}
         >
           Sondage Forkmap
         </div>
         <h1
           style={{
-            margin: '0 0 6px',
+            margin: '0 0 8px',
             fontFamily: 'var(--font-display)',
-            fontWeight: 700,
-            fontSize: 27,
-            lineHeight: 1.1,
-            color: 'var(--ink)',
+            fontWeight: 600,
+            fontSize: 31,
+            lineHeight: 1.08,
+            color: 'var(--text)',
             letterSpacing: '-0.02em',
           }}
         >
           {poll.title}
         </h1>
-        <div style={{ fontSize: 13.5, color: 'var(--text-3)', marginBottom: 18 }}>
+        <div style={{ fontSize: 13.5, color: 'var(--text-3)', marginBottom: 24 }}>
           {results.total} vote{results.total > 1 ? 's' : ''}
           {poll.closed && ' · Clôturé'}
         </div>
 
         {!poll.closed && (
           <input
+            className="input-field"
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={40}
             placeholder="Ton prénom (optionnel)"
-            style={{
-              width: '100%',
-              padding: '11px 14px',
-              borderRadius: 12,
-              border: '1.5px solid var(--b2)',
-              fontSize: 15,
-              fontFamily: 'inherit',
-              color: 'var(--ink)',
-              marginBottom: 16,
-              background: 'var(--white)',
-            }}
+            style={{ marginBottom: 18 }}
           />
         )}
 
@@ -218,12 +209,12 @@ export default function PublicPoll({ id: idProp, onClose }: { id?: string; onClo
                   position: 'relative',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 12,
+                  gap: 13,
                   width: '100%',
-                  padding: 10,
-                  borderRadius: 16,
-                  border: mine ? '2px solid var(--accent)' : '1.5px solid var(--b2)',
-                  background: 'var(--white)',
+                  padding: 11,
+                  borderRadius: 15,
+                  border: mine ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                  background: 'var(--bg)',
                   cursor: poll.closed ? 'default' : 'pointer',
                   overflow: 'hidden',
                   textAlign: 'left',
@@ -235,7 +226,7 @@ export default function PublicPoll({ id: idProp, onClose }: { id?: string; onClo
                     position: 'absolute',
                     inset: 0,
                     width: `${pct}%`,
-                    background: won ? 'var(--star-soft, rgba(212,160,23,0.16))' : 'var(--bone)',
+                    background: won ? 'var(--star-soft, rgba(245,166,35,0.14))' : 'var(--surface)',
                     transition: 'width 260ms ease',
                     zIndex: 0,
                   }}
@@ -244,11 +235,12 @@ export default function PublicPoll({ id: idProp, onClose }: { id?: string; onClo
                   style={{
                     position: 'relative',
                     zIndex: 1,
-                    width: 54,
-                    height: 54,
-                    borderRadius: 12,
+                    width: 56,
+                    height: 56,
+                    borderRadius: 14,
                     overflow: 'hidden',
                     flexShrink: 0,
+                    boxShadow: 'var(--s1)',
                   }}
                 >
                   <PlaceThumb place={o.place} initialSize={22} />
@@ -258,9 +250,11 @@ export default function PublicPoll({ id: idProp, onClose }: { id?: string; onClo
                     {won && <Trophy size={15} color="var(--star)" fill="var(--star)" />}
                     <span
                       style={{
-                        fontWeight: 700,
-                        fontSize: 15.5,
-                        color: 'var(--ink)',
+                        fontFamily: 'var(--font-display)',
+                        fontWeight: 600,
+                        fontSize: 16.5,
+                        letterSpacing: '-0.01em',
+                        color: 'var(--text)',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
@@ -273,8 +267,8 @@ export default function PublicPoll({ id: idProp, onClose }: { id?: string; onClo
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 8,
-                      marginTop: 3,
+                      gap: 9,
+                      marginTop: 4,
                       fontSize: 12.5,
                       color: 'var(--text-2)',
                     }}
@@ -284,9 +278,10 @@ export default function PublicPoll({ id: idProp, onClose }: { id?: string; onClo
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: 2,
+                          gap: 3,
                           fontWeight: 700,
-                          color: 'var(--ink)',
+                          fontSize: 11.5,
+                          color: 'var(--text)',
                         }}
                       >
                         <Star size={11} strokeWidth={0} fill="var(--star)" />
@@ -305,7 +300,17 @@ export default function PublicPoll({ id: idProp, onClose }: { id?: string; onClo
                     minWidth: 44,
                   }}
                 >
-                  <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--ink)' }}>{pct}%</div>
+                  <div
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 600,
+                      fontSize: 17,
+                      color: 'var(--text)',
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {pct}%
+                  </div>
                   <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{votes} voix</div>
                 </div>
                 {mine && (
