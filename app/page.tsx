@@ -392,20 +392,23 @@ export default function HomePage() {
                   aria-pressed={chip.active}
                   style={{
                     flexShrink: 0,
-                    padding: '7px 14px',
+                    height: 36,
+                    padding: '0 16px',
                     borderRadius: 999,
-                    fontSize: 12.5,
+                    fontSize: 13.5,
                     fontWeight: 600,
                     cursor: 'pointer',
                     border: `1px solid ${chip.active ? 'var(--accent)' : 'var(--border)'}`,
                     background: chip.active ? 'var(--accent)' : 'var(--bg)',
                     backdropFilter: 'blur(8px)',
                     WebkitBackdropFilter: 'blur(8px)',
-                    color: chip.active ? 'var(--on-accent)' : 'var(--text)',
+                    color: chip.active ? 'var(--on-accent)' : 'var(--text-2)',
                     fontFamily: 'var(--font-body)',
                     boxShadow: 'var(--s1)',
                     transition: 'all 140ms ease',
                     whiteSpace: 'nowrap',
+                    display: 'inline-flex',
+                    alignItems: 'center',
                   }}
                 >
                   {chip.label}
@@ -431,8 +434,8 @@ export default function HomePage() {
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            background: 'var(--bg)',
-            borderRadius: 12,
+            background: 'var(--surface)',
+            borderRadius: 15,
             border: '1px solid var(--border)',
             boxShadow: 'var(--s2)',
             padding: '0 10px 0 0',
@@ -487,8 +490,8 @@ export default function HomePage() {
               onChange={(e) => setNameQuery(e.target.value)}
               style={{
                 width: '100%',
-                padding: '11px 36px 11px 40px',
-                borderRadius: '12px 0 0 12px',
+                padding: '12px 36px 12px 40px',
+                borderRadius: '15px 0 0 15px',
                 border: 'none',
                 background: 'transparent',
                 color: 'var(--text)',
@@ -612,7 +615,7 @@ export default function HomePage() {
               left: 0,
               right: 0,
               height: 2,
-              borderRadius: '0 0 12px 12px',
+              borderRadius: '0 0 15px 15px',
               overflow: 'hidden',
             }}
           >

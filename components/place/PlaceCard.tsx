@@ -1,5 +1,5 @@
 'use client'
-import { memo, useState, useCallback, useEffect } from 'react'
+import { memo, useState, useCallback, useEffect, Fragment, type ReactNode } from 'react'
 import { getNote } from '@/components/place/NoteModal'
 import type { PlaceCard as T } from '@/types'
 import { Bookmark, MapPin, Star } from 'lucide-react'
@@ -32,23 +32,9 @@ function priceLabel(price?: number): string {
   return '€'.repeat(price)
 }
 
-// Short editorial eyebrow badge (native)
-function badgeFor(place: T, rating?: number): { label: string; michelin: boolean } | null {
-  const michelin = place.wikidata?.michelin_stars ?? place.osm_enriched?.michelin
-  if (michelin) return { label: 'Étoilé Michelin', michelin: true }
-  if (rating != null && rating >= 9) return { label: 'Exceptionnel', michelin: false }
-  if (rating != null && rating >= 8) return { label: 'Top choix', michelin: false }
-  return null
-}
-
-// Neighbourhood/zone line (native)
-function zoneFor(place: T): string | null {
-  return place.osm_enriched?.district ?? place.osm_enriched?.city ?? null
-}
-
 export const ITEM_HEIGHT = 92
-// Native editorial card is taller (photo-forward) + airier. Web keeps ITEM_HEIGHT.
-export const ITEM_HEIGHT_NATIVE = 134
+// Native "library" list-line (Albo) — flat, calm, 66px thumb. Web keeps ITEM_HEIGHT.
+export const ITEM_HEIGHT_NATIVE = 90
 
 const PlaceCard = memo(function PlaceCard({
   place,
@@ -86,11 +72,71 @@ const PlaceCard = memo(function PlaceCard({
     [onToggleFavorite]
   )
 
-  // ─────────────────────────── NATIVE — carte éditoriale photo-forward ──
+  // ─────────────────── NATIVE — ligne « bibliothèque » façon Albo ──
+  // Plate et calme : vignette 66px + nom serif + méta à points, comme l'écran
+  // Favoris. Fini la carte bordée/ombrée photo-forward.
   if (native) {
-    const badge = badgeFor(place, rating)
-    const zone = zoneFor(place)
-    const cardShadow = isSelected ? 'var(--s3)' : 'var(--s2)'
+    const michelin = place.wikidata?.michelin_stars ?? place.osm_enriched?.michelin
+    const meta: ReactNode[] = []
+    if (rating != null) {
+      meta.push(
+        <span
+          key="rating"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 3,
+            fontWeight: 700,
+            color: 'var(--text)',
+          }}
+        >
+          <Star size={13} strokeWidth={0} fill="var(--star)" />
+          {rating.toFixed(1)}
+        </span>
+      )
+    }
+    if (cuisine) meta.push(<span key="cuisine">{frCuisine(cuisine)}</span>)
+    if (price != null) {
+      meta.push(
+        <span key="price" style={{ color: 'var(--text-3)', fontWeight: 600 }}>
+          {priceLabel(price)}
+        </span>
+      )
+    }
+    if (place.open_now !== undefined) {
+      meta.push(
+        <span
+          key="open"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            fontWeight: 600,
+            color: place.open_now ? 'var(--open)' : 'var(--closed)',
+          }}
+        >
+          <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }} />
+          {place.open_now ? 'Ouvert' : 'Fermé'}
+        </span>
+      )
+    }
+    if (place.distance != null) {
+      meta.push(
+        <span key="dist" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+          <MapPin size={12} strokeWidth={1.75} />
+          {formatWalkTime(place.distance)}
+        </span>
+      )
+    }
+    if (hasNote) {
+      meta.push(
+        <span
+          key="note"
+          title="Note personnelle"
+          style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }}
+        />
+      )
+    }
 
     return (
       <div
@@ -98,23 +144,17 @@ const PlaceCard = memo(function PlaceCard({
         tabIndex={0}
         aria-label={`Voir ${place.name}`}
         style={{
-          height: ITEM_HEIGHT_NATIVE - 14,
+          height: '100%',
           boxSizing: 'border-box',
-          margin: '0 16px',
-          borderRadius: 22,
-          overflow: 'hidden',
-          position: 'relative',
-          background: 'var(--bg)',
-          border: isSelected ? '1.5px solid var(--accent)' : '1px solid var(--border)',
-          boxShadow: cardShadow,
-          cursor: 'pointer',
-          transform: pressing ? 'scale(0.985)' : 'scale(1)',
-          transition: 'box-shadow 160ms ease, transform 160ms ease, border-color 160ms ease',
-          outline: 'none',
           display: 'flex',
           alignItems: 'center',
-          padding: 12,
-          gap: 15,
+          gap: 13,
+          padding: '0 16px',
+          background: isSelected ? 'var(--surface)' : 'transparent',
+          cursor: 'pointer',
+          transform: pressing ? 'scale(0.99)' : 'scale(1)',
+          transition: 'background 160ms ease, transform 160ms ease',
+          outline: 'none',
           textAlign: 'left',
           fontFamily: 'inherit',
         }}
@@ -128,31 +168,33 @@ const PlaceCard = memo(function PlaceCard({
           }
         }}
       >
-        {/* Photo (or editorial fallback tile) */}
+        {/* Vignette 66px — photo ou repli dégradé + initiale serif */}
         <div
           style={{
-            width: 94,
-            height: 94,
-            borderRadius: 16,
+            position: 'relative',
+            width: 66,
+            height: 66,
+            borderRadius: 15,
             overflow: 'hidden',
             flexShrink: 0,
-            position: 'relative',
+            boxShadow: 'var(--s1)',
+            border: isSelected ? '2px solid var(--accent)' : 'none',
           }}
         >
-          <PlaceThumb place={place} initialSize={40} />
+          <PlaceThumb place={place} initialSize={28} />
           {place.friendsSaved && place.friendsSaved.length > 0 && (
             <div
               style={{
                 position: 'absolute',
-                bottom: 5,
-                left: 5,
+                bottom: 4,
+                left: 4,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 4,
+                gap: 3,
                 background: 'rgba(255,255,255,0.94)',
                 backdropFilter: 'blur(4px)',
                 borderRadius: 999,
-                padding: '2px 7px 2px 3px',
+                padding: '2px 6px 2px 3px',
                 boxShadow: 'var(--s1)',
               }}
             >
@@ -166,164 +208,92 @@ const PlaceCard = memo(function PlaceCard({
                       borderRadius: '50%',
                     }}
                   >
-                    <Avatar name={f.display_name} src={f.avatar_url} id={f.id} size={16} />
+                    <Avatar name={f.display_name} src={f.avatar_url} id={f.id} size={14} />
                   </div>
                 ))}
               </div>
-              <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text)' }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text)' }}>
                 {place.friendsSaved.length}
               </span>
             </div>
           )}
         </div>
 
-        {/* Content */}
-        <div
-          style={{
-            flex: 1,
-            minWidth: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            paddingRight: 34,
-            gap: 5,
-          }}
-        >
-          {/* Badge reserved for Michelin only — keeps the list clean; a badge
-              on every high-rated card cheapens it. Rating carries the quality. */}
-          {badge?.michelin && (
+        {/* Corps — nom serif + méta à points */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {michelin && (
             <span
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 4,
-                fontSize: 10,
+                fontSize: 9.5,
                 fontWeight: 700,
-                letterSpacing: '0.06em',
+                letterSpacing: '0.09em',
                 textTransform: 'uppercase',
-                color: 'var(--text)',
-                lineHeight: 1,
+                color: 'var(--text-3)',
+                marginBottom: 3,
               }}
             >
               <Star size={10} strokeWidth={0} fill="var(--star)" />
-              {badge.label}
+              Étoilé Michelin
             </span>
           )}
-
-          <span
+          <p
             style={{
+              margin: 0,
               fontFamily: 'var(--font-display)',
-              fontSize: 17,
+              fontSize: 16.5,
               fontWeight: 600,
               color: 'var(--text)',
+              letterSpacing: '-0.01em',
+              lineHeight: 1.15,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
-              lineHeight: 1.2,
-              letterSpacing: '-0.01em',
             }}
           >
             {place.name}
-          </span>
-
-          {(cuisine || zone) && (
-            <span
+          </p>
+          {meta.length > 0 && (
+            <div
               style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                marginTop: 5,
                 fontSize: 12.5,
                 color: 'var(--text-2)',
                 overflow: 'hidden',
-                textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
               }}
             >
-              {[cuisine ? frCuisine(cuisine) : null, zone].filter(Boolean).join(' · ')}
-            </span>
+              {meta.map((m, i) => (
+                <Fragment key={i}>
+                  {i > 0 && (
+                    <span
+                      style={{
+                        width: 3,
+                        height: 3,
+                        borderRadius: '50%',
+                        background: 'var(--text-4)',
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+                  {m}
+                </Fragment>
+              ))}
+            </div>
           )}
-
-          {/* Bottom meta: gold star rating · price · open state */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              marginTop: 1,
-              fontSize: 12.5,
-              color: 'var(--text-2)',
-              overflow: 'hidden',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {rating != null && (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 3,
-                  fontWeight: 700,
-                  color: 'var(--text)',
-                  flexShrink: 0,
-                }}
-              >
-                <Star size={13} strokeWidth={0} fill="var(--star)" />
-                {rating.toFixed(1)}
-              </span>
-            )}
-            {price != null && (
-              <span style={{ flexShrink: 0, color: 'var(--text-3)', fontWeight: 600 }}>
-                {priceLabel(price)}
-              </span>
-            )}
-            {place.distance != null && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
-                <MapPin size={12} strokeWidth={1.75} />
-                {formatWalkTime(place.distance)}
-              </span>
-            )}
-            {place.open_now !== undefined && (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  flexShrink: 0,
-                  color: place.open_now ? 'var(--open)' : 'var(--closed)',
-                  fontWeight: 600,
-                }}
-              >
-                <span
-                  style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: '50%',
-                    background: place.open_now ? 'var(--open)' : 'var(--closed)',
-                  }}
-                />
-                {place.open_now ? 'Ouvert' : 'Fermé'}
-              </span>
-            )}
-            {hasNote && (
-              <span
-                title="Note personnelle"
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  background: 'var(--accent)',
-                  flexShrink: 0,
-                }}
-              />
-            )}
-          </div>
         </div>
 
-        {/* Favorite button (top-right) */}
+        {/* Favori */}
         <button
           onClick={handleFavClick}
           aria-label={isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
           style={{
-            position: 'absolute',
-            top: 6,
-            right: 6,
+            flexShrink: 0,
             width: 40,
             height: 40,
             borderRadius: 999,
