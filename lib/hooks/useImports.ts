@@ -51,7 +51,11 @@ export function useImports(center: [number, number] | null) {
   const reload = useCallback(async () => {
     try {
       const headers = await getAuthHeaders()
-      if (!headers.Authorization) return
+      if (!headers.Authorization) {
+        // Signed out (or session gone): never keep the previous account's rows.
+        setImports([])
+        return
+      }
       const res = await apiFetch('/api/imports', { headers })
       if (!res.ok) return
       const { data } = (await res.json()) as { data: ImportRow[] }
@@ -81,9 +85,36 @@ export function useImports(center: [number, number] | null) {
     setImports((prev) => prev.map((i) => (i.id === id ? data : i)))
   }, [])
 
+  // Re-fetch whenever the signed-in account changes. The store is mounted ONCE
+  // at the root and never unmounts, so without this it would keep the first
+  // account's imports in memory and show them to whoever signs in next — a
+  // cross-account leak. Track the user id and reset everything on every change
+  // (login, logout, account switch).
+  const [userId, setUserId] = useState<string | null>(null)
   useEffect(() => {
+    const sb = getSupabaseBrowserClient()
+    let active = true
+    void sb.auth.getSession().then(({ data }) => {
+      if (active) setUserId(data.session?.user?.id ?? null)
+    })
+    const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id ?? null)
+    })
+    return () => {
+      active = false
+      sub.subscription.unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
+    // New account (or signed out) → drop the old rows and the resolver's
+    // per-session guards before loading the current account's imports.
+    attempted.current = new Set()
+    resolving.current = false
+    setImports([])
+    setLoading(true)
     void reload()
-  }, [reload])
+  }, [userId, reload])
 
   // Resolve pending imports in the background, sequentially (the Google scrape
   // gets blocked if hammered).
