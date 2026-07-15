@@ -45,7 +45,12 @@ const NATIVE_CSP = [
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" style={{ height: '100%', colorScheme: 'light' }} suppressHydrationWarning>
+    <html
+      lang="fr"
+      className={isExport ? 'native-app' : undefined}
+      style={{ height: '100%', colorScheme: 'light' }}
+      suppressHydrationWarning
+    >
       {isExport && (
         <head>
           <meta httpEquiv="Content-Security-Policy" content={NATIVE_CSP} />
@@ -59,7 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ImportsProvider>
             <ErrorBoundary>
               <CapacitorInit />
-              <AppChrome />
+              <AppChrome forceNative={isExport} />
               {/* Nudge web visitors to the native app (self-hides in the app). */}
               <GetAppBanner />
               {/* Push content right on desktop, up on mobile */}
