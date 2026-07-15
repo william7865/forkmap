@@ -48,6 +48,7 @@ PLACES_PROVIDER=                                   # optionnel — force le prov
 PLACES_SCRAPE=                                     # optionnel — mettre "off" pour désactiver le scraper DIY
 SERPAPI_KEY=                                       # optionnel — provider serpapi (moteur google_maps, palier gratuit ~100/mois)
 GOOGLE_PLACES_API_KEY=AIzaxxxxx                    # optionnel — provider google (API Places New, nécessite facturation)
+MAPILLARY_TOKEN=MLY|xxxxx                            # optionnel — photos de rue Mapillary (façades) pour les restos sans autre photo ; dégradation gracieuse sans le jeton (jeton client gratuit sur mapillary.com)
 RESEND_API_KEY=re_xxxxx                            # optionnel — sans elle, le formulaire de contact n'envoie pas d'email
 CONTACT_EMAIL_TO=hello@forkmap.app                 # optionnel — destinataire du formulaire de contact (défaut : hello@forkmap.app)
 POLL_TOKEN_SECRET=                                 # optionnel — signe le cookie de votant anonyme. Défaut : SUPABASE_SERVICE_ROLE_KEY. Le définir permet d'invalider tous les jetons de vote sans changer les identifiants BDD.
