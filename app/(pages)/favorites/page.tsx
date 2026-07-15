@@ -3334,7 +3334,7 @@ function FavoritesPageInner() {
             position: 'fixed',
             left: '50%',
             transform: 'translateX(-50%)',
-            bottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom) + 12px)' : 24,
+            bottom: isMobile ? 'calc(56px + var(--safe-bottom) + 12px)' : 24,
             zIndex: 800,
             display: 'flex',
             alignItems: 'center',

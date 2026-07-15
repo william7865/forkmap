@@ -7,8 +7,16 @@ import { useProfile } from '@/lib/hooks/useProfile'
 type Pref = 'saves' | 'lists' | 'off'
 
 const OPTIONS: { key: Pref; label: string; hint: string }[] = [
-  { key: 'saves', label: 'Chaque resto enregistré', hint: 'Tes abonnés sont prévenus à chaque favori.' },
-  { key: 'lists', label: 'Mes listes publiques', hint: 'Prévenus quand tu mets à jour une liste publique.' },
+  {
+    key: 'saves',
+    label: 'Chaque resto enregistré',
+    hint: 'Tes abonnés sont prévenus à chaque favori.',
+  },
+  {
+    key: 'lists',
+    label: 'Mes listes publiques',
+    hint: 'Prévenus quand tu mets à jour une liste publique.',
+  },
   { key: 'off', label: 'Ne rien envoyer', hint: 'Aucune notification à tes abonnés.' },
 ]
 
@@ -48,7 +56,7 @@ export default function NotifyPrefSheet({ onClose }: { onClose: () => void }) {
           maxWidth: 520,
           background: 'var(--white)',
           borderRadius: '20px 20px 0 0',
-          padding: '18px 18px calc(20px + env(safe-area-inset-bottom))',
+          padding: '18px 18px calc(20px + var(--safe-bottom))',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

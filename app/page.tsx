@@ -1353,7 +1353,7 @@ export default function HomePage() {
                 : `${visiblePlaces.length} trouvés`
           }
           defaultSnap="half"
-          bottomOffset="calc(56px + env(safe-area-inset-bottom))"
+          bottomOffset="calc(56px + var(--safe-bottom))"
         >
           <PlaceList
             header={
@@ -1503,7 +1503,7 @@ export default function HomePage() {
             top: 0,
             left: 0,
             right: 0,
-            bottom: 'calc(56px + env(safe-area-inset-bottom))',
+            bottom: 'calc(56px + var(--safe-bottom))',
             zIndex: 900,
             animation: 'slideUp 260ms cubic-bezier(0.16,1,0.3,1) both',
           }}

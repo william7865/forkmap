@@ -158,7 +158,7 @@ export default function PollCreate({ onClose }: { onClose: () => void }) {
           position: 'relative',
           background: 'var(--white)',
           borderRadius: '20px 20px 0 0',
-          padding: '18px 18px calc(24px + env(safe-area-inset-bottom))',
+          padding: '18px 18px calc(24px + var(--safe-bottom))',
           width: '100%',
           maxWidth: 520,
           maxHeight: '86vh',

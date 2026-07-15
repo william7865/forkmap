@@ -804,7 +804,7 @@ export default function SurpriseSheet({
             textAlign: 'center',
             fontSize: 11,
             color: pal.hint,
-            paddingBottom: 'max(10px, env(safe-area-inset-bottom))',
+            paddingBottom: 'max(10px, var(--safe-bottom))',
             flexShrink: 0,
           }}
         >

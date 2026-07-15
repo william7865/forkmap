@@ -55,7 +55,7 @@ const MapPlaceCard = memo(function MapPlaceCard({
         position: 'fixed',
         left: 12,
         right: 12,
-        bottom: 'calc(56px + env(safe-area-inset-bottom) + 12px)',
+        bottom: 'calc(56px + var(--safe-bottom) + 12px)',
         zIndex: 950,
         background: 'var(--bg)',
         WebkitBackdropFilter: 'blur(18px)',

@@ -118,7 +118,7 @@ export default function ReviewComposer({ initial, placeName, onClose, onSubmit, 
           maxWidth: 520,
           background: 'var(--white)',
           borderRadius: '20px 20px 0 0',
-          padding: '18px 18px calc(18px + env(safe-area-inset-bottom))',
+          padding: '18px 18px calc(18px + var(--safe-bottom))',
           maxHeight: '88vh',
           overflowY: 'auto',
           boxShadow: '0 -12px 40px rgba(0,0,0,0.2)',
@@ -222,9 +222,22 @@ export default function ReviewComposer({ initial, placeName, onClose, onSubmit, 
           {photos.map((p) => (
             <div
               key={p.key}
-              style={{ position: 'relative', width: 72, height: 72, borderRadius: 12, overflow: 'hidden' }}
+              style={{
+                position: 'relative',
+                width: 72,
+                height: 72,
+                borderRadius: 12,
+                overflow: 'hidden',
+              }}
             >
-              <Image src={p.preview} alt="" fill sizes="72px" style={{ objectFit: 'cover' }} unoptimized />
+              <Image
+                src={p.preview}
+                alt=""
+                fill
+                sizes="72px"
+                style={{ objectFit: 'cover' }}
+                unoptimized
+              />
               <button
                 onClick={() => removePhoto(p.key)}
                 aria-label="Retirer la photo"
