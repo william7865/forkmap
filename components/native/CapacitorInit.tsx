@@ -45,23 +45,41 @@ export function refreshTheme() {
  */
 function freezeSafeAreaInsets() {
   if (typeof document === 'undefined' || !document.body) return
+  // The bottom probe must be SCROLLABLE. WKWebView only reserves (reports via
+  // env) the bottom inset when a scroll container can actually scroll into the
+  // home-indicator area. The map home page is `100dvh; overflow:hidden` — it
+  // never scrolls — so env(safe-area-inset-bottom) collapses to 0 there while
+  // the scrollable pages report 34, which made the fixed tab bar change height
+  // between tabs. A fixed, overflow-scrolling probe with over-tall content
+  // forces the true inset regardless of which route is showing at startup.
   const probe = document.createElement('div')
-  probe.style.cssText = 'position:fixed;inset:0;visibility:hidden;pointer-events:none;z-index:-1'
-  const top = document.createElement('div')
-  top.style.cssText = 'position:absolute;top:0;left:0;width:0;height:env(safe-area-inset-top,0px)'
+  probe.style.cssText =
+    'position:fixed;left:0;bottom:0;width:1px;height:100%;overflow-y:scroll;visibility:hidden;pointer-events:none;z-index:-1'
   const bottom = document.createElement('div')
-  bottom.style.cssText =
-    'position:absolute;bottom:0;left:0;width:0;height:env(safe-area-inset-bottom,0px)'
-  probe.appendChild(top)
+  bottom.style.cssText = 'position:sticky;bottom:0;height:env(safe-area-inset-bottom,0px)'
+  const spacer = document.createElement('div')
+  spacer.style.cssText = 'height:300%'
   probe.appendChild(bottom)
+  probe.appendChild(spacer)
+
+  // The top inset is stable across routes, so a simple fixed probe suffices.
+  const topProbe = document.createElement('div')
+  topProbe.style.cssText =
+    'position:fixed;top:0;left:0;width:0;height:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none;z-index:-1'
+
   document.body.appendChild(probe)
+  document.body.appendChild(topProbe)
   requestAnimationFrame(() => {
-    const t = Math.round(top.getBoundingClientRect().height)
+    const t = Math.round(topProbe.getBoundingClientRect().height)
     const b = Math.round(bottom.getBoundingClientRect().height)
     const root = document.documentElement.style
-    if (t >= 0 && t <= 120) root.setProperty('--safe-top', `${t}px`)
-    if (b >= 0 && b <= 120) root.setProperty('--safe-bottom', `${b}px`)
+    // Only pin when the reading is a real inset (>0). A 0 read means either a
+    // device without a home indicator (env stays 0 anyway) or a bad frame — in
+    // both cases leaving the env() default is correct.
+    if (t > 0 && t <= 120) root.setProperty('--safe-top', `${t}px`)
+    if (b > 0 && b <= 120) root.setProperty('--safe-bottom', `${b}px`)
     probe.remove()
+    topProbe.remove()
   })
 }
 

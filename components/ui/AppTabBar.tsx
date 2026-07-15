@@ -62,6 +62,7 @@ export default function AppTabBar() {
     if (id) startPresence(id)
     else stopPresence()
   }, [auth.user?.id])
+
   return (
     <nav
       aria-label="Navigation principale"
