@@ -129,7 +129,7 @@ function TastemakerFeed({
           style={{
             display: 'flex',
             gap: 12,
-            padding: '13px 16px',
+            padding: '14px 20px',
             background: 'none',
             border: 'none',
             borderBottom: '1px solid var(--border)',
@@ -275,70 +275,68 @@ export default function ActivityFeed({ onClose }: { onClose: () => void }) {
         animation: 'slideUp 240ms cubic-bezier(0.16,1,0.3,1) both',
       }}
     >
-      {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: 'calc(var(--safe-top) + 10px) 16px 12px',
-          borderBottom: '1px solid var(--border)',
-        }}
-      >
-        <button
-          onClick={onClose}
-          aria-label="Retour"
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            padding: 0,
-            color: 'var(--ink)',
-          }}
-        >
-          <ChevronLeft size={24} />
-        </button>
-        <span
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontWeight: 700,
-            fontSize: 19,
-            color: 'var(--ink)',
-          }}
-        >
-          Fil
-        </span>
-      </div>
+      {/* Header — grand titre serif façon Albo */}
+      <div style={{ padding: 'calc(var(--safe-top) + 14px) 20px 10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <button
+            onClick={onClose}
+            aria-label="Retour"
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              padding: 0,
+              marginLeft: -4,
+              color: 'var(--text)',
+            }}
+          >
+            <ChevronLeft size={26} />
+          </button>
+          <h1
+            style={{
+              margin: 0,
+              fontFamily: 'var(--font-display)',
+              fontWeight: 600,
+              fontSize: 32,
+              letterSpacing: '-0.02em',
+              color: 'var(--text)',
+            }}
+          >
+            Fil d&apos;activité
+          </h1>
+        </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
-        {(['friends', 'tastemakers'] as const).map((t) => {
-          const active = tab === t
-          return (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              aria-pressed={active}
-              style={{
-                flex: 1,
-                padding: '9px 4px',
-                borderRadius: 9,
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 700,
-                fontFamily: 'inherit',
-                background: active ? 'var(--accent)' : 'var(--surface-2)',
-                color: active ? 'var(--on-accent, #fff)' : 'var(--text-2)',
-                transition: 'background 140ms',
-              }}
-            >
-              {t === 'friends' ? 'Amis' : 'Tastemakers'}
-            </button>
-          )
-        })}
+        {/* Tabs — pastilles façon Albo */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+          {(['friends', 'tastemakers'] as const).map((t) => {
+            const active = tab === t
+            return (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                aria-pressed={active}
+                style={{
+                  height: 36,
+                  padding: '0 18px',
+                  borderRadius: 999,
+                  border: active ? '1px solid var(--accent)' : '1px solid var(--border)',
+                  cursor: 'pointer',
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  fontFamily: 'inherit',
+                  background: active ? 'var(--accent)' : 'var(--bg)',
+                  color: active ? 'var(--on-accent)' : 'var(--text-2)',
+                  transition: 'background 140ms',
+                }}
+              >
+                {t === 'friends' ? 'Amis' : 'Tastemakers'}
+              </button>
+            )
+          })}
+        </div>
       </div>
+      <div style={{ borderBottom: '1px solid var(--border)' }} />
 
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
@@ -411,7 +409,7 @@ export default function ActivityFeed({ onClose }: { onClose: () => void }) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 12,
-                  padding: '13px 16px',
+                  padding: '14px 20px',
                   background: 'none',
                   border: 'none',
                   borderBottom: '1px solid var(--border)',

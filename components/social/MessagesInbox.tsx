@@ -133,6 +133,8 @@ export default function MessagesInbox({
     }
   }, [asPage])
 
+  const convCount = convos.length
+
   return (
     <div
       style={
@@ -153,130 +155,118 @@ export default function MessagesInbox({
             }
       }
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          padding: 'calc(var(--safe-top) + 14px) 18px 10px',
-        }}
-      >
-        {onClose && !asPage && (
-          <button
-            onClick={onClose}
-            aria-label="Retour"
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--ink)',
-              padding: 0,
-            }}
-          >
-            <ChevronLeft size={24} />
-          </button>
-        )}
+      {/* ── Masthead : actions en haut, puis grand titre serif (façon Albo) ── */}
+      <div style={{ padding: 'calc(var(--safe-top) + 16px) 20px 4px' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            minHeight: 38,
+            marginBottom: 12,
+          }}
+        >
+          {onClose && !asPage ? (
+            <button
+              onClick={onClose}
+              aria-label="Retour"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text)',
+                padding: 0,
+                marginLeft: -4,
+              }}
+            >
+              <ChevronLeft size={26} />
+            </button>
+          ) : (
+            <span />
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {onOpenFeed && (
+              <button onClick={onOpenFeed} aria-label="Fil d'activité" style={iconBtnStyle}>
+                <Newspaper size={18} strokeWidth={1.8} />
+              </button>
+            )}
+            {asPage && (
+              <button
+                onClick={() => {
+                  setShowNotifs(true)
+                  setUnreadNotifs(0)
+                }}
+                aria-label="Notifications"
+                style={{ ...iconBtnStyle, position: 'relative' }}
+              >
+                <Bell size={18} strokeWidth={1.8} />
+                {unreadNotifs > 0 && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: 4,
+                      right: 4,
+                      minWidth: 15,
+                      height: 15,
+                      padding: '0 4px',
+                      borderRadius: 999,
+                      background: '#e5484d',
+                      color: '#fff',
+                      fontSize: 9.5,
+                      fontWeight: 700,
+                      lineHeight: '15px',
+                      textAlign: 'center',
+                      border: '2px solid var(--bg)',
+                    }}
+                  >
+                    {unreadNotifs > 9 ? '9+' : unreadNotifs}
+                  </span>
+                )}
+              </button>
+            )}
+            {onAddFriends && (
+              <button
+                onClick={onAddFriends}
+                aria-label="Ajouter des amis"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  height: 38,
+                  padding: '0 16px',
+                  borderRadius: 999,
+                  border: 'none',
+                  background: 'var(--accent)',
+                  color: 'var(--on-accent)',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                <UserPlus size={16} strokeWidth={2.1} /> Ajouter
+              </button>
+            )}
+          </div>
+        </div>
         <h1
           style={{
             margin: 0,
             fontFamily: 'var(--font-display)',
-            fontWeight: 700,
-            fontSize: 30,
+            fontWeight: 600,
+            fontSize: 33,
             letterSpacing: '-0.02em',
-            color: 'var(--ink)',
+            lineHeight: 1,
+            color: 'var(--text)',
           }}
         >
           Messages
         </h1>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-          {onOpenFeed && (
-            <button
-              onClick={onOpenFeed}
-              aria-label="Fil d'activité"
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 999,
-                border: '1px solid var(--b2)',
-                background: 'var(--white)',
-                color: 'var(--ink)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-              }}
-            >
-              <Newspaper size={20} />
-            </button>
-          )}
-          {asPage && (
-            <button
-              onClick={() => {
-                setShowNotifs(true)
-                setUnreadNotifs(0)
-              }}
-              aria-label="Notifications"
-              style={{
-                position: 'relative',
-                width: 44,
-                height: 44,
-                borderRadius: 999,
-                border: '1px solid var(--b2)',
-                background: 'var(--white)',
-                color: 'var(--ink)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-              }}
-            >
-              <Bell size={20} />
-              {unreadNotifs > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: 6,
-                    right: 6,
-                    minWidth: 16,
-                    height: 16,
-                    padding: '0 4px',
-                    borderRadius: 999,
-                    background: '#e5484d',
-                    color: '#fff',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    lineHeight: '16px',
-                    textAlign: 'center',
-                    border: '2px solid var(--white)',
-                  }}
-                >
-                  {unreadNotifs > 9 ? '9+' : unreadNotifs}
-                </span>
-              )}
-            </button>
-          )}
-          {onAddFriends && (
-            <button
-              onClick={onAddFriends}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '10px 16px',
-                borderRadius: 'var(--r-pill)',
-                border: 'none',
-                background: 'var(--accent)',
-                color: 'var(--on-accent)',
-                fontFamily: 'var(--font-body)',
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              <UserPlus size={16} strokeWidth={2.2} /> Ajouter
-            </button>
-          )}
-        </div>
+        {asPage && convCount > 0 && (
+          <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text-3)' }}>
+            {convCount} conversation{convCount > 1 ? 's' : ''}
+          </p>
+        )}
       </div>
 
       {/* Demandes d'ami reçues */}
@@ -286,21 +276,21 @@ export default function MessagesInbox({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
-            width: 'calc(100% - 36px)',
-            margin: '4px 18px 6px',
-            padding: '12px 14px',
+            gap: 13,
+            width: 'calc(100% - 40px)',
+            margin: '14px 20px 2px',
+            padding: '13px 15px',
             borderRadius: 'var(--r-lg)',
-            border: '1px solid var(--accent)',
-            background: 'var(--accent-light)',
+            border: '1px solid var(--border)',
+            background: 'var(--surface)',
             cursor: 'pointer',
             fontFamily: 'var(--font-body)',
           }}
         >
           <span
             style={{
-              width: 36,
-              height: 36,
+              width: 40,
+              height: 40,
               flexShrink: 0,
               borderRadius: 999,
               background: 'var(--accent)',
@@ -310,43 +300,44 @@ export default function MessagesInbox({
               justifyContent: 'center',
             }}
           >
-            <UserPlus size={18} strokeWidth={2.2} />
+            <UserPlus size={19} strokeWidth={2.1} />
           </span>
           <span style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
             <span
-              style={{ display: 'block', fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}
+              style={{
+                display: 'block',
+                fontFamily: 'var(--font-display)',
+                fontSize: 16,
+                fontWeight: 600,
+                letterSpacing: '-0.01em',
+                color: 'var(--text)',
+              }}
             >
               {requestsCount} demande{requestsCount > 1 ? 's' : ''} d&apos;ami
             </span>
-            <span style={{ display: 'block', fontSize: 12.5, color: 'var(--text-2)' }}>
+            <span
+              style={{ display: 'block', marginTop: 1, fontSize: 12.5, color: 'var(--text-3)' }}
+            >
               Touche pour voir
             </span>
           </span>
-          <MoreHorizontal size={20} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+          <ChevronLeft
+            size={19}
+            style={{ color: 'var(--text-4)', flexShrink: 0, transform: 'rotate(180deg)' }}
+          />
         </button>
       )}
 
       {/* Amis actifs — tap pour discuter (façon « active now ») */}
       {asPage && sortedFriends.length > 0 && (
-        <div style={{ marginTop: 4 }}>
-          <p
-            style={{
-              margin: '0 18px 4px',
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-              color: 'var(--text-3)',
-            }}
-          >
-            Amis
-          </p>
+        <section style={{ marginTop: 22 }}>
+          <SecHead title="Amis" action="Gérer ›" onAction={onAddFriends} />
           <div
             style={{
               display: 'flex',
-              gap: 14,
+              gap: 16,
               overflowX: 'auto',
-              padding: '6px 18px 12px',
+              padding: '2px 20px 4px',
               scrollbarWidth: 'none',
             }}
             className="no-scrollbar"
@@ -357,7 +348,7 @@ export default function MessagesInbox({
                 onClick={() => setOpen(f)}
                 style={{
                   flexShrink: 0,
-                  width: 64,
+                  width: 62,
                   background: 'none',
                   border: 'none',
                   padding: 0,
@@ -365,7 +356,7 @@ export default function MessagesInbox({
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: 5,
+                  gap: 7,
                 }}
               >
                 <span style={{ position: 'relative' }}>
@@ -377,8 +368,8 @@ export default function MessagesInbox({
                         position: 'absolute',
                         bottom: 1,
                         right: 1,
-                        width: 15,
-                        height: 15,
+                        width: 14,
+                        height: 14,
                         borderRadius: '50%',
                         background: 'var(--open)',
                         border: '3px solid var(--bg)',
@@ -391,7 +382,7 @@ export default function MessagesInbox({
                     fontSize: 11.5,
                     color: 'var(--text-2)',
                     fontWeight: 500,
-                    maxWidth: 64,
+                    maxWidth: 62,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -402,33 +393,29 @@ export default function MessagesInbox({
               </button>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
+      {/* ── Discussions ── */}
       {asPage && !loading && convos.length > 0 && (
-        <p
-          style={{
-            margin: '4px 18px 0',
-            fontSize: 12,
-            fontWeight: 700,
-            letterSpacing: '0.04em',
-            textTransform: 'uppercase',
-            color: 'var(--text-3)',
-          }}
-        >
-          Discussions
-        </p>
+        <SecHead title="Discussions" style={{ marginTop: 24 }} />
       )}
       {asPage && convos.length > 3 && (
-        <div style={{ position: 'relative', margin: '8px 18px 0' }}>
+        <div
+          style={{
+            position: 'relative',
+            margin: '2px 20px 6px',
+            height: 46,
+          }}
+        >
           <Search
             size={17}
             style={{
               position: 'absolute',
-              left: 12,
+              left: 14,
               top: '50%',
               transform: 'translateY(-50%)',
-              color: 'var(--text-3)',
+              color: 'var(--text-4)',
             }}
           />
           <input
@@ -439,33 +426,30 @@ export default function MessagesInbox({
             onChange={(e) => setConvSearch(e.target.value)}
             aria-label="Rechercher une conversation"
             style={{
-              paddingLeft: 38,
-              height: 44,
-              borderRadius: 999,
-              background: 'var(--surface-2)',
-              border: 'none',
+              paddingLeft: 40,
+              height: 46,
+              borderRadius: 15,
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
             }}
           />
         </div>
       )}
 
-      <div style={{ padding: '8px 12px 0' }}>
+      <div style={{ padding: '2px 20px 0' }}>
         {loading && <Muted>Chargement…</Muted>}
         {!loading && convos.length === 0 && (
           <EmptyConversations hasFriends={friends.length > 0} onAddFriends={onAddFriends} />
         )}
-        {filteredConvos.map((c) => (
+        {filteredConvos.map((c, i) => (
           <div
             key={c.user.id}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 10,
-              padding: '10px 8px 10px 12px',
-              marginBottom: 6,
-              background: 'var(--white)',
-              border: '1px solid var(--b2)',
-              borderRadius: 'var(--r-md)',
+              gap: 13,
+              padding: '13px 0',
+              borderTop: i === 0 ? 'none' : '1px solid var(--border)',
             }}
           >
             <button
@@ -475,7 +459,7 @@ export default function MessagesInbox({
                 minWidth: 0,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 12,
+                gap: 13,
                 background: 'none',
                 border: 'none',
                 textAlign: 'left',
@@ -489,45 +473,47 @@ export default function MessagesInbox({
                   name={c.user.display_name}
                   src={c.user.avatar_url}
                   id={c.user.id}
-                  size={46}
+                  size={54}
                 />
                 {online.has(c.user.id) && (
                   <span
                     aria-label="En ligne"
                     style={{
                       position: 'absolute',
-                      bottom: 0,
-                      right: 0,
-                      width: 13,
-                      height: 13,
+                      bottom: 1,
+                      right: 1,
+                      width: 14,
+                      height: 14,
                       borderRadius: '50%',
                       background: 'var(--open)',
-                      border: '2.5px solid var(--white)',
+                      border: '3px solid var(--bg)',
                     }}
                   />
                 )}
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
-                <strong
+                <span
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6,
                     fontFamily: 'var(--font-display)',
-                    fontWeight: 700,
-                    fontSize: 15,
-                    color: 'var(--ink)',
+                    fontWeight: 600,
+                    fontSize: 16.5,
+                    letterSpacing: '-0.01em',
+                    color: 'var(--text)',
                   }}
                 >
                   {c.user.display_name}
-                  {c.muted && <BellOff size={13} color="var(--text-3)" />}
-                </strong>
+                  {c.muted && <BellOff size={13} color="var(--text-4)" />}
+                </span>
                 <span
                   style={{
                     display: 'block',
-                    fontSize: 13,
-                    color: c.unread > 0 ? 'var(--ink)' : 'var(--text-3)',
-                    fontWeight: c.unread > 0 ? 700 : 400,
+                    marginTop: 3,
+                    fontSize: 13.5,
+                    color: c.unread > 0 ? 'var(--text)' : 'var(--text-3)',
+                    fontWeight: c.unread > 0 ? 600 : 400,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -563,12 +549,12 @@ export default function MessagesInbox({
               aria-label="Options de la conversation"
               style={{
                 flexShrink: 0,
-                width: 36,
-                height: 36,
+                width: 34,
+                height: 34,
                 borderRadius: 999,
                 border: 'none',
                 background: 'none',
-                color: 'var(--text-3)',
+                color: 'var(--text-4)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -583,22 +569,11 @@ export default function MessagesInbox({
 
       {/* Suggestions — personnes que tu connais peut-être */}
       {asPage && suggestions.length > 0 && (
-        <div style={{ marginTop: 18 }}>
-          <p
-            style={{
-              margin: '0 18px 4px',
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-              color: 'var(--text-3)',
-            }}
-          >
-            Suggestions pour toi
-          </p>
+        <section style={{ marginTop: 26 }}>
+          <SecHead title="Suggestions" />
           <div
             className="no-scrollbar"
-            style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '6px 18px 8px' }}
+            style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '2px 20px 4px' }}
           >
             {suggestions.map((s) => (
               <div
@@ -606,11 +581,10 @@ export default function MessagesInbox({
                 style={{
                   flexShrink: 0,
                   width: 150,
-                  padding: 14,
+                  padding: 15,
                   borderRadius: 'var(--r-lg)',
-                  background: 'var(--white)',
-                  border: '1px solid var(--b2)',
-                  boxShadow: 'var(--s1)',
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -618,12 +592,15 @@ export default function MessagesInbox({
                   gap: 4,
                 }}
               >
-                <Avatar name={s.display_name} src={s.avatar_url} id={s.id} size={64} />
+                <Avatar name={s.display_name} src={s.avatar_url} id={s.id} size={62} />
                 <span
                   style={{
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: 'var(--ink)',
+                    marginTop: 4,
+                    fontFamily: 'var(--font-display)',
+                    fontSize: 15,
+                    fontWeight: 600,
+                    letterSpacing: '-0.01em',
+                    color: 'var(--text)',
                     maxWidth: '100%',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -632,14 +609,14 @@ export default function MessagesInbox({
                 >
                   {s.display_name}
                 </span>
-                <span style={{ fontSize: 11.5, color: 'var(--text-3)', marginBottom: 6 }}>
+                <span style={{ fontSize: 11.5, color: 'var(--text-3)', marginBottom: 8 }}>
                   {s.mutuals} ami{s.mutuals > 1 ? 's' : ''} en commun
                 </span>
                 <button
                   onClick={() => addSuggestion(s)}
                   style={{
                     width: '100%',
-                    padding: '8px 0',
+                    padding: '9px 0',
                     borderRadius: 999,
                     border: 'none',
                     background: 'var(--accent)',
@@ -655,7 +632,7 @@ export default function MessagesInbox({
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {open && (
@@ -718,8 +695,80 @@ export default function MessagesInbox({
   )
 }
 
+// Bouton-icône rond de la barre du haut (façon Albo)
+const iconBtnStyle: React.CSSProperties = {
+  width: 38,
+  height: 38,
+  borderRadius: '50%',
+  flexShrink: 0,
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: 'var(--text-2)',
+  cursor: 'pointer',
+}
+
+// En-tête de section serif façon Albo (avec action discrète optionnelle)
+function SecHead({
+  title,
+  action,
+  onAction,
+  style,
+}: {
+  title: string
+  action?: string
+  onAction?: () => void
+  style?: React.CSSProperties
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
+        padding: '0 20px',
+        marginBottom: 12,
+        ...style,
+      }}
+    >
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: 'var(--font-display)',
+          fontWeight: 600,
+          fontSize: 21,
+          letterSpacing: '-0.01em',
+          color: 'var(--text)',
+        }}
+      >
+        {title}
+      </h2>
+      {action && onAction && (
+        <button
+          type="button"
+          onClick={onAction}
+          style={{
+            border: 'none',
+            background: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            fontFamily: 'var(--font-body)',
+            fontSize: 13,
+            fontWeight: 600,
+            color: 'var(--text-3)',
+          }}
+        >
+          {action}
+        </button>
+      )}
+    </div>
+  )
+}
+
 function Muted({ children }: { children: React.ReactNode }) {
-  return <p style={{ margin: '8px 4px', fontSize: 13.5, color: 'var(--text-3)' }}>{children}</p>
+  return <p style={{ margin: '8px 0', fontSize: 13.5, color: 'var(--text-3)' }}>{children}</p>
 }
 
 function EmptyConversations({
@@ -736,37 +785,46 @@ function EmptyConversations({
         flexDirection: 'column',
         alignItems: 'center',
         textAlign: 'center',
-        padding: '40px 24px',
+        padding: '48px 24px',
         gap: 6,
       }}
     >
       <div
         style={{
-          width: 64,
-          height: 64,
-          borderRadius: 999,
+          width: 60,
+          height: 60,
+          borderRadius: 18,
           background: 'var(--surface-2)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           color: 'var(--text-3)',
-          marginBottom: 6,
+          marginBottom: 8,
         }}
       >
-        <MessageCircle size={30} strokeWidth={1.75} />
+        <MessageCircle size={28} strokeWidth={1.6} />
       </div>
       <h3
         style={{
           margin: 0,
           fontFamily: 'var(--font-display)',
           fontSize: 18,
-          fontWeight: 700,
-          color: 'var(--ink)',
+          fontWeight: 600,
+          letterSpacing: '-0.01em',
+          color: 'var(--text)',
         }}
       >
         Aucune conversation
       </h3>
-      <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-3)', maxWidth: 260 }}>
+      <p
+        style={{
+          margin: '4px 0 0',
+          fontSize: 13.5,
+          color: 'var(--text-2)',
+          maxWidth: 260,
+          lineHeight: 1.5,
+        }}
+      >
         {hasFriends
           ? 'Touche un ami en haut pour lui écrire, ou partage-lui un resto.'
           : 'Ajoute des amis pour discuter et partager vos adresses préférées.'}
@@ -775,22 +833,22 @@ function EmptyConversations({
         <button
           onClick={onAddFriends}
           style={{
-            marginTop: 12,
+            marginTop: 14,
             display: 'inline-flex',
             alignItems: 'center',
             gap: 6,
             padding: '11px 20px',
-            borderRadius: 'var(--r-pill)',
+            borderRadius: 999,
             border: 'none',
             background: 'var(--accent)',
             color: 'var(--on-accent)',
             fontFamily: 'var(--font-body)',
-            fontSize: 14,
+            fontSize: 13.5,
             fontWeight: 600,
             cursor: 'pointer',
           }}
         >
-          <UserPlus size={16} strokeWidth={2.2} /> Ajouter des amis
+          <UserPlus size={16} strokeWidth={2.1} /> Ajouter des amis
         </button>
       )}
     </div>
@@ -820,7 +878,7 @@ function ConvSheetBtn({
         fontFamily: 'var(--font-body)',
         fontSize: 15.5,
         fontWeight: 600,
-        color: danger ? 'var(--closed)' : 'var(--ink)',
+        color: danger ? 'var(--closed)' : 'var(--text)',
       }}
     >
       {children}
