@@ -4,6 +4,7 @@ import {
   platformFromUrl,
   handleFromUrl,
   cleanTitle,
+  accountFromTitle,
   extractHashtags,
   buildImportCandidate,
 } from '@/lib/import/parse'
@@ -45,6 +46,21 @@ describe('cleanTitle', () => {
       'Best pasta in town'
     )
   })
+
+  it('handles the French « sur » prefix (og:title Instagram FR)', () => {
+    expect(
+      cleanTitle('SUSHIWAN sur Instagram: IDENTIFIE LA PERSONNE QUI TE DOIT DES SUSHIS', 'instagram')
+    ).toBe('IDENTIFIE LA PERSONNE QUI TE DOIT DES SUSHIS')
+  })
+})
+
+describe('accountFromTitle', () => {
+  it('extrait le nom de compte du préfixe « X sur/on <plateforme>: … »', () => {
+    expect(accountFromTitle('SUSHIWAN sur Instagram: IDENTIFIE LA PERSONNE 😂❤️')).toBe('SUSHIWAN')
+    expect(accountFromTitle('lea on Instagram: "Best pasta in town"')).toBe('lea')
+    expect(accountFromTitle('Bouillon Pigalle | TikTok')).toBeNull()
+    expect(accountFromTitle('Just a plain title')).toBeNull()
+  })
 })
 
 describe('extractHashtags', () => {
@@ -71,6 +87,18 @@ describe('buildImportCandidate', () => {
       'https://example.com/x'
     )
     expect(c.query).toBe('Bouillon Pigalle')
+  })
+
+  it('expose le nom de compte extrait du préfixe plateforme', () => {
+    const c = buildImportCandidate(
+      {
+        title: 'SUSHIWAN sur Instagram: 📍 13 restaurants en IDF #paris #sushi',
+        description: '',
+      },
+      'https://www.instagram.com/sushiwanfrance/reel/abc'
+    )
+    expect(c.account).toBe('SUSHIWAN')
+    expect(c.handle).toBe('sushiwanfrance')
   })
 })
 

@@ -128,18 +128,45 @@ describe('resolveImport — chemin ambigu', () => {
     expect(patch.resolved_at).toBeTruthy()
   })
 
-  it('départage deux candidats équivalents par la proximité au centre de carte', async () => {
-    meta.mockResolvedValue({ title: '📍 Bistrot Paul', description: '' })
-    // Same name → same similarity score. Only the position separates them.
-    search.mockResolvedValue([
-      osmResult('Bistrot Paul', { id: 'node/far', osm_id: 'node/far', lat: 45.75, lon: 4.85 }), // Lyon
-      osmResult('Bistrot Paul', { id: 'node/near', osm_id: 'node/near', lat: 48.86, lon: 2.35 }), // Paris
-    ])
+  it('deux résultats de noms DIFFÉRENTS restent ambigus (jamais resolved)', async () => {
+    meta.mockResolvedValue({ title: '📍 Le Train Bleu', description: '' })
+    search.mockResolvedValue([osmResult('Le Train Bleu'), osmResult('Le Train Bleu Café')])
 
     const patch = await resolveImport(row(), PARIS)
 
     expect(patch.status).toBe('ambiguous')
-    expect(patch.candidates?.[0].osm_id).toBe('node/near')
+    expect(patch.place_snapshot).toBeNull()
+  })
+})
+
+describe('resolveImport — chaîne (succursale la plus proche)', () => {
+  it('plusieurs résultats au MÊME nom → resolved sur la plus proche du centre', async () => {
+    meta.mockResolvedValue({ title: '📍 SUSHIWAN', description: '' })
+    // Three branches of the same chain. Only the position separates them.
+    search.mockResolvedValue([
+      osmResult('SUSHIWAN', { id: 'node/far', osm_id: 'node/far', lat: 45.75, lon: 4.85 }), // Lyon
+      osmResult('SUSHIWAN', { id: 'node/near', osm_id: 'node/near', lat: 48.86, lon: 2.35 }), // Paris
+      osmResult('SUSHIWAN', { id: 'node/mid', osm_id: 'node/mid', lat: 50.63, lon: 3.06 }), // Lille
+    ])
+
+    const patch = await resolveImport(row(), PARIS)
+
+    expect(patch.status).toBe('resolved')
+    expect(patch.osm_id).toBe('node/near')
+    expect(patch.place_snapshot?.osm_id).toBe('node/near')
+    expect(patch.candidates).toBeNull()
+  })
+
+  it('chaîne dont la plus proche est incartographiable → retombe sur ambiguous', async () => {
+    meta.mockResolvedValue({ title: '📍 SUSHIWAN', description: '' })
+    search.mockResolvedValue([
+      osmResult('SUSHIWAN', { id: 'node/a', osm_id: 'node/a', lat: 48.86, lon: 2.35 }),
+      osmResult('SUSHIWAN', { id: 'node/b', osm_id: 'node/b', lat: 48.87, lon: 2.36 }),
+    ])
+    // Both usable here → resolves. Sanity: the resolved one is the nearest.
+    const patch = await resolveImport(row(), [48.861, 2.351])
+    expect(patch.status).toBe('resolved')
+    expect(patch.osm_id).toBe('node/a')
   })
 })
 

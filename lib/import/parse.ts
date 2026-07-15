@@ -20,6 +20,9 @@ export interface ImportCandidate {
   platform: ImportPlatform
   /** @handle from the URL/caption — often the venue's account. */
   handle: string | null
+  /** Display name of the posting account, read from the "X on <platform>: …"
+   *  title prefix. For a venue's own account it IS the place ("SUSHIWAN"). */
+  account: string | null
   /** Cleaned title (platform boilerplate stripped). */
   title: string
   /** Full caption/description text (kept as the "what the post says" blurb). */
@@ -106,15 +109,33 @@ export function handleFromUrl(url: string): string | null {
 
 const BOILERPLATE = /\s*(?:[|•·—-]\s*)?(?:tiktok|instagram|youtube|watch|regarder|facebook)\b.*$/i
 
+/** "<account> on/sur <platform>: <caption>" — the display-name prefix both the
+ *  English ("lea on Instagram: …") and French ("SUSHIWAN sur Instagram: …")
+ *  og:title use. Group 1 = account, group 2 = caption. */
+const ACCOUNT_PREFIX = /^(.+?)\s+(?:on|sur)\s+(?:tiktok|instagram|youtube|facebook)\s*:\s*(.+)$/i
+
 /** Strip platform boilerplate/suffixes from a post title. */
 export function cleanTitle(title: string, _platform: ImportPlatform): string {
   let t = decodeEntities(title).trim()
   // "Author on TikTok: caption" → keep the caption part (before stripping, so
   // the platform word inside the prefix doesn't swallow the caption).
-  const onPlatform = /\bon (?:tiktok|instagram|youtube|facebook)\s*:\s*(.+)$/i.exec(t)
-  if (onPlatform) t = onPlatform[1].trim()
+  const onPlatform = ACCOUNT_PREFIX.exec(t)
+  if (onPlatform) t = onPlatform[2].trim()
   else t = t.replace(BOILERPLATE, '').trim()
   return t.replace(/["“”]/g, '').trim()
+}
+
+/**
+ * The posting account's display name, read from the "X on/sur <platform>: …"
+ * title prefix ("SUSHIWAN sur Instagram: …" → "SUSHIWAN"). For a restaurant's
+ * own account this is the venue name — a strong candidate downstream.
+ * Returns null when the title has no such prefix.
+ */
+export function accountFromTitle(title: string): string | null {
+  const m = ACCOUNT_PREFIX.exec(decodeEntities(title).trim())
+  if (!m) return null
+  const account = m[1].replace(/["“”]/g, '').trim()
+  return account.length >= 2 ? account : null
 }
 
 export function extractHashtags(text: string): string[] {
@@ -134,6 +155,7 @@ function humanizeHandle(handle: string): string {
 export function buildImportCandidate(og: OgMeta, url: string): ImportCandidate {
   const platform = platformFromUrl(url)
   const handle = handleFromUrl(url)
+  const account = accountFromTitle(og.title ?? '')
   const title = cleanTitle(og.title ?? '', platform)
   const description = decodeEntities(og.description ?? '').trim()
   const hashtags = extractHashtags(`${title} ${description}`)
@@ -149,5 +171,5 @@ export function buildImportCandidate(og: OgMeta, url: string): ImportCandidate {
   // Cap length so the resolver query stays focused.
   query = query.replace(/\s+/g, ' ').slice(0, 80).trim()
 
-  return { platform, handle, title, description, hashtags, query }
+  return { platform, handle, account, title, description, hashtags, query }
 }
