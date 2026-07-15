@@ -454,7 +454,9 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
         attributionControl: false,
       })
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      // Positron (light_all): minimal light-grey basemap so the black pins and
+      // gold star read as the only colour — matches the Monochrome Premium look.
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution:
           '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">les contributeurs d’OpenStreetMap</a> | <a href="/attribution">Attribution des données</a>',
         subdomains: 'abcd',
