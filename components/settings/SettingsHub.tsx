@@ -40,6 +40,7 @@ import NotifyPrefSheet from '@/components/settings/NotifyPrefSheet'
 import AdminVerificationsSheet from '@/components/settings/AdminVerificationsSheet'
 import { getThemePref, setThemePref, type ThemePref } from '@/lib/theme'
 import { refreshTheme } from '@/components/native/CapacitorInit'
+import { staggerDelay } from '@/lib/motion'
 
 // ── Section « bibliothèque » : en-tête serif + filet fin ──────
 const sectionStyle: React.CSSProperties = {
@@ -48,9 +49,20 @@ const sectionStyle: React.CSSProperties = {
   borderTop: '1px solid var(--border)',
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+  index = 0,
+}: {
+  title: string
+  children: React.ReactNode
+  index?: number
+}) {
   return (
-    <section style={sectionStyle}>
+    <section
+      className="anim-fade-up"
+      style={{ ...sectionStyle, animationDelay: staggerDelay(index + 2) }}
+    >
       <h2
         style={{
           margin: '0 0 6px',
@@ -84,6 +96,7 @@ function SettingRow({
     <button
       type="button"
       onClick={onClick}
+      className="tap-press"
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -268,8 +281,9 @@ export default function SettingsHub() {
           <ChevronLeft size={20} strokeWidth={1.9} />
         </button>
 
-        {/* ── Titre d'écran — grand, serif ── */}
+        {/* ── Titre d'écran — grand, serif (entre en premier) ── */}
         <h1
+          className="anim-fade-up"
           style={{
             margin: '18px 0 0',
             fontFamily: 'var(--font-display)',
@@ -287,7 +301,9 @@ export default function SettingsHub() {
         {profile && (
           <button
             onClick={() => setEditing(true)}
+            className="anim-fade-up tap-press"
             style={{
+              animationDelay: staggerDelay(1),
               marginTop: 22,
               display: 'flex',
               alignItems: 'center',
@@ -339,17 +355,17 @@ export default function SettingsHub() {
         )}
 
         {/* ── Apparence ── */}
-        <Section title="Apparence">
+        <Section title="Apparence" index={0}>
           <ThemeControl />
         </Section>
 
         {/* ── Préférences ── */}
-        <Section title="Préférences">
+        <Section title="Préférences" index={1}>
           <SettingRow icon={Utensils} label="Tes goûts" onClick={() => setEditingTaste(true)} />
         </Section>
 
         {/* ── Tastemaker ── */}
-        <Section title="Tastemaker">
+        <Section title="Tastemaker" index={2}>
           <SettingRow
             icon={BadgeCheck}
             label="Vérification"
@@ -378,12 +394,12 @@ export default function SettingsHub() {
         </Section>
 
         {/* ── Partager ── */}
-        <Section title="Partager">
+        <Section title="Partager" index={3}>
           <SettingRow icon={UserPlus} label="Inviter des amis" onClick={inviteFriends} />
         </Section>
 
         {/* ── Compte ── */}
-        <Section title="Compte">
+        <Section title="Compte" index={4}>
           <SettingRow
             icon={Settings}
             label="Identité & accès"
@@ -392,7 +408,7 @@ export default function SettingsHub() {
         </Section>
 
         {/* ── Aide ── */}
-        <Section title="Aide">
+        <Section title="Aide" index={5}>
           <SettingRow icon={HelpCircle} label="Aide & FAQ" onClick={() => router.push('/help')} />
           <RowDivider />
           <SettingRow icon={Mail} label="Contact" onClick={() => router.push('/contact')} />
@@ -401,7 +417,7 @@ export default function SettingsHub() {
         </Section>
 
         {/* ── Légal ── */}
-        <Section title="Légal">
+        <Section title="Légal" index={6}>
           <SettingRow
             icon={Shield}
             label="Confidentialité"

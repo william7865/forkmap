@@ -413,7 +413,7 @@ export default function PublicProfile({
         </section>
 
         {/* ── Ses listes — lignes-collections ── */}
-        <section style={sectionStyle}>
+        <section style={{ ...sectionStyle, animation: 'fadeUp 320ms var(--ease-out) 120ms both' }}>
           <SecHead title="Ses listes" />
           {bundle.lists.length === 0 ? (
             <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-3)' }}>
@@ -518,6 +518,7 @@ function ListRowItem({ list, onOpen }: { list: PublicListCard; onOpen: () => voi
         type="button"
         onClick={onOpen}
         aria-label={`Ouvrir la liste ${list.name}`}
+        className="tap-press"
         style={{
           display: 'flex',
           alignItems: 'center',

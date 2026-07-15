@@ -29,6 +29,7 @@ import { placeGradient } from '@/lib/gradients'
 import { placeInitial } from '@/components/place/PlaceThumb'
 import { frCuisine } from '@/lib/cuisine'
 import { setPendingSelect } from '@/lib/pendingSelect'
+import { staggerDelay } from '@/lib/motion'
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   try {
@@ -1319,7 +1320,7 @@ function FavCardList({
           display: 'flex',
           alignItems: 'center',
           gap: 13,
-          animationDelay: `${index * 30}ms`,
+          animationDelay: staggerDelay(index),
           cursor: selectMode ? 'pointer' : 'default',
         }}
       >
@@ -1523,7 +1524,7 @@ function FavCardList({
         alignItems: 'center',
         border: `1px solid ${selected ? 'var(--ember)' : 'var(--border)'}`,
         boxShadow: 'var(--s1)',
-        animationDelay: `${index * 35}ms`,
+        animationDelay: staggerDelay(index),
         cursor: selectMode ? 'pointer' : 'default',
         transition: 'box-shadow 160ms ease, transform 160ms ease, border-color 160ms ease',
       }}
@@ -1724,7 +1725,7 @@ function ListItemRowNative({
         display: 'flex',
         alignItems: 'center',
         gap: 13,
-        animationDelay: `${index * 30}ms`,
+        animationDelay: staggerDelay(index),
       }}
     >
       {/* Vignette — repli dégradé + initiale serif */}
@@ -1898,7 +1899,7 @@ function FavCardGrid({
         overflow: 'hidden',
         border: `1px solid ${selected ? 'var(--ember)' : 'var(--border)'}`,
         boxShadow: 'var(--s1)',
-        animationDelay: `${index * 30}ms`,
+        animationDelay: staggerDelay(index),
         display: 'flex',
         flexDirection: 'column',
         cursor: selectMode ? 'pointer' : 'default',
@@ -3040,8 +3041,8 @@ function FavoritesPageInner() {
                   )}
                 </div>
 
-                {/* Masthead — nom de la liste en grand serif */}
-                <div>
+                {/* Masthead — nom de la liste en grand serif (entre en premier) */}
+                <div style={{ animation: 'fadeUp 280ms var(--ease-out) both' }}>
                   <h1
                     style={{
                       margin: 0,

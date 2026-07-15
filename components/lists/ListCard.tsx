@@ -43,6 +43,7 @@ export function ListCard({
           type="button"
           onClick={onClick}
           aria-label={`Ouvrir la liste ${list.name}`}
+          className="tap-press"
           style={{
             display: 'flex',
             alignItems: 'center',

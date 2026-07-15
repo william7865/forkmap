@@ -16,6 +16,7 @@ import NotificationsSheet from '@/components/social/NotificationsSheet'
 import { apiFetch } from '@/lib/api'
 import { getAuthHeaders } from '@/lib/auth-headers'
 import { useOnlineUsers } from '@/lib/presence'
+import { staggerDelay } from '@/lib/motion'
 import type { ConversationSummary, Profile, FriendSuggestion, FriendRequests } from '@/types'
 
 export default function MessagesInbox({
@@ -250,6 +251,7 @@ export default function MessagesInbox({
           </div>
         </div>
         <h1
+          className="anim-fade-up"
           style={{
             margin: 0,
             fontFamily: 'var(--font-display)',
@@ -444,7 +446,9 @@ export default function MessagesInbox({
         {filteredConvos.map((c, i) => (
           <div
             key={c.user.id}
+            className="anim-fade-up"
             style={{
+              animationDelay: staggerDelay(i),
               display: 'flex',
               alignItems: 'center',
               gap: 13,
@@ -454,6 +458,7 @@ export default function MessagesInbox({
           >
             <button
               onClick={() => setOpen(c.user)}
+              className="tap-press"
               style={{
                 flex: 1,
                 minWidth: 0,
