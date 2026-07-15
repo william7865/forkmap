@@ -1,12 +1,15 @@
 // ============================================================
 // components/settings/SettingsHub.tsx
-// Native settings hub — grouped list (BeReal/Instagram-style)
-// in Forkmap cream palette. Shown in native only via isNative
-// branch in app/(pages)/settings/page.tsx.
+// Native settings hub — layout « bibliothèque » façon Albo
+// (palette Forkmap conservée) : grand titre serif « Réglages »,
+// une ligne-profil calme, puis des sections à en-têtes serif
+// séparées par des filets fins — lignes de réglage aérées
+// (icône discrète + libellé + valeur/chevron). Web /settings reste
+// inchangé (rendu par AccountSettingsContent).
 // ============================================================
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useProfile } from '@/lib/hooks/useProfile'
@@ -38,25 +41,54 @@ import AdminVerificationsSheet from '@/components/settings/AdminVerificationsShe
 import { getThemePref, setThemePref, type ThemePref } from '@/lib/theme'
 import { refreshTheme } from '@/components/native/CapacitorInit'
 
-// ── Sub-components ────────────────────────────────────────────
+// ── Section « bibliothèque » : en-tête serif + filet fin ──────
+const sectionStyle: React.CSSProperties = {
+  marginTop: 26,
+  paddingTop: 26,
+  borderTop: '1px solid var(--border)',
+}
 
-function HubRow({
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section style={sectionStyle}>
+      <h2
+        style={{
+          margin: '0 0 6px',
+          fontFamily: 'var(--font-display)',
+          fontWeight: 600,
+          fontSize: 21,
+          letterSpacing: '-0.01em',
+          color: 'var(--text)',
+        }}
+      >
+        {title}
+      </h2>
+      <div>{children}</div>
+    </section>
+  )
+}
+
+// ── Ligne de réglage aérée : icône discrète + libellé + valeur/chevron ──
+function SettingRow({
   icon: Icon,
   label,
+  value,
   onClick,
 }: {
   icon: React.ElementType
   label: string
+  value?: string
   onClick: () => void
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 14,
-        padding: '13px 14px',
+        gap: 15,
+        padding: '15px 0',
         background: 'none',
         border: 'none',
         width: '100%',
@@ -65,61 +97,32 @@ function HubRow({
         fontFamily: 'inherit',
       }}
     >
-      <div
+      <Icon size={19} strokeWidth={1.7} color="var(--text-3)" style={{ flexShrink: 0 }} />
+      <span
         style={{
-          width: 32,
-          height: 32,
-          borderRadius: 'var(--r-md)',
-          background: 'var(--bone)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--accent)',
-          flexShrink: 0,
+          flex: 1,
+          fontSize: 15.5,
+          fontWeight: 500,
+          color: 'var(--text)',
+          letterSpacing: '-0.005em',
         }}
       >
-        <Icon size={17} strokeWidth={1.9} />
-      </div>
-      <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>{label}</span>
-      <ChevronRight size={18} color="var(--text-3)" />
+        {label}
+      </span>
+      {value && (
+        <span style={{ fontSize: 13.5, color: 'var(--text-3)', flexShrink: 0 }}>{value}</span>
+      )}
+      <ChevronRight size={18} strokeWidth={1.9} color="var(--text-4)" style={{ flexShrink: 0 }} />
     </button>
   )
 }
 
-function Divider() {
-  return <div style={{ height: 1, background: 'var(--b1)', margin: '0 14px' }} />
+// Filet fin entre lignes, aligné sous le libellé (inset façon Albo)
+function RowDivider() {
+  return <div style={{ height: 1, background: 'var(--border)', marginLeft: 34 }} />
 }
 
-function Section({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBottom: 22 }}>
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase' as const,
-          color: 'var(--text-3)',
-          margin: '0 0 8px 6px',
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          background: 'var(--white)',
-          border: '1px solid var(--b2)',
-          borderRadius: 'var(--r-lg)',
-          overflow: 'hidden',
-          boxShadow: 'var(--s2)',
-        }}
-      >
-        {children}
-      </div>
-    </div>
-  )
-}
-
+// ── Bascule de thème — segment calme (comportement inchangé) ───
 function ThemeControl() {
   const [pref, setPref] = useState<ThemePref>(() => getThemePref())
   const options: { key: ThemePref; label: string }[] = [
@@ -133,7 +136,17 @@ function ThemeControl() {
     refreshTheme()
   }
   return (
-    <div style={{ display: 'flex', gap: 4, padding: 4 }}>
+    <div
+      style={{
+        display: 'flex',
+        gap: 4,
+        padding: 4,
+        marginTop: 14,
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderRadius: 14,
+      }}
+    >
       {options.map((o) => {
         const active = pref === o.key
         return (
@@ -143,15 +156,15 @@ function ThemeControl() {
             aria-pressed={active}
             style={{
               flex: 1,
-              padding: '9px 4px',
-              borderRadius: 9,
+              padding: '10px 4px',
+              borderRadius: 10,
               border: 'none',
               cursor: 'pointer',
-              background: active ? 'var(--accent)' : 'var(--surface-2)',
+              background: active ? 'var(--accent)' : 'transparent',
               color: active ? 'var(--on-accent)' : 'var(--text-2)',
               fontFamily: 'inherit',
-              fontSize: 13,
-              fontWeight: 700,
+              fontSize: 13.5,
+              fontWeight: 600,
               transition: 'background 140ms, color 140ms',
             }}
           >
@@ -223,66 +236,68 @@ export default function SettingsHub() {
       style={{
         minHeight: '100vh',
         background: 'var(--bg)',
-        paddingBottom: 'calc(var(--safe-bottom) + 40px)',
+        color: 'var(--text)',
+        fontFamily: 'var(--font-body)',
       }}
     >
-      {/* ── Top bar ── */}
       <div
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          padding: 'calc(var(--safe-top) + 10px) 16px 8px',
+          maxWidth: 660,
+          margin: '0 auto',
+          padding: 'calc(var(--safe-top) + 12px) 20px calc(var(--safe-bottom) + 48px)',
         }}
       >
+        {/* ── Retour — bouton-icône discret, façon Albo ── */}
         <button
           onClick={() => history.back()}
           aria-label="Retour"
           style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
+            width: 38,
+            height: 38,
+            borderRadius: '50%',
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--text-2)',
+            cursor: 'pointer',
             padding: 0,
-            color: 'var(--ink)',
           }}
         >
-          <ChevronLeft size={24} />
+          <ChevronLeft size={20} strokeWidth={1.9} />
         </button>
-        <div style={{ flex: 1, textAlign: 'center' }}>
-          <span
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontWeight: 700,
-              fontSize: 18,
-              color: 'var(--ink)',
-            }}
-          >
-            Réglages
-          </span>
-        </div>
-        <div style={{ width: 24 }} />
-      </div>
 
-      {/* ── Content ── */}
-      <div style={{ maxWidth: 480, margin: '0 auto', padding: '8px 16px 0' }}>
-        {/* Profile card */}
+        {/* ── Titre d'écran — grand, serif ── */}
+        <h1
+          style={{
+            margin: '18px 0 0',
+            fontFamily: 'var(--font-display)',
+            fontWeight: 600,
+            fontSize: 32,
+            letterSpacing: '-0.02em',
+            lineHeight: 1.05,
+            color: 'var(--text)',
+          }}
+        >
+          Réglages
+        </h1>
+
+        {/* ── Ligne-profil — calme, éditoriale (avatar + nom serif + @) ── */}
         {profile && (
           <button
             onClick={() => setEditing(true)}
             style={{
-              background: 'var(--white)',
-              border: '1px solid var(--b2)',
-              borderRadius: 'var(--r-lg)',
-              boxShadow: 'var(--s2)',
-              padding: '12px 14px',
+              marginTop: 22,
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
-              cursor: 'pointer',
+              gap: 14,
+              background: 'none',
+              border: 'none',
               width: '100%',
+              cursor: 'pointer',
               textAlign: 'left',
-              marginBottom: 24,
+              padding: 0,
               fontFamily: 'inherit',
             }}
           >
@@ -290,53 +305,60 @@ export default function SettingsHub() {
               name={profile.display_name}
               src={profile.avatar_url}
               id={profile.id}
-              size={52}
+              size={56}
             />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span
                 style={{
+                  display: 'block',
                   fontFamily: 'var(--font-display)',
-                  fontWeight: 700,
-                  fontSize: 16,
-                  color: 'var(--ink)',
+                  fontWeight: 600,
+                  fontSize: 18,
+                  letterSpacing: '-0.01em',
+                  color: 'var(--text)',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap' as const,
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {profile.display_name}
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--text-3)' }}>@{profile.username}</div>
-            </div>
+              </span>
+              <span
+                style={{ display: 'block', marginTop: 3, fontSize: 13.5, color: 'var(--text-3)' }}
+              >
+                @{profile.username}
+              </span>
+            </span>
             <ChevronRight
               size={20}
-              color="var(--text-3)"
-              style={{ marginLeft: 'auto', flexShrink: 0 }}
+              strokeWidth={1.9}
+              color="var(--text-4)"
+              style={{ flexShrink: 0 }}
             />
           </button>
         )}
 
-        {/* Section: APPARENCE */}
-        <Section label="APPARENCE">
+        {/* ── Apparence ── */}
+        <Section title="Apparence">
           <ThemeControl />
         </Section>
 
-        {/* Section: PRÉFÉRENCES */}
-        <Section label="PRÉFÉRENCES">
-          <HubRow icon={Utensils} label="Tes goûts" onClick={() => setEditingTaste(true)} />
+        {/* ── Préférences ── */}
+        <Section title="Préférences">
+          <SettingRow icon={Utensils} label="Tes goûts" onClick={() => setEditingTaste(true)} />
         </Section>
 
-        {/* Section: TASTEMAKER */}
-        <Section label="TASTEMAKER">
-          <HubRow
+        {/* ── Tastemaker ── */}
+        <Section title="Tastemaker">
+          <SettingRow
             icon={BadgeCheck}
             label="Vérification"
             onClick={() => setShowVerification(true)}
           />
           {profile?.verified && (
             <>
-              <Divider />
-              <HubRow
+              <RowDivider />
+              <SettingRow
                 icon={Bell}
                 label="Prévenir mes abonnés"
                 onClick={() => setShowNotifyPref(true)}
@@ -345,8 +367,8 @@ export default function SettingsHub() {
           )}
           {isAdmin && (
             <>
-              <Divider />
-              <HubRow
+              <RowDivider />
+              <SettingRow
                 icon={ShieldCheck}
                 label="Demandes de vérification"
                 onClick={() => setShowAdmin(true)}
@@ -355,61 +377,66 @@ export default function SettingsHub() {
           )}
         </Section>
 
-        {/* Section: PARTAGER */}
-        <Section label="PARTAGER">
-          <HubRow icon={UserPlus} label="Inviter des amis" onClick={inviteFriends} />
+        {/* ── Partager ── */}
+        <Section title="Partager">
+          <SettingRow icon={UserPlus} label="Inviter des amis" onClick={inviteFriends} />
         </Section>
 
-        {/* Section: COMPTE */}
-        <Section label="COMPTE">
-          <HubRow
+        {/* ── Compte ── */}
+        <Section title="Compte">
+          <SettingRow
             icon={Settings}
             label="Identité & accès"
             onClick={() => router.push('/settings/compte')}
           />
         </Section>
 
-        {/* Section: AIDE */}
-        <Section label="AIDE">
-          <HubRow icon={HelpCircle} label="Aide & FAQ" onClick={() => router.push('/help')} />
-          <Divider />
-          <HubRow icon={Mail} label="Contact" onClick={() => router.push('/contact')} />
-          <Divider />
-          <HubRow icon={Info} label="À propos" onClick={() => router.push('/about')} />
+        {/* ── Aide ── */}
+        <Section title="Aide">
+          <SettingRow icon={HelpCircle} label="Aide & FAQ" onClick={() => router.push('/help')} />
+          <RowDivider />
+          <SettingRow icon={Mail} label="Contact" onClick={() => router.push('/contact')} />
+          <RowDivider />
+          <SettingRow icon={Info} label="À propos" onClick={() => router.push('/about')} />
         </Section>
 
-        {/* Section: LÉGAL */}
-        <Section label="LÉGAL">
-          <HubRow icon={Shield} label="Confidentialité" onClick={() => router.push('/privacy')} />
-          <Divider />
-          <HubRow
+        {/* ── Légal ── */}
+        <Section title="Légal">
+          <SettingRow
+            icon={Shield}
+            label="Confidentialité"
+            onClick={() => router.push('/privacy')}
+          />
+          <RowDivider />
+          <SettingRow
             icon={FileText}
             label="Conditions d'utilisation"
             onClick={() => router.push('/terms')}
           />
-          <Divider />
-          <HubRow
+          <RowDivider />
+          <SettingRow
             icon={Map}
             label="Attribution des données"
             onClick={() => router.push('/attribution')}
           />
         </Section>
 
-        {/* Sign out */}
+        {/* ── Se déconnecter ── */}
         <button
           onClick={signOut}
           disabled={signingOut}
           style={{
             display: 'block',
-            margin: '12px auto 0',
+            margin: '34px auto 0',
             background: 'none',
             border: 'none',
-            cursor: 'pointer',
-            color: 'var(--coral)',
+            cursor: signingOut ? 'not-allowed' : 'pointer',
+            color: 'var(--closed)',
             fontSize: 15,
-            fontWeight: 700,
+            fontWeight: 600,
             fontFamily: 'inherit',
             padding: 12,
+            opacity: signingOut ? 0.6 : 1,
           }}
         >
           {signingOut ? 'Déconnexion…' : 'Se déconnecter'}
