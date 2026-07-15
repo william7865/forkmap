@@ -71,3 +71,8 @@ docs/superpowers/
 
 # Env copié dans la coque iOS au build
 ios/App/App/.env.local
+
+# Sorties d'outils / scratch (ne jamais committer)
+.playwright-mcp/
+favoris-albo.png
+snap.yml
