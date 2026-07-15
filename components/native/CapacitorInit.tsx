@@ -194,6 +194,7 @@ export default function CapacitorInit() {
         const shares = await readPendingShares()
         if (shares.length === 0) return
         let allPosted = true
+        let anyPosted = false
         for (const share of shares) {
           try {
             const res = await apiFetch('/api/imports', {
@@ -205,7 +206,8 @@ export default function CapacitorInit() {
                 ...(share.note ? { note: share.note } : {}),
               }),
             })
-            if (!res.ok) allPosted = false
+            if (res.ok) anyPosted = true
+            else allPosted = false
           } catch {
             allPosted = false
           }
@@ -213,6 +215,8 @@ export default function CapacitorInit() {
         // POST /api/imports upserts on (user_id, url), so a retried entry never
         // duplicates — we can safely keep the queue until everything lands.
         if (allPosted && !cancelled) await clearPendingShares()
+        // Tell the imports store to refresh so the new rows show without a relaunch.
+        if (anyPosted && !cancelled) window.dispatchEvent(new Event('forkmap:imports-changed'))
       } catch (err) {
         console.warn('[CapacitorInit] pending shares drain failed', err)
       } finally {
@@ -231,9 +235,23 @@ export default function CapacitorInit() {
       if (event === 'SIGNED_IN' && session?.access_token) void drain(session.access_token)
     })
 
+    // On resume (back from TikTok/Instagram after a share), drain any queued
+    // shares. Whether the extension posted directly or queued offline, the
+    // imports store also reloads on resume (see useImports).
+    let resumeRemove: (() => void) | undefined
+    void import('@capacitor/app').then(({ App }) => {
+      App.addListener('resume', async () => {
+        const { data } = await sb.auth.getSession()
+        if (data.session?.access_token) void drain(data.session.access_token)
+      }).then((h) => {
+        resumeRemove = () => void h.remove()
+      })
+    })
+
     return () => {
       cancelled = true
       subscription.unsubscribe()
+      resumeRemove?.()
     }
   }, [])
 

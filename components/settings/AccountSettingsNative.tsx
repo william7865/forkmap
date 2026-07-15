@@ -1,12 +1,60 @@
+// ============================================================
+// components/settings/AccountSettingsNative.tsx
+// Native « Identité & accès » screen — layout « bibliothèque »
+// (palette Forkmap conservée) : sections à en-têtes serif séparées
+// par des filets fins, lignes calmes et aérées (libellé + valeur/
+// chevron) avec édition inline. Comportement inchangé : nom, e-mail,
+// mot de passe, déconnexion, suppression du compte.
+// ============================================================
 'use client'
 
-import { useState, useRef } from 'react'
+import React, { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth, getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { apiFetch } from '@/lib/api'
 import { ChevronRight, Check, Eye, EyeOff, LogOut, Trash2 } from 'lucide-react'
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
+
+// ── Section « bibliothèque » : en-tête serif + filet fin ──────
+function Section({
+  title,
+  first,
+  children,
+}: {
+  title: string
+  first?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <section
+      style={{
+        marginTop: first ? 4 : 28,
+        paddingTop: first ? 0 : 28,
+        borderTop: first ? 'none' : '1px solid var(--border)',
+      }}
+    >
+      <h2
+        style={{
+          margin: '0 0 4px',
+          fontFamily: 'var(--font-display)',
+          fontWeight: 600,
+          fontSize: 21,
+          letterSpacing: '-0.01em',
+          color: 'var(--text)',
+        }}
+      >
+        {title}
+      </h2>
+      <div>{children}</div>
+    </section>
+  )
+}
+
+// Filet fin entre lignes d'une même section
+function RowDivider() {
+  return <div style={{ height: 1, background: 'var(--border)' }} />
+}
 
 export default function AccountSettingsNative({ isMobile: _isMobile }: { isMobile: boolean }) {
   const auth = useAuth()
@@ -111,7 +159,7 @@ export default function AccountSettingsNative({ isMobile: _isMobile }: { isMobil
     }
   }
 
-  // ── save button ──
+  // ── save button (small accent action) ──
   const saveBtn = (state: SaveState, label: string, onClick: () => void, disabled: boolean) => (
     <button
       onClick={onClick}
@@ -120,17 +168,16 @@ export default function AccountSettingsNative({ isMobile: _isMobile }: { isMobil
         display: 'inline-flex',
         alignItems: 'center',
         gap: 7,
-        padding: '10px 18px',
-        borderRadius: 'var(--r-md)',
+        padding: '11px 20px',
+        borderRadius: 999,
         border: 'none',
         background: state === 'saved' ? 'var(--open)' : 'var(--accent)',
         color: 'var(--on-accent)',
-        fontSize: 13,
-        fontWeight: 700,
+        fontSize: 13.5,
+        fontWeight: 600,
         cursor: disabled ? 'not-allowed' : 'pointer',
         fontFamily: 'inherit',
         opacity: disabled ? 0.4 : 1,
-        boxShadow: state === 'saved' ? 'none' : 'var(--s-accent)',
         transition: 'background 150ms, opacity 150ms, transform 80ms',
         whiteSpace: 'nowrap' as const,
       }}
@@ -153,123 +200,66 @@ export default function AccountSettingsNative({ isMobile: _isMobile }: { isMobil
   // ── render ──
   return (
     <>
-      {/* Section label */}
-      <p
-        style={{
-          margin: '0 0 8px 6px',
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase' as const,
-          color: 'var(--text-3)',
-        }}
-      >
-        Compte
-      </p>
-
-      {/* Grouped card */}
-      <div
-        style={{
-          background: 'var(--white)',
-          border: '1px solid var(--b2)',
-          borderRadius: 'var(--r-lg)',
-          overflow: 'hidden',
-          boxShadow: 'var(--s2)',
-        }}
-      >
-        {/* ── Nom row ── */}
-        <div>
-          <button
-            onClick={() => setOpenRow(openRow === 'name' ? null : 'name')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              padding: '14px 16px',
-              background: 'none',
-              border: 'none',
-              width: '100%',
-              cursor: 'pointer',
-              textAlign: 'left',
-              fontFamily: 'inherit',
-            }}
-          >
-            <span style={{ flex: 1, fontSize: 15, color: 'var(--ink)' }}>Nom</span>
-            {openRow !== 'name' && (
-              <span
-                style={{
-                  fontSize: 14,
-                  color: 'var(--text-3)',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap' as const,
-                  maxWidth: 160,
-                }}
-              >
-                {currentName}
-              </span>
-            )}
-            <ChevronRight
-              size={18}
-              color="var(--text-3)"
+      {/* ── Identité ── */}
+      <Section title="Identité" first>
+        {/* Nom row (expandable) */}
+        <button onClick={() => setOpenRow(openRow === 'name' ? null : 'name')} style={rowBtn}>
+          <span style={rowLabel}>Nom</span>
+          {openRow !== 'name' && (
+            <span
               style={{
-                flexShrink: 0,
-                transition: 'transform 200ms',
-                transform: openRow === 'name' ? 'rotate(90deg)' : 'rotate(0deg)',
-              }}
-            />
-          </button>
-
-          {openRow === 'name' && (
-            <div
-              style={{
-                padding: '0 16px 14px',
-                display: 'flex',
-                flexDirection: 'column' as const,
-                gap: 10,
+                ...rowValue,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap' as const,
+                maxWidth: 180,
               }}
             >
-              <input
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Votre nom"
-                aria-label="Nom affiché"
-                style={{ ...inputStyle }}
-                onFocus={(e) => Object.assign(e.currentTarget.style, focusStyle)}
-                onBlur={(e) => Object.assign(e.currentTarget.style, blurStyle)}
-              />
-              <div>{saveBtn(nameState, 'Enregistrer', saveName, !nameChanged)}</div>
-              {nameState === 'error' && (
-                <p style={{ margin: 0, fontSize: 12, color: 'var(--coral)' }}>
-                  {"Échec de l'enregistrement. Réessayez."}
-                </p>
-              )}
-            </div>
+              {currentName}
+            </span>
           )}
-        </div>
+          <ChevronRight
+            size={18}
+            strokeWidth={1.9}
+            color="var(--text-4)"
+            style={{
+              flexShrink: 0,
+              transition: 'transform 200ms',
+              transform: openRow === 'name' ? 'rotate(90deg)' : 'rotate(0deg)',
+            }}
+          />
+        </button>
+        {openRow === 'name' && (
+          <div style={{ padding: '2px 0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <input
+              className="input-field"
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Votre nom"
+              aria-label="Nom affiché"
+            />
+            <div>{saveBtn(nameState, 'Enregistrer', saveName, !nameChanged)}</div>
+            {nameState === 'error' && (
+              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--closed)', fontWeight: 600 }}>
+                {"Échec de l'enregistrement. Réessayez."}
+              </p>
+            )}
+          </div>
+        )}
 
-        {/* divider */}
-        <div style={{ height: 1, background: 'var(--b1)', margin: '0 16px' }} />
+        <RowDivider />
 
-        {/* ── E-mail row (non-interactive) ── */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '14px 16px',
-          }}
-        >
-          <span style={{ flex: 1, fontSize: 15, color: 'var(--ink)' }}>E-mail</span>
+        {/* E-mail row (non-interactive) */}
+        <div style={{ ...rowBase, cursor: 'default' }}>
+          <span style={rowLabel}>E-mail</span>
           <span
             style={{
-              fontSize: 14,
-              color: 'var(--text-3)',
+              ...rowValue,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap' as const,
-              maxWidth: 140,
+              maxWidth: 150,
             }}
           >
             {user.email}
@@ -277,9 +267,9 @@ export default function AccountSettingsNative({ isMobile: _isMobile }: { isMobil
           <span
             style={{
               flexShrink: 0,
-              fontSize: 10,
+              fontSize: 9.5,
               fontWeight: 700,
-              letterSpacing: '0.08em',
+              letterSpacing: '0.1em',
               textTransform: 'uppercase' as const,
               color: 'var(--text-4)',
             }}
@@ -287,143 +277,99 @@ export default function AccountSettingsNative({ isMobile: _isMobile }: { isMobil
             {isGoogleUser ? 'Google' : 'Vérifiée'}
           </span>
         </div>
+      </Section>
 
-        {/* divider */}
-        <div style={{ height: 1, background: 'var(--b1)', margin: '0 16px' }} />
-
-        {/* ── Mot de passe row ── */}
-        <div>
-          {!isGoogleUser ? (
-            <>
-              <button
-                onClick={() => setOpenRow(openRow === 'password' ? null : 'password')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: '14px 16px',
-                  background: 'none',
-                  border: 'none',
-                  width: '100%',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  fontFamily: 'inherit',
-                }}
-              >
-                <span style={{ flex: 1, fontSize: 15, color: 'var(--ink)' }}>Mot de passe</span>
-                {openRow !== 'password' && (
-                  <span style={{ fontSize: 14, color: 'var(--text-3)' }}>Modifier</span>
-                )}
-                <ChevronRight
-                  size={18}
-                  color="var(--text-3)"
-                  style={{
-                    flexShrink: 0,
-                    transition: 'transform 200ms',
-                    transform: openRow === 'password' ? 'rotate(90deg)' : 'rotate(0deg)',
-                  }}
-                />
-              </button>
-
-              {openRow === 'password' && (
-                <div
-                  style={{
-                    padding: '0 16px 14px',
-                    display: 'flex',
-                    flexDirection: 'column' as const,
-                    gap: 12,
-                  }}
-                >
-                  <PwField
-                    label="Nouveau mot de passe"
-                    value={newPw}
-                    onChange={setNewPw}
-                    show={showPw}
-                    onToggle={() => setShowPw((v) => !v)}
-                    placeholder="Min. 8 caractères"
-                  />
-                  <PwField
-                    label="Confirmer le mot de passe"
-                    value={confirmPw}
-                    onChange={setConfirmPw}
-                    show={showPw}
-                    onToggle={() => setShowPw((v) => !v)}
-                    placeholder="Répétez le mot de passe"
-                  />
-                  {pwError && (
-                    <p style={{ margin: 0, fontSize: 12, color: 'var(--coral)', fontWeight: 600 }}>
-                      {pwError}
-                    </p>
-                  )}
-                  <div>
-                    {saveBtn(pwState, 'Mettre à jour', changePassword, !newPw || !confirmPw)}
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '14px 16px',
-              }}
+      {/* ── Sécurité ── */}
+      <Section title="Sécurité">
+        {!isGoogleUser ? (
+          <>
+            <button
+              onClick={() => setOpenRow(openRow === 'password' ? null : 'password')}
+              style={rowBtn}
             >
-              <span style={{ flex: 1, fontSize: 15, color: 'var(--ink)' }}>Mot de passe</span>
-              <span style={{ fontSize: 14, color: 'var(--text-3)' }}>Géré par Google</span>
-            </div>
-          )}
-        </div>
-      </div>
+              <span style={rowLabel}>Mot de passe</span>
+              {openRow !== 'password' && <span style={rowValue}>Modifier</span>}
+              <ChevronRight
+                size={18}
+                strokeWidth={1.9}
+                color="var(--text-4)"
+                style={{
+                  flexShrink: 0,
+                  transition: 'transform 200ms',
+                  transform: openRow === 'password' ? 'rotate(90deg)' : 'rotate(0deg)',
+                }}
+              />
+            </button>
+            {openRow === 'password' && (
+              <div
+                style={{ padding: '2px 0 16px', display: 'flex', flexDirection: 'column', gap: 14 }}
+              >
+                <PwField
+                  label="Nouveau mot de passe"
+                  value={newPw}
+                  onChange={setNewPw}
+                  show={showPw}
+                  onToggle={() => setShowPw((v) => !v)}
+                  placeholder="Min. 8 caractères"
+                />
+                <PwField
+                  label="Confirmer le mot de passe"
+                  value={confirmPw}
+                  onChange={setConfirmPw}
+                  show={showPw}
+                  onToggle={() => setShowPw((v) => !v)}
+                  placeholder="Répétez le mot de passe"
+                />
+                {pwError && (
+                  <p style={{ margin: 0, fontSize: 12.5, color: 'var(--closed)', fontWeight: 600 }}>
+                    {pwError}
+                  </p>
+                )}
+                <div>{saveBtn(pwState, 'Mettre à jour', changePassword, !newPw || !confirmPw)}</div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={{ ...rowBase, cursor: 'default' }}>
+            <span style={rowLabel}>Mot de passe</span>
+            <span style={rowValue}>Géré par Google</span>
+          </div>
+        )}
+      </Section>
 
-      {/* Card description */}
-      <p
-        style={{
-          margin: '10px 6px 0',
-          fontSize: 12.5,
-          color: 'var(--text-3)',
-          lineHeight: 1.55,
-        }}
-      >
-        Gérez votre nom, votre e-mail et votre mot de passe.
-      </p>
+      {/* ── Session ── */}
+      <Section title="Session">
+        <button
+          onClick={signOut}
+          disabled={signingOut}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '15px 0',
+            background: 'none',
+            border: 'none',
+            width: '100%',
+            cursor: signingOut ? 'not-allowed' : 'pointer',
+            textAlign: 'left',
+            fontFamily: 'inherit',
+            fontSize: 15.5,
+            fontWeight: 500,
+            color: 'var(--text)',
+            opacity: signingOut ? 0.6 : 1,
+          }}
+        >
+          <LogOut size={19} strokeWidth={1.7} color="var(--text-3)" style={{ flexShrink: 0 }} />
+          {signingOut ? 'Déconnexion…' : 'Se déconnecter'}
+        </button>
+      </Section>
 
-      {/* Se déconnecter */}
-      <button
-        onClick={signOut}
-        disabled={signingOut}
-        style={{
-          margin: '28px 0 0',
-          width: '100%',
-          padding: '15px',
-          borderRadius: 'var(--r-lg)',
-          border: '1px solid var(--b2)',
-          background: 'var(--white)',
-          boxShadow: 'var(--s2)',
-          cursor: signingOut ? 'not-allowed' : 'pointer',
-          fontFamily: 'inherit',
-          fontSize: 15,
-          fontWeight: 700,
-          color: 'var(--ink)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-          opacity: signingOut ? 0.6 : 1,
-          transition: 'opacity 150ms',
-        }}
-      >
-        <LogOut size={17} />
-        {signingOut ? 'Déconnexion…' : 'Se déconnecter'}
-      </button>
-
-      {/* Supprimer le compte */}
+      {/* Supprimer le compte — lien discret */}
       <button
         onClick={() => setDeleteModal(true)}
         style={{
           display: 'block',
-          margin: '16px auto 0',
+          margin: '34px auto 0',
           background: 'none',
           border: 'none',
           cursor: 'pointer',
@@ -431,6 +377,7 @@ export default function AccountSettingsNative({ isMobile: _isMobile }: { isMobil
           fontSize: 13,
           fontWeight: 600,
           fontFamily: 'inherit',
+          padding: 8,
         }}
       >
         Supprimer le compte
@@ -491,7 +438,7 @@ export default function AccountSettingsNative({ isMobile: _isMobile }: { isMobil
               style={{
                 margin: '0 0 8px',
                 fontFamily: 'var(--font-display)',
-                fontSize: 19,
+                fontSize: 20,
                 fontWeight: 600,
                 letterSpacing: '-0.02em',
                 color: 'var(--text)',
@@ -502,14 +449,16 @@ export default function AccountSettingsNative({ isMobile: _isMobile }: { isMobil
             <p
               style={{
                 margin: '0 0 18px',
-                fontSize: 13,
+                fontSize: 13.5,
                 color: 'var(--text-2)',
-                lineHeight: 1.65,
+                lineHeight: 1.6,
               }}
             >
               Action irréversible — votre compte et tous vos lieux enregistrés seront supprimés.
             </p>
-            <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, color: 'var(--ink-80)' }}>
+            <p
+              style={{ margin: '0 0 8px', fontSize: 12.5, fontWeight: 600, color: 'var(--ink-80)' }}
+            >
               Tapez <strong>{user.email}</strong> pour confirmer :
             </p>
             <input
@@ -520,11 +469,11 @@ export default function AccountSettingsNative({ isMobile: _isMobile }: { isMobil
               aria-label="Confirmer l'e-mail pour supprimer le compte"
               style={{
                 width: '100%',
-                padding: '10px 12px',
+                padding: '11px 14px',
                 borderRadius: 'var(--r-md)',
                 border: '1.5px solid var(--border-strong)',
                 background: 'var(--surface)',
-                fontSize: 13,
+                fontSize: 16,
                 fontFamily: 'monospace',
                 outline: 'none',
                 color: 'var(--text)',
@@ -540,12 +489,12 @@ export default function AccountSettingsNative({ isMobile: _isMobile }: { isMobil
                 }}
                 style={{
                   flex: 1,
-                  padding: '10px',
+                  padding: '11px',
                   borderRadius: 'var(--r-md)',
                   border: '1px solid var(--border-strong)',
                   background: 'transparent',
                   cursor: 'pointer',
-                  fontSize: 13,
+                  fontSize: 13.5,
                   fontWeight: 600,
                   color: 'var(--ink-80)',
                   fontFamily: 'inherit',
@@ -558,13 +507,13 @@ export default function AccountSettingsNative({ isMobile: _isMobile }: { isMobil
                 disabled={deleteEmail !== user.email || deleting}
                 style={{
                   flex: 1,
-                  padding: '10px',
+                  padding: '11px',
                   borderRadius: 'var(--r-md)',
                   border: 'none',
                   background: deleteEmail === user.email ? 'var(--closed)' : 'var(--surface-2)',
                   color: deleteEmail === user.email ? 'var(--on-accent)' : 'var(--text-3)',
                   cursor: deleteEmail === user.email ? 'pointer' : 'not-allowed',
-                  fontSize: 13,
+                  fontSize: 13.5,
                   fontWeight: 600,
                   fontFamily: 'inherit',
                   transition: 'all 150ms',
@@ -605,14 +554,13 @@ function PwField({
       <label style={fieldLabel}>{label}</label>
       <div style={{ position: 'relative' }}>
         <input
+          className="input-field"
           type={show ? 'text' : 'password'}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           aria-label={label}
-          style={{ ...inputStyle, paddingRight: 40 }}
-          onFocus={(e) => Object.assign(e.currentTarget.style, focusStyle)}
-          onBlur={(e) => Object.assign(e.currentTarget.style, blurStyle)}
+          style={{ paddingRight: 42 }}
         />
         <button
           onClick={onToggle}
@@ -631,7 +579,7 @@ function PwField({
             padding: 2,
           }}
         >
-          {show ? <EyeOff size={15} strokeWidth={2} /> : <Eye size={15} strokeWidth={2} />}
+          {show ? <EyeOff size={16} strokeWidth={2} /> : <Eye size={16} strokeWidth={2} />}
         </button>
       </div>
     </div>
@@ -639,6 +587,33 @@ function PwField({
 }
 
 // ── Style consts ──
+const rowBase: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 12,
+  padding: '15px 0',
+  width: '100%',
+}
+const rowBtn: React.CSSProperties = {
+  ...rowBase,
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  textAlign: 'left',
+  fontFamily: 'inherit',
+}
+const rowLabel: React.CSSProperties = {
+  flex: 1,
+  fontSize: 15.5,
+  fontWeight: 500,
+  color: 'var(--text)',
+  letterSpacing: '-0.005em',
+}
+const rowValue: React.CSSProperties = {
+  fontSize: 13.5,
+  color: 'var(--text-3)',
+  flexShrink: 0,
+}
 const fieldLabel: React.CSSProperties = {
   display: 'block',
   fontSize: 10,
@@ -647,29 +622,4 @@ const fieldLabel: React.CSSProperties = {
   textTransform: 'uppercase',
   color: 'var(--text-3)',
   marginBottom: 8,
-}
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  boxSizing: 'border-box',
-  padding: '11px 14px',
-  borderRadius: 'var(--r-md)',
-  border: '1.5px solid var(--border-strong)',
-  background: 'var(--surface)',
-  color: 'var(--text)',
-  fontSize: 13.5,
-  fontWeight: 500,
-  fontFamily: 'inherit',
-  outline: 'none',
-  transition: 'border-color 150ms, box-shadow 150ms, background 150ms',
-}
-const focusStyle: React.CSSProperties = {
-  borderColor: 'var(--accent)',
-  background: 'var(--bg)',
-  boxShadow: 'var(--s-focus)',
-}
-const blurStyle: React.CSSProperties = {
-  borderColor: 'var(--border-strong)',
-  background: 'var(--surface)',
-  boxShadow: 'none',
 }

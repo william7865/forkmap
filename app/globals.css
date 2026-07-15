@@ -872,14 +872,28 @@ a:focus:not(:focus-visible) {
   font-size: 16px !important;
 }
 
-/* Reduced motion is not optional: neutralise every animation and transition. */
+/* ── Micro-retour au tap : pression discrète sur les surfaces tapables ──
+   (lignes, cartes, boutons). À poser via className="tap-press" là où un
+   :active n'existe pas déjà en inline. Neutralisé par reduced-motion. */
+.tap-press {
+  transition: transform var(--t1) var(--ease-out);
+}
+.tap-press:active {
+  transform: scale(0.98);
+}
+
+/* Reduced motion is not optional: neutralise every animation and transition.
+   On zère AUSSI les délais : un item d'entrée en cascade (animationDelay)
+   resterait sinon invisible (opacity:0, fill both) pendant tout le délai. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
     scroll-behavior: auto !important;
   }
 }

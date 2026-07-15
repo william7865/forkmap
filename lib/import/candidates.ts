@@ -49,6 +49,10 @@ const SEGMENT_SPLIT = /[^\p{L}\p{N}'’\-\s]+/u
 const CONFIDENCE = {
   pin: 0.95,
   chez: 0.8,
+  /** The posting account's display name ("SUSHIWAN sur Instagram: …"). For a
+   *  venue account this IS the place — a strong signal, on par with a chez pin,
+   *  but still below an explicit 📍 in the caption. */
+  account: 0.8,
   /** A capitalised run beats the handle: when a proper noun is in the caption,
    *  it is more likely the venue than the creator's own account name. */
   run: 0.65,
@@ -417,6 +421,18 @@ function tokenize(s: string): string[] {
 }
 
 /**
+ * "<n> restaurants", "13 adresses", "5 spots" — an enumeration a creator drops
+ * behind a 📍 ("📍 13 restaurants en IDF") to mean "several branches", NOT a
+ * venue name. Narrow on purpose: only a leading count + a plural collective word,
+ * so real number-led signs ("3 Brasseurs", "Le 404") are untouched.
+ */
+function isCountPhrase(name: string): boolean {
+  return /^\d+\s+(?:restaurants?|restos?|adresses?|spots?|pepites?|lieux|endroits?|enseignes?|succursales?)\b/iu.test(
+    normalise(name)
+  )
+}
+
+/**
  * A SHOUTED segment: ≥ 3 words and ≥ 80 % of its letters are uppercase.
  * There, "starts with a capital" is true of *every* word, so the run scanner
  * would happily return the whole sentence as a venue name. Capitalisation
@@ -480,6 +496,58 @@ function nominalHead(chunk: string, fallback = true): string {
 /** "kodawari.ramen" → "kodawari ramen" */
 function humanizeHandle(handle: string): string {
   return handle.replace(/[._]+/g, ' ').trim()
+}
+
+/**
+ * Generic brand suffixes creators glue onto an account name / handle: country,
+ * city, "official", "resto"… — none of them belong to the sign over the door
+ * ("sushiwanfrance" → "sushiwan", "bistrot.officiel" → "bistrot", "lami_off" →
+ * "lami"). Kept as a small closed list on purpose: it must never eat a real word.
+ * "off"/"fr"/"resto" are cleaned only when SEPARATED (a `.fr`/`_off` token),
+ * never glued, where they would maul short names.
+ */
+const BRAND_SUFFIX = new Set([
+  'officiel',
+  'official',
+  'restaurant',
+  'resto',
+  'france',
+  'paris',
+  'off',
+  'fr',
+])
+/** Suffixes safe to strip even when glued (no separator) to a longer stem. */
+const GLUED_SUFFIX = ['officiel', 'official', 'restaurant', 'france', 'paris']
+
+/**
+ * Strip a trailing brand suffix from an account name or handle.
+ * Separator-attached suffixes (`sushiwan.france`, `lami_off`, `bistrot.fr`)
+ * split off as their own token; a glued country/label (`sushiwanfrance`) is
+ * peeled only when a real stem (≥ 4 chars) survives. Never returns empty.
+ */
+function stripBrandSuffix(raw: string): string {
+  let tokens = raw
+    .replace(/[._]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+  if (tokens.length === 0) return raw.trim()
+  // Drop trailing suffix tokens ("sushiwan france", "lami off"), but never the
+  // last surviving word.
+  while (tokens.length > 1 && BRAND_SUFFIX.has(normalise(tokens[tokens.length - 1]))) {
+    tokens = tokens.slice(0, -1)
+  }
+  // Peel a glued suffix off the final token ("sushiwanfrance" → "sushiwan").
+  const last = tokens[tokens.length - 1]
+  const k = normalise(last)
+  for (const suf of GLUED_SUFFIX) {
+    if (k.length > suf.length + 3 && k.endsWith(suf)) {
+      tokens[tokens.length - 1] = last.slice(0, last.length - suf.length)
+      break
+    }
+  }
+  const out = tokens.join(' ').trim()
+  return out.length > 0 ? out : raw.trim()
 }
 
 /**
@@ -628,7 +696,12 @@ export function extractPlaceCandidates(post: ImportCandidate): PlaceGuess[] {
     const end = i + 1 < pins.length ? (pins[i + 1].index ?? text.length) : text.length
     const chunk = text.slice(start, end).split(/[\n•|]|(?:\s[-–—]\s)/)[0] ?? ''
     const { name, city } = splitNameCity(chunk)
-    if (name.length >= 2 && !isStopword(name.split(' ')[0]) && !isGeneric(name)) {
+    if (
+      name.length >= 2 &&
+      !isStopword(name.split(' ')[0]) &&
+      !isGeneric(name) &&
+      !isCountPhrase(name)
+    ) {
       out.push({ name, city, confidence: CONFIDENCE.pin })
     }
   })
@@ -638,12 +711,22 @@ export function extractPlaceCandidates(post: ImportCandidate): PlaceGuess[] {
 
   const { multi, single } = capitalisedRuns(text)
 
+  // 2bis. The posting account's display name ("SUSHIWAN sur Instagram: …"). For a
+  //       venue account this IS the place — a strong signal, brand suffix stripped.
+  if (post.account) {
+    const name = stripBrandSuffix(post.account)
+    if (name.length >= 3 && !isGeneric(name)) {
+      out.push({ name, city: null, confidence: CONFIDENCE.account })
+    }
+  }
+
   // 3. Capitalised runs in the caption — the narrative case, above the handle.
   for (const name of multi) out.push({ name, city: null, confidence: CONFIDENCE.run })
 
   // 4. The account handle — food venues often post from their own account.
+  //    Brand suffix stripped too ("sushiwanfrance" → "sushiwan").
   if (post.handle) {
-    const name = humanizeHandle(post.handle)
+    const name = stripBrandSuffix(humanizeHandle(post.handle))
     if (name.length >= 3 && !isGeneric(name)) {
       out.push({ name, city: null, confidence: CONFIDENCE.handle })
     }

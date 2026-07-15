@@ -6,6 +6,7 @@ function post(partial: Partial<ImportCandidate>): ImportCandidate {
   return {
     platform: 'tiktok',
     handle: null,
+    account: null,
     title: '',
     description: '',
     hashtags: [],
@@ -48,6 +49,76 @@ describe('extractPlaceCandidates', () => {
       post({ handle: 'kodawari.ramen', description: 'le meilleur ramen' })
     )
     expect(names(out)).toContain('kodawari ramen')
+  })
+
+  // ----------------------------------------------------------------
+  // Nom de compte + nettoyage des suffixes d'enseigne (cas SUSHIWAN).
+  // ----------------------------------------------------------------
+  describe('nom de compte & suffixes d’enseigne', () => {
+    it('propose le nom du compte comme candidat à haute confiance', () => {
+      const out = extractPlaceCandidates(
+        post({
+          account: 'SUSHIWAN',
+          handle: 'sushiwanfrance',
+          description: 'IDENTIFIE LA PERSONNE QUI TE DOIT DES SUSHIS 📍 13 restaurants en IDF',
+        })
+      )
+      const sushiwan = out.find((c) => c.name.toLowerCase() === 'sushiwan')
+      expect(sushiwan).toBeDefined()
+      expect(sushiwan?.confidence).toBe(0.8)
+    })
+
+    it('nettoie le suffixe pays collé au handle (sushiwanfrance → sushiwan)', () => {
+      const out = extractPlaceCandidates(post({ handle: 'sushiwanfrance' }))
+      expect(names(out).map((n) => n.toLowerCase())).toContain('sushiwan')
+      expect(names(out).map((n) => n.toLowerCase())).not.toContain('sushiwanfrance')
+    })
+
+    it('nettoie les suffixes séparés (officiel, .fr, _off, paris)', () => {
+      expect(names(extractPlaceCandidates(post({ handle: 'bistrot.officiel' })))[0]).toBe('bistrot')
+      expect(names(extractPlaceCandidates(post({ handle: 'lami_off' })))[0]).toBe('lami')
+      expect(names(extractPlaceCandidates(post({ account: 'Frenchie France' })))[0]).toBe('Frenchie')
+      expect(names(extractPlaceCandidates(post({ account: 'Clover Paris' })))[0]).toBe('Clover')
+    })
+
+    it('un pin de la légende passe toujours devant le nom de compte', () => {
+      const out = extractPlaceCandidates(
+        post({ account: 'SUSHIWAN', description: '📍 Le Train Bleu, Paris' })
+      )
+      expect(out[0].name).toBe('Le Train Bleu')
+      expect(out[0].confidence).toBe(0.95)
+    })
+
+    it('dédoublonne compte et handle vers un seul candidat (garde la haute confiance)', () => {
+      const out = extractPlaceCandidates(post({ account: 'SUSHIWAN', handle: 'sushiwanfrance' }))
+      const keys = out.map((c) => c.name.toLowerCase())
+      expect(keys.filter((k) => k === 'sushiwan').length).toBe(1)
+      expect(out.find((c) => c.name.toLowerCase() === 'sushiwan')?.confidence).toBe(0.8)
+    })
+
+    it('n’émet pas de candidat compte quand il est générique', () => {
+      const out = extractPlaceCandidates(post({ account: 'Paris', handle: 'restaurant' }))
+      expect(out).toEqual([])
+    })
+
+    it('un pin leurre « 📍 13 restaurants » ne bat pas le nom du compte (cas SUSHIWAN)', () => {
+      const out = extractPlaceCandidates(
+        post({
+          account: 'SUSHIWAN',
+          handle: 'sushiwanfrance',
+          description: 'IDENTIFIE LA PERSONNE QUI TE DOIT DES SUSHIS 📍 13 restaurants en IDF',
+          hashtags: ['paris', 'halal', 'restaurant', 'sushi'],
+        })
+      )
+      expect(out[0].name.toLowerCase()).toBe('sushiwan')
+      expect(out[0].confidence).toBe(0.8)
+      expect(names(out).map((n) => n.toLowerCase())).not.toContain('13 restaurants en idf')
+    })
+
+    it('un vrai nom d’enseigne à chiffre initial survit (3 Brasseurs)', () => {
+      const out = extractPlaceCandidates(post({ description: '📍 3 Brasseurs, Lille' }))
+      expect(out[0].name).toBe('3 Brasseurs')
+    })
   })
 
   it('écarte les hashtags génériques', () => {

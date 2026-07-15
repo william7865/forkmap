@@ -29,6 +29,7 @@ import { placeGradient } from '@/lib/gradients'
 import { placeInitial, placePhotoUrl } from '@/components/place/PlaceThumb'
 import { frCuisine } from '@/lib/cuisine'
 import { setPendingSelect } from '@/lib/pendingSelect'
+import { staggerDelay } from '@/lib/motion'
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   try {
@@ -1318,7 +1319,7 @@ function FavCardList({
           display: 'flex',
           alignItems: 'center',
           gap: 13,
-          animationDelay: `${index * 30}ms`,
+          animationDelay: staggerDelay(index),
           cursor: selectMode ? 'pointer' : 'default',
         }}
       >
@@ -1522,7 +1523,7 @@ function FavCardList({
         alignItems: 'center',
         border: `1px solid ${selected ? 'var(--ember)' : 'var(--border)'}`,
         boxShadow: 'var(--s1)',
-        animationDelay: `${index * 35}ms`,
+        animationDelay: staggerDelay(index),
         cursor: selectMode ? 'pointer' : 'default',
         transition: 'box-shadow 160ms ease, transform 160ms ease, border-color 160ms ease',
       }}
@@ -1723,7 +1724,7 @@ function ListItemRowNative({
         display: 'flex',
         alignItems: 'center',
         gap: 13,
-        animationDelay: `${index * 30}ms`,
+        animationDelay: staggerDelay(index),
       }}
     >
       {/* Vignette — repli dégradé + initiale serif */}
@@ -1897,7 +1898,7 @@ function FavCardGrid({
         overflow: 'hidden',
         border: `1px solid ${selected ? 'var(--ember)' : 'var(--border)'}`,
         boxShadow: 'var(--s1)',
-        animationDelay: `${index * 30}ms`,
+        animationDelay: staggerDelay(index),
         display: 'flex',
         flexDirection: 'column',
         cursor: selectMode ? 'pointer' : 'default',
@@ -2228,6 +2229,41 @@ function FavoritesPageInner() {
   const [deleteListTarget, setDeleteListTarget] = useState<HookListRow | null>(null)
   const [collabTarget, setCollabTarget] = useState<HookListRow | null>(null)
 
+  // A saved place's snapshot was frozen at save time — a place saved before it had
+  // a photo (or before Mapillary existed) shows a bare tile forever. So after
+  // loading, re-enrich the photo-less ones through the free server pass (OSM
+  // Commons + Mapillary storefront) and merge the picture into what's displayed.
+  // Display-only: the 30-day server cache makes the re-fetch cheap on each open.
+  const enrichPhotolessFavorites = useCallback(async (favs: FavoriteRow[]) => {
+    const photoless = favs.filter((f) => f.snapshot && !favPhoto(f))
+    if (photoless.length === 0) return
+    for (let i = 0; i < photoless.length; i += 30) {
+      const batch = photoless.slice(i, i + 30)
+      try {
+        const res = await apiFetch('/api/places/enrich-osm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ places: batch.map((f) => f.snapshot), deep: false }),
+        })
+        if (!res.ok) continue
+        const { data } = (await res.json()) as { data: PlaceCard[] }
+        const byId = new Map(data.map((e) => [e.osm_id, e.osm_enriched]))
+        setFavorites((prev) =>
+          prev.map((f) => {
+            const oe = byId.get(f.osm_id)
+            if (!oe || !f.snapshot) return f
+            return {
+              ...f,
+              snapshot: { ...f.snapshot, osm_enriched: { ...f.snapshot.osm_enriched, ...oe } },
+            }
+          })
+        )
+      } catch {
+        /* keep the tile as-is on failure */
+      }
+    }
+  }, [])
+
   const loadFavorites = useCallback(async () => {
     setLoading(true)
     setFetchError(null)
@@ -2236,13 +2272,15 @@ function FavoritesPageInner() {
       const res = await apiFetch('/api/favorites', { headers })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
-      setFavorites(data.data ?? [])
+      const favs: FavoriteRow[] = data.data ?? []
+      setFavorites(favs)
+      void enrichPhotolessFavorites(favs)
     } catch (e: unknown) {
       setFetchError(e instanceof Error ? e.message : 'Erreur inconnue')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [enrichPhotolessFavorites])
 
   useEffect(() => {
     if (isReady) {
@@ -3039,8 +3077,8 @@ function FavoritesPageInner() {
                   )}
                 </div>
 
-                {/* Masthead — nom de la liste en grand serif */}
-                <div>
+                {/* Masthead — nom de la liste en grand serif (entre en premier) */}
+                <div style={{ animation: 'fadeUp 280ms var(--ease-out) both' }}>
                   <h1
                     style={{
                       margin: 0,

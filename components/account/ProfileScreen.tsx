@@ -172,6 +172,7 @@ function FavRow({ fav, onOpen }: { fav: FavoriteRow; onOpen: () => void }) {
       type="button"
       onClick={onOpen}
       aria-label={`Voir ${fav.name}`}
+      className="tap-press"
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -489,7 +490,9 @@ export default function ProfileScreen() {
 
         {/* ── Mes listes — lignes-collections ── */}
         {previewLists.length > 0 && (
-          <section style={sectionStyle}>
+          <section
+            style={{ ...sectionStyle, animation: 'fadeUp 320ms var(--ease-out) 120ms both' }}
+          >
             <SecHead
               title="Mes listes"
               action="Gérer ›"
@@ -509,7 +512,7 @@ export default function ProfileScreen() {
         )}
 
         {/* ── Mes favoris — lignes-favoris ── */}
-        <section style={sectionStyle}>
+        <section style={{ ...sectionStyle, animation: 'fadeUp 320ms var(--ease-out) 180ms both' }}>
           <SecHead
             title="Mes favoris"
             action={favorites.length > 0 ? `${favorites.length} ›` : undefined}

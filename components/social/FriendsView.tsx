@@ -6,6 +6,7 @@ import PublicProfile from '@/components/social/PublicProfile'
 import { useFriends } from '@/lib/hooks/useFriends'
 import { apiFetch } from '@/lib/api'
 import { getAuthHeaders } from '@/lib/auth-headers'
+import { staggerDelay } from '@/lib/motion'
 import type { UserSearchResult, FriendSuggestion } from '@/types'
 
 export default function FriendsView({ onClose }: { onClose?: () => void }) {
@@ -95,6 +96,7 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
           <ChevronLeft size={26} />
         </button>
         <h1
+          className="anim-fade-up"
           style={{
             margin: 0,
             fontFamily: 'var(--font-display)',
@@ -186,13 +188,14 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
       {/* Demandes reçues */}
       {requests.received.length > 0 && (
         <Section title="Demandes reçues">
-          {requests.received.map((p) => (
+          {requests.received.map((p, i) => (
             <PersonRow
               key={p.id}
               name={p.display_name}
               username={p.username}
               src={p.avatar_url}
               id={p.id}
+              index={i}
               onOpen={() => setViewing(p.username)}
             >
               <ActionBtn
@@ -212,13 +215,14 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
       {/* Demandes envoyées */}
       {requests.sent.length > 0 && (
         <Section title="Demandes envoyées">
-          {requests.sent.map((p) => (
+          {requests.sent.map((p, i) => (
             <PersonRow
               key={p.id}
               name={p.display_name}
               username={p.username}
               src={p.avatar_url}
               id={p.id}
+              index={i}
               onOpen={() => setViewing(p.username)}
             >
               <Tag icon={<Clock size={13} />} label="En attente" />
@@ -233,13 +237,14 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
         {!loading && friends.length === 0 && (
           <Muted>Aucun ami pour l&apos;instant. Cherche un @pseudo pour commencer.</Muted>
         )}
-        {friends.map((p) => (
+        {friends.map((p, i) => (
           <PersonRow
             key={p.id}
             name={p.display_name}
             username={p.username}
             src={p.avatar_url}
             id={p.id}
+            index={i}
             onOpen={() => setViewing(p.username)}
           >
             <Tag icon={<Check size={13} />} label="Ami" />
@@ -250,13 +255,14 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
       {/* Suggestions — personnes que tu connais peut-être (amis d'amis) */}
       {q.trim().length < 2 && suggestions.length > 0 && (
         <Section title="Personnes que tu connais peut-être">
-          {suggestions.map((s) => (
+          {suggestions.map((s, i) => (
             <PersonRow
               key={s.id}
               name={s.display_name}
               username={s.username}
               src={s.avatar_url}
               id={s.id}
+              index={i}
               subtitle={`${s.mutuals} ami${s.mutuals > 1 ? 's' : ''} en commun`}
               onOpen={() => setViewing(s.username)}
             >
@@ -307,6 +313,7 @@ function PersonRow({
   onOpen,
   children,
   subtitle,
+  index,
 }: {
   name: string
   username: string
@@ -315,10 +322,14 @@ function PersonRow({
   onOpen: () => void
   children: React.ReactNode
   subtitle?: string
+  /** When set, the row cascades in on mount (stable lists only, not live search). */
+  index?: number
 }) {
   return (
     <div
+      className={index !== undefined ? 'anim-fade-up' : undefined}
       style={{
+        animationDelay: index !== undefined ? staggerDelay(index) : undefined,
         display: 'flex',
         alignItems: 'center',
         gap: 13,
@@ -328,6 +339,7 @@ function PersonRow({
       {/* Avatar + nom : zone cliquable vers le profil */}
       <button
         onClick={onOpen}
+        className="tap-press"
         style={{
           display: 'flex',
           alignItems: 'center',

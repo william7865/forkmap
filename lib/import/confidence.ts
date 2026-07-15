@@ -67,6 +67,37 @@ export function nameSimilarity(guess: string, candidate: string): number {
   return recall * 0.75 + precision * 0.25
 }
 
+/**
+ * Chain detection. When several results STRONGLY match the guess AND carry the
+ * SAME normalized name (3× "SUSHIWAN"), it is not an ambiguity — it is one brand
+ * with several branches. Returns those same-name branches (≥ 2) so the caller —
+ * which alone knows the map centre — can pick the nearest and resolve.
+ *
+ * Deliberately narrow, so it can never launder a weak match into a `resolved`:
+ *   - the top result must clear the same STRONG gate as `scoreResolution`;
+ *   - results with a DIFFERENT name ("Le Train Bleu" vs "Le Train Bleu Café")
+ *     are excluded, so a real ambiguity stays ambiguous.
+ * Returns [] when there is no chain (fewer than two matching branches).
+ */
+export function chainMatches(
+  guess: PlaceGuess,
+  results: PlaceSearchResult[]
+): PlaceSearchResult[] {
+  if (results.length < 2) return []
+  const scored = results
+    .map((place) => ({ place, score: nameSimilarity(guess.name, place.name) }))
+    .sort((a, b) => b.score - a.score)
+
+  const top = scored[0]
+  if (top.score < STRONG) return []
+
+  const topKey = normalize(top.place.name)
+  const branches = scored
+    .filter((s) => s.score >= STRONG && normalize(s.place.name) === topKey)
+    .map((s) => s.place)
+  return branches.length >= 2 ? branches : []
+}
+
 export function scoreResolution(guess: PlaceGuess, results: PlaceSearchResult[]): Resolution {
   if (results.length === 0) return { status: 'failed' }
 

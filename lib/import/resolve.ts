@@ -23,7 +23,7 @@ import type { ImportRow, ImportCandidatePlace, PlaceCard, PlaceBase } from '@/ty
 import { fetchPostMetadata } from '@/lib/import/metadata'
 import { buildImportCandidate } from '@/lib/import/parse'
 import { extractPlaceCandidates, type PlaceGuess } from '@/lib/import/candidates'
-import { scoreResolution, nameSimilarity } from '@/lib/import/confidence'
+import { scoreResolution, nameSimilarity, chainMatches } from '@/lib/import/confidence'
 import { searchPlacesOnce, type PlaceSearchResult } from '@/lib/hooks/usePlaceSearch'
 import { haversineDistance } from '@/lib/scoring'
 
@@ -199,6 +199,21 @@ function rankForUser(
     .map((s) => s.place)
 }
 
+/** The usable result closest to the map centre — how a chain picks its branch. */
+function nearestTo(results: PlaceSearchResult[], at: [number, number]): PlaceSearchResult | null {
+  let best: PlaceSearchResult | null = null
+  let bestDistance = Infinity
+  for (const r of results) {
+    if (!isUsable(r)) continue
+    const d = haversineDistance(at[0], at[1], r.lat, r.lon)
+    if (d < bestDistance) {
+      bestDistance = d
+      best = r
+    }
+  }
+  return best
+}
+
 /** Reading the post can throw (native bridge missing, offline). Never let it. */
 async function readMetadata(url: string) {
   try {
@@ -281,6 +296,27 @@ async function run(row: ImportRow, center: [number, number] | null): Promise<Par
     }
 
     if (verdict.status === 'ambiguous') {
+      // A chain (several results with the SAME name) is not an ambiguity: it is
+      // one brand with several branches → resolve to the branch nearest the map
+      // centre. This does NOT relax the confidence gate — chainMatches requires
+      // the same STRONG name match; it only reads the tie the gate left open.
+      const branches = chainMatches(guess, results)
+      if (branches.length >= 2) {
+        const nearest = nearestTo(branches, at)
+        const place = nearest ? toPlaceCard(nearest) : null
+        // Invariant 1 still holds: only `resolved` with a real snapshot + osm_id.
+        if (place) {
+          return {
+            ...meta,
+            status: 'resolved',
+            osm_id: place.osm_id,
+            place_snapshot: place,
+            candidates: null,
+            resolved_at: nowIso(),
+          }
+        }
+      }
+
       const candidates = pickCandidates(guess, verdict.candidates, at)
       // Invariant 2: `ambiguous` ⇒ a list the user can actually pick from.
       if (candidates.length > 0) return ambiguous(meta, candidates)

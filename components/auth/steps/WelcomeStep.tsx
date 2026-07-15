@@ -13,26 +13,27 @@ export default function WelcomeStep({
   return (
     <StepShell
       onClose={onClose}
-      title="Trouve où manger, sans te prendre la tête."
-      subtitle="Enregistre tes spots, suis tes amis, et laisse Forkmap décider."
-    >
-      <div style={{ marginTop: 4, marginBottom: 'auto' }}>
+      beforeTitle={
         <div
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 13,
+            width: 52,
+            height: 52,
+            borderRadius: 15,
             background: 'var(--accent)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            boxShadow: 'var(--s1)',
           }}
         >
-          <LogoMark size={24} color="var(--bg)" />
+          <LogoMark size={28} color="var(--on-accent)" />
         </div>
-      </div>
+      }
+      title="Trouve où manger, sans te prendre la tête."
+      subtitle="Enregistre tes spots, suis tes amis, et laisse Forkmap décider."
+    >
       {flow.error && <ErrorText msg={flow.error} />}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 6 }}>
         <button className="btn-primary" disabled={flow.busy} onClick={flow.startGoogle}>
           Continuer avec Google
         </button>
@@ -40,7 +41,7 @@ export default function WelcomeStep({
           Continuer avec un email
         </button>
       </div>
-      <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-3)', marginTop: 16 }}>
+      <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-3)', marginTop: 20 }}>
         Déjà un compte ?{' '}
         <button onClick={flow.startSignin} style={linkBtn}>
           Se connecter

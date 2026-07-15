@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { scoreResolution, nameSimilarity } from '@/lib/import/confidence'
+import { scoreResolution, nameSimilarity, chainMatches } from '@/lib/import/confidence'
 import type { PlaceSearchResult } from '@/lib/hooks/usePlaceSearch'
 import type { PlaceGuess } from '@/lib/import/candidates'
 
@@ -59,5 +59,44 @@ describe('scoreResolution', () => {
       result('Bleu Nuit'),
     ])
     if (r.status === 'ambiguous') expect(r.candidates.length).toBe(3)
+  })
+})
+
+describe('chainMatches', () => {
+  it('détecte une chaîne : plusieurs résultats au MÊME nom', () => {
+    const branches = chainMatches(guess('SUSHIWAN'), [
+      result('SUSHIWAN'),
+      result('SUSHIWAN'),
+      result('SUSHIWAN'),
+    ])
+    expect(branches.length).toBe(3)
+  })
+
+  it('ignore les résultats d’un autre nom dans la chaîne', () => {
+    const branches = chainMatches(guess('SUSHIWAN'), [
+      result('SUSHIWAN'),
+      result('SUSHIWAN'),
+      result('Pizza Roma'),
+    ])
+    expect(branches.length).toBe(2)
+    expect(branches.every((b) => b.name === 'SUSHIWAN')).toBe(true)
+  })
+
+  it('n’est PAS une chaîne quand les noms diffèrent (Le Train Bleu vs … Café)', () => {
+    const branches = chainMatches(guess('Le Train Bleu'), [
+      result('Le Train Bleu'),
+      result('Le Train Bleu Café'),
+    ])
+    expect(branches).toEqual([])
+  })
+
+  it('n’est pas une chaîne avec un seul résultat', () => {
+    expect(chainMatches(guess('SUSHIWAN'), [result('SUSHIWAN')])).toEqual([])
+  })
+
+  it('n’est pas une chaîne quand la correspondance au nom deviné est faible', () => {
+    expect(
+      chainMatches(guess('SUSHIWAN'), [result('Brasserie du Nord'), result('Brasserie du Nord')])
+    ).toEqual([])
   })
 })

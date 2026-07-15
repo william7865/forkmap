@@ -5,6 +5,8 @@ interface Props {
   progress?: { index: number; total: number } | null
   onBack?: () => void
   onClose?: () => void
+  /** Optional slot rendered above the title (e.g. brand mark on the welcome step). */
+  beforeTitle?: React.ReactNode
   title: string
   subtitle?: string
   children: React.ReactNode
@@ -15,6 +17,7 @@ export default function StepShell({
   progress,
   onBack,
   onClose,
+  beforeTitle,
   title,
   subtitle,
   children,
@@ -91,32 +94,39 @@ export default function StepShell({
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '24px 24px 12px',
+            padding: '28px 24px 16px',
             display: 'flex',
             flexDirection: 'column',
           }}
         >
+          {beforeTitle && <div style={{ marginBottom: 22 }}>{beforeTitle}</div>}
           <h1
             style={{
               margin: 0,
               fontFamily: 'var(--font-display)',
-              fontWeight: 700,
-              letterSpacing: '-0.03em',
-              fontSize: 26,
-              lineHeight: 1.1,
-              color: 'var(--ink)',
+              fontWeight: 600,
+              letterSpacing: '-0.02em',
+              fontSize: 31,
+              lineHeight: 1.08,
+              color: 'var(--text)',
             }}
           >
             {title}
           </h1>
           {subtitle && (
             <p
-              style={{ margin: '10px 0 0', fontSize: 14, color: 'var(--text-2)', lineHeight: 1.45 }}
+              style={{
+                margin: '12px 0 0',
+                fontSize: 14.5,
+                color: 'var(--text-2)',
+                lineHeight: 1.5,
+                maxWidth: 360,
+              }}
             >
               {subtitle}
             </p>
           )}
-          <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column' }}>{children}</div>
+          <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column' }}>{children}</div>
         </div>
 
         {/* CTA */}

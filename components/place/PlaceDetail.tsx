@@ -545,7 +545,14 @@ export default function PlaceDetail({
             </button>
           </div>
 
-          <div style={{ maxWidth: 560, margin: '0 auto', padding: '20px 20px 40px' }}>
+          <div
+            style={{
+              maxWidth: 560,
+              margin: '0 auto',
+              padding: '20px 20px 40px',
+              animation: 'fadeUp 340ms var(--ease-out) 40ms both',
+            }}
+          >
             {/* ── Nom serif + méta ── */}
             <h2
               id="place-detail-title"
@@ -687,6 +694,7 @@ export default function PlaceDetail({
                   }
                 }}
                 aria-label={saved ? 'Retirer des enregistrements' : 'Enregistrer'}
+                className="tap-press"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -721,6 +729,7 @@ export default function PlaceDetail({
                 <button
                   type="button"
                   onClick={() => openDirections(place.lat, place.lon, currentMode.gmaps)}
+                  className="tap-press"
                   style={{
                     flex: 1,
                     display: 'inline-flex',
@@ -744,6 +753,7 @@ export default function PlaceDetail({
                   type="button"
                   onClick={handleShare}
                   aria-label="Partager ce restaurant"
+                  className="tap-press"
                   style={{
                     flex: 1,
                     display: 'inline-flex',
@@ -1555,8 +1565,14 @@ export default function PlaceDetail({
       {/* ── Photo banner with overlay ── */}
       {(() => {
         // Banner photo: first gallery photo (user photos first, then FSQ/Google),
-        // falling back to a free Wikidata/Wikimedia image.
-        const photoUrl = galleryUrls[0] ?? place.wikidata?.image_url ?? null
+        // falling back to the free sources — OSM Commons, Wikidata, then the
+        // Mapillary storefront — so the banner matches the list card.
+        const photoUrl =
+          galleryUrls[0] ??
+          place.osm_enriched?.image_url ??
+          place.wikidata?.image_url ??
+          place.osm_enriched?.mapillary_url ??
+          null
 
         const glassBtnStyle: React.CSSProperties = {
           width: 36,

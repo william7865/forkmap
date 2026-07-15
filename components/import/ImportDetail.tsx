@@ -22,6 +22,7 @@ import { useImportsStore } from '@/lib/hooks/useImportsContext'
 import { useLanguage } from '@/lib/i18n/useLanguage'
 import { useIsNative } from '@/lib/native/platform'
 import { candidateToPlaceCard, toPlaceCard } from '@/lib/import/resolve'
+import { decodeEntities } from '@/lib/import/parse'
 import { searchPlacesOnce, type PlaceSearchResult } from '@/lib/hooks/usePlaceSearch'
 import { placeGradient } from '@/lib/gradients'
 import { apiFetch } from '@/lib/api'
@@ -205,7 +206,10 @@ function Loaded({ imp, imports, native, patch, onToast }: LoadedProps) {
     window.open(imp.url, '_blank', 'noopener,noreferrer')
   }, [imp.url])
 
-  const title = place?.name ?? imp.post_title ?? tr('importPending')
+  // Decode at render too: rows imported before the decoder fix stored the raw
+  // entities (e.g. Instagram's `&#x1f602;`, `L&#x2019;art`).
+  const title =
+    place?.name ?? (imp.post_title ? decodeEntities(imp.post_title) : tr('importPending'))
   const platform = PLATFORM_LABEL[imp.platform] ?? tr('importOpenSource')
   const cover = imp.post_thumb && !thumbBroken ? imp.post_thumb : null
 
@@ -267,6 +271,7 @@ function Loaded({ imp, imports, native, patch, onToast }: LoadedProps) {
             cursor: 'pointer',
             background: placeGradient(imp.id),
             boxShadow: 'var(--s3)',
+            animation: 'fadeUp 280ms var(--ease-out) both',
           }}
         >
           {cover && (
@@ -351,6 +356,7 @@ function Loaded({ imp, imports, native, patch, onToast }: LoadedProps) {
             letterSpacing: '-0.02em',
             lineHeight: 1.15,
             color: 'var(--text)',
+            animation: 'fadeUp 300ms var(--ease-out) 60ms both',
           }}
         >
           {title}
@@ -394,12 +400,12 @@ function Loaded({ imp, imports, native, patch, onToast }: LoadedProps) {
               color: 'var(--text-2)',
             }}
           >
-            «&nbsp;{imp.post_caption}&nbsp;»
+            «&nbsp;{decodeEntities(imp.post_caption)}&nbsp;»
           </blockquote>
         )}
 
         {/* 5 — What we found */}
-        <section style={{ marginTop: 28 }}>
+        <section style={{ marginTop: 28, animation: 'fadeUp 300ms var(--ease-out) 120ms both' }}>
           <h2 style={EYEBROW}>{tr('importFoundTitle')}</h2>
 
           {imp.status === 'pending' && <PendingBlock />}
@@ -418,14 +424,14 @@ function Loaded({ imp, imports, native, patch, onToast }: LoadedProps) {
 
         {/* 6 — Where it is */}
         {place && (
-          <section style={{ marginTop: 26 }}>
+          <section style={{ marginTop: 26, animation: 'fadeUp 300ms var(--ease-out) 180ms both' }}>
             <h2 style={EYEBROW}>{tr('importWhereTitle')}</h2>
             <ImportMiniMap lat={place.lat} lon={place.lon} />
           </section>
         )}
 
         {/* 7 — My note */}
-        <section style={{ marginTop: 26 }}>
+        <section style={{ marginTop: 26, animation: 'fadeUp 300ms var(--ease-out) 240ms both' }}>
           <h2 style={EYEBROW}>{tr('importNoteTitle')}</h2>
           <NoteField
             initial={imp.note ?? ''}
@@ -441,7 +447,7 @@ function Loaded({ imp, imports, native, patch, onToast }: LoadedProps) {
 
         {/* 8 — Also seen in */}
         {alsoSeenIn.length > 0 && (
-          <section style={{ marginTop: 26 }}>
+          <section style={{ marginTop: 26, animation: 'fadeUp 300ms var(--ease-out) 300ms both' }}>
             <h2 style={EYEBROW}>{tr('importAlsoSeenIn')}</h2>
             <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
               {alsoSeenIn.map((other) => (

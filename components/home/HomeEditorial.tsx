@@ -11,6 +11,7 @@ import { frCuisine } from '@/lib/cuisine'
 import { getMoment, momentEyebrow } from '@/lib/context'
 import { loadTasteProfile, tasteBoost, emptyProfile } from '@/lib/taste'
 import { buildCollections } from '@/lib/collections'
+import { staggerDelay } from '@/lib/motion'
 import PlaceThumb from '@/components/place/PlaceThumb'
 
 interface Props {
@@ -48,10 +49,12 @@ function PickRow({
   place,
   onSelect,
   onToggleFavorite,
+  index,
 }: {
   place: PlaceCard
   onSelect: (p: PlaceCard) => void
   onToggleFavorite: (p: PlaceCard) => void
+  index: number
 }) {
   const rating = place.fsq?.rating
   const cuisine = place.cuisine ?? place.fsq?.categories?.[0]?.name
@@ -123,7 +126,9 @@ function PickRow({
           onSelect(place)
         }
       }}
+      className="anim-fade-up tap-press"
       style={{
+        animationDelay: staggerDelay(index),
         display: 'flex',
         alignItems: 'center',
         gap: 13,
@@ -314,8 +319,14 @@ const HomeEditorial = memo(function HomeEditorial({
       </div>
 
       {/* Sélection en lignes-liste */}
-      {picks.map((p) => (
-        <PickRow key={p.osm_id} place={p} onSelect={onSelect} onToggleFavorite={onToggleFavorite} />
+      {picks.map((p, i) => (
+        <PickRow
+          key={p.osm_id}
+          place={p}
+          index={i}
+          onSelect={onSelect}
+          onToggleFavorite={onToggleFavorite}
+        />
       ))}
     </div>
   )
