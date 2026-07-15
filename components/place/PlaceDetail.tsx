@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
 import ShareModal from '@/components/place/ShareModal'
 import VisitModal from '@/components/place/VisitModal'
 import NoteModal, { getNote } from '@/components/place/NoteModal'
@@ -41,6 +42,7 @@ import {
   Star,
   ChevronLeft,
   UtensilsCrossed,
+  Navigation,
 } from 'lucide-react'
 import type { TransportMode } from '@/lib/hooks/useRouteCache'
 import { apiFetch } from '@/lib/api'
@@ -56,8 +58,100 @@ import ReviewsSection from '@/components/place/ReviewsSection'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useReviews } from '@/lib/hooks/useReviews'
 
+// Leaflet touche `window` à l'import — jamais côté serveur.
+const MiniMap = dynamic(() => import('@/components/import/ImportMiniMap'), { ssr: false })
+
 // dirflg Apple Maps : w=marche, d=voiture (vélo retombe sur voiture)
 const APPLE_FLAG: Record<string, string> = { walking: 'w', bicycling: 'd', driving: 'd' }
+
+// ── Native (Bibliothèque façon Albo) — briques partagées ──────────────
+// En-tête de section serif calme, avec une action discrète optionnelle à droite.
+function SectionTitle({
+  children,
+  action,
+}: {
+  children: React.ReactNode
+  action?: React.ReactNode
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
+        gap: 12,
+        margin: '0 0 12px',
+      }}
+    >
+      <h3
+        style={{
+          margin: 0,
+          fontFamily: 'var(--font-display)',
+          fontSize: 20,
+          fontWeight: 600,
+          letterSpacing: '-0.01em',
+          color: 'var(--text)',
+        }}
+      >
+        {children}
+      </h3>
+      {action}
+    </div>
+  )
+}
+
+// Divider fin pleine largeur entre grands blocs.
+function ThinDivider() {
+  return <div style={{ height: 1, background: 'var(--border)', margin: '26px 0' }} />
+}
+
+// Point séparateur « · » de la ligne méta.
+function MetaDot() {
+  return <span style={{ color: 'var(--text-4)' }}>·</span>
+}
+
+// Étoile dorée pleine (note).
+function GoldStar({ size = 13 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="var(--star)" aria-hidden>
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+    </svg>
+  )
+}
+
+// Équipements OSM → chips monochromes (calme, façon Albo). Le web garde ses
+// pastilles colorées ; ici tout est neutre.
+function osmFeatureChips(
+  e: NonNullable<PlaceCard['osm_enriched']>
+): { label: string; icon: React.ReactNode }[] {
+  const chips: { label: string; icon: React.ReactNode }[] = []
+  const s = 13
+  const w = 1.75
+  if (e.outdoor_seating) chips.push({ label: 'Terrasse', icon: <Trees size={s} strokeWidth={w} /> })
+  if (e.wifi) chips.push({ label: 'Wi-Fi', icon: <Wifi size={s} strokeWidth={w} /> })
+  if (e.takeaway)
+    chips.push({ label: 'À emporter', icon: <ShoppingBag size={s} strokeWidth={w} /> })
+  if (e.delivery) chips.push({ label: 'Livraison', icon: <Truck size={s} strokeWidth={w} /> })
+  if (e.reservations)
+    chips.push({ label: 'Réservation', icon: <Calendar size={s} strokeWidth={w} /> })
+  if (e.dogs_allowed)
+    chips.push({ label: 'Chiens OK', icon: <PawPrint size={s} strokeWidth={w} /> })
+  if (e.live_music) chips.push({ label: 'Musique live', icon: <Music size={s} strokeWidth={w} /> })
+  if (e.organic) chips.push({ label: 'Bio', icon: <Leaf size={s} strokeWidth={w} /> })
+  if (e.halal) chips.push({ label: 'Halal', icon: <Moon size={s} strokeWidth={w} /> })
+  if (e.kosher) chips.push({ label: 'Kasher', icon: <Star size={s} strokeWidth={w} /> })
+  if (e.vegetarian_friendly)
+    chips.push({ label: 'Végétarien', icon: <Salad size={s} strokeWidth={w} /> })
+  if (e.wheelchair === 'yes')
+    chips.push({ label: 'Accessible PMR', icon: <Accessibility size={s} strokeWidth={w} /> })
+  if (e.wheelchair === 'limited')
+    chips.push({ label: 'PMR partiel', icon: <Accessibility size={s} strokeWidth={w} /> })
+  if (e.air_conditioning)
+    chips.push({ label: 'Climatisation', icon: <Wind size={s} strokeWidth={w} /> })
+  if (e.capacity)
+    chips.push({ label: `${e.capacity} couverts`, icon: <Users size={s} strokeWidth={w} /> })
+  return chips
+}
 
 function openDirections(lat: number, lon: number, gmapsMode: string) {
   if (isNativeRuntime()) {
@@ -288,6 +382,1157 @@ export default function PlaceDetail({
   const { user } = useAuth()
   const reviewsApi = useReviews(place, user?.id ?? null)
   const galleryUrls = useMemo(() => photos.map((p) => buildPhotoUrl(p, 600)), [photos])
+
+  // Modales partagées entre les deux habillages (état commun).
+  const modals = (
+    <>
+      {showNote && (
+        <NoteModal place={place} onClose={() => setShowNote(false)} onSaved={(n) => setNote(n)} />
+      )}
+      {showShare && <ShareModal place={place} onClose={() => setShowShare(false)} />}
+      {showVisit && (
+        <VisitModal
+          place={place}
+          existingVisit={selectedVisit}
+          onClose={() => {
+            setShowVisit(false)
+            setSelectedVisit(null)
+          }}
+          onSaved={() => {
+            fetchVisits()
+          }}
+        />
+      )}
+    </>
+  )
+
+  // ═══════════════════════════════════════════════════════════════════
+  // BRANCHE NATIVE — mise en page « Bibliothèque » façon Albo, palette
+  // Forkmap conservée. Ordre : héros → nom serif + méta → actions →
+  // sections calmes espacées. Même état, mêmes handlers que le web ;
+  // seul l'habillage change. Le web (plus bas) reste intact.
+  // ═══════════════════════════════════════════════════════════════════
+  if (isNativeRuntime()) {
+    const heroPhoto = galleryUrls[0] ?? place.wikidata?.image_url ?? null
+    const rating = place.fsq?.rating
+    const price = place.fsq?.price
+    const reviewsCount = place.fsq?.total_ratings
+    const michelin = place.wikidata?.michelin_stars ?? place.osm_enriched?.michelin ?? 0
+    const distinctions = place.wikidata?.distinctions?.filter((d) => !d.includes('Michelin')) ?? []
+    const saved = !!place.is_favorite
+    const e = place.osm_enriched
+    const featureChips = e ? osmFeatureChips(e) : []
+    const description = place.wikidata?.description ?? place.fsq?.description
+    const hours = place.osm_enriched?.today_hours ?? place.fsq?.hours?.display ?? null
+    const tel = place.fsq?.tel ?? place.phone
+    const website = place.fsq?.website ?? place.website
+    const menuUrl = place.osm_enriched?.menu_url
+    const bookingUrl = place.osm_enriched?.booking_url
+    const instagram = place.osm_enriched?.instagram
+
+    // Chip lien secondaire (outline monochrome).
+    const linkChip: React.CSSProperties = {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 6,
+      height: 38,
+      padding: '0 14px',
+      borderRadius: 999,
+      border: '1px solid var(--border)',
+      background: 'var(--bg)',
+      color: 'var(--text-2)',
+      textDecoration: 'none',
+      cursor: 'pointer',
+      fontFamily: 'var(--font-body)',
+      fontSize: 13,
+      fontWeight: 600,
+      whiteSpace: 'nowrap',
+    }
+
+    return (
+      <>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="place-detail-title"
+          style={{
+            width: '100%',
+            height: '100%',
+            background: 'var(--bg)',
+            color: 'var(--text)',
+            fontFamily: 'var(--font-body)',
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
+          }}
+        >
+          {/* ── Héros plein cadre ── */}
+          <div
+            style={{
+              position: 'relative',
+              height: 300,
+              background: heroPhoto ? undefined : placeGradient(place.osm_id),
+              overflow: 'hidden',
+            }}
+          >
+            {galleryUrls.length > 1 ? (
+              <PhotoGallery urls={galleryUrls} attribution="Foursquare" />
+            ) : heroPhoto ? (
+              <Image
+                src={heroPhoto}
+                alt=""
+                fill
+                sizes="100vw"
+                style={{ objectFit: 'cover' }}
+                priority
+              />
+            ) : (
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 120,
+                  fontWeight: 600,
+                  letterSpacing: '-0.02em',
+                  color: 'rgba(255,255,255,0.9)',
+                }}
+              >
+                {placeInitial(place.name)}
+              </span>
+            )}
+
+            {/* Voile haut pour la lisibilité du bouton retour */}
+            <span
+              aria-hidden
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 96,
+                background: 'linear-gradient(rgba(0,0,0,0.28), transparent)',
+                pointerEvents: 'none',
+              }}
+            />
+
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Fermer"
+              style={{
+                position: 'absolute',
+                top: 'calc(var(--safe-top) + 10px)',
+                left: 12,
+                width: 38,
+                height: 38,
+                borderRadius: '50%',
+                border: 'none',
+                background: 'rgba(0,0,0,0.4)',
+                backdropFilter: 'blur(8px)',
+                color: '#fff',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 2,
+              }}
+            >
+              <ChevronLeft size={20} strokeWidth={2.4} />
+            </button>
+          </div>
+
+          <div style={{ maxWidth: 560, margin: '0 auto', padding: '20px 20px 40px' }}>
+            {/* ── Nom serif + méta ── */}
+            <h2
+              id="place-detail-title"
+              style={{
+                margin: 0,
+                fontFamily: 'var(--font-display)',
+                fontSize: 30,
+                fontWeight: 600,
+                letterSpacing: '-0.02em',
+                lineHeight: 1.12,
+                color: 'var(--text)',
+              }}
+            >
+              {place.name}
+            </h2>
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 7,
+                marginTop: 10,
+                fontSize: 13.5,
+                color: 'var(--text-2)',
+              }}
+            >
+              {rating != null && (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    fontWeight: 700,
+                    color: 'var(--text)',
+                  }}
+                >
+                  <GoldStar /> {rating.toFixed(1)}
+                </span>
+              )}
+              {cuisine && (
+                <>
+                  {rating != null && <MetaDot />}
+                  <span>{frCuisine(cuisine)}</span>
+                </>
+              )}
+              {price != null && (
+                <>
+                  <MetaDot />
+                  <span>{'€'.repeat(price)}</span>
+                </>
+              )}
+              {place.open_now !== undefined && (
+                <>
+                  {(rating != null || cuisine || price != null) && <MetaDot />}
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      fontWeight: 600,
+                      color: place.open_now ? 'var(--open)' : 'var(--closed)',
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        background: 'currentColor',
+                      }}
+                    />
+                    {place.open_now ? 'Ouvert' : 'Fermé'}
+                  </span>
+                </>
+              )}
+            </div>
+
+            {/* Distinctions Michelin / autres */}
+            {(michelin > 0 || distinctions.length > 0) && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 12 }}>
+                {michelin > 0 && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      padding: '5px 12px',
+                      borderRadius: 999,
+                      border: '1px solid var(--border)',
+                      background: 'var(--surface)',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: 'var(--text)',
+                    }}
+                  >
+                    <span style={{ display: 'inline-flex', gap: 1 }}>
+                      {Array.from({ length: michelin }).map((_, i) => (
+                        <Star key={i} size={11} fill="var(--star)" strokeWidth={0} />
+                      ))}
+                    </span>
+                    Michelin
+                  </span>
+                )}
+                {distinctions.map((d) => (
+                  <span
+                    key={d}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '5px 12px',
+                      borderRadius: 999,
+                      border: '1px solid var(--border)',
+                      background: 'var(--surface)',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: 'var(--text-2)',
+                    }}
+                  >
+                    {d}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* ── Actions : enregistrer · itinéraire · partager ── */}
+            <div style={{ marginTop: 20 }}>
+              {/* Enregistrer — div-bouton pour héberger le HeartButton (popup listes)
+                  sans imbriquer deux <button>. Un tap sur le cœur déclenche son
+                  propre onClick (stopPropagation) ; ailleurs, le div bascule. */}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => onToggleFavorite(place)}
+                onKeyDown={(ev) => {
+                  if (ev.key === 'Enter' || ev.key === ' ') {
+                    ev.preventDefault()
+                    onToggleFavorite(place)
+                  }
+                }}
+                aria-label={saved ? 'Retirer des enregistrements' : 'Enregistrer'}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  height: 48,
+                  borderRadius: 14,
+                  border: saved ? '1px solid var(--border)' : 'none',
+                  background: saved ? 'var(--surface)' : 'var(--accent)',
+                  color: saved ? 'var(--text)' : 'var(--on-accent)',
+                  cursor: 'pointer',
+                  fontSize: 15,
+                  fontWeight: 700,
+                  boxShadow: saved ? 'none' : 'var(--s2)',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                <span style={{ display: 'inline-flex' }}>
+                  <HeartButton
+                    isFavorite={saved}
+                    size={17}
+                    onClick={() => onToggleFavorite(place)}
+                    osmId={place.osm_id}
+                    placeSnapshot={place as unknown as Record<string, unknown>}
+                    colorOverride={saved ? 'var(--accent)' : 'var(--on-accent)'}
+                  />
+                </span>
+                {saved ? 'Enregistré' : 'Enregistrer'}
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => openDirections(place.lat, place.lon, currentMode.gmaps)}
+                  style={{
+                    flex: 1,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 7,
+                    height: 46,
+                    borderRadius: 14,
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg)',
+                    color: 'var(--text)',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 14,
+                    fontWeight: 700,
+                  }}
+                >
+                  <Navigation size={15} /> Itinéraire
+                </button>
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  aria-label="Partager ce restaurant"
+                  style={{
+                    flex: 1,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 7,
+                    height: 46,
+                    borderRadius: 14,
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg)',
+                    color: 'var(--text)',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 14,
+                    fontWeight: 700,
+                  }}
+                >
+                  <IcoShare /> Partager
+                </button>
+              </div>
+
+              {/* Liens secondaires (Appeler / Site / Menu / Réserver / Instagram) */}
+              {(tel || website || menuUrl || bookingUrl || instagram) && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                  {tel && (
+                    <a href={`tel:${tel}`} style={linkChip}>
+                      <IcoPhone /> Appeler
+                    </a>
+                  )}
+                  {website && (
+                    <a href={website} target="_blank" rel="noopener noreferrer" style={linkChip}>
+                      <IcoGlobe /> Site
+                    </a>
+                  )}
+                  {menuUrl && (
+                    <a href={menuUrl} target="_blank" rel="noopener noreferrer" style={linkChip}>
+                      <UtensilsCrossed size={14} strokeWidth={1.75} /> Menu
+                    </a>
+                  )}
+                  {bookingUrl && (
+                    <a href={bookingUrl} target="_blank" rel="noopener noreferrer" style={linkChip}>
+                      <CalendarCheck size={14} strokeWidth={1.75} /> Réserver
+                    </a>
+                  )}
+                  {instagram && (
+                    <a
+                      href={`https://instagram.com/${instagram.replace('@', '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={linkChip}
+                    >
+                      <ExternalLink size={14} strokeWidth={1.75} /> Instagram
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* ── Note + note perso + visite (actions secondaires) ── */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 18 }}>
+              <button
+                type="button"
+                onClick={() => setShowNote(true)}
+                aria-label="Note personnelle"
+                style={{ ...linkChip, height: 38, position: 'relative' }}
+              >
+                <IcoPen /> Note
+                {note && (
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      background: 'var(--accent)',
+                    }}
+                  />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedVisit(null)
+                  setShowVisit(true)
+                }}
+                aria-label="Logger une visite"
+                style={{ ...linkChip, height: 38 }}
+              >
+                <IcoVisit /> Visites
+                {visitCount != null && visitCount > 0 && (
+                  <span style={{ fontWeight: 700, color: 'var(--text)' }}>{visitCount}</span>
+                )}
+              </button>
+              {cuisine && onCuisineFilter && (
+                <button
+                  type="button"
+                  onClick={() => onCuisineFilter(cuisine)}
+                  aria-label={`Filtrer par cuisine : ${frCuisine(cuisine)}`}
+                  style={{ ...linkChip, height: 38 }}
+                >
+                  {frCuisine(cuisine)}
+                </button>
+              )}
+            </div>
+
+            {/* ── Note (barre) ── */}
+            {rating != null && (
+              <>
+                <ThinDivider />
+                <SectionTitle
+                  action={
+                    reviewsCount ? (
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-3)' }}>
+                        {reviewsCount.toLocaleString('fr-FR')} avis
+                      </span>
+                    ) : undefined
+                  }
+                >
+                  Note
+                </SectionTitle>
+                <RatingBar rating={rating} />
+              </>
+            )}
+
+            {/* ── Horaires ── */}
+            {hours && (
+              <>
+                <ThinDivider />
+                <SectionTitle>Horaires</SectionTitle>
+                <p style={{ margin: 0, fontSize: 14, color: 'var(--text-2)', lineHeight: 1.6 }}>
+                  {place.osm_enriched?.today_hours ? (
+                    <>
+                      Aujourd&apos;hui : <strong style={{ color: 'var(--text)' }}>{hours}</strong>
+                    </>
+                  ) : (
+                    hours
+                  )}
+                </p>
+              </>
+            )}
+
+            {/* ── Équipements ── */}
+            {featureChips.length > 0 && (
+              <>
+                <ThinDivider />
+                <SectionTitle>Équipements</SectionTitle>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {featureChips.map((c) => (
+                    <span
+                      key={c.label}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '7px 13px',
+                        borderRadius: 999,
+                        border: '1px solid var(--border)',
+                        background: 'var(--surface)',
+                        color: 'var(--text-2)',
+                        fontSize: 13,
+                        fontWeight: 600,
+                      }}
+                    >
+                      <span style={{ display: 'inline-flex', color: 'var(--text-3)' }} aria-hidden>
+                        {c.icon}
+                      </span>
+                      {c.label}
+                    </span>
+                  ))}
+                </div>
+                {place.osm_enriched?.payment_methods &&
+                  place.osm_enriched.payment_methods.length > 0 && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: 8,
+                        marginTop: 12,
+                        fontSize: 13,
+                        color: 'var(--text-3)',
+                      }}
+                    >
+                      <span style={{ fontWeight: 600 }}>Paiement :</span>
+                      {place.osm_enriched.payment_methods
+                        .map((m) =>
+                          m === 'cash'
+                            ? 'Espèces'
+                            : m === 'card'
+                              ? 'Carte'
+                              : m === 'contactless'
+                                ? 'Sans contact'
+                                : m
+                        )
+                        .join(' · ')}
+                    </div>
+                  )}
+              </>
+            )}
+
+            {/* ── À propos ── */}
+            {description && (
+              <>
+                <ThinDivider />
+                <SectionTitle>À propos</SectionTitle>
+                <p style={{ margin: 0, fontSize: 14, color: 'var(--text-2)', lineHeight: 1.7 }}>
+                  {description}
+                </p>
+                {place.wikidata?.wikipedia_url && (
+                  <a
+                    href={place.wikidata.wikipedia_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      marginTop: 10,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: 'var(--text-3)',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <IcoGlobe /> Lire sur Wikipédia →
+                  </a>
+                )}
+              </>
+            )}
+
+            {/* ── Y aller (itinéraire in-app) ── */}
+            <ThinDivider />
+            <SectionTitle>{hasUserLocation ? 'Depuis votre départ' : 'Y aller'}</SectionTitle>
+            {!hasUserLocation ? (
+              <div
+                style={{
+                  borderRadius: 14,
+                  overflow: 'hidden',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                {onLocationChange && onLocateMe ? (
+                  <StartPanel
+                    userLocation={null}
+                    locationLabel={locationLabel ?? null}
+                    onLocationChange={onLocationChange}
+                    onLocateMe={onLocateMe}
+                    locating={!!locating}
+                    locateError={!!locateError}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      padding: 16,
+                      background: 'var(--surface)',
+                      fontSize: 13,
+                      color: 'var(--text-3)',
+                      textAlign: 'center',
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    Définissez un point de départ pour voir les itinéraires
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div
+                style={{
+                  borderRadius: 14,
+                  overflow: 'hidden',
+                  border: '1px solid var(--border)',
+                  background: 'var(--surface)',
+                }}
+              >
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)' }}>
+                  {MODES.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => onTransportChange?.(m.id)}
+                      aria-pressed={routeMode === m.id}
+                      aria-label={m.label}
+                      style={{
+                        padding: '12px 4px 10px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        background: routeMode === m.id ? 'var(--bg)' : 'transparent',
+                        borderBottom: `2px solid ${routeMode === m.id ? 'var(--accent)' : 'transparent'}`,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 4,
+                        color: routeMode === m.id ? 'var(--text)' : 'var(--text-3)',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      <span aria-hidden="true">{m.icon}</span>
+                      <span
+                        style={{
+                          fontSize: 9.5,
+                          fontWeight: 700,
+                          letterSpacing: '0.05em',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        {m.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <div style={{ padding: 14 }}>
+                  {routeLoading ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        padding: '10px 0',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 14,
+                          height: 14,
+                          border: '2px solid var(--border)',
+                          borderTop: '2px solid var(--accent)',
+                          borderRadius: '50%',
+                          animation: 'spin 0.7s linear infinite',
+                        }}
+                      />
+                      <span style={{ fontSize: 13, color: 'var(--text-3)' }}>Calcul en cours…</span>
+                    </div>
+                  ) : routeResult ? (
+                    <>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-end',
+                          marginBottom: 12,
+                        }}
+                      >
+                        <div>
+                          <div
+                            style={{
+                              fontSize: 9,
+                              fontWeight: 700,
+                              letterSpacing: '0.1em',
+                              textTransform: 'uppercase',
+                              color: 'var(--text-4)',
+                              marginBottom: 3,
+                            }}
+                          >
+                            Temps de trajet
+                          </div>
+                          <div
+                            style={{
+                              fontFamily: 'var(--font-display)',
+                              fontSize: 28,
+                              fontWeight: 600,
+                              color: 'var(--text)',
+                              letterSpacing: '-0.02em',
+                              lineHeight: 1,
+                            }}
+                          >
+                            {fmt(routeResult.duration)}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div
+                            style={{
+                              fontSize: 9,
+                              fontWeight: 700,
+                              letterSpacing: '0.1em',
+                              textTransform: 'uppercase',
+                              color: 'var(--text-4)',
+                              marginBottom: 3,
+                            }}
+                          >
+                            Distance
+                          </div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-2)' }}>
+                            {fmtDist(routeResult.distance)}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => openDirections(place.lat, place.lon, currentMode.gmaps)}
+                        style={{
+                          display: 'flex',
+                          width: '100%',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 7,
+                          height: 44,
+                          borderRadius: 12,
+                          background: 'var(--accent)',
+                          color: 'var(--on-accent)',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: 13.5,
+                          fontWeight: 700,
+                          boxShadow: 'var(--s2)',
+                        }}
+                      >
+                        Ouvrir dans Maps <IcoArrow />
+                      </button>
+                    </>
+                  ) : (
+                    <p
+                      style={{
+                        margin: 0,
+                        padding: '8px 0',
+                        textAlign: 'center',
+                        fontSize: 13,
+                        color: 'var(--text-3)',
+                      }}
+                    >
+                      Sélectionnez un restaurant pour calculer l&apos;itinéraire
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── Avis communautaires (app-only) ── */}
+            <ReviewsSection api={reviewsApi} isSignedIn={!!user} placeName={place.name} />
+
+            {/* ── Amis qui ont enregistré / visité ── */}
+            <PlaceSocialProof osmId={place.osm_id} />
+
+            {/* ── Où (adresse + mini-carte) ── */}
+            <ThinDivider />
+            <SectionTitle>Où</SectionTitle>
+            {place.address && (
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 10,
+                  alignItems: 'flex-start',
+                  marginBottom: 12,
+                }}
+              >
+                <span style={{ flexShrink: 0, marginTop: 1, color: 'var(--text-3)' }}>
+                  <IcoMap />
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.55 }}>
+                    {place.address}
+                  </span>
+                  {place.osm_enriched?.district && (
+                    <span
+                      style={{
+                        display: 'block',
+                        fontSize: 12,
+                        color: 'var(--text-3)',
+                        fontWeight: 600,
+                        marginTop: 2,
+                      }}
+                    >
+                      {place.osm_enriched.district}
+                    </span>
+                  )}
+                </div>
+                <CopyAddressButton
+                  text={[place.address, place.osm_enriched?.district ?? place.osm_enriched?.city]
+                    .filter(Boolean)
+                    .join(', ')}
+                />
+              </div>
+            )}
+            <div
+              style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)' }}
+            >
+              <MiniMap lat={place.lat} lon={place.lon} height={170} />
+            </div>
+
+            {/* ── Ma note ── */}
+            {note && (
+              <>
+                <ThinDivider />
+                <SectionTitle>Ma note</SectionTitle>
+                <button
+                  type="button"
+                  onClick={() => setShowNote(true)}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '13px 15px',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 14,
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 14,
+                    color: 'var(--text-2)',
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {note}
+                </button>
+              </>
+            )}
+
+            {/* ── Mes visites ── */}
+            {visits.length > 0 && (
+              <>
+                <ThinDivider />
+                <SectionTitle>Mes visites ({visits.length})</SectionTitle>
+                {(() => {
+                  const rated = visits.filter((v) => v.personal_rating != null)
+                  const spent = visits.filter((v) => v.amount_spent != null && v.amount_spent > 0)
+                  const avgRating = rated.length
+                    ? rated.reduce((s, v) => s + (v.personal_rating ?? 0), 0) / rated.length
+                    : null
+                  const avgSpend = spent.length
+                    ? Math.round(
+                        spent.reduce((s, v) => s + (v.amount_spent ?? 0), 0) / spent.length
+                      )
+                    : null
+                  const last = visits[0]?.visited_at
+                  const tiles: { v: string; l: string }[] = [
+                    { v: String(visits.length), l: visits.length > 1 ? 'visites' : 'visite' },
+                  ]
+                  if (last)
+                    tiles.push({
+                      v: new Date(last).toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'short',
+                      }),
+                      l: 'dernière',
+                    })
+                  if (avgRating != null)
+                    tiles.push({ v: `${avgRating.toFixed(1)}★`, l: 'note moy.' })
+                  if (avgSpend != null) tiles.push({ v: `${avgSpend} €`, l: 'par repas' })
+                  return (
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: 8,
+                        marginBottom: 12,
+                        background: 'var(--surface)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 14,
+                        padding: '13px 12px',
+                      }}
+                    >
+                      {tiles.map((t, i) => (
+                        <div key={i} style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
+                          <div
+                            style={{
+                              fontFamily: 'var(--font-display)',
+                              fontSize: 17,
+                              fontWeight: 600,
+                              color: 'var(--text)',
+                              letterSpacing: '-0.01em',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            {t.v}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 9.5,
+                              letterSpacing: '0.06em',
+                              textTransform: 'uppercase',
+                              color: 'var(--text-4)',
+                              fontWeight: 600,
+                              marginTop: 2,
+                            }}
+                          >
+                            {t.l}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })()}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    maxHeight: visits.length > 3 ? 150 : undefined,
+                    overflowY: visits.length > 3 ? 'auto' : undefined,
+                  }}
+                >
+                  {visits.map((v) => (
+                    <div
+                      key={v.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '9px 0',
+                        borderBottom: '1px solid var(--border)',
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 13,
+                          color: 'var(--text-2)',
+                          flex: 1,
+                          minWidth: 0,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                      >
+                        <Calendar size={12} strokeWidth={1.75} />{' '}
+                        {new Date(v.visited_at).toLocaleDateString('fr-FR', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                        {v.personal_rating != null && (
+                          <span style={{ marginLeft: 8, color: 'var(--star)' }}>
+                            {'★'.repeat(v.personal_rating)}
+                          </span>
+                        )}
+                        {v.mood && MOOD_LABELS[v.mood] && (
+                          <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--text-3)' }}>
+                            {MOOD_LABELS[v.mood] ?? v.mood}
+                          </span>
+                        )}
+                        {v.amount_spent != null && (
+                          <span style={{ marginLeft: 6, color: 'var(--text-3)' }}>
+                            {v.amount_spent}€
+                          </span>
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label="Modifier cette visite"
+                        onClick={() => {
+                          setSelectedVisit(v)
+                          setShowVisit(true)
+                        }}
+                        style={{
+                          width: 30,
+                          height: 30,
+                          borderRadius: 10,
+                          background: 'var(--surface)',
+                          border: '1px solid var(--border)',
+                          color: 'var(--text-3)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <IcoPen />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* ── À proximité ── */}
+            {nearbyPlaces.length > 0 && (
+              <>
+                <ThinDivider />
+                <SectionTitle>À proximité</SectionTitle>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {nearbyPlaces.slice(0, 3).map((p) => {
+                    const c = p.cuisine ?? p.fsq?.categories?.[0]?.name
+                    const r = p.fsq?.rating
+                    const d =
+                      p.distance == null
+                        ? null
+                        : p.distance < 1000
+                          ? `${Math.round(p.distance)} m`
+                          : `${(p.distance / 1000).toFixed(1)} km`
+                    return (
+                      <button
+                        key={p.osm_id}
+                        type="button"
+                        onClick={() => onSelectPlace?.(p)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 14,
+                          padding: '11px 0',
+                          borderBottom: '1px solid var(--border)',
+                          border: 'none',
+                          borderBottomStyle: 'solid',
+                          background: 'none',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          fontFamily: 'var(--font-body)',
+                          width: '100%',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 56,
+                            height: 56,
+                            borderRadius: 14,
+                            flexShrink: 0,
+                            overflow: 'hidden',
+                            position: 'relative',
+                            boxShadow: 'var(--s1)',
+                          }}
+                        >
+                          <PlaceThumb place={p} initialSize={22} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p
+                            style={{
+                              margin: '0 0 3px',
+                              fontFamily: 'var(--font-display)',
+                              fontSize: 16.5,
+                              fontWeight: 600,
+                              color: 'var(--text)',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              letterSpacing: '-0.01em',
+                            }}
+                          >
+                            {p.name}
+                          </p>
+                          <p
+                            style={{
+                              margin: 0,
+                              fontSize: 13,
+                              color: 'var(--text-3)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                            }}
+                          >
+                            {r != null && (
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 3,
+                                  color: 'var(--text-2)',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                <GoldStar size={11} /> {r.toFixed(1)}
+                              </span>
+                            )}
+                            {c && r != null && <MetaDot />}
+                            {c && <span>{frCuisine(c)}</span>}
+                            {d && (c || r != null) && <MetaDot />}
+                            {d && <span>{d}</span>}
+                          </p>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* ── Source ── */}
+            <a
+              href={`https://www.openstreetmap.org/${place.osm_type}/${place.osm_id.split('/')[1]}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'block',
+                textAlign: 'center',
+                marginTop: 26,
+                fontSize: 12,
+                color: 'var(--text-4)',
+                textDecoration: 'none',
+              }}
+            >
+              Voir sur OpenStreetMap
+            </a>
+          </div>
+        </div>
+        {modals}
+        <style>{`@keyframes shimmer { 0%{background-position:100% 0} 100%{background-position:-100% 0} }`}</style>
+      </>
+    )
+  }
 
   return (
     <div
