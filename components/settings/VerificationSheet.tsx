@@ -92,7 +92,7 @@ export default function VerificationSheet({ onClose }: { onClose: () => void }) 
           maxWidth: 520,
           background: 'var(--white)',
           borderRadius: '20px 20px 0 0',
-          padding: '18px 18px calc(20px + env(safe-area-inset-bottom))',
+          padding: '18px 18px calc(20px + var(--safe-bottom))',
           maxHeight: '88vh',
           overflowY: 'auto',
         }}
@@ -132,7 +132,9 @@ export default function VerificationSheet({ onClose }: { onClose: () => void }) 
           </button>
         </div>
 
-        <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.45, margin: '10px 0 16px' }}>
+        <p
+          style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.45, margin: '10px 0 16px' }}
+        >
           Le badge vérifié distingue les prescripteurs de confiance. Explique pourquoi ton compte
           devrait l’obtenir et ajoute des liens (réseaux, presse, site) qui prouvent ton identité.
         </p>
@@ -151,9 +153,7 @@ export default function VerificationSheet({ onClose }: { onClose: () => void }) 
                   marginBottom: 16,
                 }}
               >
-                <div
-                  style={{ fontSize: 13.5, fontWeight: 700, color: STATUS_COPY[status]?.tone }}
-                >
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: STATUS_COPY[status]?.tone }}>
                   {STATUS_COPY[status]?.title}
                 </div>
                 {status === 'rejected' && request?.reviewer_note && (
@@ -224,7 +224,11 @@ export default function VerificationSheet({ onClose }: { onClose: () => void }) 
                     cursor: busy ? 'default' : 'pointer',
                   }}
                 >
-                  {busy ? 'Envoi…' : status === 'rejected' ? 'Renvoyer une demande' : 'Demander la vérification'}
+                  {busy
+                    ? 'Envoi…'
+                    : status === 'rejected'
+                      ? 'Renvoyer une demande'
+                      : 'Demander la vérification'}
                 </button>
               </>
             )}

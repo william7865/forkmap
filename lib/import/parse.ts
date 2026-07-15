@@ -6,7 +6,8 @@
 // existing Google resolver. An optional LLM step can refine this server-side.
 // ============================================================
 
-export type ImportPlatform = 'tiktok' | 'instagram' | 'youtube' | 'other'
+import type { ImportPlatform } from '@/types'
+export type { ImportPlatform }
 
 export interface OgMeta {
   title?: string
@@ -79,8 +80,7 @@ export function handleFromUrl(url: string): string | null {
   return null
 }
 
-const BOILERPLATE =
-  /\s*(?:[|•·—-]\s*)?(?:tiktok|instagram|youtube|watch|regarder|facebook)\b.*$/i
+const BOILERPLATE = /\s*(?:[|•·—-]\s*)?(?:tiktok|instagram|youtube|watch|regarder|facebook)\b.*$/i
 
 /** Strip platform boilerplate/suffixes from a post title. */
 export function cleanTitle(title: string, _platform: ImportPlatform): string {

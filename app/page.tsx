@@ -29,7 +29,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Bookmark,
-  Link2,
 } from 'lucide-react'
 import { SigSparkle } from '@/components/icons/signature'
 
@@ -40,7 +39,6 @@ const ShareModal = dynamic(() => import('@/components/place/ShareModal'), { ssr:
 const AuthFlow = dynamic(() => import('@/components/auth/AuthFlow'), { ssr: false })
 const AppInviteModal = dynamic(() => import('@/components/app/AppInviteModal'), { ssr: false })
 const SurpriseSheet = dynamic(() => import('@/components/place/SurpriseSheet'), { ssr: false })
-const ImportSheet = dynamic(() => import('@/components/import/ImportSheet'), { ssr: false })
 
 function AuthRequiredWatcher({ onOpen }: { onOpen: () => void }) {
   const searchParams = useSearchParams()
@@ -72,21 +70,6 @@ function SurpriseParamWatcher({ onOpen }: { onOpen: () => void }) {
     const qs = params.toString()
     router.replace(qs ? `/?${qs}` : '/', { scroll: false })
   }, [searchParams, onOpen, router])
-  return null
-}
-
-function ImportParamWatcher({ onImport }: { onImport: (url: string) => void }) {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  useEffect(() => {
-    const raw = searchParams.get('import')
-    if (!raw) return
-    onImport(raw)
-    const params = new URLSearchParams(Array.from(searchParams.entries()))
-    params.delete('import')
-    const qs = params.toString()
-    router.replace(qs ? `/?${qs}` : '/', { scroll: false })
-  }, [searchParams, onImport, router])
   return null
 }
 
@@ -197,8 +180,6 @@ export default function HomePage() {
   }, [searchFocused])
   // Natif : sélection → carte flottante (aperçu) ; « Voir la fiche » → détail plein écran.
   const [detailExpanded, setDetailExpanded] = useState(false)
-  const [showImport, setShowImport] = useState(false)
-  const [importUrl, setImportUrl] = useState<string | null>(null)
   useEffect(() => {
     setDetailExpanded(false)
   }, [selectedPlace?.osm_id])
@@ -411,20 +392,23 @@ export default function HomePage() {
                   aria-pressed={chip.active}
                   style={{
                     flexShrink: 0,
-                    padding: '7px 14px',
+                    height: 36,
+                    padding: '0 16px',
                     borderRadius: 999,
-                    fontSize: 12.5,
+                    fontSize: 13.5,
                     fontWeight: 600,
                     cursor: 'pointer',
                     border: `1px solid ${chip.active ? 'var(--accent)' : 'var(--border)'}`,
                     background: chip.active ? 'var(--accent)' : 'var(--bg)',
                     backdropFilter: 'blur(8px)',
                     WebkitBackdropFilter: 'blur(8px)',
-                    color: chip.active ? 'var(--on-accent)' : 'var(--text)',
+                    color: chip.active ? 'var(--on-accent)' : 'var(--text-2)',
                     fontFamily: 'var(--font-body)',
                     boxShadow: 'var(--s1)',
                     transition: 'all 140ms ease',
                     whiteSpace: 'nowrap',
+                    display: 'inline-flex',
+                    alignItems: 'center',
                   }}
                 >
                   {chip.label}
@@ -450,8 +434,8 @@ export default function HomePage() {
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            background: 'var(--bg)',
-            borderRadius: 12,
+            background: 'var(--surface)',
+            borderRadius: 15,
             border: '1px solid var(--border)',
             boxShadow: 'var(--s2)',
             padding: '0 10px 0 0',
@@ -506,8 +490,8 @@ export default function HomePage() {
               onChange={(e) => setNameQuery(e.target.value)}
               style={{
                 width: '100%',
-                padding: '11px 36px 11px 40px',
-                borderRadius: '12px 0 0 12px',
+                padding: '12px 36px 12px 40px',
+                borderRadius: '15px 0 0 15px',
                 border: 'none',
                 background: 'transparent',
                 color: 'var(--text)',
@@ -620,32 +604,6 @@ export default function HomePage() {
             <Bookmark size={15} strokeWidth={1.75} fill={savedOnly ? 'currentColor' : 'none'} />
             {!isMobile && 'Enregistrés'}
           </button>
-
-          {/* Import from a social link */}
-          <button
-            onClick={() => setShowImport(true)}
-            title="Importer un resto depuis un lien"
-            aria-label="Importer un resto depuis un lien"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 10px',
-              borderRadius: 8,
-              cursor: 'pointer',
-              fontSize: 13,
-              fontWeight: 600,
-              fontFamily: 'var(--font-body)',
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-2)',
-              flexShrink: 0,
-              transition: 'all 120ms ease',
-            }}
-          >
-            <Link2 size={15} strokeWidth={1.75} />
-            {!isMobile && 'Importer'}
-          </button>
         </div>
 
         {/* Enrichment progress bar */}
@@ -657,7 +615,7 @@ export default function HomePage() {
               left: 0,
               right: 0,
               height: 2,
-              borderRadius: '0 0 12px 12px',
+              borderRadius: '0 0 15px 15px',
               overflow: 'hidden',
             }}
           >
@@ -1395,7 +1353,7 @@ export default function HomePage() {
                 : `${visiblePlaces.length} trouvés`
           }
           defaultSnap="half"
-          bottomOffset="calc(56px + env(safe-area-inset-bottom))"
+          bottomOffset="calc(56px + var(--safe-bottom))"
         >
           <PlaceList
             header={
@@ -1545,7 +1503,7 @@ export default function HomePage() {
             top: 0,
             left: 0,
             right: 0,
-            bottom: 'calc(56px + env(safe-area-inset-bottom))',
+            bottom: 'calc(56px + var(--safe-bottom))',
             zIndex: 900,
             animation: 'slideUp 260ms cubic-bezier(0.16,1,0.3,1) both',
           }}
@@ -1575,12 +1533,6 @@ export default function HomePage() {
         <AuthRequiredWatcher onOpen={() => setShowAuthModal(true)} />
         <SurpriseParamWatcher onOpen={() => setShowSurprise(true)} />
         <SelectParamWatcher onSelect={handleDeepSelect} />
-        <ImportParamWatcher
-          onImport={(u) => {
-            setImportUrl(u)
-            setShowImport(true)
-          }}
-        />
       </Suspense>
 
       {showSurprise && (
@@ -1613,18 +1565,6 @@ export default function HomePage() {
       />
 
       {sharePlace && <ShareModal place={sharePlace} onClose={() => setSharePlace(null)} />}
-
-      {showImport && (
-        <ImportSheet
-          center={mapCenter}
-          onPick={searchSelectPlace}
-          initialUrl={importUrl ?? undefined}
-          onClose={() => {
-            setShowImport(false)
-            setImportUrl(null)
-          }}
-        />
-      )}
 
       <ToastStack toasts={toast.toasts} onDismiss={toast.dismiss} />
 

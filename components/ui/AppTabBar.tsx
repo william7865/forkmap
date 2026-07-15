@@ -5,6 +5,7 @@ import { Map, Heart, Users, User, Compass } from 'lucide-react'
 import { useEffect } from 'react'
 import { lightTap } from '@/lib/native/haptics'
 import { useUnreadMessages } from '@/lib/hooks/useUnreadMessages'
+import { useImportsStore } from '@/lib/hooks/useImportsContext'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { startPresence, stopPresence } from '@/lib/presence'
 
@@ -51,6 +52,9 @@ const TABS: Tab[] = [
 export default function AppTabBar() {
   const pathname = usePathname()
   const unread = useUnreadMessages()
+  // Reads the app's single imports store (mounted in the root layout) — mounting
+  // useImports here would start a SECOND background resolver.
+  const { needsAttentionCount } = useImportsStore()
   const auth = useAuth()
   // Présence en ligne globale tant que l'app (barre d'onglets) est montée.
   useEffect(() => {
@@ -58,6 +62,7 @@ export default function AppTabBar() {
     if (id) startPresence(id)
     else stopPresence()
   }, [auth.user?.id])
+
   return (
     <nav
       aria-label="Navigation principale"
@@ -128,6 +133,29 @@ export default function AppTabBar() {
                     }}
                   >
                     {unread > 9 ? '9+' : unread}
+                  </span>
+                )}
+                {tab.href === '/favorites' && needsAttentionCount > 0 && (
+                  <span
+                    aria-label={`${needsAttentionCount} imports à confirmer`}
+                    style={{
+                      position: 'absolute',
+                      top: -5,
+                      right: -8,
+                      minWidth: 16,
+                      height: 16,
+                      padding: '0 4px',
+                      borderRadius: 999,
+                      background: '#e5484d',
+                      color: '#fff',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      lineHeight: '16px',
+                      textAlign: 'center',
+                      border: '2px solid var(--bg)',
+                    }}
+                  >
+                    {needsAttentionCount > 9 ? '9+' : needsAttentionCount}
                   </span>
                 )}
               </span>

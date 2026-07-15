@@ -59,7 +59,7 @@ export default function AdminVerificationsSheet({ onClose }: { onClose: () => vo
           maxWidth: 520,
           background: 'var(--white)',
           borderRadius: '20px 20px 0 0',
-          padding: '18px 18px calc(20px + env(safe-area-inset-bottom))',
+          padding: '18px 18px calc(20px + var(--safe-bottom))',
           maxHeight: '88vh',
           overflowY: 'auto',
         }}
@@ -136,7 +136,14 @@ export default function AdminVerificationsSheet({ onClose }: { onClose: () => vo
                   </div>
                 </div>
                 {it.note && (
-                  <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.4, margin: '10px 0 0' }}>
+                  <p
+                    style={{
+                      fontSize: 13,
+                      color: 'var(--text-2)',
+                      lineHeight: 1.4,
+                      margin: '10px 0 0',
+                    }}
+                  >
                     {it.note}
                   </p>
                 )}

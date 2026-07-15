@@ -72,7 +72,7 @@ export function CreateListModal({ initial, onSave, onClose }: Props) {
           position: 'relative',
           background: 'var(--white)',
           borderRadius: '20px 20px 0 0',
-          padding: '20px 20px calc(28px + env(safe-area-inset-bottom))',
+          padding: '20px 20px calc(28px + var(--safe-bottom))',
           width: '100%',
           maxWidth: 520,
           maxHeight: '90dvh',
@@ -195,7 +195,16 @@ export function CreateListModal({ initial, onSave, onClose }: Props) {
         </div>
 
         <div>
-          <div style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--surface)', borderRadius: 'var(--r-md)', border: '1px solid var(--border)' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: 4,
+              padding: 4,
+              background: 'var(--surface)',
+              borderRadius: 'var(--r-md)',
+              border: '1px solid var(--border)',
+            }}
+          >
             {VISIBILITY_OPTIONS.map((o) => {
               const active = visibility === o.key
               return (

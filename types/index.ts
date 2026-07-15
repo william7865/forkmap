@@ -239,6 +239,9 @@ export interface Profile {
 import type { FriendshipStatus } from '@/lib/friends'
 export type { FriendshipStatus }
 
+// Import depuis les réseaux — source de vérité, ré-exportée par lib/import/parse.ts
+export type ImportPlatform = 'tiktok' | 'instagram' | 'youtube' | 'other'
+
 export interface FriendshipRow {
   id: string
   requester_id: string
@@ -419,4 +422,42 @@ export interface ConversationSummary {
   last_from_me: boolean
   unread: number
   muted: boolean
+}
+
+// ---------- Import depuis les réseaux ----------
+
+export type ImportStatus = 'pending' | 'resolved' | 'ambiguous' | 'failed'
+
+/** Un candidat restaurant proposé quand la résolution est ambiguë. */
+export interface ImportCandidatePlace {
+  /** `${osm_type}/${osm_id}` quand OSM le connaît ; absent pour un résultat Google pur. */
+  osm_id?: string
+  name: string
+  /** Adresse / quartier, tel que rendu par le résolveur. */
+  context: string
+  lat: number
+  lon: number
+  /** Note Google (0–10) quand disponible. */
+  rating?: number
+}
+
+export interface ImportRow {
+  id: string
+  user_id: string
+  url: string
+  platform: ImportPlatform
+  status: ImportStatus
+  note: string | null
+
+  post_title: string | null
+  post_caption: string | null
+  post_author: string | null
+  post_thumb: string | null
+
+  osm_id: string | null
+  place_snapshot: PlaceCard | null
+  candidates: ImportCandidatePlace[] | null
+
+  created_at: string
+  resolved_at: string | null
 }

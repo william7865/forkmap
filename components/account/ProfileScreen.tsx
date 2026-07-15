@@ -1,24 +1,30 @@
 // ============================================================
 // components/account/ProfileScreen.tsx
 // Native profile screen (iOS/Android via Capacitor).
-// Clean Instagram/BeReal-style: avatar, name, @pseudo,
-// key stats, favorites preview. Web /account stays unchanged.
+// Layout « bibliothèque » façon Albo (palette Forkmap conservée) :
+// grand titre serif + avatar, puis des sections calmes et aérées
+// séparées par des filets fins — chiffres, listes-collections,
+// lignes-favoris, réglages en lignes avec chevrons.
+// Web /account stays unchanged (rendered by AccountPage).
 // ============================================================
 'use client'
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Settings, Star, Bookmark } from 'lucide-react'
+import { Settings, Star, Bookmark, Share2 } from 'lucide-react'
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
-import PlaceThumb from '@/components/place/PlaceThumb'
+import { placeGradient } from '@/lib/gradients'
+import { placeInitial } from '@/components/place/PlaceThumb'
 import { frCuisine } from '@/lib/cuisine'
 import { useProfile } from '@/lib/hooks/useProfile'
+import { useLists, type ListRow } from '@/lib/hooks/useLists'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { apiFetch } from '@/lib/api'
 import { Avatar } from '@/components/social/Avatar'
+import { ListCard } from '@/components/lists/ListCard'
 import ProfileEdit from '@/components/social/ProfileEdit'
 import ShareProfileSheet from '@/components/social/ShareProfileSheet'
-import type { FavoriteRow, PlaceCard } from '@/types'
+import type { FavoriteRow } from '@/types'
 
 // ── Local types ───────────────────────────────────────────────
 interface VisitStats {
@@ -38,6 +44,31 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   } catch {
     return {}
   }
+}
+
+// ── Snapshot photo (plain <img>, jamais next/image) ───────────
+// A snapshot stores whatever URL the client held when the place was saved.
+// The proxy already serves a sized image; on error we fall back to the
+// gradient + serif initial, exactly like PlaceThumb everywhere else.
+function favPhoto(fav: FavoriteRow, w = 200): string | null {
+  const ph = fav.snapshot?.fsq?.photos?.[0]
+  if (ph) return `${ph.prefix}${w}x${Math.round(w * (ph.height / ph.width))}${ph.suffix}`
+  return fav.snapshot?.wikidata?.image_url ?? null
+}
+
+function FavThumbImg({ src }: { src: string }) {
+  const [broken, setBroken] = useState(false)
+  if (broken) return null
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+      onError={() => setBroken(true)}
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+    />
+  )
 }
 
 // ── Spinner ───────────────────────────────────────────────────
@@ -67,10 +98,224 @@ function Spinner() {
   )
 }
 
+// ── Petites briques éditoriales (façon Favoris / Albo) ────────
+const MetaDot = () => (
+  <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--text-4)' }} />
+)
+
+// En-tête de section serif façon Albo — « Mes listes », « Mes favoris »…
+function SecHead({
+  title,
+  action,
+  onAction,
+}: {
+  title: string
+  action?: string
+  onAction?: () => void
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 13,
+      }}
+    >
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: 'var(--font-display)',
+          fontWeight: 600,
+          fontSize: 21,
+          letterSpacing: '-0.01em',
+          color: 'var(--text)',
+        }}
+      >
+        {title}
+      </h2>
+      {action && (
+        <button
+          type="button"
+          onClick={onAction}
+          style={{
+            border: 'none',
+            background: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            fontFamily: 'var(--font-body)',
+            fontSize: 13,
+            fontWeight: 600,
+            color: 'var(--text-3)',
+          }}
+        >
+          {action}
+        </button>
+      )}
+    </div>
+  )
+}
+
+// Section calme séparée par un filet fin
+const sectionStyle: React.CSSProperties = {
+  marginTop: 28,
+  paddingTop: 28,
+  borderTop: '1px solid var(--border)',
+}
+
+// Ligne-favori « bibliothèque » (vignette 66 + nom serif + méta)
+function FavRow({ fav, onOpen }: { fav: FavoriteRow; onOpen: () => void }) {
+  const cuisine = fav.snapshot?.cuisine ?? fav.snapshot?.fsq?.categories?.[0]?.name
+  const rating = fav.snapshot?.fsq?.rating
+  const openNow = fav.snapshot?.open_now
+  const photo = favPhoto(fav)
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`Voir ${fav.name}`}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 13,
+        width: '100%',
+        background: 'none',
+        border: 'none',
+        padding: 0,
+        cursor: 'pointer',
+        textAlign: 'left',
+        fontFamily: 'inherit',
+      }}
+    >
+      {/* Vignette — photo ou repli dégradé + initiale serif */}
+      <span
+        style={{
+          position: 'relative',
+          width: 66,
+          height: 66,
+          borderRadius: 15,
+          overflow: 'hidden',
+          flexShrink: 0,
+          background: placeGradient(fav.osm_id),
+          boxShadow: 'var(--s1)',
+        }}
+      >
+        {photo ? (
+          <FavThumbImg src={photo} />
+        ) : (
+          <span
+            aria-hidden
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontFamily: 'var(--font-display)',
+              fontSize: 28,
+              fontWeight: 600,
+              color: 'rgba(255,255,255,0.92)',
+            }}
+          >
+            {placeInitial(fav.snapshot?.name ?? fav.name)}
+          </span>
+        )}
+      </span>
+
+      {/* Corps — nom serif + méta */}
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span
+          style={{
+            display: 'block',
+            fontFamily: 'var(--font-display)',
+            fontSize: 16.5,
+            fontWeight: 600,
+            color: 'var(--text)',
+            letterSpacing: '-0.01em',
+            lineHeight: 1.15,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {fav.snapshot?.name ?? fav.name}
+        </span>
+        <span
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 9,
+            marginTop: 5,
+            flexWrap: 'wrap',
+          }}
+        >
+          {rating != null && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 3,
+                fontSize: 11.5,
+                fontWeight: 700,
+                color: 'var(--text)',
+              }}
+            >
+              <Star size={11} strokeWidth={0} fill="var(--star)" />
+              {rating.toFixed(1)}
+            </span>
+          )}
+          {cuisine && (
+            <>
+              {rating != null && <MetaDot />}
+              <span style={{ fontSize: 12.5, color: 'var(--text-2)' }}>{frCuisine(cuisine)}</span>
+            </>
+          )}
+          {openNow != null && (
+            <>
+              {(rating != null || cuisine) && <MetaDot />}
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  color: openNow ? 'var(--open)' : 'var(--closed)',
+                }}
+              >
+                <span
+                  style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }}
+                />
+                {openNow ? 'Ouvert' : 'Fermé'}
+              </span>
+            </>
+          )}
+        </span>
+      </span>
+    </button>
+  )
+}
+
+// Bouton-icône rond (barre du haut : partager, réglages) — façon Albo
+const iconBtnStyle: React.CSSProperties = {
+  width: 38,
+  height: 38,
+  borderRadius: '50%',
+  flexShrink: 0,
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: 'var(--text-2)',
+  cursor: 'pointer',
+}
+
 // ── Main component ────────────────────────────────────────────
 export default function ProfileScreen() {
   const { isReady } = useAuthGuard()
   const { profile } = useProfile()
+  const { lists, fetchLists } = useLists()
   const router = useRouter()
 
   const [favorites, setFavorites] = useState<FavoriteRow[]>([])
@@ -101,388 +346,248 @@ export default function ProfileScreen() {
       }
     }
     loadData()
-  }, [])
+    fetchLists()
+  }, [fetchLists])
 
   if (!isReady) return <Spinner />
 
+  const displayName = profile?.display_name ?? 'Mon profil'
   const cuisines = [...new Set(favorites.map((f) => f.snapshot?.cuisine).filter(Boolean))]
-
   const previewFavs = favorites.slice(0, 4)
+  const previewLists = lists.slice(0, 4)
+
+  const figures: { value: string; label: string }[] = [
+    { value: String(stats?.total_visits ?? 0), label: 'Visites' },
+    { value: String(favorites.length), label: 'Favoris' },
+    { value: `${stats?.total_spent ? Math.round(stats.total_spent) : 0} €`, label: 'Dépensé' },
+    { value: String(cuisines.length), label: 'Cuisines' },
+  ]
 
   return (
     <div
       style={{
         minHeight: '100vh',
         background: 'var(--bg)',
-        paddingBottom: 'calc(var(--safe-bottom) + 80px)',
+        color: 'var(--text)',
+        fontFamily: 'var(--font-body)',
       }}
     >
-      {/* TOP BAR */}
       <div
         style={{
-          padding: 'calc(var(--safe-top) + 10px) 16px 0',
-          display: 'flex',
-          justifyContent: 'flex-end',
+          maxWidth: 660,
+          margin: '0 auto',
+          padding: 'calc(var(--safe-top) + 16px) 20px calc(var(--safe-bottom) + 88px)',
         }}
       >
-        <button
-          onClick={() => router.push('/settings')}
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: 10,
-            background: 'var(--white)',
-            border: '1px solid var(--b2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            padding: 0,
-          }}
-          aria-label="Paramètres"
-        >
-          <Settings size={22} color="var(--text-2)" />
-        </button>
-      </div>
-
-      {/* IDENTITY */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 8,
-          padding: '8px 20px 0',
-        }}
-      >
-        <Avatar
-          name={profile?.display_name ?? 'Mon profil'}
-          src={profile?.avatar_url}
-          id={profile?.id ?? 'me'}
-          size={96}
-        />
-
-        <p
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-display)',
-            fontWeight: 700,
-            fontSize: 24,
-            letterSpacing: '-0.02em',
-            color: 'var(--ink)',
-          }}
-        >
-          {profile?.display_name ?? 'Mon profil'}
-        </p>
-
-        {profile?.username && (
-          <p
-            style={{
-              margin: 0,
-              fontSize: 14,
-              color: 'var(--text-3)',
-            }}
-          >
-            @{profile.username}
-          </p>
-        )}
-        {profile?.bio && (
-          <p
-            style={{
-              margin: '6px 0 0',
-              maxWidth: 320,
-              textAlign: 'center',
-              fontSize: 14,
-              lineHeight: 1.4,
-              color: 'var(--text-2)',
-            }}
-          >
-            {profile.bio}
-          </p>
-        )}
-
-        <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-          <button
-            className="btn-secondary"
-            style={{ width: 'auto' }}
-            onClick={() => setEditing(true)}
-          >
-            Modifier le profil
-          </button>
+        {/* ── Barre d'icônes en haut à droite (partager + réglages), façon Albo ── */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 4 }}>
           {profile?.username && (
+            <button
+              type="button"
+              onClick={() => setSharing(true)}
+              aria-label="Partager mon profil"
+              style={iconBtnStyle}
+            >
+              <Share2 size={19} strokeWidth={1.8} />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => router.push('/settings')}
+            aria-label="Paramètres"
+            style={iconBtnStyle}
+          >
+            <Settings size={19} strokeWidth={1.8} />
+          </button>
+        </div>
+
+        {/* ── Masthead : avatar puis grand titre serif (pile, éditorial) ── */}
+        <header style={{ animation: 'fadeUp 280ms var(--ease-out) both' }}>
+          <Avatar name={displayName} src={profile?.avatar_url} id={profile?.id ?? 'me'} size={72} />
+          <h1
+            style={{
+              margin: '16px 0 0',
+              fontFamily: 'var(--font-display)',
+              fontWeight: 600,
+              fontSize: 30,
+              letterSpacing: '-0.02em',
+              lineHeight: 1.05,
+              color: 'var(--text)',
+              overflowWrap: 'anywhere',
+            }}
+          >
+            {displayName}
+          </h1>
+          {profile?.username && (
+            <p style={{ margin: '6px 0 0', fontSize: 14, color: 'var(--text-3)' }}>
+              @{profile.username}
+            </p>
+          )}
+          {profile?.bio && (
+            <p
+              style={{
+                margin: '10px 0 0',
+                fontSize: 14,
+                lineHeight: 1.45,
+                color: 'var(--text-2)',
+                maxWidth: 420,
+              }}
+            >
+              {profile.bio}
+            </p>
+          )}
+          {/* Action prominente : éditer le profil */}
+          <div style={{ marginTop: 16 }}>
             <button
               className="btn-secondary"
               style={{ width: 'auto' }}
-              onClick={() => setSharing(true)}
+              onClick={() => setEditing(true)}
             >
-              Partager mon profil
+              Modifier le profil
             </button>
-          )}
-        </div>
-      </div>
-
-      {/* STATS ROW */}
-      <div
-        style={{
-          background: 'var(--white)',
-          border: '1px solid var(--b2)',
-          borderRadius: 'var(--r-lg)',
-          boxShadow: 'var(--s2)',
-          margin: '24px 16px 0',
-          padding: '16px 8px',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-        }}
-      >
-        {(
-          [
-            { value: String(stats?.total_visits ?? 0), label: 'Visites', first: true },
-            { value: String(favorites.length), label: 'Favoris', first: false },
-            {
-              value: `${stats?.total_spent ? Math.round(stats.total_spent) : 0} €`,
-              label: 'Dépensé',
-              first: false,
-            },
-            { value: String(cuisines.length), label: 'Cuisines', first: false },
-          ] as { value: string; label: string; first: boolean }[]
-        ).map(({ value, label, first }) => (
-          <div
-            key={label}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              borderLeft: first ? undefined : '1px solid var(--b1)',
-              padding: '0 4px',
-            }}
-          >
-            <span
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontWeight: 700,
-                fontSize: 22,
-                color: 'var(--ink)',
-              }}
-            >
-              {value}
-            </span>
-            <span
-              style={{
-                fontSize: 11,
-                color: 'var(--text-3)',
-                marginTop: 2,
-              }}
-            >
-              {label}
-            </span>
           </div>
-        ))}
-      </div>
+        </header>
 
-      {/* MES FAVORIS */}
-      <div style={{ margin: '28px 16px 0' }}>
-        {/* Section header */}
-        <div
+        {/* ── Chiffres de tête — inline serif, sans cadre ── */}
+        <section
           style={{
+            ...sectionStyle,
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '18px 26px',
+            animation: 'fadeUp 320ms var(--ease-out) 60ms both',
           }}
         >
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              color: 'var(--text-2)',
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Mes favoris
-          </span>
-          {favorites.length > 0 && (
-            <button
-              onClick={() => router.push('/favorites')}
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: 0,
-                fontSize: 13,
-                color: 'var(--accent)',
-                cursor: 'pointer',
-                fontWeight: 600,
-              }}
-            >
-              Tout voir
-            </button>
-          )}
-        </div>
-
-        {/* Favorites list */}
-        {favorites.length === 0 ? (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              padding: '30px 24px 36px',
-              gap: 14,
-            }}
-          >
-            <div
-              style={{
-                width: 60,
-                height: 60,
-                borderRadius: 18,
-                background: 'var(--surface-2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text-3)',
-              }}
-            >
-              <Bookmark size={26} strokeWidth={1.6} />
-            </div>
-            <div style={{ textAlign: 'center' }}>
+          {figures.map((f) => (
+            <div key={f.label}>
               <div
                 style={{
                   fontFamily: 'var(--font-display)',
-                  fontSize: 18,
+                  fontSize: 30,
                   fontWeight: 600,
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1,
                   color: 'var(--text)',
-                  letterSpacing: '-0.01em',
+                  fontVariantNumeric: 'tabular-nums',
                 }}
               >
-                Rien d&apos;enregistré… pour l&apos;instant
+                {f.value}
               </div>
-              <p
+              <div
                 style={{
-                  margin: '6px 0 0',
-                  fontSize: 13.5,
-                  color: 'var(--text-2)',
-                  lineHeight: 1.5,
+                  marginTop: 7,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  color: 'var(--text-3)',
                 }}
               >
-                Enregistre les restaurants qui te font envie&nbsp;: ils apparaîtront ici.
-              </p>
+                {f.label}
+              </div>
             </div>
-            <button
-              onClick={() => router.push('/')}
+          ))}
+        </section>
+
+        {/* ── Mes listes — lignes-collections façon Albo ── */}
+        {previewLists.length > 0 && (
+          <section style={sectionStyle}>
+            <SecHead
+              title="Mes listes"
+              action="Gérer ›"
+              onAction={() => router.push('/favorites')}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {previewLists.map((l: ListRow) => (
+                <ListCard
+                  key={l.id}
+                  list={l}
+                  variant="row"
+                  onClick={() => router.push('/favorites')}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Mes favoris — lignes-favoris ── */}
+        <section style={sectionStyle}>
+          <SecHead
+            title="Mes favoris"
+            action={favorites.length > 0 ? `${favorites.length} ›` : undefined}
+            onAction={() => router.push('/favorites')}
+          />
+          {favorites.length === 0 ? (
+            <div
               style={{
-                background: 'var(--accent)',
-                color: 'var(--on-accent)',
-                border: 'none',
-                borderRadius: 999,
-                padding: '11px 20px',
-                fontSize: 13.5,
-                fontWeight: 600,
-                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                padding: '18px 24px 26px',
+                gap: 14,
               }}
             >
-              Explorer la carte
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
-            {previewFavs.map((f) => {
-              const place: PlaceCard =
-                f.snapshot ??
-                ({
-                  osm_id: f.osm_id,
-                  osm_type: 'node',
-                  name: f.name,
-                  lat: 0,
-                  lon: 0,
-                  tags: {},
-                } as PlaceCard)
-              const rating = f.snapshot?.fsq?.rating
-              const cuisine = f.snapshot?.cuisine ?? f.snapshot?.fsq?.categories?.[0]?.name
-              return (
-                <button
-                  key={f.id}
-                  onClick={() => router.push('/favorites')}
+              <div
+                style={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: 18,
+                  background: 'var(--surface-2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-3)',
+                }}
+              >
+                <Bookmark size={26} strokeWidth={1.6} />
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    width: '100%',
-                    background: 'var(--white)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--r-lg)',
-                    padding: 8,
-                    cursor: 'pointer',
-                    textAlign: 'left',
+                    fontFamily: 'var(--font-display)',
+                    fontSize: 18,
+                    fontWeight: 600,
+                    color: 'var(--text)',
+                    letterSpacing: '-0.01em',
                   }}
                 >
-                  <div
-                    style={{
-                      width: 52,
-                      height: 52,
-                      borderRadius: 12,
-                      overflow: 'hidden',
-                      flexShrink: 0,
-                      position: 'relative',
-                    }}
-                  >
-                    <PlaceThumb place={place} initialSize={24} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontFamily: 'var(--font-display)',
-                        fontSize: 16,
-                        fontWeight: 600,
-                        color: 'var(--text)',
-                        letterSpacing: '-0.01em',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {f.snapshot?.name ?? f.name}
-                    </div>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        marginTop: 3,
-                        fontSize: 12.5,
-                        color: 'var(--text-2)',
-                      }}
-                    >
-                      {rating != null && (
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 3,
-                            fontWeight: 700,
-                            color: 'var(--text)',
-                          }}
-                        >
-                          <Star size={12} strokeWidth={0} fill="var(--star)" />
-                          {rating.toFixed(1)}
-                        </span>
-                      )}
-                      {cuisine && (
-                        <span
-                          style={{
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {frCuisine(cuisine)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        )}
+                  Rien d&apos;enregistré… pour l&apos;instant
+                </div>
+                <p
+                  style={{
+                    margin: '6px 0 0',
+                    fontSize: 13.5,
+                    color: 'var(--text-2)',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Enregistre les restaurants qui te font envie&nbsp;: ils apparaîtront ici.
+                </p>
+              </div>
+              <button
+                onClick={() => router.push('/')}
+                style={{
+                  background: 'var(--accent)',
+                  color: 'var(--on-accent)',
+                  border: 'none',
+                  borderRadius: 999,
+                  padding: '11px 20px',
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Explorer la carte
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {previewFavs.map((f) => (
+                <FavRow key={f.id} fav={f} onOpen={() => router.push('/favorites')} />
+              ))}
+            </div>
+          )}
+        </section>
       </div>
 
       {/* Profile edit modal */}

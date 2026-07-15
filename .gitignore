@@ -8,6 +8,7 @@ node_modules/
 .next/
 out/
 build/
+build-device/
 dist/
 
 # ─── Environment variables — NEVER commit these ──────────────

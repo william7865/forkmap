@@ -17,6 +17,8 @@ import { apiFetch } from '@/lib/api'
 import { useIsMobile } from '@/lib/hooks/useMediaQuery'
 import { useIsNative } from '@/lib/native/platform'
 import { useLists, type ListRow as HookListRow } from '@/lib/hooks/useLists'
+import ImportsRow from '@/components/import/ImportsRow'
+import { useImportsStore } from '@/lib/hooks/useImportsContext'
 import { ListCard, NewListCard } from '@/components/lists/ListCard'
 import CollaboratorsSheet from '@/components/lists/CollaboratorsSheet'
 import { Avatar } from '@/components/social/Avatar'
@@ -833,6 +835,98 @@ function FavPhoto({ src }: { src: string }) {
   )
 }
 
+const MetaDot = () => (
+  <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--text-4)' }} />
+)
+
+// Pilule de filtre façon Albo — active = fond accent / blanc.
+function chipStyle(active: boolean): React.CSSProperties {
+  return {
+    flexShrink: 0,
+    height: 36,
+    padding: '0 16px',
+    borderRadius: 999,
+    border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+    background: active ? 'var(--accent)' : 'var(--bg)',
+    color: active ? '#fff' : 'var(--text-2)',
+    fontFamily: 'var(--font-body)',
+    fontSize: 13.5,
+    fontWeight: 600,
+    whiteSpace: 'nowrap',
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+  }
+}
+
+const icoBtnStyle: React.CSSProperties = {
+  width: 38,
+  height: 38,
+  borderRadius: '50%',
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: 'var(--text-2)',
+  cursor: 'pointer',
+  flexShrink: 0,
+}
+
+// En-tête de section serif façon Albo — « Mes listes », « Tous mes favoris »…
+function SecHead({
+  title,
+  action,
+  onAction,
+}: {
+  title: string
+  action?: string
+  onAction?: () => void
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 13,
+      }}
+    >
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: 'var(--font-display)',
+          fontWeight: 600,
+          fontSize: 21,
+          letterSpacing: '-0.01em',
+          color: 'var(--text)',
+        }}
+      >
+        {title}
+      </h2>
+      {action && (
+        <button
+          type="button"
+          onClick={onAction}
+          style={{
+            border: 'none',
+            background: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            fontFamily: 'var(--font-body)',
+            fontSize: 13,
+            fontWeight: 600,
+            color: 'var(--text-3)',
+          }}
+        >
+          {action}
+        </button>
+      )}
+    </div>
+  )
+}
+
 const IcoUtensils = () => (
   <svg
     width="22"
@@ -975,6 +1069,29 @@ function CardActionsMenu({
           document.body
         )}
     </>
+  )
+}
+
+// Menu ⋯ d'une ligne-collection (natif) — réutilise CardActionsMenu.
+function ListRowMenu({
+  onRename,
+  onCollab,
+  onDelete,
+}: {
+  onRename: () => void
+  onCollab: () => void
+  onDelete: () => void
+}) {
+  const ref = useRef<HTMLButtonElement>(null)
+  return (
+    <CardActionsMenu
+      buttonRef={ref}
+      items={[
+        { label: 'Renommer', icon: <IcoPen />, onClick: onRename },
+        { label: 'Collaborateurs', icon: <IcoListPlus />, onClick: onCollab },
+        { label: 'Supprimer', icon: <IcoTrash />, onClick: onDelete, danger: true },
+      ]}
+    />
   )
 }
 
@@ -1152,6 +1269,7 @@ function FavCardList({
   selectMode,
   selected,
   onToggleSelect,
+  sourceLabel,
 }: {
   fav: FavoriteRow
   index: number
@@ -1165,6 +1283,7 @@ function FavCardList({
   selectMode?: boolean
   selected?: boolean
   onToggleSelect?: () => void
+  sourceLabel?: string | null
 }) {
   const cuisine = fav.snapshot?.cuisine ?? fav.snapshot?.fsq?.categories?.[0]?.name
   const rating = fav.snapshot?.fsq?.rating
@@ -1175,207 +1294,218 @@ function FavCardList({
   const primary = selectMode ? onToggleSelect! : onOpenMap
   const nativeFav = useIsNative()
 
-  // ── App native : carte photo compacte, infos superposées (grille 2 colonnes) ──
+  const actionItems = [
+    {
+      label: 'Ajouter à une liste',
+      icon: <IcoListPlus />,
+      onClick: () => setShowLists(true),
+    },
+    {
+      label: note ? 'Modifier la note' : 'Ajouter une note',
+      icon: <IcoPen />,
+      onClick: onNote,
+    },
+    { label: 'Partager', icon: <IcoShare />, onClick: onShare },
+    { label: 'Retirer', icon: <IcoTrash />, onClick: onRemove, danger: true },
+  ]
+
+  // ── App native : ligne « bibliothèque » façon Albo (photo 66 + méta + ⋯) ──
   if (nativeFav) {
-    const michelin = fav.snapshot?.wikidata?.michelin_stars ?? fav.snapshot?.osm_enriched?.michelin
-    const zone = fav.snapshot?.osm_enriched?.district ?? fav.snapshot?.osm_enriched?.city
-    const price = fav.snapshot?.fsq?.price
-    const badge = michelin ? 'Michelin' : rating != null && rating >= 8.5 ? 'Top Choix' : null
     return (
       <div
         className="anim-card-in"
-        onClick={selectMode ? onToggleSelect : onOpenMap}
+        onClick={selectMode ? onToggleSelect : undefined}
         style={{
-          position: 'relative',
-          aspectRatio: '4 / 5',
-          borderRadius: 18,
-          overflow: 'hidden',
-          background: placeGradient(fav.osm_id),
-          border: selected ? '2px solid var(--accent)' : '1px solid var(--border)',
-          cursor: 'pointer',
-          animationDelay: `${index * 35}ms`,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 13,
+          animationDelay: `${index * 30}ms`,
+          cursor: selectMode ? 'pointer' : 'default',
         }}
       >
-        {photo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={photo}
-            alt=""
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-            }}
-          />
-        ) : (
-          // No photo → serif-initial watermark (same language as the rest of the app)
-          <span
-            aria-hidden
-            style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: 'var(--font-display)',
-              fontSize: 76,
-              fontWeight: 600,
-              letterSpacing: '-0.02em',
-              color: 'rgba(255,255,255,0.9)',
-            }}
-          >
-            {placeInitial(fav.snapshot?.name ?? fav.name)}
-          </span>
-        )}
-        {/* Scrim légibilité */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'linear-gradient(transparent 42%, rgba(0,0,0,0.74))',
-          }}
-        />
-        {/* Cœur */}
+        {selectMode && <Checkbox checked={!!selected} />}
+
+        {/* Photo — repli dégradé + initiale serif */}
         <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onRemove()
-          }}
-          aria-label="Retirer des favoris"
+          type="button"
+          onClick={primary}
+          aria-label={selectMode ? `Sélectionner ${fav.name}` : `Voir ${fav.name} sur la carte`}
           style={{
-            position: 'absolute',
-            top: 10,
-            right: 10,
-            width: 36,
-            height: 36,
-            borderRadius: 999,
-            border: 'none',
-            background: 'rgba(255,255,255,0.92)',
-            color: 'var(--accent)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
+            position: 'relative',
+            width: 66,
+            height: 66,
+            borderRadius: 15,
+            overflow: 'hidden',
+            flexShrink: 0,
+            background: placeGradient(fav.osm_id),
+            border: selected ? '2px solid var(--accent)' : 'none',
             boxShadow: 'var(--s1)',
+            cursor: 'pointer',
+            padding: 0,
           }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 21s-7-5.7-7-11a5 5 0 019-3 5 5 0 019 3c0 5.3-7 11-7 11z" />
-          </svg>
-        </button>
-        {/* Badge */}
-        {badge && (
-          <span
-            style={{
-              position: 'absolute',
-              top: 12,
-              left: 12,
-              fontSize: 9.5,
-              fontWeight: 800,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              color: '#111',
-              background: 'rgba(255,255,255,0.92)',
-              borderRadius: 6,
-              padding: '3px 8px',
-            }}
-          >
-            {badge}
-          </span>
-        )}
-        {/* « Déjà testé » — une visite existe pour ce lieu */}
-        {visited && (
-          <span
-            style={{
-              position: 'absolute',
-              top: badge ? 38 : 12,
-              left: 12,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              fontSize: 9.5,
-              fontWeight: 800,
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              color: '#fff',
-              background: 'rgba(23,148,90,0.95)',
-              borderRadius: 6,
-              padding: '3px 8px',
-            }}
-          >
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-            Testé
-          </span>
-        )}
-        {/* Infos superposées */}
-        <div style={{ position: 'absolute', left: 12, right: 12, bottom: 12 }}>
-          {(rating != null || price != null) && (
-            <div
+          {photo ? (
+            <FavPhoto src={photo} />
+          ) : (
+            <span
+              aria-hidden
               style={{
+                position: 'absolute',
+                inset: 0,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8,
-                marginBottom: 4,
-                color: '#fff',
-                fontSize: 12.5,
-                fontWeight: 700,
+                justifyContent: 'center',
+                fontFamily: 'var(--font-display)',
+                fontSize: 28,
+                fontWeight: 600,
+                color: 'rgba(255,255,255,0.92)',
               }}
             >
-              {rating != null && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="var(--star)">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                  </svg>
-                  {rating.toFixed(1)}
-                </span>
-              )}
-              {price != null && (
-                <span style={{ color: 'rgba(255,255,255,0.85)' }}>{'€'.repeat(price)}</span>
-              )}
-            </div>
+              {placeInitial(fav.snapshot?.name ?? fav.name)}
+            </span>
           )}
-          <h3
+        </button>
+
+        {/* Corps — nom serif + méta */}
+        <button
+          type="button"
+          onClick={primary}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            textAlign: 'left',
+            fontFamily: 'inherit',
+          }}
+        >
+          <p
             style={{
               margin: 0,
               fontFamily: 'var(--font-display)',
-              fontSize: 16,
-              fontWeight: 700,
-              color: '#fff',
+              fontSize: 16.5,
+              fontWeight: 600,
+              color: 'var(--text)',
               letterSpacing: '-0.01em',
-              lineHeight: 1.2,
+              lineHeight: 1.15,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
             }}
           >
             {fav.name}
-          </h3>
-          <p
+          </p>
+          <div
             style={{
-              margin: '2px 0 0',
-              fontSize: 12,
-              color: 'rgba(255,255,255,0.8)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 9,
+              marginTop: 5,
+              flexWrap: 'wrap',
             }}
           >
-            {[cuisine ? frCuisine(cuisine) : null, zone].filter(Boolean).join(' • ')}
-          </p>
-        </div>
+            {rating != null && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  color: 'var(--text)',
+                }}
+              >
+                <span style={{ color: 'var(--star)', display: 'flex' }}>
+                  <IcoStar />
+                </span>
+                {rating.toFixed(1)}
+              </span>
+            )}
+            {cuisine && (
+              <>
+                {rating != null && <MetaDot />}
+                <span style={{ fontSize: 12.5, color: 'var(--text-2)' }}>{frCuisine(cuisine)}</span>
+              </>
+            )}
+            {openNow != null && (
+              <>
+                {(rating != null || cuisine) && <MetaDot />}
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    color: openNow ? 'var(--open)' : 'var(--closed)',
+                  }}
+                >
+                  <span
+                    style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }}
+                  />
+                  {openNow ? 'Ouvert' : 'Fermé'}
+                </span>
+              </>
+            )}
+            {sourceLabel && (
+              <span style={{ fontSize: 11, color: 'var(--text-3)' }}>· {sourceLabel}</span>
+            )}
+            {visited && (
+              <span
+                title="Déjà testé"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: 'var(--open)',
+                }}
+              >
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Testé
+              </span>
+            )}
+            {note && (
+              <span
+                title="Note personnelle"
+                style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }}
+              />
+            )}
+          </div>
+        </button>
+
+        {/* Actions */}
+        {!selectMode && (
+          <div style={{ flexShrink: 0 }}>
+            <CardActionsMenu buttonRef={listBtnRef} items={actionItems} />
+          </div>
+        )}
+
+        {showLists && (
+          <SaveToListPopup
+            osmId={fav.osm_id}
+            placeSnapshot={fav.snapshot as unknown as Record<string, unknown>}
+            anchorRef={listBtnRef}
+            onClose={() => {
+              setShowLists(false)
+              onListsChanged?.()
+            }}
+          />
+        )}
       </div>
     )
   }
@@ -1845,6 +1975,8 @@ function FavoritesPageInner() {
   const [noteTarget, setNoteTarget] = useState<FavoriteRow | null>(null)
   // notes: osm_id → texte (state local rafraîchi depuis localStorage)
   const [notes, setNotes] = useState<Record<string, string>>({})
+  const [query, setQuery] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const isMobile = useIsMobile()
   const isNative = useIsNative()
 
@@ -1860,6 +1992,9 @@ function FavoritesPageInner() {
     removeItemFromList,
     addItemToList,
   } = useLists()
+
+  // Les posts partagés depuis les réseaux (store unique de l'app — voir useImportsContext).
+  const { imports } = useImportsStore()
 
   // ── Multi-select ──
   const [selectMode, setSelectMode] = useState(false)
@@ -1981,6 +2116,13 @@ function FavoritesPageInner() {
         (f) => (f.snapshot?.cuisine ?? f.snapshot?.fsq?.categories?.[0]?.name) === favCuisine
       )
     }
+    const q = query.trim().toLowerCase()
+    if (q) {
+      arr = arr.filter((f) => {
+        const cui = f.snapshot?.cuisine ?? f.snapshot?.fsq?.categories?.[0]?.name ?? ''
+        return f.name.toLowerCase().includes(q) || frCuisine(cui).toLowerCase().includes(q)
+      })
+    }
     switch (sortBy) {
       case 'date_asc':
         arr.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
@@ -1995,7 +2137,25 @@ function FavoritesPageInner() {
         arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     }
     return arr
-  }, [favorites, sortBy, favCuisine, favTab, visitedIds])
+  }, [favorites, sortBy, favCuisine, favTab, visitedIds, query])
+
+  // Provenance « vu sur les réseaux » : osm_id → label court (♪ TikTok, etc.).
+  const importSourceByOsm = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const imp of imports) {
+      if (!imp.osm_id || m.has(imp.osm_id)) continue
+      const label =
+        imp.platform === 'tiktok'
+          ? '♪ TikTok'
+          : imp.platform === 'instagram'
+            ? 'Instagram'
+            : imp.platform === 'youtube'
+              ? 'YouTube'
+              : 'Réseaux'
+      m.set(imp.osm_id, label)
+    }
+    return m
+  }, [imports])
 
   if (!isReady)
     return (
@@ -2068,29 +2228,234 @@ function FavoritesPageInner() {
                 : '36px 20px 80px',
           }}
         >
-          {/* Header */}
-          <div style={{ marginBottom: 24, animation: 'fadeUp 280ms var(--ease-out) both' }}>
-            <h1
+          {/* ── En-tête ── */}
+          {isNative ? (
+            <div
               style={{
-                margin: '0 0 4px',
-                fontFamily: 'var(--font-display)',
-                fontSize: 26,
-                fontWeight: 400,
-                letterSpacing: '-0.04em',
-                lineHeight: 1.1,
-                color: 'var(--ink)',
+                display: 'flex',
+                alignItems: 'flex-end',
+                justifyContent: 'space-between',
+                marginBottom: 4,
+                animation: 'fadeUp 280ms var(--ease-out) both',
               }}
             >
-              Enregistrés
-            </h1>
-            <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-60)' }}>
-              {loading
-                ? 'Chargement…'
-                : `${favorites.length} restaurant${favorites.length !== 1 ? 's' : ''} · ${lists.length} liste${lists.length !== 1 ? 's' : ''}`}
-            </p>
-          </div>
+              <div style={{ minWidth: 0 }}>
+                <h1
+                  style={{
+                    margin: 0,
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 600,
+                    fontSize: 34,
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1,
+                    color: 'var(--text)',
+                  }}
+                >
+                  Mes adresses
+                </h1>
+                <p style={{ margin: '7px 0 0', fontSize: 13, color: 'var(--text-3)' }}>
+                  {loading
+                    ? 'Chargement…'
+                    : `${favorites.length} lieu${favorites.length !== 1 ? 'x' : ''} · ${lists.length} liste${lists.length !== 1 ? 's' : ''}`}
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="button"
+                  aria-label="Rechercher"
+                  onClick={() => searchInputRef.current?.focus()}
+                  style={icoBtnStyle}
+                >
+                  <svg
+                    width="19"
+                    height="19"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="m20 20-3-3" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  aria-label={viewMode === 'grid' ? 'Vue liste' : 'Vue grille'}
+                  aria-pressed={viewMode === 'grid'}
+                  onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+                  style={{
+                    ...icoBtnStyle,
+                    background: viewMode === 'grid' ? 'var(--accent)' : 'var(--surface)',
+                    color: viewMode === 'grid' ? '#fff' : 'var(--text-2)',
+                    borderColor: viewMode === 'grid' ? 'var(--accent)' : 'var(--border)',
+                  }}
+                >
+                  <svg
+                    width="19"
+                    height="19"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                    <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                    <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                    <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ marginBottom: 24, animation: 'fadeUp 280ms var(--ease-out) both' }}>
+              <h1
+                style={{
+                  margin: '0 0 4px',
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 26,
+                  fontWeight: 400,
+                  letterSpacing: '-0.04em',
+                  lineHeight: 1.1,
+                  color: 'var(--ink)',
+                }}
+              >
+                Enregistrés
+              </h1>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-60)' }}>
+                {loading
+                  ? 'Chargement…'
+                  : `${favorites.length} restaurant${favorites.length !== 1 ? 's' : ''} · ${lists.length} liste${lists.length !== 1 ? 's' : ''}`}
+              </p>
+            </div>
+          )}
 
-          {/* Lancer un sondage de groupe — « où on mange ce soir ? » */}
+          {/* ── Barre de recherche (natif) ── */}
+          {isNative && !activeListId && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                height: 46,
+                margin: '16px 0 4px',
+                padding: '0 15px',
+                borderRadius: 15,
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <svg
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--text-4)"
+                strokeWidth="1.8"
+                style={{ flexShrink: 0 }}
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3-3" />
+              </svg>
+              <input
+                ref={searchInputRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Chercher un lieu, une liste…"
+                aria-label="Chercher"
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  border: 'none',
+                  outline: 'none',
+                  background: 'transparent',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 15,
+                  color: 'var(--text)',
+                }}
+              />
+              {query && (
+                <button
+                  type="button"
+                  aria-label="Effacer"
+                  onClick={() => setQuery('')}
+                  style={{
+                    border: 'none',
+                    background: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    color: 'var(--text-4)',
+                    display: 'flex',
+                  }}
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <path d="M18 6 6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* ── Ruban de filtres (natif) : états + cuisines fusionnés ── */}
+          {isNative &&
+            !activeListId &&
+            !loading &&
+            favorites.length > 0 &&
+            (() => {
+              const stateChips: { key: 'all' | 'todo' | 'done'; label: string }[] = [
+                { key: 'all', label: 'Tout' },
+                { key: 'todo', label: 'À tester' },
+                { key: 'done', label: 'Testés' },
+              ]
+              const counts = new Map<string, number>()
+              favorites.forEach((f) => {
+                const c = f.snapshot?.cuisine ?? f.snapshot?.fsq?.categories?.[0]?.name
+                if (c) counts.set(c, (counts.get(c) ?? 0) + 1)
+              })
+              const topCuisines = [...counts.entries()]
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 6)
+                .map(([c]) => c)
+              return (
+                <div
+                  className="no-scrollbar"
+                  style={{
+                    display: 'flex',
+                    gap: 8,
+                    overflowX: 'auto',
+                    margin: '14px 0 6px',
+                    paddingBottom: 2,
+                  }}
+                >
+                  {stateChips.map((c) => (
+                    <button
+                      key={c.key}
+                      onClick={() => setFavTab(c.key)}
+                      style={chipStyle(favTab === c.key)}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                  {topCuisines.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setFavCuisine(favCuisine === c ? null : c)}
+                      style={chipStyle(favCuisine === c)}
+                    >
+                      {frCuisine(c)}
+                    </button>
+                  ))}
+                </div>
+              )
+            })()}
+
+          {/* Lancer un sondage de groupe (natif) */}
           {isNative && !activeListId && !loading && favorites.length >= 2 && (
             <button
               onClick={() => setPollOpen(true)}
@@ -2101,146 +2466,28 @@ function FavoritesPageInner() {
                 gap: 8,
                 width: '100%',
                 padding: '12px',
-                marginBottom: 16,
+                margin: '10px 0 4px',
                 borderRadius: 14,
-                border: '1.5px solid var(--b2)',
-                background: 'var(--white)',
+                border: '1px solid var(--border)',
+                background: 'var(--bg)',
                 boxShadow: 'var(--s1)',
                 cursor: 'pointer',
                 fontFamily: 'var(--font-body)',
                 fontSize: 14.5,
                 fontWeight: 700,
-                color: 'var(--ink)',
+                color: 'var(--text)',
               }}
             >
               🗳️ Lancer un sondage de groupe
             </button>
           )}
 
-          {/* À essayer / Déjà testé (natif) — active le journal de visites */}
-          {isNative &&
-            !activeListId &&
-            !loading &&
-            favorites.length > 0 &&
-            (() => {
-              const done = favorites.filter((f) => visitedIds.has(f.osm_id)).length
-              const tabs: { key: 'all' | 'todo' | 'done'; label: string; count: number }[] = [
-                { key: 'all', label: 'Tout', count: favorites.length },
-                { key: 'todo', label: 'À essayer', count: favorites.length - done },
-                { key: 'done', label: 'Déjà testé', count: done },
-              ]
-              return (
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: 4,
-                    padding: 4,
-                    background: 'var(--surface-2)',
-                    borderRadius: 12,
-                    marginBottom: 16,
-                  }}
-                >
-                  {tabs.map((t) => {
-                    const active = favTab === t.key
-                    return (
-                      <button
-                        key={t.key}
-                        onClick={() => setFavTab(t.key)}
-                        aria-pressed={active}
-                        style={{
-                          flex: 1,
-                          padding: '8px 4px',
-                          borderRadius: 9,
-                          border: 'none',
-                          cursor: 'pointer',
-                          background: active ? 'var(--bg)' : 'transparent',
-                          boxShadow: active ? 'var(--s1)' : 'none',
-                          color: active ? 'var(--text)' : 'var(--text-2)',
-                          fontFamily: 'var(--font-body)',
-                          fontSize: 12.5,
-                          fontWeight: 600,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 5,
-                          transition: 'all 140ms ease',
-                        }}
-                      >
-                        {t.label}
-                        <span
-                          style={{
-                            fontSize: 10.5,
-                            fontWeight: 700,
-                            color: 'var(--text-3)',
-                            fontVariantNumeric: 'tabular-nums',
-                          }}
-                        >
-                          {t.count}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              )
-            })()}
-
-          {/* Chips cuisines (natif — maquette « Mes Favoris ») */}
-          {isNative &&
-            !activeListId &&
-            !loading &&
-            favorites.length > 0 &&
-            (() => {
-              const counts = new Map<string, number>()
-              favorites.forEach((f) => {
-                const c = f.snapshot?.cuisine ?? f.snapshot?.fsq?.categories?.[0]?.name
-                if (c) counts.set(c, (counts.get(c) ?? 0) + 1)
-              })
-              const top = [...counts.entries()]
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 6)
-                .map(([c]) => c)
-              const chips: { key: string | null; label: string }[] = [
-                { key: null, label: 'Tout' },
-                ...top.map((c) => ({ key: c, label: frCuisine(c) })),
-              ]
-              return (
-                <div
-                  className="no-scrollbar"
-                  style={{
-                    display: 'flex',
-                    gap: 8,
-                    overflowX: 'auto',
-                    marginBottom: 24,
-                    paddingBottom: 2,
-                  }}
-                >
-                  {chips.map((chip) => {
-                    const active = favCuisine === chip.key
-                    return (
-                      <button
-                        key={chip.label}
-                        onClick={() => setFavCuisine(chip.key)}
-                        style={{
-                          flexShrink: 0,
-                          padding: '9px 18px',
-                          borderRadius: 10,
-                          border: 'none',
-                          cursor: 'pointer',
-                          fontFamily: 'var(--font-body)',
-                          fontSize: 13,
-                          fontWeight: 600,
-                          whiteSpace: 'nowrap',
-                          background: active ? 'var(--accent)' : 'var(--surface-2)',
-                          color: active ? 'var(--on-accent)' : 'var(--text-2)',
-                        }}
-                      >
-                        {chip.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              )
-            })()}
+          {/* « Vus sur les réseaux » — full-bleed, garde son propre en-tête. */}
+          {!activeListId && (
+            <div style={{ margin: isNative ? '18px -16px 0' : '0 -16px' }}>
+              <ImportsRow imports={imports} />
+            </div>
+          )}
 
           {/* Hero — coup de cœur (editorial, web uniquement) */}
           {featured &&
@@ -2491,8 +2738,38 @@ function FavoritesPageInner() {
             </div>
           )}
 
-          {/* Lists grid — affichée aussi en natif (seul accès aux listes dans l'app) */}
-          {!activeListId && lists.length > 0 && (
+          {/* Mes listes — grille (web) / lignes-collections façon Albo (natif) */}
+          {!activeListId && lists.length > 0 && isNative && (
+            <div
+              style={{ margin: '26px 0 8px', animation: 'fadeUp 280ms var(--ease-out) 20ms both' }}
+            >
+              <SecHead title="Mes listes" />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {lists.map((list, i) => (
+                  <React.Fragment key={list.id}>
+                    {i > 0 && (
+                      <div style={{ height: 1, background: 'var(--border)', margin: '6px 0' }} />
+                    )}
+                    <ListCard
+                      list={list}
+                      variant="row"
+                      onClick={() => router.push(`/favorites?list=${list.id}`)}
+                      menu={
+                        <ListRowMenu
+                          onRename={() => setEditingList(list)}
+                          onCollab={() => setCollabTarget(list)}
+                          onDelete={() => setDeleteListTarget(list)}
+                        />
+                      }
+                    />
+                  </React.Fragment>
+                ))}
+                <div style={{ height: 1, background: 'var(--border)', margin: '6px 0' }} />
+                <NewListCard variant="row" onClick={() => setShowCreateList(true)} />
+              </div>
+            </div>
+          )}
+          {!activeListId && lists.length > 0 && !isNative && (
             <div style={{ marginBottom: 32, animation: 'fadeUp 280ms var(--ease-out) 20ms both' }}>
               <p
                 style={{
@@ -2520,7 +2797,10 @@ function FavoritesPageInner() {
           )}
           {!activeListId && lists.length === 0 && !loading && (
             <div style={{ marginBottom: 24 }}>
-              <NewListCard onClick={() => setShowCreateList(true)} />
+              <NewListCard
+                variant={isNative ? 'row' : 'card'}
+                onClick={() => setShowCreateList(true)}
+              />
             </div>
           )}
 
@@ -2955,6 +3235,14 @@ function FavoritesPageInner() {
             </div>
           )}
 
+          {/* En-tête serif « Tous mes favoris » (natif) */}
+          {isNative && !activeListId && !loading && favorites.length > 0 && (
+            <div style={{ marginTop: 22 }}>
+              <div style={{ height: 1, background: 'var(--border)', margin: '0 0 18px' }} />
+              <SecHead title="Tous mes favoris" action={`${sorted.length} ›`} />
+            </div>
+          )}
+
           {/* Liste — masquée quand une liste est ouverte (sinon les enregistrés
               sans liste s'affichaient sous les items de la liste) */}
           {!activeListId &&
@@ -2962,7 +3250,7 @@ function FavoritesPageInner() {
               <div
                 style={
                   isNative
-                    ? { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }
+                    ? { display: 'flex', flexDirection: 'column', gap: 11 }
                     : { display: 'flex', flexDirection: 'column', gap: 10 }
                 }
               >
@@ -3004,6 +3292,7 @@ function FavoritesPageInner() {
                     selectMode={selectMode}
                     selected={selectedIds.has(fav.osm_id)}
                     onToggleSelect={() => toggleSelect(fav.osm_id)}
+                    sourceLabel={importSourceByOsm.get(fav.osm_id) ?? null}
                   />
                 ))}
               </div>
@@ -3045,7 +3334,7 @@ function FavoritesPageInner() {
             position: 'fixed',
             left: '50%',
             transform: 'translateX(-50%)',
-            bottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom) + 12px)' : 24,
+            bottom: isMobile ? 'calc(56px + var(--safe-bottom) + 12px)' : 24,
             zIndex: 800,
             display: 'flex',
             alignItems: 'center',

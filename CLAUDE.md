@@ -66,6 +66,7 @@ Exécuter les fichiers SQL dans l'éditeur SQL de Supabase **dans cet ordre** :
 6. `sql/notes.sql` — table `notes` + RLS (notes perso synchronisées, ex-localStorage).
 7. `sql/polls.sql` — tables `polls`, `poll_options`, `poll_votes` + RLS (sondages de groupe ; vote anonyme par lien via routes service-role).
 8. `sql/list-collaborators.sql` — table `list_collaborators` + RLS (listes collaboratives ; autorisation via `canEditList` côté serveur).
+9. `sql/imports.sql` — table `imports` + RLS (posts sociaux enregistrés depuis la Share Extension).
 
 Migrations ponctuelles dans `sql/migrations/` (à appliquer après les schémas de base) — ex. `2026-07-06-messages-poll-type.sql` élargit la contrainte `messages.type` à `'poll'` (partage de sondage en DM).
 
@@ -156,6 +157,8 @@ Score composite dans `[0,1]` : **note 40 % + popularité 20 % + distance 30 % + 
 | `polls/[id]/close`          | POST                | Clôture (owner).                                                  |
 | `account`                   | DELETE              | Supprime le compte + toutes les données utilisateur.              |
 | `contact`                   | POST                | Formulaire de contact.                                            |
+| `imports`                   | GET / POST          | Posts sociaux enregistrés (Share Extension).                      |
+| `imports/[id]`              | PATCH / DELETE      | Résolution (par l'appareil), note, suppression.                   |
 
 Toutes les routes mutantes/utilisateur appellent `requireUser(req)` et renvoient des erreurs françaises via `friendlyError`. Valider les corps de requête avec **Zod**.
 

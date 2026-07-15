@@ -10,6 +10,8 @@ import type {
   FriendRequests,
   FriendshipRow,
   FriendshipStatus,
+  ImportPlatform,
+  ImportRow,
   MessageRow,
   NotificationItem,
   OsmFsqMapping,
@@ -149,9 +151,7 @@ export async function getReviews(osmId: string): Promise<UserReview[]> {
 }
 
 /** Public author profiles (id/username/name/avatar) for a set of user ids. */
-async function getProfilesFriendLite(
-  ids: string[]
-): Promise<Map<string, UserReview['author']>> {
+async function getProfilesFriendLite(ids: string[]): Promise<Map<string, UserReview['author']>> {
   const map = new Map<string, UserReview['author']>()
   const unique = [...new Set(ids)]
   if (unique.length === 0) return map
@@ -204,7 +204,8 @@ export async function upsertReview(
     .eq('user_id', userId)
     .eq('osm_id', input.osm_id)
     .maybeSingle()
-  const prevPhotos = ((prev as { photo_urls: string[] | null } | null)?.photo_urls ?? []) as string[]
+  const prevPhotos = ((prev as { photo_urls: string[] | null } | null)?.photo_urls ??
+    []) as string[]
 
   const { data, error } = await db
     .from('reviews')
@@ -674,10 +675,20 @@ export async function createList(
   visibility: ListVisibility
 ): Promise<ListRow> {
   const hue = name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360
-  const base = { user_id: userId, name, description, is_public: visibility === 'public', color_hue: hue }
+  const base = {
+    user_id: userId,
+    name,
+    description,
+    is_public: visibility === 'public',
+    color_hue: hue,
+  }
   // Try with `visibility`; if the column isn't there yet (pre-migration), fall
   // back to is_public only so list creation never breaks.
-  let res = await db.from('lists').insert({ ...base, visibility }).select().single()
+  let res = await db
+    .from('lists')
+    .insert({ ...base, visibility })
+    .select()
+    .single()
   if (res.error) res = await db.from('lists').insert(base).select().single()
   if (res.error) throw res.error
   return mapListRow(res.data)
@@ -704,10 +715,7 @@ export async function updateList(
 }
 
 /** Visibilities the viewer is allowed to see for a given owner's lists. */
-async function allowedVisibilities(
-  viewerId: string,
-  ownerId: string
-): Promise<ListVisibility[]> {
+async function allowedVisibilities(viewerId: string, ownerId: string): Promise<ListVisibility[]> {
   if (viewerId === ownerId) return ['private', 'friends', 'public']
   const row = await getFriendshipRow(viewerId, ownerId)
   return row?.status === 'accepted' ? ['public', 'friends'] : ['public']
@@ -1649,10 +1657,7 @@ export async function decideVerification(
 // ---------- Tastemaker feed ----------
 
 /** Recent reviews from the people this user follows (newest first). */
-export async function getTastemakerFeed(
-  meId: string,
-  limit = 40
-): Promise<TastemakerFeedItem[]> {
+export async function getTastemakerFeed(meId: string, limit = 40): Promise<TastemakerFeedItem[]> {
   const followeeIds = await getFollowingIds(meId)
   if (followeeIds.length === 0) return []
 
@@ -1790,10 +1795,7 @@ export async function notifyFollowers(
   }
 }
 
-export async function getPublicLists(
-  ownerId: string,
-  viewerId: string
-): Promise<PublicListCard[]> {
+export async function getPublicLists(ownerId: string, viewerId: string): Promise<PublicListCard[]> {
   const allowed = await allowedVisibilities(viewerId, ownerId)
   let { data, error } = await db
     .from('lists')
@@ -1832,19 +1834,27 @@ export async function getPublicProfileBundle(
   const profile = await getProfileByUsername(username)
   if (!profile) return null
 
-  const [row, friends_count, lists, mutuals, blocked, is_following, followers_count, following_count] =
-    await Promise.all([
-      getFriendshipRow(meId, profile.id),
-      countFriends(profile.id),
-      getPublicLists(profile.id, meId),
-      meId === profile.id ? Promise.resolve(0) : countMutualFriends(meId, profile.id),
-      meId === profile.id ? Promise.resolve(false) : hasBlocked(meId, profile.id),
-      // Fault-tolerant: if sql/follows.sql hasn't been run yet, degrade to
-      // 0/false instead of breaking the whole profile page.
-      meId === profile.id ? Promise.resolve(false) : isFollowing(meId, profile.id).catch(() => false),
-      countFollowers(profile.id).catch(() => 0),
-      countFollowing(profile.id).catch(() => 0),
-    ])
+  const [
+    row,
+    friends_count,
+    lists,
+    mutuals,
+    blocked,
+    is_following,
+    followers_count,
+    following_count,
+  ] = await Promise.all([
+    getFriendshipRow(meId, profile.id),
+    countFriends(profile.id),
+    getPublicLists(profile.id, meId),
+    meId === profile.id ? Promise.resolve(0) : countMutualFriends(meId, profile.id),
+    meId === profile.id ? Promise.resolve(false) : hasBlocked(meId, profile.id),
+    // Fault-tolerant: if sql/follows.sql hasn't been run yet, degrade to
+    // 0/false instead of breaking the whole profile page.
+    meId === profile.id ? Promise.resolve(false) : isFollowing(meId, profile.id).catch(() => false),
+    countFollowers(profile.id).catch(() => 0),
+    countFollowing(profile.id).catch(() => 0),
+  ])
 
   // Agrégat lieux + cuisines depuis les items des listes publiques (données publiques).
   // Lieux distincts par osm_id (un même lieu dans 2 listes ne compte qu'une fois).
@@ -2303,4 +2313,64 @@ export async function getMyPolls(ownerId: string): Promise<PollSummary[]> {
     counts.set(id, (counts.get(id) ?? 0) + 1)
   }
   return rows.map((r) => ({ ...r, total: counts.get(r.id) ?? 0 }))
+}
+
+// ---------- Imports (posts sociaux) ----------
+
+export async function listImports(userId: string): Promise<ImportRow[]> {
+  const { data, error } = await db
+    .from('imports')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data as ImportRow[]
+}
+
+export async function createImport(
+  userId: string,
+  input: { url: string; platform: ImportPlatform; note?: string }
+): Promise<ImportRow> {
+  // Re-sharing the same post must reopen the existing import, not duplicate it.
+  // `note` is only written when the caller supplies one: an upsert lists the
+  // columns it overwrites, so passing note:null on a re-share would silently
+  // erase a note the user had already typed.
+  const row: Record<string, unknown> = {
+    user_id: userId,
+    url: input.url,
+    platform: input.platform,
+  }
+  if (input.note !== undefined) row.note = input.note
+
+  const { data, error } = await db
+    .from('imports')
+    .upsert(row, { onConflict: 'user_id,url', ignoreDuplicates: false })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as ImportRow
+}
+
+export async function updateImport(
+  userId: string,
+  id: string,
+  patch: Partial<ImportRow>
+): Promise<ImportRow> {
+  const { data, error } = await db
+    .from('imports')
+    .update(patch)
+    .eq('id', id)
+    .eq('user_id', userId) // service-role bypasses RLS — authorize here.
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as ImportRow
+}
+
+export async function deleteImport(userId: string, id: string): Promise<void> {
+  const { error } = await db.from('imports').delete().eq('id', id).eq('user_id', userId)
+  if (error) throw error
 }

@@ -1,6 +1,7 @@
 // components/native/CapacitorInit.tsx
 // Client component — runs on every page mount on native.
-// Initialises StatusBar and listens for OAuth deep links.
+// Initialises StatusBar, listens for OAuth deep links, and drains the shares
+// the iOS Share Extension couldn't post itself (offline / signed out).
 'use client'
 
 import { useEffect } from 'react'
@@ -8,6 +9,9 @@ import { useRouter } from 'next/navigation'
 import { Capacitor } from '@capacitor/core'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { registerPushNotifications } from '@/lib/native/pushNotifications'
+import { readPendingShares, clearPendingShares } from '@/lib/native/app-group'
+import { platformFromUrl } from '@/lib/import/parse'
+import { apiFetch } from '@/lib/api'
 import { resolveTheme, getThemePref, applyTheme, systemPrefersDark } from '@/lib/theme'
 
 /** Resolve + apply the theme and sync the native status bar to match. */
@@ -31,6 +35,54 @@ export function refreshTheme() {
   void syncTheme()
 }
 
+/**
+ * Measure the device safe-area insets once and pin them as constant pixels on
+ * :root, overriding the env()-based defaults. A full-screen fixed probe reads
+ * the true inset regardless of the current route's scroll context, so the fixed
+ * tab bar keeps the same height on every tab. Only overwrites when the reading
+ * is sane (0–120px) — a stale 0 on the first frame is corrected by the second
+ * call after the splash hides.
+ */
+function freezeSafeAreaInsets() {
+  if (typeof document === 'undefined' || !document.body) return
+  // The bottom probe must be SCROLLABLE. WKWebView only reserves (reports via
+  // env) the bottom inset when a scroll container can actually scroll into the
+  // home-indicator area. The map home page is `100dvh; overflow:hidden` — it
+  // never scrolls — so env(safe-area-inset-bottom) collapses to 0 there while
+  // the scrollable pages report 34, which made the fixed tab bar change height
+  // between tabs. A fixed, overflow-scrolling probe with over-tall content
+  // forces the true inset regardless of which route is showing at startup.
+  const probe = document.createElement('div')
+  probe.style.cssText =
+    'position:fixed;left:0;bottom:0;width:1px;height:100%;overflow-y:scroll;visibility:hidden;pointer-events:none;z-index:-1'
+  const bottom = document.createElement('div')
+  bottom.style.cssText = 'position:sticky;bottom:0;height:env(safe-area-inset-bottom,0px)'
+  const spacer = document.createElement('div')
+  spacer.style.cssText = 'height:300%'
+  probe.appendChild(bottom)
+  probe.appendChild(spacer)
+
+  // The top inset is stable across routes, so a simple fixed probe suffices.
+  const topProbe = document.createElement('div')
+  topProbe.style.cssText =
+    'position:fixed;top:0;left:0;width:0;height:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none;z-index:-1'
+
+  document.body.appendChild(probe)
+  document.body.appendChild(topProbe)
+  requestAnimationFrame(() => {
+    const t = Math.round(topProbe.getBoundingClientRect().height)
+    const b = Math.round(bottom.getBoundingClientRect().height)
+    const root = document.documentElement.style
+    // Only pin when the reading is a real inset (>0). A 0 read means either a
+    // device without a home indicator (env stays 0 anyway) or a bad frame — in
+    // both cases leaving the env() default is correct.
+    if (t > 0 && t <= 120) root.setProperty('--safe-top', `${t}px`)
+    if (b > 0 && b <= 120) root.setProperty('--safe-bottom', `${b}px`)
+    probe.remove()
+    topProbe.remove()
+  })
+}
+
 export default function CapacitorInit() {
   const router = useRouter()
 
@@ -52,6 +104,15 @@ export default function CapacitorInit() {
         'content',
         'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover'
       )
+      // Freeze the safe-area insets to constant pixels. In WKWebView,
+      // env(safe-area-inset-*) is route-dependent: it reports the full inset on a
+      // full-height page (the map, 100dvh) but collapses toward 0 on scrolling
+      // document pages (Favoris, Social) — so the fixed tab bar lost its bottom
+      // padding and appeared to jump when switching tabs. A full-screen fixed
+      // probe reads the true inset once; writing it as px makes every route pad
+      // identically. Re-measured after the splash hides in case the runtime
+      // viewport change hadn't settled on the first frame.
+      freezeSafeAreaInsets()
       // Filet fiable WebKit : bloque le pincement (gesture*) — le viewport ne suffit
       // pas toujours dans la WKWebView. Leaflet gère son propre zoom via touch events,
       // donc la carte reste zoomable.
@@ -66,6 +127,9 @@ export default function CapacitorInit() {
         // starts (Insta/YouTube-style), then reveal the app.
         await new Promise((r) => setTimeout(r, 800))
         await SplashScreen.hide()
+        // Viewport has fully settled by now — re-freeze in case the first
+        // measurement (before layout) read a stale 0.
+        freezeSafeAreaInsets()
       } catch {
         // plugin absent — ignore
       }
@@ -90,12 +154,8 @@ export default function CapacitorInit() {
               router.replace('/')
             }
           }
-          // Shared from another app: com.forkmap.app://import?url=<social link>
-          // (iOS Share Extension / Android SEND intent hand the link here.)
-          else if (parsed.hostname === 'import') {
-            const shared = parsed.searchParams.get('url')
-            if (shared) router.replace(`/?import=${encodeURIComponent(shared)}`)
-          }
+          // NB: no `import` deep link any more — the Share Extension posts the
+          // import itself and never wakes the app (the user stays in TikTok).
         } catch {
           // Malformed URL — ignore
         }
@@ -116,6 +176,65 @@ export default function CapacitorInit() {
     const handler = () => refreshTheme()
     mq.addEventListener?.('change', handler)
     return () => mq.removeEventListener?.('change', handler)
+  }, [])
+
+  // Drain the Share Extension's offline queue.
+  // The extension posts its imports itself; it only queues when it had no token
+  // (signed out) or no network. Nothing is ever lost: we post each entry here
+  // and clear the queue only once the server has taken them all.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    let cancelled = false
+    let draining = false
+
+    async function drain(token: string) {
+      if (draining || cancelled) return
+      draining = true
+      try {
+        const shares = await readPendingShares()
+        if (shares.length === 0) return
+        let allPosted = true
+        for (const share of shares) {
+          try {
+            const res = await apiFetch('/api/imports', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({
+                url: share.url,
+                platform: platformFromUrl(share.url),
+                ...(share.note ? { note: share.note } : {}),
+              }),
+            })
+            if (!res.ok) allPosted = false
+          } catch {
+            allPosted = false
+          }
+        }
+        // POST /api/imports upserts on (user_id, url), so a retried entry never
+        // duplicates — we can safely keep the queue until everything lands.
+        if (allPosted && !cancelled) await clearPendingShares()
+      } catch (err) {
+        console.warn('[CapacitorInit] pending shares drain failed', err)
+      } finally {
+        draining = false
+      }
+    }
+
+    const sb = getSupabaseBrowserClient()
+    void sb.auth.getSession().then(({ data }) => {
+      if (data.session?.access_token) void drain(data.session.access_token)
+    })
+    const {
+      data: { subscription },
+    } = sb.auth.onAuthStateChange((event, session) => {
+      // Shares queued while signed out go up as soon as the user signs in.
+      if (event === 'SIGNED_IN' && session?.access_token) void drain(session.access_token)
+    })
+
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
+    }
   }, [])
 
   // Push notification registration on sign-in

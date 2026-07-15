@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient, type SupabaseClient, type User, type Session } from '@supabase/supabase-js'
 import { Capacitor } from '@capacitor/core'
+import { setSharedAuthToken } from '@/lib/native/app-group'
 
 function getClient(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -48,6 +49,9 @@ export function useAuth(): AuthState {
         setSession(data.session)
         setUser(data.session?.user ?? null)
         setLoading(false)
+        // Native: the Share Extension is a separate process — it can only get
+        // the token through the App Group. No-op on web.
+        void setSharedAuthToken(data.session?.access_token ?? null)
       })
       .catch(() => setLoading(false))
     const {
@@ -58,6 +62,8 @@ export function useAuth(): AuthState {
       setSession(session)
       setUser(session?.user ?? null)
       if (initialised) setLoading(false)
+      // Keep the shared token in sync (refresh, sign-in, sign-out → null).
+      void setSharedAuthToken(session?.access_token ?? null)
     })
     return () => subscription.unsubscribe()
   }, [sb])

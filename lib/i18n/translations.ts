@@ -101,6 +101,35 @@ export type TranslationKey =
   | 'footerPrivacy'
   | 'footerTerms'
   | 'footerAttribution'
+  // Imports (posts partagés depuis les réseaux)
+  | 'importsRowTitle'
+  | 'importPending'
+  | 'importPendingHint'
+  | 'importNeedsConfirm'
+  | 'importNotFound'
+  | 'importNotFoundHint'
+  | 'importWhichOne'
+  | 'importSearchManually'
+  | 'importSearchPlaceholder'
+  | 'importSearching'
+  | 'importNoSearchResult'
+  | 'importFoundTitle'
+  | 'importAlsoSeenIn'
+  | 'importOpenSource'
+  | 'importAddNote'
+  | 'importNoteTitle'
+  | 'importWhereTitle'
+  | 'importRoute'
+  | 'importSaveAction'
+  | 'importSavedAction'
+  | 'importReviews'
+  | 'importFriendSavedOne'
+  | 'importFriendsSavedMany'
+  | 'importPlay'
+  | 'importMissing'
+  | 'importBack'
+  | 'importMichelin'
+  | 'importMichelinStars'
 
 type Translations = Record<Lang, Record<TranslationKey, string>>
 
@@ -188,6 +217,34 @@ export const t: Translations = {
     footerPrivacy: 'Confidentialité',
     footerTerms: 'Conditions',
     footerAttribution: 'Sources des données',
+    importsRowTitle: 'Vus sur les réseaux',
+    importPending: 'Analyse en cours…',
+    importPendingHint: 'On cherche le resto de ce post. Ouvre l’app pour finir l’analyse.',
+    importNeedsConfirm: 'À confirmer',
+    importNotFound: 'Resto non reconnu',
+    importNotFoundHint: 'On n’a pas reconnu le resto. Cherche-le à la main.',
+    importWhichOne: 'C’est lequel ?',
+    importSearchManually: 'Chercher à la main',
+    importSearchPlaceholder: 'Nom du resto, ville…',
+    importSearching: 'Recherche…',
+    importNoSearchResult: 'Aucun résultat.',
+    importFoundTitle: 'Ce qu’on a trouvé',
+    importAlsoSeenIn: 'Vu aussi dans',
+    importOpenSource: 'Voir le post',
+    importAddNote: 'Ajoute une note…',
+    importNoteTitle: 'Ma note',
+    importWhereTitle: 'Où c’est',
+    importRoute: 'Itinéraire',
+    importSaveAction: 'Enregistrer',
+    importSavedAction: 'Enregistré',
+    importReviews: 'avis',
+    importFriendSavedOne: 'ami l’a enregistré',
+    importFriendsSavedMany: 'amis l’ont enregistré',
+    importPlay: 'Lire la vidéo',
+    importMissing: 'Import introuvable.',
+    importBack: 'Retour',
+    importMichelin: 'Étoilé Michelin',
+    importMichelinStars: 'étoiles Michelin',
   },
   en: {
     search_placeholder: 'Filter by name or cuisine…',
@@ -272,6 +329,34 @@ export const t: Translations = {
     footerPrivacy: 'Privacy',
     footerTerms: 'Terms',
     footerAttribution: 'Data attribution',
+    importsRowTitle: 'Seen on social',
+    importPending: 'Analysing…',
+    importPendingHint: 'We’re looking for the restaurant in this post. Open the app to finish.',
+    importNeedsConfirm: 'To confirm',
+    importNotFound: 'Restaurant not recognised',
+    importNotFoundHint: 'We couldn’t recognise the restaurant. Search for it by hand.',
+    importWhichOne: 'Which one is it?',
+    importSearchManually: 'Search by hand',
+    importSearchPlaceholder: 'Restaurant name, city…',
+    importSearching: 'Searching…',
+    importNoSearchResult: 'No result.',
+    importFoundTitle: 'What we found',
+    importAlsoSeenIn: 'Also seen in',
+    importOpenSource: 'View the post',
+    importAddNote: 'Add a note…',
+    importNoteTitle: 'My note',
+    importWhereTitle: 'Where it is',
+    importRoute: 'Directions',
+    importSaveAction: 'Save',
+    importSavedAction: 'Saved',
+    importReviews: 'reviews',
+    importFriendSavedOne: 'friend saved it',
+    importFriendsSavedMany: 'friends saved it',
+    importPlay: 'Play the video',
+    importMissing: 'Import not found.',
+    importBack: 'Back',
+    importMichelin: 'Michelin-starred',
+    importMichelinStars: 'Michelin stars',
   },
   es: {
     search_placeholder: 'Filtrar por nombre o cocina…',
@@ -356,6 +441,34 @@ export const t: Translations = {
     footerPrivacy: 'Privacidad',
     footerTerms: 'Condiciones',
     footerAttribution: 'Fuentes de datos',
+    importsRowTitle: 'Vistos en redes',
+    importPending: 'Analizando…',
+    importPendingHint: 'Buscamos el restaurante de esta publicación. Abre la app para terminar.',
+    importNeedsConfirm: 'Por confirmar',
+    importNotFound: 'Restaurante no reconocido',
+    importNotFoundHint: 'No hemos reconocido el restaurante. Búscalo a mano.',
+    importWhichOne: '¿Cuál es?',
+    importSearchManually: 'Buscar a mano',
+    importSearchPlaceholder: 'Nombre del restaurante, ciudad…',
+    importSearching: 'Buscando…',
+    importNoSearchResult: 'Sin resultados.',
+    importFoundTitle: 'Lo que hemos encontrado',
+    importAlsoSeenIn: 'Visto también en',
+    importOpenSource: 'Ver la publicación',
+    importAddNote: 'Añade una nota…',
+    importNoteTitle: 'Mi nota',
+    importWhereTitle: 'Dónde está',
+    importRoute: 'Cómo llegar',
+    importSaveAction: 'Guardar',
+    importSavedAction: 'Guardado',
+    importReviews: 'opiniones',
+    importFriendSavedOne: 'amigo lo ha guardado',
+    importFriendsSavedMany: 'amigos lo han guardado',
+    importPlay: 'Ver el vídeo',
+    importMissing: 'Importación no encontrada.',
+    importBack: 'Volver',
+    importMichelin: 'Estrella Michelin',
+    importMichelinStars: 'estrellas Michelin',
   },
   de: {
     search_placeholder: 'Nach Name oder Küche filtern…',
@@ -440,6 +553,34 @@ export const t: Translations = {
     footerPrivacy: 'Datenschutz',
     footerTerms: 'Nutzungsbedingungen',
     footerAttribution: 'Datenquellen',
+    importsRowTitle: 'In sozialen Netzwerken gesehen',
+    importPending: 'Wird analysiert…',
+    importPendingHint: 'Wir suchen das Restaurant aus diesem Post. Öffne die App zum Abschließen.',
+    importNeedsConfirm: 'Zu bestätigen',
+    importNotFound: 'Restaurant nicht erkannt',
+    importNotFoundHint: 'Wir haben das Restaurant nicht erkannt. Suche es von Hand.',
+    importWhichOne: 'Welches ist es?',
+    importSearchManually: 'Manuell suchen',
+    importSearchPlaceholder: 'Name des Restaurants, Stadt…',
+    importSearching: 'Suche…',
+    importNoSearchResult: 'Kein Ergebnis.',
+    importFoundTitle: 'Das haben wir gefunden',
+    importAlsoSeenIn: 'Auch gesehen in',
+    importOpenSource: 'Post ansehen',
+    importAddNote: 'Notiz hinzufügen…',
+    importNoteTitle: 'Meine Notiz',
+    importWhereTitle: 'Wo es liegt',
+    importRoute: 'Route',
+    importSaveAction: 'Speichern',
+    importSavedAction: 'Gespeichert',
+    importReviews: 'Bewertungen',
+    importFriendSavedOne: 'Freund hat es gespeichert',
+    importFriendsSavedMany: 'Freunde haben es gespeichert',
+    importPlay: 'Video abspielen',
+    importMissing: 'Import nicht gefunden.',
+    importBack: 'Zurück',
+    importMichelin: 'Michelin-Stern',
+    importMichelinStars: 'Michelin-Sterne',
   },
   ja: {
     search_placeholder: '名前や料理で絞り込み…',
@@ -524,5 +665,33 @@ export const t: Translations = {
     footerPrivacy: 'プライバシー',
     footerTerms: '利用規約',
     footerAttribution: 'データソース',
+    importsRowTitle: 'SNSで見つけた店',
+    importPending: '解析中…',
+    importPendingHint: '投稿のレストランを探しています。アプリを開くと解析が完了します。',
+    importNeedsConfirm: '要確認',
+    importNotFound: 'レストランを特定できません',
+    importNotFoundHint: 'レストランを特定できませんでした。手動で検索してください。',
+    importWhichOne: 'どれですか？',
+    importSearchManually: '手動で検索',
+    importSearchPlaceholder: '店名、都市…',
+    importSearching: '検索中…',
+    importNoSearchResult: '結果がありません。',
+    importFoundTitle: '見つかった店',
+    importAlsoSeenIn: 'こちらでも紹介',
+    importOpenSource: '投稿を見る',
+    importAddNote: 'メモを追加…',
+    importNoteTitle: 'マイメモ',
+    importWhereTitle: '場所',
+    importRoute: 'ルート',
+    importSaveAction: '保存',
+    importSavedAction: '保存済み',
+    importReviews: '件のレビュー',
+    importFriendSavedOne: '人の友達が保存',
+    importFriendsSavedMany: '人の友達が保存',
+    importPlay: '動画を再生',
+    importMissing: 'インポートが見つかりません。',
+    importBack: '戻る',
+    importMichelin: 'ミシュラン星付き',
+    importMichelinStars: 'つ星（ミシュラン）',
   },
 }
