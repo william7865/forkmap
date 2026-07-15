@@ -128,6 +128,11 @@ export type TranslationKey =
   | 'importPlay'
   | 'importMissing'
   | 'importBack'
+  | 'importDelete'
+  | 'importDeleteTitle'
+  | 'importDeleteBody'
+  | 'importDeleteCancel'
+  | 'importDeleteFailed'
   | 'importMichelin'
   | 'importMichelinStars'
 
@@ -243,6 +248,12 @@ export const t: Translations = {
     importPlay: 'Lire la vidéo',
     importMissing: 'Import introuvable.',
     importBack: 'Retour',
+    importDelete: 'Supprimer',
+    importDeleteTitle: 'Supprimer cet import ?',
+    importDeleteBody:
+      'Ce post disparaîtra de « Vus sur les réseaux ». Le restaurant reste dans tes favoris s’il y est.',
+    importDeleteCancel: 'Annuler',
+    importDeleteFailed: 'Suppression impossible. Réessaie.',
     importMichelin: 'Étoilé Michelin',
     importMichelinStars: 'étoiles Michelin',
   },
@@ -355,6 +366,12 @@ export const t: Translations = {
     importPlay: 'Play the video',
     importMissing: 'Import not found.',
     importBack: 'Back',
+    importDelete: 'Delete',
+    importDeleteTitle: 'Delete this import?',
+    importDeleteBody:
+      'This post will disappear from “Seen on social”. The restaurant stays in your favourites if it’s there.',
+    importDeleteCancel: 'Cancel',
+    importDeleteFailed: 'Could not delete. Try again.',
     importMichelin: 'Michelin-starred',
     importMichelinStars: 'Michelin stars',
   },
@@ -467,6 +484,12 @@ export const t: Translations = {
     importPlay: 'Ver el vídeo',
     importMissing: 'Importación no encontrada.',
     importBack: 'Volver',
+    importDelete: 'Eliminar',
+    importDeleteTitle: '¿Eliminar esta importación?',
+    importDeleteBody:
+      'Esta publicación desaparecerá de «Visto en redes». El restaurante permanece en tus favoritos si está allí.',
+    importDeleteCancel: 'Cancelar',
+    importDeleteFailed: 'No se pudo eliminar. Inténtalo de nuevo.',
     importMichelin: 'Estrella Michelin',
     importMichelinStars: 'estrellas Michelin',
   },
@@ -579,6 +602,12 @@ export const t: Translations = {
     importPlay: 'Video abspielen',
     importMissing: 'Import nicht gefunden.',
     importBack: 'Zurück',
+    importDelete: 'Löschen',
+    importDeleteTitle: 'Diesen Import löschen?',
+    importDeleteBody:
+      'Dieser Beitrag verschwindet aus „In sozialen Netzwerken gesehen“. Das Restaurant bleibt in deinen Favoriten, falls vorhanden.',
+    importDeleteCancel: 'Abbrechen',
+    importDeleteFailed: 'Löschen fehlgeschlagen. Versuch es erneut.',
     importMichelin: 'Michelin-Stern',
     importMichelinStars: 'Michelin-Sterne',
   },
@@ -691,6 +720,12 @@ export const t: Translations = {
     importPlay: '動画を再生',
     importMissing: 'インポートが見つかりません。',
     importBack: '戻る',
+    importDelete: '削除',
+    importDeleteTitle: 'このインポートを削除しますか？',
+    importDeleteBody:
+      'この投稿は「SNSで見つけた」から消えます。お気に入りに登録済みの場合、レストランは残ります。',
+    importDeleteCancel: 'キャンセル',
+    importDeleteFailed: '削除できませんでした。もう一度お試しください。',
     importMichelin: 'ミシュラン星付き',
     importMichelinStars: 'つ星（ミシュラン）',
   },

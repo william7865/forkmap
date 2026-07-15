@@ -4,7 +4,6 @@ import {
   ChevronLeft,
   UserPlus,
   Bell,
-  MoreHorizontal,
   BellOff,
   MessageCircle,
   Search,
@@ -13,6 +12,7 @@ import {
 import { Avatar } from '@/components/social/Avatar'
 import ChatThread from '@/components/social/ChatThread'
 import NotificationsSheet from '@/components/social/NotificationsSheet'
+import SwipeRow from '@/components/ui/SwipeRow'
 import { apiFetch } from '@/lib/api'
 import { getAuthHeaders } from '@/lib/auth-headers'
 import { useOnlineUsers } from '@/lib/presence'
@@ -35,7 +35,6 @@ export default function MessagesInbox({
   const [open, setOpen] = useState<ConversationSummary['user'] | null>(null)
   const [showNotifs, setShowNotifs] = useState(false)
   const [unreadNotifs, setUnreadNotifs] = useState(0)
-  const [convMenu, setConvMenu] = useState<ConversationSummary | null>(null)
   const [friends, setFriends] = useState<Profile[]>([])
   const [suggestions, setSuggestions] = useState<FriendSuggestion[]>([])
   const [requestsCount, setRequestsCount] = useState(0)
@@ -71,7 +70,6 @@ export default function MessagesInbox({
   const toggleMute = async (c: ConversationSummary) => {
     const muted = !c.muted
     setConvos((prev) => prev.map((x) => (x.user.id === c.user.id ? { ...x, muted } : x)))
-    setConvMenu(null)
     try {
       await apiFetch(`/api/conversations/${c.user.id}`, {
         method: 'PATCH',
@@ -84,7 +82,6 @@ export default function MessagesInbox({
   }
   const deleteConv = async (c: ConversationSummary) => {
     setConvos((prev) => prev.filter((x) => x.user.id !== c.user.id))
-    setConvMenu(null)
     try {
       await apiFetch(`/api/conversations/${c.user.id}`, {
         method: 'DELETE',
@@ -449,125 +446,115 @@ export default function MessagesInbox({
             className="anim-fade-up"
             style={{
               animationDelay: staggerDelay(i),
-              display: 'flex',
-              alignItems: 'center',
-              gap: 13,
-              padding: '13px 0',
               borderTop: i === 0 ? 'none' : '1px solid var(--border)',
             }}
           >
-            <button
-              onClick={() => setOpen(c.user)}
-              className="tap-press"
-              style={{
-                flex: 1,
-                minWidth: 0,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 13,
-                background: 'none',
-                border: 'none',
-                textAlign: 'left',
-                cursor: 'pointer',
-                padding: 0,
-                fontFamily: 'inherit',
-              }}
+            <SwipeRow
+              actions={[
+                {
+                  label: c.muted ? 'Activer' : 'Muet',
+                  bg: 'var(--text-3)',
+                  onClick: () => toggleMute(c),
+                },
+                { label: 'Supprimer', bg: 'var(--closed)', onClick: () => deleteConv(c) },
+              ]}
             >
-              <span style={{ position: 'relative', flexShrink: 0 }}>
-                <Avatar
-                  name={c.user.display_name}
-                  src={c.user.avatar_url}
-                  id={c.user.id}
-                  size={54}
-                />
-                {online.has(c.user.id) && (
-                  <span
-                    aria-label="En ligne"
-                    style={{
-                      position: 'absolute',
-                      bottom: 1,
-                      right: 1,
-                      width: 14,
-                      height: 14,
-                      borderRadius: '50%',
-                      background: 'var(--open)',
-                      border: '3px solid var(--bg)',
-                    }}
-                  />
-                )}
-              </span>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span
+              <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '13px 0' }}>
+                <button
+                  onClick={() => setOpen(c.user)}
+                  className="tap-press"
                   style={{
+                    flex: 1,
+                    minWidth: 0,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 6,
-                    fontFamily: 'var(--font-display)',
-                    fontWeight: 600,
-                    fontSize: 16.5,
-                    letterSpacing: '-0.01em',
-                    color: 'var(--text)',
+                    gap: 13,
+                    background: 'none',
+                    border: 'none',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    padding: 0,
+                    fontFamily: 'inherit',
                   }}
                 >
-                  {c.user.display_name}
-                  {c.muted && <BellOff size={13} color="var(--text-4)" />}
-                </span>
-                <span
-                  style={{
-                    display: 'block',
-                    marginTop: 3,
-                    fontSize: 13.5,
-                    color: c.unread > 0 ? 'var(--text)' : 'var(--text-3)',
-                    fontWeight: c.unread > 0 ? 600 : 400,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {c.last_from_me ? 'Toi : ' : ''}
-                  {c.last_message}
-                </span>
-              </span>
-            </button>
-            {c.unread > 0 && (
-              <span
-                style={{
-                  flexShrink: 0,
-                  minWidth: 20,
-                  height: 20,
-                  borderRadius: 10,
-                  background: 'var(--accent)',
-                  color: 'var(--on-accent)',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '0 6px',
-                }}
-              >
-                {c.unread}
-              </span>
-            )}
-            <button
-              onClick={() => setConvMenu(c)}
-              aria-label="Options de la conversation"
-              style={{
-                flexShrink: 0,
-                width: 34,
-                height: 34,
-                borderRadius: 999,
-                border: 'none',
-                background: 'none',
-                color: 'var(--text-4)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-              }}
-            >
-              <MoreHorizontal size={20} />
-            </button>
+                  <span style={{ position: 'relative', flexShrink: 0 }}>
+                    <Avatar
+                      name={c.user.display_name}
+                      src={c.user.avatar_url}
+                      id={c.user.id}
+                      size={54}
+                    />
+                    {online.has(c.user.id) && (
+                      <span
+                        aria-label="En ligne"
+                        style={{
+                          position: 'absolute',
+                          bottom: 1,
+                          right: 1,
+                          width: 14,
+                          height: 14,
+                          borderRadius: '50%',
+                          background: 'var(--open)',
+                          border: '3px solid var(--bg)',
+                        }}
+                      />
+                    )}
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontFamily: 'var(--font-display)',
+                        fontWeight: 600,
+                        fontSize: 16.5,
+                        letterSpacing: '-0.01em',
+                        color: 'var(--text)',
+                      }}
+                    >
+                      {c.user.display_name}
+                      {c.muted && <BellOff size={13} color="var(--text-4)" />}
+                    </span>
+                    <span
+                      style={{
+                        display: 'block',
+                        marginTop: 3,
+                        fontSize: 13.5,
+                        color: c.unread > 0 ? 'var(--text)' : 'var(--text-3)',
+                        fontWeight: c.unread > 0 ? 600 : 400,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {c.last_from_me ? 'Toi : ' : ''}
+                      {c.last_message}
+                    </span>
+                  </span>
+                </button>
+                {c.unread > 0 && (
+                  <span
+                    style={{
+                      flexShrink: 0,
+                      minWidth: 20,
+                      height: 20,
+                      borderRadius: 10,
+                      background: 'var(--accent)',
+                      color: 'var(--on-accent)',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0 6px',
+                    }}
+                  >
+                    {c.unread}
+                  </span>
+                )}
+              </div>
+            </SwipeRow>
           </div>
         ))}
       </div>
@@ -651,51 +638,6 @@ export default function MessagesInbox({
       )}
 
       {showNotifs && <NotificationsSheet onClose={() => setShowNotifs(false)} />}
-
-      {/* Menu d'une conversation (muet / supprimer) */}
-      {convMenu && (
-        <div
-          onClick={() => setConvMenu(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1600,
-            background: 'rgba(0,0,0,0.35)',
-            display: 'flex',
-            alignItems: 'flex-end',
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: '100%',
-              background: 'var(--bg)',
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              padding: '8px 8px calc(var(--safe-bottom) + 10px)',
-              animation: 'slideUp 200ms cubic-bezier(0.16,1,0.3,1) both',
-            }}
-          >
-            <p
-              style={{
-                margin: '6px 16px 8px',
-                fontSize: 13,
-                fontWeight: 700,
-                color: 'var(--text-3)',
-              }}
-            >
-              {convMenu.user.display_name}
-            </p>
-            <ConvSheetBtn onClick={() => toggleMute(convMenu)}>
-              {convMenu.muted ? 'Réactiver les notifications' : 'Rendre muet'}
-            </ConvSheetBtn>
-            <ConvSheetBtn danger onClick={() => deleteConv(convMenu)}>
-              Supprimer la conversation
-            </ConvSheetBtn>
-            <ConvSheetBtn onClick={() => setConvMenu(null)}>Annuler</ConvSheetBtn>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -857,36 +799,5 @@ function EmptyConversations({
         </button>
       )}
     </div>
-  )
-}
-
-function ConvSheetBtn({
-  children,
-  onClick,
-  danger,
-}: {
-  children: React.ReactNode
-  onClick: () => void
-  danger?: boolean
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        width: '100%',
-        textAlign: 'left',
-        padding: '15px 16px',
-        borderRadius: 12,
-        border: 'none',
-        background: 'none',
-        cursor: 'pointer',
-        fontFamily: 'var(--font-body)',
-        fontSize: 15.5,
-        fontWeight: 600,
-        color: danger ? 'var(--closed)' : 'var(--text)',
-      }}
-    >
-      {children}
-    </button>
   )
 }

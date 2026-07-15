@@ -85,6 +85,26 @@ export function useImports(center: [number, number] | null) {
     setImports((prev) => prev.map((i) => (i.id === id ? data : i)))
   }, [])
 
+  /** Delete an import. Optimistic: the row disappears immediately; a failed
+   *  server delete restores it. */
+  const remove = useCallback(async (id: string) => {
+    let previous: ImportRow[] = []
+    setImports((prev) => {
+      previous = prev
+      return prev.filter((i) => i.id !== id)
+    })
+    const headers = await getAuthHeaders()
+    if (!headers.Authorization) {
+      setImports(previous)
+      throw new Error('Connectez-vous pour supprimer un import.')
+    }
+    const res = await apiFetch(`/api/imports/${id}`, { method: 'DELETE', headers })
+    if (!res.ok) {
+      setImports(previous)
+      throw new Error("Impossible de supprimer l'import.")
+    }
+  }, [])
+
   // Re-fetch whenever the signed-in account changes. The store is mounted ONCE
   // at the root and never unmounts, so without this it would keep the first
   // account's imports in memory and show them to whoever signs in next — a
@@ -176,5 +196,6 @@ export function useImports(center: [number, number] | null) {
       .length,
     reload,
     patch,
+    remove,
   }
 }

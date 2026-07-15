@@ -15,7 +15,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import { ChevronLeft, Play, Music2, ArrowUpRight, Loader2, Search, Navigation } from 'lucide-react'
+import {
+  ChevronLeft,
+  Play,
+  Music2,
+  ArrowUpRight,
+  Loader2,
+  Search,
+  Navigation,
+  Trash2,
+} from 'lucide-react'
 import type { ImportCandidatePlace, ImportPlatform, ImportRow, PlaceCard as TPlace } from '@/types'
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
 import { useImportsStore } from '@/lib/hooks/useImportsContext'
@@ -72,7 +81,7 @@ export default function ImportDetail() {
   const search = useSearchParams()
   const { tr } = useLanguage()
   const native = useIsNative()
-  const { imports, loading, patch } = useImportsStore()
+  const { imports, loading, patch, remove } = useImportsStore()
   const { toasts, show, dismiss } = useToast()
 
   // `/import/[id]` gives a route param; `/import?id=` (native) a query param.
@@ -97,6 +106,7 @@ export default function ImportDetail() {
         <Loaded
           imp={imp}
           patch={patch}
+          remove={remove}
           imports={imports}
           native={native}
           onToast={(msg, kind) => show(msg, kind ?? 'info')}
@@ -109,7 +119,15 @@ export default function ImportDetail() {
 
 // ── Chrome ────────────────────────────────────────────────
 
-function BackBar({ onBack, label }: { onBack: () => void; label: string }) {
+function BackBar({
+  onBack,
+  label,
+  right,
+}: {
+  onBack: () => void
+  label: string
+  right?: React.ReactNode
+}) {
   return (
     <div
       style={{
@@ -118,6 +136,7 @@ function BackBar({ onBack, label }: { onBack: () => void; label: string }) {
         zIndex: 10,
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'space-between',
         gap: 6,
         padding: 'calc(var(--safe-top) + 8px) 12px 8px',
         background: 'var(--bg)',
@@ -146,6 +165,100 @@ function BackBar({ onBack, label }: { onBack: () => void; label: string }) {
         <ChevronLeft size={17} />
         {label}
       </button>
+      {right}
+    </div>
+  )
+}
+
+function ConfirmDelete({
+  onCancel,
+  onConfirm,
+  title,
+  body,
+  confirmLabel,
+  cancelLabel,
+}: {
+  onCancel: () => void
+  onConfirm: () => void
+  title: string
+  body: string
+  confirmLabel: string
+  cancelLabel: string
+}) {
+  return (
+    <div
+      onClick={onCancel}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 3000,
+        background: 'rgba(0,0,0,0.4)',
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: 460,
+          background: 'var(--bg)',
+          borderRadius: '20px 20px 0 0',
+          padding: '22px 20px calc(var(--safe-bottom) + 16px)',
+          animation: 'slideUp 220ms cubic-bezier(0.16,1,0.3,1) both',
+        }}
+      >
+        <h3
+          style={{
+            margin: '0 0 6px',
+            fontFamily: 'var(--font-display)',
+            fontSize: 19,
+            fontWeight: 600,
+            color: 'var(--text)',
+          }}
+        >
+          {title}
+        </h3>
+        <p style={{ margin: '0 0 18px', fontSize: 14, color: 'var(--text-2)', lineHeight: 1.5 }}>
+          {body}
+        </p>
+        <button
+          type="button"
+          onClick={onConfirm}
+          style={{
+            width: '100%',
+            padding: '13px',
+            borderRadius: 14,
+            border: 'none',
+            background: 'var(--closed)',
+            color: '#fff',
+            fontSize: 15,
+            fontWeight: 700,
+            cursor: 'pointer',
+            marginBottom: 8,
+          }}
+        >
+          {confirmLabel}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          style={{
+            width: '100%',
+            padding: '13px',
+            borderRadius: 14,
+            border: '1px solid var(--border)',
+            background: 'var(--bg)',
+            color: 'var(--text)',
+            fontSize: 15,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          {cancelLabel}
+        </button>
+      </div>
     </div>
   )
 }
@@ -193,18 +306,30 @@ interface LoadedProps {
   imports: ImportRow[]
   native: boolean
   patch: (id: string, p: Partial<ImportRow>) => Promise<void>
+  remove: (id: string) => Promise<void>
   onToast: (msg: string, kind?: ToastType) => void
 }
 
-function Loaded({ imp, imports, native, patch, onToast }: LoadedProps) {
+function Loaded({ imp, imports, native, patch, remove, onToast }: LoadedProps) {
   const { tr } = useLanguage()
   const router = useRouter()
   const [thumbBroken, setThumbBroken] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const place = imp.place_snapshot
   const openPost = useCallback(() => {
     window.open(imp.url, '_blank', 'noopener,noreferrer')
   }, [imp.url])
+
+  const onDelete = useCallback(async () => {
+    setConfirmDelete(false)
+    try {
+      await remove(imp.id)
+      router.back()
+    } catch {
+      onToast(tr('importDeleteFailed'), 'error')
+    }
+  }, [remove, imp.id, router, onToast, tr])
 
   // Decode at render too: rows imported before the decoder fix stored the raw
   // entities (e.g. Instagram's `&#x1f602;`, `L&#x2019;art`).
@@ -251,7 +376,42 @@ function Loaded({ imp, imports, native, patch, onToast }: LoadedProps) {
         paddingBottom: native ? 'calc(var(--safe-bottom) + 88px)' : 40,
       }}
     >
-      <BackBar onBack={() => router.back()} label={tr('importBack')} />
+      <BackBar
+        onBack={() => router.back()}
+        label={tr('importBack')}
+        right={
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            aria-label={tr('importDelete')}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 999,
+              border: '1px solid var(--border)',
+              background: 'var(--surface)',
+              color: 'var(--text-2)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <Trash2 size={17} />
+          </button>
+        }
+      />
+
+      {confirmDelete && (
+        <ConfirmDelete
+          onCancel={() => setConfirmDelete(false)}
+          onConfirm={onDelete}
+          title={tr('importDeleteTitle')}
+          body={tr('importDeleteBody')}
+          confirmLabel={tr('importDelete')}
+          cancelLabel={tr('importDeleteCancel')}
+        />
+      )}
 
       <div style={{ maxWidth: 560, margin: '0 auto', padding: '0 16px' }}>
         {/* 1 — Hero: the Reel's cover. Tapping it opens the post where it lives. */}

@@ -27,6 +27,7 @@ const FALLBACK: ImportsApi = {
   needsAttentionCount: 0,
   reload: async () => {},
   patch: async () => {},
+  remove: async () => {},
 }
 
 const Ctx = createContext<ImportsApi>(FALLBACK)
