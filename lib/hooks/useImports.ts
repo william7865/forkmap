@@ -116,6 +116,27 @@ export function useImports(center: [number, number] | null) {
     void reload()
   }, [userId, reload])
 
+  // Refresh when the app comes back to the foreground. A user shares a video from
+  // TikTok/Instagram, the extension posts the import, then they switch back here —
+  // without this the new "seen on social" row wouldn't show until a full relaunch.
+  // Also listens for the drain event CapacitorInit fires after posting shares that
+  // were queued offline.
+  useEffect(() => {
+    if (!isNativeRuntime()) return
+    const onChanged = () => void reload()
+    window.addEventListener('forkmap:imports-changed', onChanged)
+    let remove: (() => void) | undefined
+    void import('@capacitor/app').then(({ App }) => {
+      App.addListener('resume', onChanged).then((h) => {
+        remove = () => void h.remove()
+      })
+    })
+    return () => {
+      window.removeEventListener('forkmap:imports-changed', onChanged)
+      remove?.()
+    }
+  }, [reload])
+
   // Resolve pending imports in the background, sequentially (the Google scrape
   // gets blocked if hammered).
   useEffect(() => {
