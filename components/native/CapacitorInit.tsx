@@ -35,6 +35,36 @@ export function refreshTheme() {
   void syncTheme()
 }
 
+/**
+ * Measure the device safe-area insets once and pin them as constant pixels on
+ * :root, overriding the env()-based defaults. A full-screen fixed probe reads
+ * the true inset regardless of the current route's scroll context, so the fixed
+ * tab bar keeps the same height on every tab. Only overwrites when the reading
+ * is sane (0–120px) — a stale 0 on the first frame is corrected by the second
+ * call after the splash hides.
+ */
+function freezeSafeAreaInsets() {
+  if (typeof document === 'undefined' || !document.body) return
+  const probe = document.createElement('div')
+  probe.style.cssText = 'position:fixed;inset:0;visibility:hidden;pointer-events:none;z-index:-1'
+  const top = document.createElement('div')
+  top.style.cssText = 'position:absolute;top:0;left:0;width:0;height:env(safe-area-inset-top,0px)'
+  const bottom = document.createElement('div')
+  bottom.style.cssText =
+    'position:absolute;bottom:0;left:0;width:0;height:env(safe-area-inset-bottom,0px)'
+  probe.appendChild(top)
+  probe.appendChild(bottom)
+  document.body.appendChild(probe)
+  requestAnimationFrame(() => {
+    const t = Math.round(top.getBoundingClientRect().height)
+    const b = Math.round(bottom.getBoundingClientRect().height)
+    const root = document.documentElement.style
+    if (t >= 0 && t <= 120) root.setProperty('--safe-top', `${t}px`)
+    if (b >= 0 && b <= 120) root.setProperty('--safe-bottom', `${b}px`)
+    probe.remove()
+  })
+}
+
 export default function CapacitorInit() {
   const router = useRouter()
 
@@ -56,6 +86,15 @@ export default function CapacitorInit() {
         'content',
         'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover'
       )
+      // Freeze the safe-area insets to constant pixels. In WKWebView,
+      // env(safe-area-inset-*) is route-dependent: it reports the full inset on a
+      // full-height page (the map, 100dvh) but collapses toward 0 on scrolling
+      // document pages (Favoris, Social) — so the fixed tab bar lost its bottom
+      // padding and appeared to jump when switching tabs. A full-screen fixed
+      // probe reads the true inset once; writing it as px makes every route pad
+      // identically. Re-measured after the splash hides in case the runtime
+      // viewport change hadn't settled on the first frame.
+      freezeSafeAreaInsets()
       // Filet fiable WebKit : bloque le pincement (gesture*) — le viewport ne suffit
       // pas toujours dans la WKWebView. Leaflet gère son propre zoom via touch events,
       // donc la carte reste zoomable.
@@ -70,6 +109,9 @@ export default function CapacitorInit() {
         // starts (Insta/YouTube-style), then reveal the app.
         await new Promise((r) => setTimeout(r, 800))
         await SplashScreen.hide()
+        // Viewport has fully settled by now — re-freeze in case the first
+        // measurement (before layout) read a stale 0.
+        freezeSafeAreaInsets()
       } catch {
         // plugin absent — ignore
       }
