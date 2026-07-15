@@ -8,7 +8,7 @@
 //   • Learns: garder/passer feed a persisted taste profile that
 //     biases future rankings (lib/taste + lib/surprise.rankDeck).
 //   • Undo (rewind), save celebration, photo carousel, end recap.
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import type { PlaceCard } from '@/types'
 import {
@@ -54,6 +54,8 @@ const MOOD_ICONS: Record<string, ComponentType<LucideProps>> = {
 }
 import { heavyTap, lightTap } from '@/lib/native/haptics'
 import { isNativeRuntime } from '@/lib/native/platform'
+import { placeGradient } from '@/lib/gradients'
+import { placeInitial } from '@/components/place/PlaceThumb'
 
 // Palette du deck — natif : chrome CLAIR monochrome ; web : chrome sombre chaud (inchangé).
 function dpal() {
@@ -856,6 +858,395 @@ function DeckCard({
   const walk = walkTime(p.distance)
   const hours = todayHours(p)
   const hasCarousel = !!onPhoto && photos.length > 1
+
+  // ── NATIVE — fiche « bibliothèque » ──────────────
+  // Carte claire et éditoriale : héros photo/dégradé en haut, panneau clair
+  // en bas (nom serif + méta à points + raisons en pilules), harmonisé avec
+  // PlaceDetail natif et la ligne-liste PlaceCard. L'habillage change, la
+  // mécanique de deck (swipe, carrousel, verdicts) est intacte.
+  if (pal.n) {
+    const dot = (
+      <span
+        aria-hidden
+        style={{
+          width: 3,
+          height: 3,
+          borderRadius: '50%',
+          background: 'var(--text-4)',
+          flexShrink: 0,
+        }}
+      />
+    )
+    const meta: React.ReactNode[] = []
+    if (rating != null) {
+      meta.push(
+        <span
+          key="rating"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            fontWeight: 700,
+            color: 'var(--text)',
+          }}
+        >
+          <Star size={13} fill="var(--star)" strokeWidth={0} /> {rating.toFixed(1)}
+          {p.fsq?.total_ratings ? (
+            <span style={{ fontWeight: 500, color: 'var(--text-3)' }}>({p.fsq.total_ratings})</span>
+          ) : null}
+        </span>
+      )
+    }
+    if (cuisine) meta.push(<span key="cuisine">{frCuisine(cuisine)}</span>)
+    if (price != null)
+      meta.push(
+        <span key="price" style={{ color: 'var(--text-3)', fontWeight: 600 }}>
+          {'€'.repeat(price)}
+        </span>
+      )
+    if (p.open_now != null)
+      meta.push(
+        <span
+          key="open"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            fontWeight: 600,
+            color: p.open_now ? 'var(--open)' : 'var(--closed)',
+          }}
+        >
+          <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }} />
+          {p.open_now ? 'Ouvert' : 'Fermé'}
+        </span>
+      )
+    if (walk)
+      meta.push(
+        <span key="walk" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+          <MapPin size={12} strokeWidth={1.75} /> {walk}
+        </span>
+      )
+
+    return (
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          borderRadius: 'var(--r-2xl)',
+          overflow: 'hidden',
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'var(--bg)',
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--s4)',
+          userSelect: 'none',
+          filter: dim ? 'brightness(0.97)' : 'none',
+        }}
+      >
+        {/* Héros — photo ou dégradé monochrome + initiale serif */}
+        <div
+          style={{
+            position: 'relative',
+            flex: 1,
+            minHeight: 0,
+            overflow: 'hidden',
+            background: photo ? '#111112' : placeGradient(p.osm_id),
+          }}
+        >
+          {photo ? (
+            <Image
+              src={photo}
+              alt=""
+              fill
+              sizes="420px"
+              style={{ objectFit: 'cover' }}
+              draggable={false}
+              priority
+            />
+          ) : (
+            <span
+              aria-hidden
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: 'var(--font-display)',
+                fontSize: 104,
+                fontWeight: 600,
+                letterSpacing: '-0.02em',
+                color: 'rgba(255,255,255,0.92)',
+              }}
+            >
+              {placeInitial(p.name)}
+            </span>
+          )}
+
+          {/* Carrousel : points + zones de tap (carte du dessus) */}
+          {hasCarousel && (
+            <>
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 12,
+                  left: 0,
+                  right: 0,
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: 4,
+                  zIndex: 4,
+                  padding: '0 60px',
+                }}
+              >
+                {photos.map((_, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      flex: 1,
+                      maxWidth: 40,
+                      height: 3,
+                      borderRadius: 2,
+                      background: i === activePhoto ? '#fff' : 'rgba(255,255,255,0.45)',
+                      transition: 'background 150ms',
+                    }}
+                  />
+                ))}
+              </div>
+              <button
+                aria-label="Photo précédente"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onPhoto!(-1)
+                }}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '32%',
+                  height: '100%',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'default',
+                  zIndex: 3,
+                }}
+              />
+              <button
+                aria-label="Photo suivante"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onPhoto!(1)
+                }}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  right: 0,
+                  width: '32%',
+                  height: '100%',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'default',
+                  zIndex: 3,
+                }}
+              />
+            </>
+          )}
+
+          {/* Overlays de décision — monochrome (garder = accent, passer = rouge) */}
+          {dragHint && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 26,
+                right: dragHint === 'save' ? 20 : undefined,
+                left: dragHint === 'pass' ? 20 : undefined,
+                transform: `rotate(${dragHint === 'save' ? -10 : 10}deg)`,
+                padding: '6px 14px',
+                borderRadius: 12,
+                border: `2.5px solid ${dragHint === 'save' ? 'var(--accent)' : 'var(--closed)'}`,
+                color: dragHint === 'save' ? 'var(--accent)' : 'var(--closed)',
+                fontFamily: 'var(--font-body)',
+                fontWeight: 800,
+                fontSize: 17,
+                letterSpacing: '0.05em',
+                background: 'rgba(255,255,255,0.92)',
+                backdropFilter: 'blur(4px)',
+                zIndex: 5,
+              }}
+            >
+              {dragHint === 'save' ? 'GARDER' : 'PASSER'}
+            </div>
+          )}
+
+          {/* Badges — pilules claires */}
+          <div
+            style={{
+              position: 'absolute',
+              top: hasCarousel ? 24 : 14,
+              left: 14,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: 6,
+              zIndex: 4,
+            }}
+          >
+            {p.is_favorite && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  padding: '5px 11px',
+                  borderRadius: 'var(--r-pill)',
+                  background: 'rgba(255,255,255,0.94)',
+                  color: 'var(--text)',
+                  backdropFilter: 'blur(6px)',
+                  boxShadow: 'var(--s1)',
+                }}
+              >
+                <Heart size={11} strokeWidth={2.5} fill="var(--accent)" color="var(--accent)" />{' '}
+                Déjà enregistré
+              </span>
+            )}
+            {madeForYou && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  padding: '5px 11px',
+                  borderRadius: 'var(--r-pill)',
+                  background: 'var(--accent)',
+                  color: 'var(--on-accent)',
+                  boxShadow: 'var(--s1)',
+                }}
+              >
+                <SigSparkle size={12} /> Fait pour toi
+              </span>
+            )}
+          </div>
+
+          {/* Itinéraire */}
+          <button
+            aria-label="Itinéraire"
+            onClick={(e) => {
+              e.stopPropagation()
+              onRoute()
+            }}
+            style={{
+              position: 'absolute',
+              top: hasCarousel ? 24 : 14,
+              right: 14,
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              border: 'none',
+              cursor: 'pointer',
+              background: 'rgba(0,0,0,0.42)',
+              backdropFilter: 'blur(6px)',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 4,
+            }}
+          >
+            <Navigation size={16} strokeWidth={2} />
+          </button>
+        </div>
+
+        {/* Panneau clair — nom serif + méta à points + raisons */}
+        <div style={{ flexShrink: 0, padding: '15px 18px 17px', background: 'var(--bg)' }}>
+          {madeForYou && (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: '0.02em',
+                color: 'var(--accent)',
+                marginBottom: 7,
+              }}
+            >
+              <SigSparkle size={12} /> {madeReason}
+            </div>
+          )}
+          <h3
+            style={{
+              margin: 0,
+              fontFamily: 'var(--font-display)',
+              fontSize: 25,
+              fontWeight: 600,
+              color: 'var(--text)',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.1,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {p.name}
+          </h3>
+
+          {meta.length > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                flexWrap: 'wrap',
+                marginTop: 9,
+                fontSize: 13,
+                color: 'var(--text-2)',
+              }}
+            >
+              {meta.map((m, i) => (
+                <Fragment key={i}>
+                  {i > 0 && dot}
+                  {m}
+                </Fragment>
+              ))}
+            </div>
+          )}
+
+          {hours && (
+            <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 8 }}>
+              Aujourd&apos;hui&nbsp;: {hours}
+            </div>
+          )}
+
+          {entry.reasons.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+              {entry.reasons.slice(0, 3).map((r) => (
+                <span
+                  key={r}
+                  style={{
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    padding: '5px 11px',
+                    borderRadius: 'var(--r-pill)',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-2)',
+                  }}
+                >
+                  {r}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div

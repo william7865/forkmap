@@ -8,7 +8,7 @@ import React, { Suspense, useEffect, useState, useMemo, useCallback, useRef } fr
 import Link from 'next/link'
 import { createPortal } from 'react-dom'
 import { useRouter, useSearchParams } from 'next/navigation'
-import type { FavoriteRow } from '@/types'
+import type { FavoriteRow, PlaceCard } from '@/types'
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { PageHeader, GlobalFooter } from '@/components/ui/PageLayout'
@@ -839,7 +839,7 @@ const MetaDot = () => (
   <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--text-4)' }} />
 )
 
-// Pilule de filtre façon Albo — active = fond accent / blanc.
+// Pilule de filtre — active = fond accent / blanc.
 function chipStyle(active: boolean): React.CSSProperties {
   return {
     flexShrink: 0,
@@ -874,7 +874,7 @@ const icoBtnStyle: React.CSSProperties = {
   flexShrink: 0,
 }
 
-// En-tête de section serif façon Albo — « Mes listes », « Tous mes favoris »…
+// En-tête de section serif — « Mes listes », « Tous mes favoris »…
 function SecHead({
   title,
   action,
@@ -1309,7 +1309,7 @@ function FavCardList({
     { label: 'Retirer', icon: <IcoTrash />, onClick: onRemove, danger: true },
   ]
 
-  // ── App native : ligne « bibliothèque » façon Albo (photo 66 + méta + ⋯) ──
+  // ── App native : ligne « bibliothèque » (photo 66 + méta + ⋯) ──
   if (nativeFav) {
     return (
       <div
@@ -1687,6 +1687,176 @@ function FavCardList({
           }}
         />
       )}
+    </div>
+  )
+}
+
+// ── Ligne d'un lieu de liste (natif) ──────────────────────
+// Même langage « bibliothèque » que FavCardList (vignette 66 + nom serif + méta
+// à points), mais actions propres au détail d'une liste : ouvrir sur la carte,
+// retirer de la liste.
+function ListItemRowNative({
+  item,
+  index,
+  onOpenMap,
+  onRemove,
+}: {
+  item: ListItemEntry
+  index: number
+  onOpenMap: () => void
+  onRemove: () => void
+}) {
+  const snap = item.place_snapshot as unknown as PlaceCard
+  const name = snap?.name ?? item.osm_id
+  const cuisine = snap?.cuisine ?? snap?.fsq?.categories?.[0]?.name
+  const rating = snap?.fsq?.rating
+  const openNow = snap?.open_now
+  const ph = snap?.fsq?.photos?.[0]
+  const photo = ph
+    ? `${ph.prefix}240x${Math.round(240 * (ph.height / ph.width))}${ph.suffix}`
+    : (snap?.wikidata?.image_url ?? null)
+  const menuBtnRef = useRef<HTMLButtonElement>(null)
+
+  return (
+    <div
+      className="anim-card-in"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 13,
+        animationDelay: `${index * 30}ms`,
+      }}
+    >
+      {/* Vignette — repli dégradé + initiale serif */}
+      <button
+        type="button"
+        onClick={onOpenMap}
+        aria-label={`Voir ${name} sur la carte`}
+        style={{
+          position: 'relative',
+          width: 66,
+          height: 66,
+          borderRadius: 15,
+          overflow: 'hidden',
+          flexShrink: 0,
+          background: placeGradient(item.osm_id),
+          border: 'none',
+          boxShadow: 'var(--s1)',
+          cursor: 'pointer',
+          padding: 0,
+        }}
+      >
+        {photo ? (
+          <FavPhoto src={photo} />
+        ) : (
+          <span
+            aria-hidden
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontFamily: 'var(--font-display)',
+              fontSize: 28,
+              fontWeight: 600,
+              color: 'rgba(255,255,255,0.92)',
+            }}
+          >
+            {placeInitial(name)}
+          </span>
+        )}
+      </button>
+
+      {/* Corps — nom serif + méta */}
+      <button
+        type="button"
+        onClick={onOpenMap}
+        style={{
+          flex: 1,
+          minWidth: 0,
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          cursor: 'pointer',
+          textAlign: 'left',
+          fontFamily: 'inherit',
+        }}
+      >
+        <p
+          style={{
+            margin: 0,
+            fontFamily: 'var(--font-display)',
+            fontSize: 16.5,
+            fontWeight: 600,
+            color: 'var(--text)',
+            letterSpacing: '-0.01em',
+            lineHeight: 1.15,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {name}
+        </p>
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 5, flexWrap: 'wrap' }}
+        >
+          {rating != null && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 3,
+                fontSize: 11.5,
+                fontWeight: 700,
+                color: 'var(--text)',
+              }}
+            >
+              <span style={{ color: 'var(--star)', display: 'flex' }}>
+                <IcoStar />
+              </span>
+              {rating.toFixed(1)}
+            </span>
+          )}
+          {cuisine && (
+            <>
+              {rating != null && <MetaDot />}
+              <span style={{ fontSize: 12.5, color: 'var(--text-2)' }}>{frCuisine(cuisine)}</span>
+            </>
+          )}
+          {openNow != null && (
+            <>
+              {(rating != null || cuisine) && <MetaDot />}
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  color: openNow ? 'var(--open)' : 'var(--closed)',
+                }}
+              >
+                <span
+                  style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }}
+                />
+                {openNow ? 'Ouvert' : 'Fermé'}
+              </span>
+            </>
+          )}
+        </div>
+      </button>
+
+      {/* Actions */}
+      <div style={{ flexShrink: 0 }}>
+        <CardActionsMenu
+          buttonRef={menuBtnRef}
+          items={[
+            { label: 'Retirer de la liste', icon: <IcoTrash />, onClick: onRemove, danger: true },
+          ]}
+        />
+      </div>
     </div>
   )
 }
@@ -2230,82 +2400,84 @@ function FavoritesPageInner() {
         >
           {/* ── En-tête ── */}
           {isNative ? (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'flex-end',
-                justifyContent: 'space-between',
-                marginBottom: 4,
-                animation: 'fadeUp 280ms var(--ease-out) both',
-              }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <h1
-                  style={{
-                    margin: 0,
-                    fontFamily: 'var(--font-display)',
-                    fontWeight: 600,
-                    fontSize: 34,
-                    letterSpacing: '-0.02em',
-                    lineHeight: 1,
-                    color: 'var(--text)',
-                  }}
-                >
-                  Mes adresses
-                </h1>
-                <p style={{ margin: '7px 0 0', fontSize: 13, color: 'var(--text-3)' }}>
-                  {loading
-                    ? 'Chargement…'
-                    : `${favorites.length} lieu${favorites.length !== 1 ? 'x' : ''} · ${lists.length} liste${lists.length !== 1 ? 's' : ''}`}
-                </p>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  type="button"
-                  aria-label="Rechercher"
-                  onClick={() => searchInputRef.current?.focus()}
-                  style={icoBtnStyle}
-                >
-                  <svg
-                    width="19"
-                    height="19"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
+            !activeListId && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-end',
+                  justifyContent: 'space-between',
+                  marginBottom: 4,
+                  animation: 'fadeUp 280ms var(--ease-out) both',
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <h1
+                    style={{
+                      margin: 0,
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 600,
+                      fontSize: 34,
+                      letterSpacing: '-0.02em',
+                      lineHeight: 1,
+                      color: 'var(--text)',
+                    }}
                   >
-                    <circle cx="11" cy="11" r="7" />
-                    <path d="m20 20-3-3" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  aria-label={viewMode === 'grid' ? 'Vue liste' : 'Vue grille'}
-                  aria-pressed={viewMode === 'grid'}
-                  onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                  style={{
-                    ...icoBtnStyle,
-                    background: viewMode === 'grid' ? 'var(--accent)' : 'var(--surface)',
-                    color: viewMode === 'grid' ? '#fff' : 'var(--text-2)',
-                    borderColor: viewMode === 'grid' ? 'var(--accent)' : 'var(--border)',
-                  }}
-                >
-                  <svg
-                    width="19"
-                    height="19"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
+                    Mes adresses
+                  </h1>
+                  <p style={{ margin: '7px 0 0', fontSize: 13, color: 'var(--text-3)' }}>
+                    {loading
+                      ? 'Chargement…'
+                      : `${favorites.length} lieu${favorites.length !== 1 ? 'x' : ''} · ${lists.length} liste${lists.length !== 1 ? 's' : ''}`}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    type="button"
+                    aria-label="Rechercher"
+                    onClick={() => searchInputRef.current?.focus()}
+                    style={icoBtnStyle}
                   >
-                    <rect x="3" y="3" width="7" height="7" rx="1.5" />
-                    <rect x="14" y="3" width="7" height="7" rx="1.5" />
-                    <rect x="3" y="14" width="7" height="7" rx="1.5" />
-                    <rect x="14" y="14" width="7" height="7" rx="1.5" />
-                  </svg>
-                </button>
+                    <svg
+                      width="19"
+                      height="19"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    >
+                      <circle cx="11" cy="11" r="7" />
+                      <path d="m20 20-3-3" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={viewMode === 'grid' ? 'Vue liste' : 'Vue grille'}
+                    aria-pressed={viewMode === 'grid'}
+                    onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+                    style={{
+                      ...icoBtnStyle,
+                      background: viewMode === 'grid' ? 'var(--accent)' : 'var(--surface)',
+                      color: viewMode === 'grid' ? '#fff' : 'var(--text-2)',
+                      borderColor: viewMode === 'grid' ? 'var(--accent)' : 'var(--border)',
+                    }}
+                  >
+                    <svg
+                      width="19"
+                      height="19"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    >
+                      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-            </div>
+            )
           ) : (
             <div style={{ marginBottom: 24, animation: 'fadeUp 280ms var(--ease-out) both' }}>
               <h1
@@ -2738,7 +2910,7 @@ function FavoritesPageInner() {
             </div>
           )}
 
-          {/* Mes listes — grille (web) / lignes-collections façon Albo (natif) */}
+          {/* Mes listes — grille (web) / lignes-collections (natif) */}
           {!activeListId && lists.length > 0 && isNative && (
             <div
               style={{ margin: '26px 0 8px', animation: 'fadeUp 280ms var(--ease-out) 20ms both' }}
@@ -2805,63 +2977,87 @@ function FavoritesPageInner() {
           )}
 
           {/* List detail view */}
-          {activeListId && activeList && (
-            <div>
-              <button
-                onClick={() => router.push('/favorites')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontSize: 14,
-                  color: 'var(--text-2)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  marginBottom: 20,
-                  fontFamily: 'inherit',
-                }}
-              >
-                ← Enregistrés
-              </button>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'space-between',
-                  gap: 12,
-                  marginBottom: 24,
-                }}
-              >
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <h2
+          {activeListId &&
+            activeList &&
+            (isNative ? (
+              /* ── App native : détail d'une liste ── */
+              <div style={{ animation: 'fadeUp 280ms var(--ease-out) both' }}>
+                {/* Barre supérieure : retour + actions de liste */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 18,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => router.push('/favorites')}
+                    aria-label="Retour aux favoris"
+                    style={icoBtnStyle}
+                  >
+                    <svg
+                      width="19"
+                      height="19"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.9"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                  </button>
+                  {!activeList.is_collaborator && (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        type="button"
+                        aria-label="Renommer la liste"
+                        onClick={() => setEditingList(activeList)}
+                        style={icoBtnStyle}
+                      >
+                        <IcoPen />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Collaborateurs"
+                        onClick={() => setCollabTarget(activeList)}
+                        style={icoBtnStyle}
+                      >
+                        <IcoListPlus />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Supprimer la liste"
+                        onClick={() => setDeleteListTarget(activeList)}
+                        style={icoBtnStyle}
+                      >
+                        <IcoTrash />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Masthead — nom de la liste en grand serif */}
+                <div>
+                  <h1
                     style={{
-                      margin: '0 0 4px',
+                      margin: 0,
                       fontFamily: 'var(--font-display)',
-                      fontSize: 26,
-                      fontWeight: 400,
-                      letterSpacing: '-0.04em',
+                      fontWeight: 600,
+                      fontSize: 30,
+                      letterSpacing: '-0.02em',
+                      lineHeight: 1.05,
+                      color: 'var(--text)',
                       overflowWrap: 'anywhere',
                       wordBreak: 'break-word',
                     }}
                   >
                     {activeList.name}
-                  </h2>
-                  {activeList.description && (
-                    <p
-                      style={{
-                        margin: '0 0 6px',
-                        fontSize: 13,
-                        color: 'var(--text-3)',
-                        lineHeight: 1.6,
-                        overflowWrap: 'anywhere',
-                        wordBreak: 'break-word',
-                      }}
-                    >
-                      {activeList.description}
-                    </p>
-                  )}
-                  <p style={{ margin: 0, fontSize: 12, color: 'var(--text-3)' }}>
+                  </h1>
+                  <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text-3)' }}>
                     {activeList.item_count} lieu{activeList.item_count !== 1 ? 'x' : ''} ·{' '}
                     {activeList.is_collaborator
                       ? `Partagée par ${activeList.shared_by ?? 'un ami'}`
@@ -2871,10 +3067,24 @@ function FavoritesPageInner() {
                           ? 'Amis'
                           : 'Privée'}
                   </p>
+                  {activeList.description && (
+                    <p
+                      style={{
+                        margin: '8px 0 0',
+                        fontSize: 13.5,
+                        color: 'var(--text-2)',
+                        lineHeight: 1.6,
+                        overflowWrap: 'anywhere',
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      {activeList.description}
+                    </p>
+                  )}
                   {!activeList.is_collaborator &&
                     activeList.collaborators &&
                     activeList.collaborators.length > 0 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12 }}>
                         <div style={{ display: 'flex' }}>
                           {activeList.collaborators.slice(0, 4).map((c, i) => (
                             <div key={c.id} style={{ marginLeft: i === 0 ? 0 : -8 }}>
@@ -2894,227 +3104,434 @@ function FavoritesPageInner() {
                       </div>
                     )}
                 </div>
-                {!activeList.is_collaborator && (
-                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                    <button
-                      onClick={() => setCollabTarget(activeList)}
+
+                <div style={{ height: 1, background: 'var(--border)', margin: '18px 0' }} />
+
+                {/* Lieux de la liste — lignes « bibliothèque » */}
+                {listItemsLoading ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    {[1, 2].map((i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+                        <div
+                          className="skeleton"
+                          style={{ width: 66, height: 66, borderRadius: 15, flexShrink: 0 }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div
+                            className="skeleton"
+                            style={{ height: 14, width: '60%', borderRadius: 6, marginBottom: 8 }}
+                          />
+                          <div
+                            className="skeleton"
+                            style={{ height: 11, width: '40%', borderRadius: 6 }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : listItems.length === 0 ? (
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      textAlign: 'center',
+                      padding: '34px 24px',
+                      gap: 14,
+                    }}
+                  >
+                    <div
                       style={{
-                        padding: '7px 14px',
-                        borderRadius: 'var(--r-md)',
-                        border: '1px solid var(--border)',
-                        background: 'var(--white)',
-                        cursor: 'pointer',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: 'var(--text-2)',
-                        fontFamily: 'inherit',
+                        width: 58,
+                        height: 58,
+                        borderRadius: 18,
+                        background: 'var(--surface-2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--text-3)',
                       }}
                     >
-                      Inviter
-                    </button>
+                      <IcoListPlus />
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontFamily: 'var(--font-display)',
+                          fontSize: 18,
+                          fontWeight: 600,
+                          color: 'var(--text)',
+                          letterSpacing: '-0.01em',
+                        }}
+                      >
+                        Cette liste attend ses adresses
+                      </div>
+                      <p
+                        style={{
+                          margin: '6px 0 0',
+                          fontSize: 13.5,
+                          color: 'var(--text-2)',
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        Ouvre un restaurant et ajoute-le à cette liste pour le retrouver ici.
+                      </p>
+                    </div>
                     <button
-                      onClick={() => setEditingList(activeList)}
+                      onClick={() => router.push('/')}
                       style={{
-                        padding: '7px 14px',
-                        borderRadius: 'var(--r-md)',
-                        border: '1px solid var(--border)',
-                        background: 'var(--white)',
-                        cursor: 'pointer',
-                        fontSize: 12,
+                        background: 'var(--accent)',
+                        color: 'var(--on-accent)',
+                        border: 'none',
+                        borderRadius: 999,
+                        padding: '11px 20px',
+                        fontSize: 13.5,
                         fontWeight: 600,
-                        color: 'var(--text-2)',
-                        fontFamily: 'inherit',
+                        cursor: 'pointer',
                       }}
                     >
-                      Modifier
+                      Explorer la carte
                     </button>
-                    <button
-                      onClick={() => setDeleteListTarget(activeList)}
-                      style={{
-                        padding: '7px 14px',
-                        borderRadius: 'var(--r-md)',
-                        border: '1px solid var(--border)',
-                        background: 'var(--coral-pale)',
-                        cursor: 'pointer',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: 'var(--coral)',
-                        fontFamily: 'inherit',
-                      }}
-                    >
-                      Supprimer
-                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+                    {listItems.map((item, i) => {
+                      const snap = item.place_snapshot as unknown as PlaceCard
+                      return (
+                        <ListItemRowNative
+                          key={item.id}
+                          item={item}
+                          index={i}
+                          onOpenMap={() => {
+                            if (snap?.lat != null && snap?.lon != null) {
+                              setPendingSelect(snap)
+                              router.push(
+                                `/?select=${encodeURIComponent(item.osm_id)}&lat=${snap.lat}&lon=${snap.lon}`
+                              )
+                            }
+                          }}
+                          onRemove={async () => {
+                            await removeItemFromList(activeListId, item.osm_id)
+                            setListItems((prev) => prev.filter((it) => it.osm_id !== item.osm_id))
+                          }}
+                        />
+                      )
+                    })}
                   </div>
                 )}
               </div>
-              {listItemsLoading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {[1, 2].map((i) => (
-                    <div
-                      key={i}
-                      className="skeleton"
-                      style={{ height: 80, borderRadius: 'var(--r-xl)' }}
-                    />
-                  ))}
-                </div>
-              ) : listItems.length === 0 ? (
+            ) : (
+              <div>
+                <button
+                  onClick={() => router.push('/favorites')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: 14,
+                    color: 'var(--text-2)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    marginBottom: 20,
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  ← Enregistrés
+                </button>
                 <div
                   style={{
                     display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    textAlign: 'center',
-                    padding: '34px 24px',
-                    gap: 14,
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    marginBottom: 24,
                   }}
                 >
-                  <div
-                    style={{
-                      width: 58,
-                      height: 58,
-                      borderRadius: 18,
-                      background: 'var(--surface-2)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--text-3)',
-                    }}
-                  >
-                    <IcoListPlus />
-                  </div>
-                  <div>
-                    <div
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <h2
                       style={{
+                        margin: '0 0 4px',
                         fontFamily: 'var(--font-display)',
-                        fontSize: 18,
-                        fontWeight: 600,
-                        color: 'var(--text)',
-                        letterSpacing: '-0.01em',
+                        fontSize: 26,
+                        fontWeight: 400,
+                        letterSpacing: '-0.04em',
+                        overflowWrap: 'anywhere',
+                        wordBreak: 'break-word',
                       }}
                     >
-                      Cette liste attend ses adresses
-                    </div>
-                    <p
-                      style={{
-                        margin: '6px 0 0',
-                        fontSize: 13.5,
-                        color: 'var(--text-2)',
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      Ouvre un restaurant et ajoute-le à cette liste pour le retrouver ici.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => router.push('/')}
-                    style={{
-                      background: 'var(--accent)',
-                      color: 'var(--on-accent)',
-                      border: 'none',
-                      borderRadius: 999,
-                      padding: '11px 20px',
-                      fontSize: 13.5,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Explorer la carte
-                  </button>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {listItems.map((item) => {
-                    const snap = item.place_snapshot as {
-                      name?: string
-                      lat?: number
-                      lon?: number
-                    }
-                    return (
-                      <div
-                        key={item.id}
+                      {activeList.name}
+                    </h2>
+                    {activeList.description && (
+                      <p
                         style={{
-                          background: 'var(--white)',
-                          border: '1px solid var(--border)',
-                          borderRadius: 'var(--r-xl)',
-                          padding: '14px 16px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 12,
+                          margin: '0 0 6px',
+                          fontSize: 13,
+                          color: 'var(--text-3)',
+                          lineHeight: 1.6,
+                          overflowWrap: 'anywhere',
+                          wordBreak: 'break-word',
                         }}
                       >
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p
-                            style={{
-                              margin: '0 0 3px',
-                              fontFamily: 'var(--font-display)',
-                              fontSize: 15,
-                              fontWeight: 400,
-                              letterSpacing: '-0.02em',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {snap.name ?? item.osm_id}
-                          </p>
-                          <button
-                            onClick={() => {
-                              if (snap.lat != null && snap.lon != null) {
-                                router.push(
-                                  `/?select=${encodeURIComponent(item.osm_id)}&lat=${snap.lat}&lon=${snap.lon}`
-                                )
-                              }
-                            }}
-                            style={{
-                              padding: 0,
-                              border: 'none',
-                              background: 'none',
-                              cursor: 'pointer',
-                              fontSize: 11,
-                              color: 'var(--text-3)',
-                              fontFamily: 'inherit',
-                            }}
-                          >
-                            Voir sur la carte →
-                          </button>
+                        {activeList.description}
+                      </p>
+                    )}
+                    <p style={{ margin: 0, fontSize: 12, color: 'var(--text-3)' }}>
+                      {activeList.item_count} lieu{activeList.item_count !== 1 ? 'x' : ''} ·{' '}
+                      {activeList.is_collaborator
+                        ? `Partagée par ${activeList.shared_by ?? 'un ami'}`
+                        : activeList.visibility === 'public'
+                          ? 'Publique'
+                          : activeList.visibility === 'friends'
+                            ? 'Amis'
+                            : 'Privée'}
+                    </p>
+                    {!activeList.is_collaborator &&
+                      activeList.collaborators &&
+                      activeList.collaborators.length > 0 && (
+                        <div
+                          style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}
+                        >
+                          <div style={{ display: 'flex' }}>
+                            {activeList.collaborators.slice(0, 4).map((c, i) => (
+                              <div key={c.id} style={{ marginLeft: i === 0 ? 0 : -8 }}>
+                                <Avatar
+                                  name={c.display_name}
+                                  src={c.avatar_url}
+                                  id={c.id}
+                                  size={26}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                          <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
+                            {activeList.collaborators.length} collaborateur
+                            {activeList.collaborators.length > 1 ? 's' : ''}
+                          </span>
                         </div>
-                        <button
-                          onClick={async () => {
-                            await removeItemFromList(activeListId, item.osm_id)
-                            setListItems((prev) => prev.filter((i) => i.osm_id !== item.osm_id))
-                          }}
-                          aria-label="Retirer de la liste"
+                      )}
+                  </div>
+                  {!activeList.is_collaborator && (
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <button
+                        onClick={() => setCollabTarget(activeList)}
+                        style={{
+                          padding: '7px 14px',
+                          borderRadius: 'var(--r-md)',
+                          border: '1px solid var(--border)',
+                          background: 'var(--white)',
+                          cursor: 'pointer',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: 'var(--text-2)',
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        Inviter
+                      </button>
+                      <button
+                        onClick={() => setEditingList(activeList)}
+                        style={{
+                          padding: '7px 14px',
+                          borderRadius: 'var(--r-md)',
+                          border: '1px solid var(--border)',
+                          background: 'var(--white)',
+                          cursor: 'pointer',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: 'var(--text-2)',
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        onClick={() => setDeleteListTarget(activeList)}
+                        style={{
+                          padding: '7px 14px',
+                          borderRadius: 'var(--r-md)',
+                          border: '1px solid var(--border)',
+                          background: 'var(--coral-pale)',
+                          cursor: 'pointer',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: 'var(--coral)',
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        Supprimer
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {listItemsLoading ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {[1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="skeleton"
+                        style={{ height: 80, borderRadius: 'var(--r-xl)' }}
+                      />
+                    ))}
+                  </div>
+                ) : listItems.length === 0 ? (
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      textAlign: 'center',
+                      padding: '34px 24px',
+                      gap: 14,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 58,
+                        height: 58,
+                        borderRadius: 18,
+                        background: 'var(--surface-2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--text-3)',
+                      }}
+                    >
+                      <IcoListPlus />
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontFamily: 'var(--font-display)',
+                          fontSize: 18,
+                          fontWeight: 600,
+                          color: 'var(--text)',
+                          letterSpacing: '-0.01em',
+                        }}
+                      >
+                        Cette liste attend ses adresses
+                      </div>
+                      <p
+                        style={{
+                          margin: '6px 0 0',
+                          fontSize: 13.5,
+                          color: 'var(--text-2)',
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        Ouvre un restaurant et ajoute-le à cette liste pour le retrouver ici.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => router.push('/')}
+                      style={{
+                        background: 'var(--accent)',
+                        color: 'var(--on-accent)',
+                        border: 'none',
+                        borderRadius: 999,
+                        padding: '11px 20px',
+                        fontSize: 13.5,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Explorer la carte
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {listItems.map((item) => {
+                      const snap = item.place_snapshot as {
+                        name?: string
+                        lat?: number
+                        lon?: number
+                      }
+                      return (
+                        <div
+                          key={item.id}
                           style={{
-                            width: 30,
-                            height: 30,
-                            borderRadius: 'var(--r-sm)',
+                            background: 'var(--white)',
                             border: '1px solid var(--border)',
-                            background: 'var(--surface)',
-                            cursor: 'pointer',
+                            borderRadius: 'var(--r-xl)',
+                            padding: '14px 16px',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'var(--text-3)',
-                            flexShrink: 0,
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'var(--coral-pale)'
-                            e.currentTarget.style.color = 'var(--coral)'
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'var(--surface)'
-                            e.currentTarget.style.color = 'var(--text-3)'
+                            gap: 12,
                           }}
                         >
-                          <IcoX />
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          )}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p
+                              style={{
+                                margin: '0 0 3px',
+                                fontFamily: 'var(--font-display)',
+                                fontSize: 15,
+                                fontWeight: 400,
+                                letterSpacing: '-0.02em',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {snap.name ?? item.osm_id}
+                            </p>
+                            <button
+                              onClick={() => {
+                                if (snap.lat != null && snap.lon != null) {
+                                  router.push(
+                                    `/?select=${encodeURIComponent(item.osm_id)}&lat=${snap.lat}&lon=${snap.lon}`
+                                  )
+                                }
+                              }}
+                              style={{
+                                padding: 0,
+                                border: 'none',
+                                background: 'none',
+                                cursor: 'pointer',
+                                fontSize: 11,
+                                color: 'var(--text-3)',
+                                fontFamily: 'inherit',
+                              }}
+                            >
+                              Voir sur la carte →
+                            </button>
+                          </div>
+                          <button
+                            onClick={async () => {
+                              await removeItemFromList(activeListId, item.osm_id)
+                              setListItems((prev) => prev.filter((i) => i.osm_id !== item.osm_id))
+                            }}
+                            aria-label="Retirer de la liste"
+                            style={{
+                              width: 30,
+                              height: 30,
+                              borderRadius: 'var(--r-sm)',
+                              border: '1px solid var(--border)',
+                              background: 'var(--surface)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'var(--text-3)',
+                              flexShrink: 0,
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'var(--coral-pale)'
+                              e.currentTarget.style.color = 'var(--coral)'
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'var(--surface)'
+                              e.currentTarget.style.color = 'var(--text-3)'
+                            }}
+                          >
+                            <IcoX />
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
 
           {/* Skeleton */}
           {loading && !activeListId && (

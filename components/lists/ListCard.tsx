@@ -7,7 +7,7 @@ import { listGradient } from '@/lib/gradients'
 /**
  * A saved list. Two skins share the same data:
  *  - `card`  → the web grid tile (photo-ish gradient with overlaid title).
- *  - `row`   → the native "Bibliothèque" collection row (à la Albo) :
+ *  - `row`   → the native "Bibliothèque" collection row :
  *              [ cover 56 ] [ name serif + "N lieux · …" ] [ menu ].
  * `variant` defaults to `card` so the web grid is untouched.
  */

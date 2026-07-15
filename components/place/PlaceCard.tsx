@@ -33,7 +33,7 @@ function priceLabel(price?: number): string {
 }
 
 export const ITEM_HEIGHT = 92
-// Native "library" list-line (Albo) — flat, calm, 66px thumb. Web keeps ITEM_HEIGHT.
+// Native "library" list-line — flat, calm, 66px thumb. Web keeps ITEM_HEIGHT.
 export const ITEM_HEIGHT_NATIVE = 90
 
 const PlaceCard = memo(function PlaceCard({
@@ -72,7 +72,7 @@ const PlaceCard = memo(function PlaceCard({
     [onToggleFavorite]
   )
 
-  // ─────────────────── NATIVE — ligne « bibliothèque » façon Albo ──
+  // ─────────────────── NATIVE — ligne « bibliothèque » ──
   // Plate et calme : vignette 66px + nom serif + méta à points, comme l'écran
   // Favoris. Fini la carte bordée/ombrée photo-forward.
   if (native) {

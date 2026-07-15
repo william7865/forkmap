@@ -74,16 +74,23 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
         zIndex: 1400,
         background: 'var(--bg)',
         overflowY: 'auto',
-        padding: 'calc(var(--safe-top) + 14px) 18px calc(var(--safe-bottom) + 40px)',
+        padding: 'calc(var(--safe-top) + 16px) 20px calc(var(--safe-bottom) + 40px)',
         animation: 'slideUp 240ms cubic-bezier(0.16,1,0.3,1) both',
       }}
     >
-      {/* En-tête overlay « Ajouter des amis » */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+      {/* En-tête overlay « Amis » */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <button
           onClick={onClose}
           aria-label="Retour"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)', padding: 0 }}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'var(--text)',
+            padding: 0,
+            marginLeft: -4,
+          }}
         >
           <ChevronLeft size={26} />
         </button>
@@ -91,26 +98,29 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
           style={{
             margin: 0,
             fontFamily: 'var(--font-display)',
-            fontWeight: 700,
-            fontSize: 26,
+            fontWeight: 600,
+            fontSize: 32,
             letterSpacing: '-0.02em',
-            color: 'var(--ink)',
+            color: 'var(--text)',
           }}
         >
           Amis
         </h1>
       </div>
+      <p style={{ margin: '0 0 18px 2px', fontSize: 13, color: 'var(--text-3)' }}>
+        Cherche un @pseudo pour suivre tes amis.
+      </p>
 
       {/* Recherche */}
-      <div style={{ position: 'relative', marginBottom: 20 }}>
+      <div style={{ position: 'relative', marginBottom: 22 }}>
         <Search
           size={18}
           style={{
             position: 'absolute',
-            left: 14,
+            left: 15,
             top: '50%',
             transform: 'translateY(-50%)',
-            color: 'var(--text-3)',
+            color: 'var(--text-4)',
           }}
         />
         <input
@@ -122,11 +132,11 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
           onChange={(e) => onQuery(e.target.value)}
           aria-label="Rechercher un ami"
           style={{
-            paddingLeft: 42,
-            height: 52,
-            borderRadius: 999,
-            background: 'var(--surface-2)',
-            border: 'none',
+            paddingLeft: 44,
+            height: 50,
+            borderRadius: 15,
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
           }}
         />
       </div>
@@ -271,13 +281,13 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginTop: 26 }}>
+    <div style={{ marginTop: 30, paddingTop: 22, borderTop: '1px solid var(--border)' }}>
       <h2
         style={{
-          margin: '0 0 12px 2px',
+          margin: '0 0 4px',
           fontFamily: 'var(--font-display)',
-          fontSize: 18,
-          fontWeight: 700,
+          fontSize: 21,
+          fontWeight: 600,
           letterSpacing: '-0.01em',
           color: 'var(--text)',
         }}
@@ -311,13 +321,8 @@ function PersonRow({
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 14,
-        padding: '12px 14px',
-        marginBottom: 10,
-        background: 'var(--white)',
-        border: '1px solid var(--b2)',
-        borderRadius: 'var(--r-lg)',
-        boxShadow: 'var(--s1)',
+        gap: 13,
+        padding: '11px 0',
       }}
     >
       {/* Avatar + nom : zone cliquable vers le profil */}
@@ -326,7 +331,7 @@ function PersonRow({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 14,
+          gap: 13,
           flex: 1,
           minWidth: 0,
           background: 'none',
@@ -336,19 +341,22 @@ function PersonRow({
           textAlign: 'left',
         }}
       >
-        <Avatar name={name} src={src} id={id} size={52} />
+        <Avatar name={name} src={src} id={id} size={54} />
         <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
           <strong
             style={{
               fontFamily: 'var(--font-display)',
-              fontWeight: 700,
-              fontSize: 15,
-              color: 'var(--ink)',
+              fontWeight: 600,
+              fontSize: 16.5,
+              letterSpacing: '-0.01em',
+              color: 'var(--text)',
             }}
           >
             {name}
           </strong>
-          <span style={{ color: 'var(--text-3)', fontSize: 12.5 }}>{subtitle ?? `@${username}`}</span>
+          <span style={{ color: 'var(--text-3)', fontSize: 13, marginTop: 2 }}>
+            {subtitle ?? `@${username}`}
+          </span>
         </span>
       </button>
       {/* Boutons d'action : hors de la zone de navigation */}
@@ -385,7 +393,7 @@ function ActionBtn({
         fontSize: 13,
         fontWeight: 700,
         background: primary ? 'var(--accent)' : 'var(--white)',
-        color: primary ? '#fff' : 'var(--ink)',
+        color: primary ? 'var(--on-accent)' : 'var(--ink)',
       }}
     >
       {icon} {label}

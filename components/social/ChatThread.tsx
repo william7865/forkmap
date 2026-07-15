@@ -178,13 +178,14 @@ export default function ChatThread({
             textAlign: 'left',
           }}
         >
-          <Avatar name={user.display_name} src={user.avatar_url} id={user.id} size={36} />
+          <Avatar name={user.display_name} src={user.avatar_url} id={user.id} size={38} />
           <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             <strong
               style={{
                 fontFamily: 'var(--font-display)',
-                fontWeight: 700,
-                fontSize: 15,
+                fontWeight: 600,
+                fontSize: 16,
+                letterSpacing: '-0.01em',
                 color: 'var(--ink)',
               }}
             >
@@ -358,7 +359,7 @@ export default function ChatThread({
                       <div
                         style={{
                           fontFamily: 'var(--font-display)',
-                          fontWeight: 700,
+                          fontWeight: 600,
                           fontSize: 15.5,
                           color: 'var(--ink)',
                           letterSpacing: '-0.01em',
@@ -434,7 +435,7 @@ export default function ChatThread({
                         <div
                           style={{
                             fontFamily: 'var(--font-display)',
-                            fontWeight: 700,
+                            fontWeight: 600,
                             fontSize: 15,
                             color: 'var(--ink)',
                             letterSpacing: '-0.01em',

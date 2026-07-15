@@ -1,18 +1,29 @@
+// ============================================================
+// components/social/PublicProfile.tsx
+// Public profile of any user (the screen you see when tapping a
+// friend). Layout « bibliothèque » (palette Forkmap
+// conservée) — jumeau de ProfileScreen : masthead avatar + grand
+// titre serif + @username + bio, action (Suivre / Ami / Message),
+// chiffres éditoriaux inline, puis « Ses listes » en lignes-
+// collections séparées par des filets fins.
+// Web reste app-only (message d'invitation).
+// ============================================================
 'use client'
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ChevronLeft, MessageSquare, MoreHorizontal } from 'lucide-react'
+import { ChevronLeft, MessageSquare, MoreHorizontal, Share2 } from 'lucide-react'
 import { Avatar } from '@/components/social/Avatar'
 import FriendButton from '@/components/social/FriendButton'
 import FollowButton from '@/components/social/FollowButton'
 import VerifiedBadge from '@/components/social/VerifiedBadge'
 import ChatThread from '@/components/social/ChatThread'
 import PublicListSheet from '@/components/social/PublicListSheet'
+import ShareProfileSheet from '@/components/social/ShareProfileSheet'
 import { useIsNative } from '@/lib/native/platform'
 import { apiFetch } from '@/lib/api'
 import { getAuthHeaders } from '@/lib/auth-headers'
-import { placeGradient } from '@/lib/gradients'
-import type { PublicProfileBundle } from '@/types'
+import { listGradient } from '@/lib/gradients'
+import type { PublicProfileBundle, PublicListCard } from '@/types'
 
 /**
  * Public profile of any user. Used two ways:
@@ -39,6 +50,7 @@ export default function PublicProfile({
   const [state, setState] = useState<'loading' | 'ready' | 'notfound'>('loading')
   const [openList, setOpenList] = useState<{ id: string; name: string } | null>(null)
   const [chatting, setChatting] = useState(false)
+  const [sharing, setSharing] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
 
   const toggleBlock = async () => {
@@ -86,12 +98,14 @@ export default function PublicProfile({
         zIndex: 1300,
         overflowY: 'auto',
         background: 'var(--bg)',
-        paddingBottom: 'calc(var(--safe-bottom) + 40px)',
+        color: 'var(--text)',
+        fontFamily: 'var(--font-body)',
       }
     : {
         minHeight: '100vh',
         background: 'var(--bg)',
-        paddingBottom: 'calc(var(--safe-bottom) + 80px)',
+        color: 'var(--text)',
+        fontFamily: 'var(--font-body)',
       }
 
   // On the web (non-native), the social area is app-only.
@@ -120,10 +134,15 @@ export default function PublicProfile({
   }
 
   const p = bundle.profile
+  const figures: { value: number; label: string }[] = [
+    { value: bundle.friends_count, label: 'Amis' },
+    { value: bundle.stats.lists, label: 'Listes' },
+    { value: bundle.stats.places, label: 'Lieux' },
+    { value: bundle.stats.cuisines, label: 'Cuisines' },
+  ]
+
   return (
     <div style={rootStyle}>
-      <TopBar onBack={back} onMenu={() => setShowMenu(true)} />
-
       {/* Menu (bloquer / débloquer) */}
       {showMenu && (
         <div
@@ -161,7 +180,7 @@ export default function PublicProfile({
                 fontFamily: 'var(--font-body)',
                 fontSize: 15.5,
                 fontWeight: 600,
-                color: bundle.blocked ? 'var(--ink)' : 'var(--closed)',
+                color: bundle.blocked ? 'var(--text)' : 'var(--closed)',
               }}
             >
               {bundle.blocked ? `Débloquer ${p.display_name}` : `Bloquer ${p.display_name}`}
@@ -179,7 +198,7 @@ export default function PublicProfile({
                 fontFamily: 'var(--font-body)',
                 fontSize: 15.5,
                 fontWeight: 600,
-                color: 'var(--ink)',
+                color: 'var(--text)',
               }}
             >
               Annuler
@@ -188,219 +207,232 @@ export default function PublicProfile({
         </div>
       )}
 
-      {/* Identity */}
       <div
         style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 8,
-          padding: '8px 20px 0',
+          maxWidth: 660,
+          margin: '0 auto',
+          padding: 'calc(var(--safe-top) + 10px) 20px calc(var(--safe-bottom) + 88px)',
         }}
       >
-        <Avatar name={p.display_name} src={p.avatar_url} id={p.id} size={96} />
-        <h1
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-display)',
-            fontWeight: 700,
-            fontSize: 24,
-            letterSpacing: '-0.02em',
-            color: 'var(--ink)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-          }}
-        >
-          {p.display_name}
-          <VerifiedBadge verified={p.verified} size={17} />
-        </h1>
-        <span style={{ fontSize: 14, color: 'var(--text-3)' }}>@{p.username}</span>
-        {p.bio && (
-          <p
+        {/* ── Barre du haut : retour à gauche, partager + options à droite ── */}
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+          <button
+            onClick={back}
+            aria-label="Retour"
             style={{
-              margin: '4px 0 0',
-              maxWidth: 320,
-              textAlign: 'center',
-              fontSize: 14,
-              lineHeight: 1.4,
+              ...iconBtnStyle,
+              marginRight: 'auto',
+            }}
+          >
+            <ChevronLeft size={20} strokeWidth={1.8} />
+          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => setSharing(true)}
+              aria-label="Partager le profil"
+              style={iconBtnStyle}
+            >
+              <Share2 size={18} strokeWidth={1.8} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowMenu(true)}
+              aria-label="Options"
+              style={iconBtnStyle}
+            >
+              <MoreHorizontal size={20} strokeWidth={1.8} />
+            </button>
+          </div>
+        </div>
+
+        {/* ── Masthead : avatar puis grand titre serif (pile, éditorial) ── */}
+        <header style={{ animation: 'fadeUp 280ms var(--ease-out) both' }}>
+          <Avatar name={p.display_name} src={p.avatar_url} id={p.id} size={72} />
+          <h1
+            style={{
+              margin: '16px 0 0',
+              fontFamily: 'var(--font-display)',
+              fontWeight: 600,
+              fontSize: 30,
+              letterSpacing: '-0.02em',
+              lineHeight: 1.05,
+              color: 'var(--text)',
+              overflowWrap: 'anywhere',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            {p.display_name}
+            <VerifiedBadge verified={p.verified} size={18} />
+          </h1>
+          <p style={{ margin: '6px 0 0', fontSize: 14, color: 'var(--text-3)' }}>@{p.username}</p>
+          {p.bio && (
+            <p
+              style={{
+                margin: '10px 0 0',
+                fontSize: 14,
+                lineHeight: 1.45,
+                color: 'var(--text-2)',
+                maxWidth: 420,
+              }}
+            >
+              {p.bio}
+            </p>
+          )}
+
+          {/* Action prominente : suivre / ami / message (ou état bloqué) */}
+          <div
+            style={{
+              marginTop: 16,
+              display: 'flex',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 8,
+            }}
+          >
+            {bundle.blocked ? (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '9px 16px',
+                  borderRadius: 999,
+                  background: 'var(--closed-bg)',
+                  color: 'var(--closed)',
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                }}
+              >
+                Utilisateur bloqué
+              </span>
+            ) : (
+              <>
+                <FollowButton
+                  userId={p.id}
+                  initialFollowing={bundle.is_following}
+                  onChange={(f) =>
+                    setBundle((b) =>
+                      b
+                        ? {
+                            ...b,
+                            is_following: f,
+                            followers_count: b.followers_count + (f ? 1 : -1),
+                          }
+                        : b
+                    )
+                  }
+                />
+                <FriendButton userId={p.id} status={bundle.status} />
+                {bundle.status === 'friends' && (
+                  <button
+                    onClick={() => setChatting(true)}
+                    className="btn-secondary"
+                    style={{
+                      width: 'auto',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    <MessageSquare size={16} />
+                    Message
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Abonnés / abonnements — ligne discrète, */}
+          <div
+            style={{
+              marginTop: 14,
+              display: 'flex',
+              gap: 18,
+              fontSize: 13,
               color: 'var(--text-2)',
             }}
           >
-            {p.bio}
-          </p>
-        )}
-        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-          {bundle.blocked ? (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '9px 16px',
-                borderRadius: 'var(--r-pill)',
-                background: 'var(--closed-bg)',
-                color: 'var(--closed)',
-                fontSize: 13.5,
-                fontWeight: 700,
-              }}
-            >
-              Utilisateur bloqué
+            <span>
+              <b style={{ color: 'var(--text)', fontWeight: 700 }}>{bundle.followers_count}</b>{' '}
+              abonné{bundle.followers_count > 1 ? 's' : ''}
             </span>
-          ) : (
-            <>
-              <FollowButton
-                userId={p.id}
-                initialFollowing={bundle.is_following}
-                onChange={(f) =>
-                  setBundle((b) =>
-                    b
-                      ? { ...b, is_following: f, followers_count: b.followers_count + (f ? 1 : -1) }
-                      : b
-                  )
-                }
-              />
-              <FriendButton userId={p.id} status={bundle.status} />
-              {bundle.status === 'friends' && (
-                <button
-                  onClick={() => setChatting(true)}
-                  className="btn-secondary"
-                  style={{
-                    width: 'auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <MessageSquare size={16} />
-                  Message
-                </button>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Followers / following (tastemakers) */}
-        <div
-          style={{
-            marginTop: 12,
-            display: 'flex',
-            gap: 16,
-            fontSize: 13,
-            color: 'var(--text-2)',
-          }}
-        >
-          <span>
-            <b style={{ color: 'var(--text)', fontWeight: 800 }}>{bundle.followers_count}</b>{' '}
-            abonné{bundle.followers_count > 1 ? 's' : ''}
-          </span>
-          <span>
-            <b style={{ color: 'var(--text)', fontWeight: 800 }}>{bundle.following_count}</b>{' '}
-            abonnement{bundle.following_count > 1 ? 's' : ''}
-          </span>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: 0,
-          margin: '24px 16px 0',
-          padding: '16px 8px',
-          background: 'var(--white)',
-          border: '1px solid var(--b2)',
-          borderRadius: 'var(--r-lg)',
-          boxShadow: 'var(--s2)',
-        }}
-      >
-        <Stat n={bundle.friends_count} label="Amis" />
-        <Stat n={bundle.stats.lists} label="Listes" border />
-        <Stat n={bundle.stats.places} label="Lieux" border />
-        <Stat n={bundle.stats.cuisines} label="Cuisines" border />
-      </div>
-
-      {/* Amis en commun */}
-      {bundle.mutuals > 0 && (
-        <p
-          style={{
-            margin: '12px 16px 0',
-            fontSize: 13,
-            fontWeight: 600,
-            color: 'var(--text-2)',
-          }}
-        >
-          {bundle.mutuals} ami{bundle.mutuals > 1 ? 's' : ''} en commun
-        </p>
-      )}
-
-      {/* Public lists */}
-      <div style={{ margin: '28px 16px 0' }}>
-        <p
-          style={{
-            margin: '0 0 8px 4px',
-            fontSize: 12,
-            fontWeight: 700,
-            letterSpacing: '0.04em',
-            color: 'var(--text-2)',
-          }}
-        >
-          Listes publiques
-        </p>
-        {bundle.lists.length === 0 ? (
-          <p style={{ margin: '4px', fontSize: 13.5, color: 'var(--text-3)' }}>
-            Aucune liste publique.
-          </p>
-        ) : (
-          bundle.lists.map((l) => (
-            <button
-              key={l.id}
-              onClick={() => setOpenList({ id: l.id, name: l.name })}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '12px 14px',
-                marginBottom: 8,
-                background: 'var(--white)',
-                border: '1px solid var(--b2)',
-                borderRadius: 'var(--r-md)',
-                width: '100%',
-                textAlign: 'left',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-              }}
-            >
-              <span
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 'var(--r-md)',
-                  background: placeGradient(l.id),
-                  flexShrink: 0,
-                }}
-              />
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <strong
-                  style={{
-                    display: 'block',
-                    fontFamily: 'var(--font-display)',
-                    fontWeight: 700,
-                    fontSize: 15,
-                    color: 'var(--ink)',
-                  }}
-                >
-                  {l.name}
-                </strong>
-                <span style={{ fontSize: 12.5, color: 'var(--text-3)' }}>
-                  {l.item_count} lieu{l.item_count > 1 ? 'x' : ''}
-                </span>
+            <span>
+              <b style={{ color: 'var(--text)', fontWeight: 700 }}>{bundle.following_count}</b>{' '}
+              abonnement{bundle.following_count > 1 ? 's' : ''}
+            </span>
+            {bundle.mutuals > 0 && (
+              <span>
+                <b style={{ color: 'var(--text)', fontWeight: 700 }}>{bundle.mutuals}</b> en commun
               </span>
-            </button>
-          ))
-        )}
+            )}
+          </div>
+        </header>
+
+        {/* ── Chiffres de tête — inline serif, sans cadre ── */}
+        <section
+          style={{
+            ...sectionStyle,
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '18px 26px',
+            animation: 'fadeUp 320ms var(--ease-out) 60ms both',
+          }}
+        >
+          {figures.map((f) => (
+            <div key={f.label}>
+              <div
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 30,
+                  fontWeight: 600,
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1,
+                  color: 'var(--text)',
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {f.value}
+              </div>
+              <div
+                style={{
+                  marginTop: 7,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  color: 'var(--text-3)',
+                }}
+              >
+                {f.label}
+              </div>
+            </div>
+          ))}
+        </section>
+
+        {/* ── Ses listes — lignes-collections ── */}
+        <section style={sectionStyle}>
+          <SecHead title="Ses listes" />
+          {bundle.lists.length === 0 ? (
+            <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-3)' }}>
+              Aucune liste publique.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {bundle.lists.map((l) => (
+                <ListRowItem
+                  key={l.id}
+                  list={l}
+                  onOpen={() => setOpenList({ id: l.id, name: l.name })}
+                />
+              ))}
+            </div>
+          )}
+        </section>
       </div>
+
       {openList && (
         <PublicListSheet
           listId={openList.id}
@@ -408,6 +440,7 @@ export default function PublicProfile({
           onClose={() => setOpenList(null)}
         />
       )}
+      {sharing && <ShareProfileSheet username={p.username} onClose={() => setSharing(false)} />}
       {chatting && (
         <ChatThread
           user={{
@@ -423,69 +456,173 @@ export default function PublicProfile({
   )
 }
 
-function TopBar({ onBack, onMenu }: { onBack: () => void; onMenu?: () => void }) {
+// ── En-tête de section serif ───────────────────────
+function SecHead({
+  title,
+  action,
+  onAction,
+}: {
+  title: string
+  action?: string
+  onAction?: () => void
+}) {
   return (
     <div
       style={{
-        padding: 'calc(var(--safe-top) + 10px) 16px 0',
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 13,
       }}
     >
-      <button
-        onClick={onBack}
-        aria-label="Retour"
+      <h2
         style={{
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          color: 'var(--ink)',
-          padding: 0,
+          margin: 0,
+          fontFamily: 'var(--font-display)',
+          fontWeight: 600,
+          fontSize: 21,
+          letterSpacing: '-0.01em',
+          color: 'var(--text)',
         }}
       >
-        <ChevronLeft size={24} />
-      </button>
-      {onMenu && (
+        {title}
+      </h2>
+      {action && (
         <button
-          onClick={onMenu}
-          aria-label="Options"
+          type="button"
+          onClick={onAction}
           style={{
-            marginLeft: 'auto',
-            background: 'none',
             border: 'none',
-            cursor: 'pointer',
-            color: 'var(--ink)',
+            background: 'none',
             padding: 0,
+            cursor: 'pointer',
+            fontFamily: 'var(--font-body)',
+            fontSize: 13,
+            fontWeight: 600,
+            color: 'var(--text-3)',
           }}
         >
-          <MoreHorizontal size={22} />
+          {action}
         </button>
       )}
     </div>
   )
 }
 
-function Stat({ n, label, border }: { n: number; label: string; border?: boolean }) {
+// ── Ligne-collection « bibliothèque » (cover 56 + nom serif + N lieux) ──
+function ListRowItem({ list, onOpen }: { list: PublicListCard; onOpen: () => void }) {
+  const [from, to] = listGradient(list.id)
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '11px 0' }}>
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label={`Ouvrir la liste ${list.name}`}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+          flex: 1,
+          minWidth: 0,
+          border: 'none',
+          background: 'none',
+          padding: 0,
+          cursor: 'pointer',
+          textAlign: 'left',
+          fontFamily: 'var(--font-body)',
+        }}
+      >
+        <span
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: 14,
+            flexShrink: 0,
+            overflow: 'hidden',
+            boxShadow: 'var(--s1)',
+            background: `linear-gradient(135deg, ${from} 0%, ${to} 100%)`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontFamily: 'var(--font-display)',
+            fontWeight: 600,
+            fontSize: 24,
+            color: 'rgba(255,255,255,0.92)',
+          }}
+        >
+          {(list.name.trim()[0] ?? '•').toUpperCase()}
+        </span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span
+            style={{
+              display: 'block',
+              fontFamily: 'var(--font-display)',
+              fontWeight: 600,
+              fontSize: 17,
+              letterSpacing: '-0.01em',
+              color: 'var(--text)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {list.name}
+          </span>
+          <span style={{ display: 'block', fontSize: 12.5, color: 'var(--text-3)', marginTop: 2 }}>
+            {list.item_count} lieu{list.item_count > 1 ? 'x' : ''}
+          </span>
+        </span>
+      </button>
+    </div>
+  )
+}
+
+// Bouton-icône rond (barre du haut) —
+const iconBtnStyle: React.CSSProperties = {
+  width: 38,
+  height: 38,
+  borderRadius: '50%',
+  flexShrink: 0,
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: 'var(--text-2)',
+  cursor: 'pointer',
+  padding: 0,
+}
+
+// Section calme séparée par un filet fin
+const sectionStyle: React.CSSProperties = {
+  marginTop: 28,
+  paddingTop: 28,
+  borderTop: '1px solid var(--border)',
+}
+
+function TopBar({ onBack, onMenu }: { onBack: () => void; onMenu?: () => void }) {
   return (
     <div
       style={{
+        padding: 'calc(var(--safe-top) + 10px) 20px 0',
+        maxWidth: 660,
+        margin: '0 auto',
         display: 'flex',
-        flexDirection: 'column',
         alignItems: 'center',
-        borderLeft: border ? '1px solid var(--b1)' : 'none',
       }}
     >
-      <span
-        style={{
-          fontFamily: 'var(--font-display)',
-          fontWeight: 700,
-          fontSize: 22,
-          color: 'var(--ink)',
-        }}
-      >
-        {n}
-      </span>
-      <span style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{label}</span>
+      <button onClick={onBack} aria-label="Retour" style={iconBtnStyle}>
+        <ChevronLeft size={20} strokeWidth={1.8} />
+      </button>
+      {onMenu && (
+        <button
+          onClick={onMenu}
+          aria-label="Options"
+          style={{ ...iconBtnStyle, marginLeft: 'auto' }}
+        >
+          <MoreHorizontal size={20} strokeWidth={1.8} />
+        </button>
+      )}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
-// ImportsRow — the "seen on social" strip at the top of Favoris. Structure follows
-// Albo's saved-recently row (video thumbnails, source badge, status); the skin is
-// Forkmap's own (light monochrome, gold star).
+// ImportsRow — the "seen on social" strip at the top of Favoris. An editorial
+// saved-recently row (video thumbnails, source badge, status) in Forkmap's own
+// skin (light monochrome, gold star).
 import { useState } from 'react'
 import Link from 'next/link'
 import { Play, Loader2, AlertCircle } from 'lucide-react'

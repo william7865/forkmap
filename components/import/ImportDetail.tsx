@@ -2,12 +2,11 @@
 // ============================================================
 // ImportDetail — the screen a shared post becomes.
 //
-// Information order follows Albo's saved-post detail (cover hero → creator →
-// quoted caption → what we found → map → note → related). The skin is Forkmap's
-// own Monochrome Premium: white page, near-black accent, gold star, Playfair
-// display titles. Where Albo paraphrases the caption with an LLM, we quote the
-// creator verbatim and put FACTS underneath — the real restaurant, its rating,
-// its hours, its distance.
+// Editorial saved-post layout (cover hero → creator → quoted caption → what we
+// found → map → note → related). The skin is Forkmap's own Monochrome Premium:
+// white page, near-black accent, gold star, Playfair display titles. Rather than
+// paraphrasing the caption with an LLM, we quote the creator verbatim and put
+// FACTS underneath — the real restaurant, its rating, its hours, its distance.
 //
 // Rendered by two routes (see components/import/ImportsRow.tsx → importHref):
 //   /import/[id]  — the web
