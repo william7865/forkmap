@@ -13,6 +13,25 @@ import { extractMichelinFromTags } from './michelin'
 // (e.g. lib/overpass.ts) keep resolving.
 export type { OsmEnrichedData }
 
+/**
+ * Best free photo URL from OSM tags. Prefers `wikimedia_commons` (a Commons file
+ * → Special:FilePath, hotlink-friendly, CSP-allowed). Falls back to a raw `image`
+ * tag ONLY when it points at Wikimedia — arbitrary hosts aren't in the CSP and
+ * would render as broken images. Returns null when there's nothing usable.
+ */
+export function osmPhotoUrl(tags: OsmTags, width = 800): string | null {
+  const commons = tags['wikimedia_commons']
+  if (commons && /^file:/i.test(commons)) {
+    const file = commons.replace(/^file:/i, '').trim()
+    if (file) {
+      return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=${width}`
+    }
+  }
+  const image = tags['image']
+  if (image && /^https:\/\/(upload|commons)\.wikimedia\.org\//i.test(image)) return image
+  return null
+}
+
 function boolTag(tags: OsmTags, key: string): boolean | undefined {
   const v = tags[key]
   if (!v) return undefined
@@ -65,6 +84,13 @@ export function extractOsmEnrichment(tags: OsmTags): OsmEnrichedData {
 
   const drive = boolTag(tags, 'drive_through')
   if (drive !== undefined) result.drive_through = drive
+
+  // ── Photo (free, from OSM tags) ──────────────────────────
+  // A real photo of the venue when OSM has one. `wikimedia_commons` is a Commons
+  // file; Special:FilePath 302-redirects to upload.wikimedia.org — both hosts are
+  // already in the CSP img-src, so the browser loads it directly, no proxy.
+  const img = osmPhotoUrl(tags)
+  if (img) result.image_url = img
 
   // ── Classification ───────────────────────────────────────
   const stars = tags['stars'] ?? tags['michelin:stars'] ?? tags['award:michelin']

@@ -53,7 +53,7 @@ const REFETCH_THRESHOLD = 0.004
 // How many top places (by score) get a per-place photo scrape. Covers the hero
 // plus the first cards of the visible rails. Streamed in PHOTO_CHUNK-sized waves
 // (hero shows first); the scraper hits Google directly so the cap stays modest.
-const PHOTO_CAP = 15
+const PHOTO_CAP = 22
 const PHOTO_CHUNK = 5
 
 function bboxChanged(prev: BBox | null, next: BBox): boolean {

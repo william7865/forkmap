@@ -26,7 +26,7 @@ import { CreateListModal } from '@/components/lists/CreateListModal'
 import PollCreate from '@/components/poll/PollCreate'
 import { SaveToListPopup } from '@/components/lists/SaveToListPopup'
 import { placeGradient } from '@/lib/gradients'
-import { placeInitial } from '@/components/place/PlaceThumb'
+import { placeInitial, placePhotoUrl } from '@/components/place/PlaceThumb'
 import { frCuisine } from '@/lib/cuisine'
 import { setPendingSelect } from '@/lib/pendingSelect'
 
@@ -798,10 +798,9 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
 
 // ── Fav card — liste ──────────────────────────────────────
 function favPhoto(fav: FavoriteRow, w = 240): string | null {
-  const ph = fav.snapshot?.fsq?.photos?.[0]
-  if (ph) return `${ph.prefix}${w}x${Math.round(w * (ph.height / ph.width))}${ph.suffix}`
-  // Free fallback: Wikidata/Wikimedia image
-  return fav.snapshot?.wikidata?.image_url ?? null
+  // Same source priority as PlaceThumb: Google/FSQ → OSM Commons → Wikidata →
+  // Mapillary storefront. The snapshot IS a PlaceCard.
+  return fav.snapshot ? placePhotoUrl(fav.snapshot as unknown as PlaceCard, w) : null
 }
 
 /**

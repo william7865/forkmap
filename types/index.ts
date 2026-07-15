@@ -107,6 +107,11 @@ export interface OsmEnrichedData {
   city?: string
   district?: string
   floor?: string
+  /** Real venue photo from the OSM `wikimedia_commons` tag (Commons FilePath). */
+  image_url?: string
+  /** Street-level storefront from Mapillary — last-resort free photo, filled
+   *  server-side in enrich-osm only for places that have no other picture. */
+  mapillary_url?: string
 }
 
 /** Fully enriched place card shown in the UI */

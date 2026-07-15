@@ -8,11 +8,21 @@
 import { useState } from 'react'
 import type { PlaceCard } from '@/types'
 
-/** Best available photo URL for a place (FSQ/Google thumbnail, then Wikidata). */
-function thumbUrl(place: PlaceCard, size: number): string | null {
+/**
+ * Best available photo URL for a place, most-real first:
+ *   1. Google/FSQ thumbnail  2. OSM `wikimedia_commons`  3. Wikidata image
+ *   4. Mapillary storefront (street-level, last resort)
+ * All hosts are already in the CSP img-src, so these load directly.
+ */
+export function placePhotoUrl(place: PlaceCard, size: number): string | null {
   const p = place.fsq?.photos?.[0]
   if (p) return `${p.prefix}${size}x${size}${p.suffix}`
-  return place.wikidata?.image_url ?? null
+  return (
+    place.osm_enriched?.image_url ??
+    place.wikidata?.image_url ??
+    place.osm_enriched?.mapillary_url ??
+    null
+  )
 }
 
 // Airy light fallback tiles (small thumbs) — a wall of black blocks reads
@@ -64,7 +74,7 @@ export default function PlaceThumb({
 }: Props) {
   // Track the URL that failed (not a boolean) so a new photo still retries.
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
-  const photo = thumbUrl(place, photoSize)
+  const photo = placePhotoUrl(place, photoSize)
 
   if (photo && photo !== failedUrl) {
     return (

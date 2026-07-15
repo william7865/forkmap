@@ -14,7 +14,7 @@ import { useRouter } from 'next/navigation'
 import { Settings, Star, Bookmark, Share2 } from 'lucide-react'
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
 import { placeGradient } from '@/lib/gradients'
-import { placeInitial } from '@/components/place/PlaceThumb'
+import { placeInitial, placePhotoUrl } from '@/components/place/PlaceThumb'
 import { frCuisine } from '@/lib/cuisine'
 import { useProfile } from '@/lib/hooks/useProfile'
 import { useLists, type ListRow } from '@/lib/hooks/useLists'
@@ -24,7 +24,7 @@ import { Avatar } from '@/components/social/Avatar'
 import { ListCard } from '@/components/lists/ListCard'
 import ProfileEdit from '@/components/social/ProfileEdit'
 import ShareProfileSheet from '@/components/social/ShareProfileSheet'
-import type { FavoriteRow } from '@/types'
+import type { FavoriteRow, PlaceCard } from '@/types'
 
 // ── Local types ───────────────────────────────────────────────
 interface VisitStats {
@@ -51,9 +51,7 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 // The proxy already serves a sized image; on error we fall back to the
 // gradient + serif initial, exactly like PlaceThumb everywhere else.
 function favPhoto(fav: FavoriteRow, w = 200): string | null {
-  const ph = fav.snapshot?.fsq?.photos?.[0]
-  if (ph) return `${ph.prefix}${w}x${Math.round(w * (ph.height / ph.width))}${ph.suffix}`
-  return fav.snapshot?.wikidata?.image_url ?? null
+  return fav.snapshot ? placePhotoUrl(fav.snapshot as unknown as PlaceCard, w) : null
 }
 
 function FavThumbImg({ src }: { src: string }) {
