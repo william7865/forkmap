@@ -11,7 +11,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Settings, Star, Bookmark, Share2, ChevronRight } from 'lucide-react'
+import { Settings, Star, Bookmark, Share2 } from 'lucide-react'
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
 import { placeGradient } from '@/lib/gradients'
 import { placeInitial } from '@/components/place/PlaceThumb'
@@ -296,55 +296,19 @@ function FavRow({ fav, onOpen }: { fav: FavoriteRow; onOpen: () => void }) {
   )
 }
 
-// Ligne-réglage propre avec chevron (façon Albo)
-function SettingRow({
-  icon,
-  label,
-  onClick,
-}: {
-  icon: React.ReactNode
-  label: string
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 13,
-        width: '100%',
-        padding: '12px 0',
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        textAlign: 'left',
-        fontFamily: 'var(--font-body)',
-      }}
-    >
-      <span
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 12,
-          flexShrink: 0,
-          background: 'var(--surface)',
-          border: '1px solid var(--border)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--text-2)',
-        }}
-      >
-        {icon}
-      </span>
-      <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
-        {label}
-      </span>
-      <ChevronRight size={18} color="var(--text-4)" style={{ flexShrink: 0 }} />
-    </button>
-  )
+// Bouton-icône rond (barre du haut : partager, réglages) — façon Albo
+const iconBtnStyle: React.CSSProperties = {
+  width: 38,
+  height: 38,
+  borderRadius: '50%',
+  flexShrink: 0,
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: 'var(--text-2)',
+  cursor: 'pointer',
 }
 
 // ── Main component ────────────────────────────────────────────
@@ -415,6 +379,28 @@ export default function ProfileScreen() {
           padding: 'calc(var(--safe-top) + 16px) 20px calc(var(--safe-bottom) + 88px)',
         }}
       >
+        {/* ── Barre d'icônes en haut à droite (partager + réglages), façon Albo ── */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 4 }}>
+          {profile?.username && (
+            <button
+              type="button"
+              onClick={() => setSharing(true)}
+              aria-label="Partager mon profil"
+              style={iconBtnStyle}
+            >
+              <Share2 size={19} strokeWidth={1.8} />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => router.push('/settings')}
+            aria-label="Paramètres"
+            style={iconBtnStyle}
+          >
+            <Settings size={19} strokeWidth={1.8} />
+          </button>
+        </div>
+
         {/* ── Masthead : avatar puis grand titre serif (pile, éditorial) ── */}
         <header style={{ animation: 'fadeUp 280ms var(--ease-out) both' }}>
           <Avatar name={displayName} src={profile?.avatar_url} id={profile?.id ?? 'me'} size={72} />
@@ -601,25 +587,6 @@ export default function ProfileScreen() {
               ))}
             </div>
           )}
-        </section>
-
-        {/* ── Réglages — lignes propres avec chevrons ── */}
-        <section style={sectionStyle}>
-          <SecHead title="Réglages" />
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {profile?.username && (
-              <SettingRow
-                icon={<Share2 size={18} strokeWidth={1.8} />}
-                label="Partager mon profil"
-                onClick={() => setSharing(true)}
-              />
-            )}
-            <SettingRow
-              icon={<Settings size={18} strokeWidth={1.8} />}
-              label="Paramètres"
-              onClick={() => router.push('/settings')}
-            />
-          </div>
         </section>
       </div>
 
