@@ -23,14 +23,42 @@ const TTL = 60 * 60 * 24 * 30
 interface MapillaryImage {
   thumb_1024_url?: string
   geometry?: { coordinates?: [number, number] } // [lon, lat]
+  compass_angle?: number // camera heading, degrees 0–360
 }
 interface MapillaryResponse {
   data?: MapillaryImage[]
 }
 
+/** Within this heading error (deg) the venue is considered "in front of" the
+ *  camera — a storefront shot rather than a picture of the opposite pavement. */
+const FACING_TOLERANCE = 60
+
 /** Squared planar distance — fine for ranking a handful of points ~75 m apart. */
 function dist2(aLon: number, aLat: number, bLon: number, bLat: number): number {
   return (aLon - bLon) ** 2 + (aLat - bLat) ** 2
+}
+
+/** Compass bearing (deg 0–360) from camera point to the venue. */
+export function bearing(fromLat: number, fromLon: number, toLat: number, toLon: number): number {
+  const φ1 = (fromLat * Math.PI) / 180
+  const φ2 = (toLat * Math.PI) / 180
+  const Δλ = ((toLon - fromLon) * Math.PI) / 180
+  const y = Math.sin(Δλ) * Math.cos(φ2)
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ)
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360
+}
+
+/** Smallest angle (deg) between two headings. */
+export function angleDiff(a: number, b: number): number {
+  const d = Math.abs(a - b) % 360
+  return d > 180 ? 360 - d : d
+}
+
+/** True when the camera roughly faces the venue (so it's likely in frame). */
+function facesVenue(img: MapillaryImage, lat: number, lon: number): boolean {
+  const c = img.geometry?.coordinates
+  if (!c || typeof img.compass_angle !== 'number') return false
+  return angleDiff(img.compass_angle, bearing(c[1], c[0], lat, lon)) <= FACING_TOLERANCE
 }
 
 /** Round coordinates so nearby lookups share one cache entry (and one API call). */
@@ -44,7 +72,7 @@ function key(lat: number, lon: number): string {
  * error, or no coverage all resolve to `[]` without throwing. Feeds the fiche
  * gallery when a place has no other photos.
  */
-export async function nearestMapillaryThumbs(lat: number, lon: number, max = 4): Promise<string[]> {
+export async function nearestMapillaryThumbs(lat: number, lon: number, max = 3): Promise<string[]> {
   const token = process.env.MAPILLARY_TOKEN
   if (!token) return []
 
@@ -53,7 +81,7 @@ export async function nearestMapillaryThumbs(lat: number, lon: number, max = 4):
   if (Array.isArray(cached)) return cached.slice(0, max)
 
   const bbox = [lon - HALF_DEG, lat - HALF_DEG, lon + HALF_DEG, lat + HALF_DEG].join(',')
-  const url = `${GRAPH}?fields=thumb_1024_url,geometry&bbox=${bbox}&limit=12`
+  const url = `${GRAPH}?fields=thumb_1024_url,geometry,compass_angle&bbox=${bbox}&limit=25`
 
   try {
     const res = await fetch(url, {
@@ -68,13 +96,16 @@ export async function nearestMapillaryThumbs(lat: number, lon: number, max = 4):
     const candidates = (json.data ?? []).filter(
       (i): i is MapillaryImage & { thumb_1024_url: string } => !!i.thumb_1024_url
     )
-    // Sort by physical distance to the venue, then dedupe by URL.
+    // Rank: shots whose camera FACES the venue first (the storefront is in
+    // frame), then nearest. A picture of the opposite pavement outranks nothing.
+    const d2 = (i: MapillaryImage) => {
+      const c = i.geometry?.coordinates
+      return c ? dist2(lon, lat, c[0], c[1]) : Infinity
+    }
     candidates.sort((a, b) => {
-      const ca = a.geometry?.coordinates
-      const cb = b.geometry?.coordinates
-      const da = ca ? dist2(lon, lat, ca[0], ca[1]) : Infinity
-      const db = cb ? dist2(lon, lat, cb[0], cb[1]) : Infinity
-      return da - db
+      const fa = facesVenue(a, lat, lon) ? 0 : 1
+      const fb = facesVenue(b, lat, lon) ? 0 : 1
+      return fa - fb || d2(a) - d2(b)
     })
     const seen = new Set<string>()
     const thumbs = candidates
