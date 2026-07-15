@@ -381,7 +381,35 @@ export default function PlaceDetail({
   // re-renders (otherwise its reset effect would snap the swipe back to photo 1).
   const { user } = useAuth()
   const reviewsApi = useReviews(place, user?.id ?? null)
-  const galleryUrls = useMemo(() => photos.map((p) => buildPhotoUrl(p, 600)), [photos])
+  // Gallery = every real photo we have, deduped, best source first: Google/FSQ
+  // photos, then the OSM/Commons & Wikidata venue images, then nearby Mapillary
+  // street shots. This is what turns a "one photo or none" fiche into a strip.
+  const gallery = useMemo(() => {
+    const urls: string[] = []
+    const credits = new Set<string>()
+    for (const p of photos) {
+      urls.push(buildPhotoUrl(p, 600))
+      credits.add('Google')
+    }
+    const e = place.osm_enriched
+    if (e?.image_url) {
+      urls.push(e.image_url)
+      credits.add('Wikimedia')
+    }
+    if (place.wikidata?.image_url) {
+      urls.push(place.wikidata.image_url)
+      credits.add('Wikimedia')
+    }
+    const mly = e?.mapillary_urls ?? (e?.mapillary_url ? [e.mapillary_url] : [])
+    for (const m of mly) {
+      urls.push(m)
+      credits.add('Mapillary')
+    }
+    const seen = new Set<string>()
+    const deduped = urls.filter((u) => (seen.has(u) ? false : (seen.add(u), true)))
+    return { urls: deduped, attribution: credits.size ? [...credits].join(' · ') : undefined }
+  }, [photos, place.osm_enriched, place.wikidata?.image_url])
+  const galleryUrls = gallery.urls
 
   // Modales partagées entre les deux habillages (état commun).
   const modals = (
@@ -422,7 +450,8 @@ export default function PlaceDetail({
     const saved = !!place.is_favorite
     const e = place.osm_enriched
     const featureChips = e ? osmFeatureChips(e) : []
-    const description = place.wikidata?.description ?? place.fsq?.description
+    const description =
+      place.wikidata?.description ?? place.osm_enriched?.description ?? place.fsq?.description
     const hours = place.osm_enriched?.today_hours ?? place.fsq?.hours?.display ?? null
     const tel = place.fsq?.tel ?? place.phone
     const website = place.fsq?.website ?? place.website
@@ -475,7 +504,7 @@ export default function PlaceDetail({
             }}
           >
             {galleryUrls.length > 1 ? (
-              <PhotoGallery urls={galleryUrls} attribution="Foursquare" />
+              <PhotoGallery urls={galleryUrls} attribution={gallery.attribution} />
             ) : heroPhoto ? (
               <Image
                 src={heroPhoto}
@@ -1602,7 +1631,7 @@ export default function PlaceDetail({
           >
             {galleryUrls.length > 1 ? (
               // Multiple photos → swipeable gallery (dots + snap)
-              <PhotoGallery urls={galleryUrls} attribution="Foursquare" />
+              <PhotoGallery urls={galleryUrls} attribution={gallery.attribution} />
             ) : photoUrl ? (
               <Image
                 src={photoUrl}
@@ -2373,8 +2402,10 @@ export default function PlaceDetail({
           </div>
         )}
 
-        {/* ── Description (Wikidata/Wikipedia > FSQ) ── */}
-        {(place.wikidata?.description || place.fsq?.description) && (
+        {/* ── Description (Wikidata/Wikipedia > OSM > FSQ) ── */}
+        {(place.wikidata?.description ||
+          place.osm_enriched?.description ||
+          place.fsq?.description) && (
           <div>
             <Label>À propos</Label>
             <p
@@ -2386,7 +2417,9 @@ export default function PlaceDetail({
                 letterSpacing: '-0.01em',
               }}
             >
-              {place.wikidata?.description ?? place.fsq?.description}
+              {place.wikidata?.description ??
+                place.osm_enriched?.description ??
+                place.fsq?.description}
             </p>
             {place.wikidata?.wikipedia_url && (
               <a

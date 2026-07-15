@@ -54,6 +54,13 @@ export function extractOsmEnrichment(tags: OsmTags): OsmEnrichedData {
   const menuRaw = tags['menu'] ?? tags['website:menu'] ?? tags['contact:menu']
   if (menuRaw && menuRaw !== 'no' && /^https?:\/\//i.test(menuRaw)) result.menu_url = menuRaw
 
+  // Free-text blurb (French preferred) — a real description on the fiche.
+  const descRaw = tags['description:fr'] ?? tags['description']
+  if (descRaw) {
+    const desc = descRaw.trim()
+    if (desc) result.description = desc.length > 600 ? `${desc.slice(0, 597).trimEnd()}…` : desc
+  }
+
   // ── Features ────────────────────────────────────────────
   const outdoorRaw = boolTag(tags, 'outdoor_seating')
   if (outdoorRaw !== undefined) result.outdoor_seating = outdoorRaw

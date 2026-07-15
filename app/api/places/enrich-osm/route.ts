@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { enrichWithWikidata, extractMichelinFromTags } from '@/lib/wikidata'
 import { extractOsmEnrichment } from '@/lib/osm-enrichment'
-import { nearestMapillaryThumb } from '@/lib/mapillary'
+import { nearestMapillaryThumbs } from '@/lib/mapillary'
 import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
 import { rateLimit } from '@/lib/rate-limit'
 import { cacheAside } from '@/lib/cache'
@@ -100,8 +100,11 @@ export async function POST(req: NextRequest) {
       const hasPhoto =
         (place.fsq?.photos?.length ?? 0) > 0 || !!osmEnriched.image_url || !!wikidata?.image_url
       if (!hasPhoto && Number.isFinite(place.lat) && Number.isFinite(place.lon)) {
-        const mly = await nearestMapillaryThumb(place.lat, place.lon)
-        if (mly) osmEnriched.mapillary_url = mly
+        const mly = await nearestMapillaryThumbs(place.lat, place.lon, 4)
+        if (mly.length) {
+          osmEnriched.mapillary_url = mly[0]
+          if (mly.length > 1) osmEnriched.mapillary_urls = mly
+        }
       }
 
       return {
