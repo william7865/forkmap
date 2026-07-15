@@ -39,17 +39,18 @@ function key(lat: number, lon: number): string {
 }
 
 /**
- * Nearest Mapillary street thumbnail to a point, or null.
+ * Up to `max` Mapillary street thumbnails near a point, nearest first (deduped).
  * Cached (30 days) and safe to call in a batch: a missing token, a network
- * error, or no coverage all resolve to null without throwing.
+ * error, or no coverage all resolve to `[]` without throwing. Feeds the fiche
+ * gallery when a place has no other photos.
  */
-export async function nearestMapillaryThumb(lat: number, lon: number): Promise<string | null> {
+export async function nearestMapillaryThumbs(lat: number, lon: number, max = 4): Promise<string[]> {
   const token = process.env.MAPILLARY_TOKEN
-  if (!token) return null
+  if (!token) return []
 
   const k = key(lat, lon)
-  const cached = cacheGet<string | null>(k)
-  if (cached !== null) return cached || null
+  const cached = cacheGet<string[]>(k)
+  if (Array.isArray(cached)) return cached.slice(0, max)
 
   const bbox = [lon - HALF_DEG, lat - HALF_DEG, lon + HALF_DEG, lat + HALF_DEG].join(',')
   const url = `${GRAPH}?fields=thumb_1024_url,geometry&bbox=${bbox}&limit=12`
@@ -60,26 +61,33 @@ export async function nearestMapillaryThumb(lat: number, lon: number): Promise<s
       signal: AbortSignal.timeout(6000),
     })
     if (!res.ok) {
-      cacheSet(k, '', TTL) // remember the miss so we don't hammer on every pan
-      return null
+      cacheSet(k, [], TTL) // remember the miss so we don't hammer on every pan
+      return []
     }
     const json = (await res.json()) as MapillaryResponse
-    const candidates = (json.data ?? []).filter((i) => i.thumb_1024_url)
-    // Keep the image physically closest to the venue.
-    let best: MapillaryImage | null = null
-    let bestD = Infinity
-    for (const img of candidates) {
-      const c = img.geometry?.coordinates
-      const d = c ? dist2(lon, lat, c[0], c[1]) : Infinity
-      if (d < bestD) {
-        bestD = d
-        best = img
-      }
-    }
-    const thumb = best?.thumb_1024_url ?? candidates[0]?.thumb_1024_url ?? ''
-    cacheSet(k, thumb, TTL)
-    return thumb || null
+    const candidates = (json.data ?? []).filter(
+      (i): i is MapillaryImage & { thumb_1024_url: string } => !!i.thumb_1024_url
+    )
+    // Sort by physical distance to the venue, then dedupe by URL.
+    candidates.sort((a, b) => {
+      const ca = a.geometry?.coordinates
+      const cb = b.geometry?.coordinates
+      const da = ca ? dist2(lon, lat, ca[0], ca[1]) : Infinity
+      const db = cb ? dist2(lon, lat, cb[0], cb[1]) : Infinity
+      return da - db
+    })
+    const seen = new Set<string>()
+    const thumbs = candidates
+      .map((i) => i.thumb_1024_url)
+      .filter((u) => (seen.has(u) ? false : (seen.add(u), true)))
+    cacheSet(k, thumbs, TTL)
+    return thumbs.slice(0, max)
   } catch {
-    return null
+    return []
   }
+}
+
+/** Nearest single Mapillary thumbnail, or null. Thin wrapper over the plural. */
+export async function nearestMapillaryThumb(lat: number, lon: number): Promise<string | null> {
+  return (await nearestMapillaryThumbs(lat, lon, 1))[0] ?? null
 }

@@ -49,3 +49,32 @@ describe('extractOsmEnrichment — menu_url', () => {
     expect(extractOsmEnrichment({ ...base, menu: 'ask staff' }).menu_url).toBeUndefined()
   })
 })
+
+describe('extractOsmEnrichment — description', () => {
+  it('reads the `description` tag', () => {
+    const e = extractOsmEnrichment({ ...base, description: 'Petit bistrot de quartier.' })
+    expect(e.description).toBe('Petit bistrot de quartier.')
+  })
+
+  it('prefers `description:fr` over the generic tag', () => {
+    const e = extractOsmEnrichment({
+      ...base,
+      description: 'A neighbourhood bistro.',
+      'description:fr': 'Un bistrot de quartier.',
+    })
+    expect(e.description).toBe('Un bistrot de quartier.')
+  })
+
+  it('trims and is undefined when blank or absent', () => {
+    expect(extractOsmEnrichment(base).description).toBeUndefined()
+    expect(extractOsmEnrichment({ ...base, description: '   ' }).description).toBeUndefined()
+    expect(extractOsmEnrichment({ ...base, description: '  Hello  ' }).description).toBe('Hello')
+  })
+
+  it('truncates an overly long blurb with an ellipsis', () => {
+    const long = 'x'.repeat(700)
+    const e = extractOsmEnrichment({ ...base, description: long })
+    expect(e.description).toHaveLength(598) // 597 chars + ellipsis
+    expect(e.description?.endsWith('…')).toBe(true)
+  })
+})

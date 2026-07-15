@@ -36,7 +36,7 @@ const NATIVE_CSP = [
   // Les vignettes des posts importés viennent des CDN des réseaux (TikTok,
   // Instagram, YouTube) — sans ces hôtes, la rangée « Vus sur les réseaux »
   // n'affiche que des dégradés.
-  `img-src 'self' data: blob: ${API_ORIGIN} https://fastly.4sqi.net https://*.4sqi.net https://*.googleusercontent.com https://*.basemaps.cartocdn.com https://unpkg.com https://upload.wikimedia.org https://commons.wikimedia.org https://*.tiktokcdn.com https://*.tiktokcdn-us.com https://*.cdninstagram.com https://*.fbcdn.net https://i.ytimg.com`,
+  `img-src 'self' data: blob: ${API_ORIGIN} https://*.supabase.co https://fastly.4sqi.net https://*.4sqi.net https://*.googleusercontent.com https://*.basemaps.cartocdn.com https://unpkg.com https://upload.wikimedia.org https://commons.wikimedia.org https://*.tiktokcdn.com https://*.tiktokcdn-us.com https://*.cdninstagram.com https://*.fbcdn.net https://i.ytimg.com`,
   `connect-src 'self' ${API_ORIGIN} https://*.supabase.co wss://*.supabase.co https://overpass-api.de https://api.foursquare.com https://router.project-osrm.org https://overpass.kumi.systems https://overpass.openstreetmap.ru https://maps.mail.ru https://nominatim.openstreetmap.org`,
   "font-src 'self' https://fonts.gstatic.com",
 ]

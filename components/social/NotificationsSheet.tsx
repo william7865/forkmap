@@ -2,8 +2,9 @@
 // Centre de notifications : demandes d'ami / accept / messages + activité des amis,
 // fusionnés en un fil chronologique. Les notifications sont supprimables.
 import { useEffect, useState } from 'react'
-import { ChevronLeft, X } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import { Avatar } from '@/components/social/Avatar'
+import SwipeRow from '@/components/ui/SwipeRow'
 import { apiFetch } from '@/lib/api'
 import { getAuthHeaders } from '@/lib/auth-headers'
 import type { NotificationItem, ActivityItem } from '@/types'
@@ -113,7 +114,13 @@ export default function NotificationsSheet({ onClose }: { onClose: () => void })
         <button
           onClick={onClose}
           aria-label="Retour"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)', padding: 0 }}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'var(--ink)',
+            padding: 0,
+          }}
         >
           <ChevronLeft size={26} />
         </button>
@@ -142,47 +149,42 @@ export default function NotificationsSheet({ onClose }: { onClose: () => void })
         <div
           key={it.key}
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '12px 14px',
             marginBottom: 8,
-            background: 'var(--white)',
-            border: '1px solid var(--b2)',
             borderRadius: 'var(--r-lg)',
+            overflow: 'hidden',
+            border: '1px solid var(--b2)',
           }}
         >
-          <Avatar
-            name={it.actor?.display_name ?? '?'}
-            src={it.actor?.avatar_url ?? null}
-            id={it.actor?.id ?? it.key}
-            size={44}
-          />
-          <span style={{ flex: 1, minWidth: 0, fontSize: 14, color: 'var(--ink)' }}>{it.text}</span>
-          <span style={{ flexShrink: 0, fontSize: 11.5, color: 'var(--text-3)' }}>
-            {timeAgo(it.created_at)}
-          </span>
-          {it.notifId && (
-            <button
-              onClick={() => removeNotif(it)}
-              aria-label="Supprimer la notification"
+          <SwipeRow
+            actions={
+              it.notifId
+                ? [{ label: 'Supprimer', bg: 'var(--closed)', onClick: () => removeNotif(it) }]
+                : []
+            }
+          >
+            <div
               style={{
-                flexShrink: 0,
-                width: 28,
-                height: 28,
-                borderRadius: 999,
-                border: 'none',
-                background: 'var(--surface-2)',
-                color: 'var(--text-2)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
+                gap: 12,
+                padding: '12px 14px',
+                background: 'var(--white)',
               }}
             >
-              <X size={15} strokeWidth={2.2} />
-            </button>
-          )}
+              <Avatar
+                name={it.actor?.display_name ?? '?'}
+                src={it.actor?.avatar_url ?? null}
+                id={it.actor?.id ?? it.key}
+                size={44}
+              />
+              <span style={{ flex: 1, minWidth: 0, fontSize: 14, color: 'var(--ink)' }}>
+                {it.text}
+              </span>
+              <span style={{ flexShrink: 0, fontSize: 11.5, color: 'var(--text-3)' }}>
+                {timeAgo(it.created_at)}
+              </span>
+            </div>
+          </SwipeRow>
         </div>
       ))}
     </div>
