@@ -4,8 +4,111 @@ import React from 'react'
 import type { ListRow } from '@/lib/hooks/useLists'
 import { listGradient } from '@/lib/gradients'
 
-export function ListCard({ list, onClick }: { list: ListRow; onClick: () => void }) {
+/**
+ * A saved list. Two skins share the same data:
+ *  - `card`  → the web grid tile (photo-ish gradient with overlaid title).
+ *  - `row`   → the native "Bibliothèque" collection row (à la Albo) :
+ *              [ cover 56 ] [ name serif + "N lieux · …" ] [ menu ].
+ * `variant` defaults to `card` so the web grid is untouched.
+ */
+export function ListCard({
+  list,
+  onClick,
+  variant = 'card',
+  menu,
+}: {
+  list: ListRow
+  onClick: () => void
+  variant?: 'card' | 'row'
+  menu?: React.ReactNode
+}) {
   const [from, to] = listGradient(list.id)
+
+  if (variant === 'row') {
+    const shared =
+      list.visibility === 'public' ||
+      list.is_collaborator ||
+      !!list.shared_by ||
+      (list.collaborators?.length ?? 0) > 0
+    const sub = [
+      `${list.item_count} lieu${list.item_count !== 1 ? 'x' : ''}`,
+      shared ? 'partagée' : null,
+    ]
+      .filter(Boolean)
+      .join(' · ')
+
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '11px 0' }}>
+        <button
+          type="button"
+          onClick={onClick}
+          aria-label={`Ouvrir la liste ${list.name}`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            flex: 1,
+            minWidth: 0,
+            border: 'none',
+            background: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            textAlign: 'left',
+            fontFamily: 'var(--font-body)',
+          }}
+        >
+          <span
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 14,
+              flexShrink: 0,
+              overflow: 'hidden',
+              boxShadow: 'var(--s1)',
+              background: `linear-gradient(135deg, ${from} 0%, ${to} 100%)`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontFamily: 'var(--font-display)',
+              fontWeight: 600,
+              fontSize: 24,
+              color: 'rgba(255,255,255,0.92)',
+            }}
+          >
+            {(list.name.trim()[0] ?? '•').toUpperCase()}
+          </span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span
+              style={{
+                display: 'block',
+                fontFamily: 'var(--font-display)',
+                fontWeight: 600,
+                fontSize: 17,
+                letterSpacing: '-0.01em',
+                color: 'var(--text)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {list.name}
+            </span>
+            <span
+              style={{
+                display: 'block',
+                fontSize: 12.5,
+                color: 'var(--text-3)',
+                marginTop: 2,
+              }}
+            >
+              {sub}
+            </span>
+          </span>
+        </button>
+        {menu && <div style={{ flexShrink: 0 }}>{menu}</div>}
+      </div>
+    )
+  }
 
   return (
     <button
@@ -70,8 +173,67 @@ export function ListCard({ list, onClick }: { list: ListRow; onClick: () => void
   )
 }
 
-export function NewListCard({ onClick }: { onClick: () => void }) {
+export function NewListCard({
+  onClick,
+  variant = 'card',
+}: {
+  onClick: () => void
+  variant?: 'card' | 'row'
+}) {
   const [hovered, setHovered] = React.useState(false)
+
+  if (variant === 'row') {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label="Créer une nouvelle liste"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+          padding: '12px 0',
+          width: '100%',
+          border: 'none',
+          background: 'none',
+          cursor: 'pointer',
+          textAlign: 'left',
+          fontFamily: 'var(--font-body)',
+        }}
+      >
+        <span
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: 14,
+            flexShrink: 0,
+            border: '1.5px dashed var(--border-strong)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--text-3)',
+          }}
+        >
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          >
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </span>
+        <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-2)' }}>
+          Nouvelle liste
+        </span>
+      </button>
+    )
+  }
+
   return (
     <button
       type="button"
