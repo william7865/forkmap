@@ -375,11 +375,25 @@ export function useRestaurants() {
         publish(scoredOsm.map((p) => ({ ...p, is_favorite: favoriteIdsRef.current.has(p.osm_id) })))
       }
 
-      const wikiPlaces = osmPlaces.filter((p) => {
-        const t = (p as { tags?: Record<string, string> }).tags
-        return !!(t?.['wikidata'] || t?.['wikipedia'])
-      })
-      for (const batch of chunk(wikiPlaces, OSM_BATCH)) {
+      // Which places still need the SERVER pass. Two reasons to call it:
+      //   • a wiki tag → Wikidata image/description (the original reason)
+      //   • no photo yet → Mapillary storefront (server-only; the client OSM pass
+      //     already filled fsq/OSM-Commons/Wikidata photos when present)
+      // Ordered by score and capped so a dense viewport doesn't fire hundreds of
+      // Mapillary lookups — the cap covers the visible list and a good scroll.
+      const SERVER_ENRICH_CAP = 90
+      const hasPhoto = (p: PlaceCard): boolean =>
+        (p.fsq?.photos?.length ?? 0) > 0 || !!p.osm_enriched?.image_url || !!p.wikidata?.image_url
+      const scoredForServer = annotateScores(
+        annotateDistances(osmEnriched, bbox.centerLat, bbox.centerLon)
+      )
+      const needsServer = scoredForServer
+        .filter((p) => {
+          const t = (p as { tags?: Record<string, string> }).tags
+          return !!(t?.['wikidata'] || t?.['wikipedia']) || !hasPhoto(p)
+        })
+        .slice(0, SERVER_ENRICH_CAP)
+      for (const batch of chunk(needsServer, OSM_BATCH)) {
         if (fetchCount.current !== myFetch) return
         try {
           const res = await apiFetch('/api/places/enrich-osm', {

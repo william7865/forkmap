@@ -1565,8 +1565,14 @@ export default function PlaceDetail({
       {/* ── Photo banner with overlay ── */}
       {(() => {
         // Banner photo: first gallery photo (user photos first, then FSQ/Google),
-        // falling back to a free Wikidata/Wikimedia image.
-        const photoUrl = galleryUrls[0] ?? place.wikidata?.image_url ?? null
+        // falling back to the free sources — OSM Commons, Wikidata, then the
+        // Mapillary storefront — so the banner matches the list card.
+        const photoUrl =
+          galleryUrls[0] ??
+          place.osm_enriched?.image_url ??
+          place.wikidata?.image_url ??
+          place.osm_enriched?.mapillary_url ??
+          null
 
         const glassBtnStyle: React.CSSProperties = {
           width: 36,
