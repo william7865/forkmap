@@ -1,7 +1,7 @@
 // ============================================================
 // components/social/PublicProfile.tsx
 // Public profile of any user (the screen you see when tapping a
-// friend). Layout « bibliothèque » façon Albo (palette Forkmap
+// friend). Layout « bibliothèque » (palette Forkmap
 // conservée) — jumeau de ProfileScreen : masthead avatar + grand
 // titre serif + @username + bio, action (Suivre / Ami / Message),
 // chiffres éditoriaux inline, puis « Ses listes » en lignes-
@@ -345,7 +345,7 @@ export default function PublicProfile({
             )}
           </div>
 
-          {/* Abonnés / abonnements — ligne discrète, façon Albo */}
+          {/* Abonnés / abonnements — ligne discrète, */}
           <div
             style={{
               marginTop: 14,
@@ -412,7 +412,7 @@ export default function PublicProfile({
           ))}
         </section>
 
-        {/* ── Ses listes — lignes-collections façon Albo ── */}
+        {/* ── Ses listes — lignes-collections ── */}
         <section style={sectionStyle}>
           <SecHead title="Ses listes" />
           {bundle.lists.length === 0 ? (
@@ -456,7 +456,7 @@ export default function PublicProfile({
   )
 }
 
-// ── En-tête de section serif façon Albo ───────────────────────
+// ── En-tête de section serif ───────────────────────
 function SecHead({
   title,
   action,
@@ -577,7 +577,7 @@ function ListRowItem({ list, onOpen }: { list: PublicListCard; onOpen: () => voi
   )
 }
 
-// Bouton-icône rond (barre du haut) — façon Albo
+// Bouton-icône rond (barre du haut) —
 const iconBtnStyle: React.CSSProperties = {
   width: 38,
   height: 38,

@@ -1,6 +1,6 @@
 // ============================================================
 // components/settings/SettingsHub.tsx
-// Native settings hub — layout « bibliothèque » façon Albo
+// Native settings hub — layout « bibliothèque »
 // (palette Forkmap conservée) : grand titre serif « Réglages »,
 // une ligne-profil calme, puis des sections à en-têtes serif
 // séparées par des filets fins — lignes de réglage aérées
@@ -117,7 +117,7 @@ function SettingRow({
   )
 }
 
-// Filet fin entre lignes, aligné sous le libellé (inset façon Albo)
+// Filet fin entre lignes, aligné sous le libellé (inset)
 function RowDivider() {
   return <div style={{ height: 1, background: 'var(--border)', marginLeft: 34 }} />
 }
@@ -247,7 +247,7 @@ export default function SettingsHub() {
           padding: 'calc(var(--safe-top) + 12px) 20px calc(var(--safe-bottom) + 48px)',
         }}
       >
-        {/* ── Retour — bouton-icône discret, façon Albo ── */}
+        {/* ── Retour — bouton-icône discret, ── */}
         <button
           onClick={() => history.back()}
           aria-label="Retour"

@@ -1,7 +1,7 @@
 // ============================================================
 // components/account/ProfileScreen.tsx
 // Native profile screen (iOS/Android via Capacitor).
-// Layout « bibliothèque » façon Albo (palette Forkmap conservée) :
+// Layout « bibliothèque » (palette Forkmap conservée) :
 // grand titre serif + avatar, puis des sections calmes et aérées
 // séparées par des filets fins — chiffres, listes-collections,
 // lignes-favoris, réglages en lignes avec chevrons.
@@ -98,12 +98,12 @@ function Spinner() {
   )
 }
 
-// ── Petites briques éditoriales (façon Favoris / Albo) ────────
+// ── Petites briques éditoriales (façon Favoris) ────────
 const MetaDot = () => (
   <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--text-4)' }} />
 )
 
-// En-tête de section serif façon Albo — « Mes listes », « Mes favoris »…
+// En-tête de section serif — « Mes listes », « Mes favoris »…
 function SecHead({
   title,
   action,
@@ -296,7 +296,7 @@ function FavRow({ fav, onOpen }: { fav: FavoriteRow; onOpen: () => void }) {
   )
 }
 
-// Bouton-icône rond (barre du haut : partager, réglages) — façon Albo
+// Bouton-icône rond (barre du haut : partager, réglages) —
 const iconBtnStyle: React.CSSProperties = {
   width: 38,
   height: 38,
@@ -379,7 +379,7 @@ export default function ProfileScreen() {
           padding: 'calc(var(--safe-top) + 16px) 20px calc(var(--safe-bottom) + 88px)',
         }}
       >
-        {/* ── Barre d'icônes en haut à droite (partager + réglages), façon Albo ── */}
+        {/* ── Barre d'icônes en haut à droite (partager + réglages), ── */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 4 }}>
           {profile?.username && (
             <button
@@ -489,7 +489,7 @@ export default function ProfileScreen() {
           ))}
         </section>
 
-        {/* ── Mes listes — lignes-collections façon Albo ── */}
+        {/* ── Mes listes — lignes-collections ── */}
         {previewLists.length > 0 && (
           <section style={sectionStyle}>
             <SecHead

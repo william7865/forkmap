@@ -155,7 +155,7 @@ export default function MessagesInbox({
             }
       }
     >
-      {/* ── Masthead : actions en haut, puis grand titre serif (façon Albo) ── */}
+      {/* ── Masthead : actions en haut, puis grand titre serif ── */}
       <div style={{ padding: 'calc(var(--safe-top) + 16px) 20px 4px' }}>
         <div
           style={{
@@ -695,7 +695,7 @@ export default function MessagesInbox({
   )
 }
 
-// Bouton-icône rond de la barre du haut (façon Albo)
+// Bouton-icône rond de la barre du haut
 const iconBtnStyle: React.CSSProperties = {
   width: 38,
   height: 38,
@@ -710,7 +710,7 @@ const iconBtnStyle: React.CSSProperties = {
   cursor: 'pointer',
 }
 
-// En-tête de section serif façon Albo (avec action discrète optionnelle)
+// En-tête de section serif (avec action discrète optionnelle)
 function SecHead({
   title,
   action,

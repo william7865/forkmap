@@ -1,0 +1,46 @@
+- generic [active] [ref=f3e1]:
+  - generic [ref=f3e2]:
+    - generic [ref=f3e3]:
+      - generic [ref=f3e4]: ‹
+      - heading "Fil d'activité" [level=1] [ref=f3e5]
+    - generic [ref=f3e6]:
+      - button "Amis" [ref=f3e7] [cursor=pointer]
+      - button "Tastemakers" [ref=f3e8] [cursor=pointer]
+  - generic [ref=f3e10]:
+    - generic [ref=f3e11]: L
+    - generic [ref=f3e12]:
+      - generic [ref=f3e13]: Léa Martin a enregistré Le Petit Comptoir
+      - generic [ref=f3e14]:
+        - generic [ref=f3e15]: 🔖
+        - generic [ref=f3e16]: Bistrot
+        - generic [ref=f3e17]: ·
+        - generic [ref=f3e18]: il y a 2 h
+  - generic [ref=f3e19]:
+    - generic [ref=f3e20]: T
+    - generic [ref=f3e21]:
+      - generic [ref=f3e22]: Thomas Petit a visité Osteria Nonna
+      - generic [ref=f3e23]:
+        - generic [ref=f3e24]: 📍
+        - generic [ref=f3e25]: Italien
+        - generic [ref=f3e26]:
+          - generic [ref=f3e27]: ★
+          - text: "4.6"
+        - generic [ref=f3e28]: ·
+        - generic [ref=f3e29]: il y a 5 h
+  - generic [ref=f3e30]:
+    - generic [ref=f3e31]: C
+    - generic [ref=f3e32]:
+      - generic [ref=f3e33]: Camille Bernard a créé la liste Brunchs du dimanche
+      - generic [ref=f3e34]:
+        - generic [ref=f3e35]: ➕
+        - generic [ref=f3e36]: ·
+        - generic [ref=f3e37]: il y a 1 j
+  - generic [ref=f3e38]:
+    - generic [ref=f3e39]: M
+    - generic [ref=f3e40]:
+      - generic [ref=f3e41]: Malik Diallo a enregistré Chez Aïda
+      - generic [ref=f3e42]:
+        - generic [ref=f3e43]: 🔖
+        - generic [ref=f3e44]: Sénégalais
+        - generic [ref=f3e45]: ·
+        - generic [ref=f3e46]: il y a 2 j

@@ -1,0 +1,9 @@
+- navigation [ref=f1e2]:
+  - link "Carte" [ref=f1e3] [cursor=pointer]:
+    - /url: /
+  - link "Enregistrés" [ref=f1e7] [cursor=pointer]:
+    - /url: /favorites
+  - link "Compte" [ref=f1e11] [cursor=pointer]:
+    - /url: /account
+  - button "Plus d'options" [ref=f1e16] [cursor=pointer]:
+    - generic [ref=f1e21]: Plus

@@ -64,7 +64,7 @@ const MiniMap = dynamic(() => import('@/components/import/ImportMiniMap'), { ssr
 // dirflg Apple Maps : w=marche, d=voiture (vélo retombe sur voiture)
 const APPLE_FLAG: Record<string, string> = { walking: 'w', bicycling: 'd', driving: 'd' }
 
-// ── Native (Bibliothèque façon Albo) — briques partagées ──────────────
+// ── Native (Bibliothèque) — briques partagées ──────────────
 // En-tête de section serif calme, avec une action discrète optionnelle à droite.
 function SectionTitle({
   children,
@@ -119,7 +119,7 @@ function GoldStar({ size = 13 }: { size?: number }) {
   )
 }
 
-// Équipements OSM → chips monochromes (calme, façon Albo). Le web garde ses
+// Équipements OSM → chips monochromes (calme,). Le web garde ses
 // pastilles colorées ; ici tout est neutre.
 function osmFeatureChips(
   e: NonNullable<PlaceCard['osm_enriched']>
@@ -407,7 +407,7 @@ export default function PlaceDetail({
   )
 
   // ═══════════════════════════════════════════════════════════════════
-  // BRANCHE NATIVE — mise en page « Bibliothèque » façon Albo, palette
+  // BRANCHE NATIVE — mise en page « Bibliothèque », palette
   // Forkmap conservée. Ordre : héros → nom serif + méta → actions →
   // sections calmes espacées. Même état, mêmes handlers que le web ;
   // seul l'habillage change. Le web (plus bas) reste intact.

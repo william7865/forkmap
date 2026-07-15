@@ -859,7 +859,7 @@ function DeckCard({
   const hours = todayHours(p)
   const hasCarousel = !!onPhoto && photos.length > 1
 
-  // ── NATIVE — fiche « bibliothèque » façon Albo ──────────────
+  // ── NATIVE — fiche « bibliothèque » ──────────────
   // Carte claire et éditoriale : héros photo/dégradé en haut, panneau clair
   // en bas (nom serif + méta à points + raisons en pilules), harmonisé avec
   // PlaceDetail natif et la ligne-liste PlaceCard. L'habillage change, la

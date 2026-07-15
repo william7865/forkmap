@@ -839,7 +839,7 @@ const MetaDot = () => (
   <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--text-4)' }} />
 )
 
-// Pilule de filtre façon Albo — active = fond accent / blanc.
+// Pilule de filtre — active = fond accent / blanc.
 function chipStyle(active: boolean): React.CSSProperties {
   return {
     flexShrink: 0,
@@ -874,7 +874,7 @@ const icoBtnStyle: React.CSSProperties = {
   flexShrink: 0,
 }
 
-// En-tête de section serif façon Albo — « Mes listes », « Tous mes favoris »…
+// En-tête de section serif — « Mes listes », « Tous mes favoris »…
 function SecHead({
   title,
   action,
@@ -1309,7 +1309,7 @@ function FavCardList({
     { label: 'Retirer', icon: <IcoTrash />, onClick: onRemove, danger: true },
   ]
 
-  // ── App native : ligne « bibliothèque » façon Albo (photo 66 + méta + ⋯) ──
+  // ── App native : ligne « bibliothèque » (photo 66 + méta + ⋯) ──
   if (nativeFav) {
     return (
       <div
@@ -2910,7 +2910,7 @@ function FavoritesPageInner() {
             </div>
           )}
 
-          {/* Mes listes — grille (web) / lignes-collections façon Albo (natif) */}
+          {/* Mes listes — grille (web) / lignes-collections (natif) */}
           {!activeListId && lists.length > 0 && isNative && (
             <div
               style={{ margin: '26px 0 8px', animation: 'fadeUp 280ms var(--ease-out) 20ms both' }}
@@ -2980,7 +2980,7 @@ function FavoritesPageInner() {
           {activeListId &&
             activeList &&
             (isNative ? (
-              /* ── App native : détail d'une liste façon Albo ── */
+              /* ── App native : détail d'une liste ── */
               <div style={{ animation: 'fadeUp 280ms var(--ease-out) both' }}>
                 {/* Barre supérieure : retour + actions de liste */}
                 <div

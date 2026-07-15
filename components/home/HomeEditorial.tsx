@@ -1,5 +1,5 @@
 'use client'
-// HomeEditorial — en-tête « bibliothèque » du bottom sheet natif façon Albo :
+// HomeEditorial — en-tête « bibliothèque » du bottom sheet natif :
 // un eyebrow contextuel (« Ce soir près de toi », « Ouvert maintenant »…) suivi
 // d'une sélection de lieux en lignes-liste calmes (vignette 66px + nom serif +
 // méta à points), comme les écrans Favoris / Fiche. Rendu uniquement en natif,
@@ -284,7 +284,7 @@ const HomeEditorial = memo(function HomeEditorial({
 
   return (
     <div style={{ margin: '4px 0 10px' }}>
-      {/* Eyebrow contextuel + filet, façon Albo */}
+      {/* Eyebrow contextuel + filet, */}
       <div
         style={{
           display: 'flex',

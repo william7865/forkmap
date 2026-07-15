@@ -1,0 +1,87 @@
+- generic [active] [ref=f6e1]:
+  - navigation "Navigation principale" [ref=f6e2]:
+    - link "Carte" [ref=f6e3] [cursor=pointer]:
+      - /url: /
+    - link "Explorer" [ref=f6e9] [cursor=pointer]:
+      - /url: /?surprise=1
+    - link "Favoris" [ref=f6e16] [cursor=pointer]:
+      - /url: /favorites
+    - link "Social" [ref=f6e22] [cursor=pointer]:
+      - /url: /friends
+    - link "Profil" [ref=f6e31] [cursor=pointer]:
+      - /url: /account
+  - dialog "Surprends-moi" [ref=f6e38]:
+    - generic [ref=f6e39]:
+      - generic [ref=f6e40]:
+        - generic [ref=f6e41]: Surprends-moi
+        - heading "Pause déj — vite fait, bien fait ?" [level=2] [ref=f6e45]
+      - button "Réinitialiser mes goûts" [ref=f6e46] [cursor=pointer]
+      - button "Affiner" [ref=f6e47] [cursor=pointer]
+      - button "Fermer" [ref=f6e49] [cursor=pointer]
+    - generic [ref=f6e53]:
+      - button "Réconfort" [ref=f6e54] [cursor=pointer]
+      - button "Healthy" [ref=f6e62] [cursor=pointer]
+      - button "Festif" [ref=f6e69] [cursor=pointer]
+      - button "Rapide" [pressed] [ref=f6e73] [cursor=pointer]
+      - button "Découverte" [ref=f6e77] [cursor=pointer]
+    - generic [ref=f6e82]: Suggéré pour ce moment · tape pour changer
+    - generic [ref=f6e87]:
+      - generic [ref=f6e89]:
+        - generic [ref=f6e90]:
+          - generic [ref=f6e91]: C
+          - button "Itinéraire" [ref=f6e92] [cursor=pointer]
+        - generic [ref=f6e95]:
+          - heading "Chez Margaux" [level=3] [ref=f6e96]
+          - generic [ref=f6e97]:
+            - generic [ref=f6e98]:
+              - text: "8.9"
+              - generic [ref=f6e101]: (214)
+            - generic [ref=f6e103]: Français
+            - generic [ref=f6e105]: €€€
+            - generic [ref=f6e107]: Ouvert
+            - generic [ref=f6e110]: 5 min à pied
+          - generic [ref=f6e114]: "Aujourd'hui : 12:00–14:30, 19:00–23:00"
+          - generic [ref=f6e115]:
+            - generic [ref=f6e116]: Coup de cœur · 8.9
+            - generic [ref=f6e117]: Ouvert maintenant
+            - generic [ref=f6e118]: À 5 min à pied
+      - generic [ref=f6e120]:
+        - generic [ref=f6e121]:
+          - generic [ref=f6e122]: L
+          - button "Itinéraire" [ref=f6e123] [cursor=pointer]
+        - generic [ref=f6e126]:
+          - heading "Le Comptoir du Marché" [level=3] [ref=f6e127]
+          - generic [ref=f6e128]:
+            - generic [ref=f6e129]: Japonais
+            - generic [ref=f6e131]: €€
+            - generic [ref=f6e133]: Ouvert
+            - generic [ref=f6e136]: 8 min à pied
+          - generic [ref=f6e140]:
+            - generic [ref=f6e141]: Ouvert maintenant
+            - generic [ref=f6e142]: À 8 min à pied
+            - generic [ref=f6e143]: japanese
+      - generic [ref=f6e145]:
+        - generic [ref=f6e146]:
+          - generic [ref=f6e147]: L
+          - button "Itinéraire" [ref=f6e148] [cursor=pointer]
+        - generic [ref=f6e151]:
+          - heading "La Table Verte" [level=3] [ref=f6e152]
+          - generic [ref=f6e153]:
+            - generic [ref=f6e154]:
+              - text: "8.2"
+              - generic [ref=f6e157]: (88)
+            - generic [ref=f6e159]: Italien
+            - generic [ref=f6e161]: €€
+            - generic [ref=f6e163]: Fermé
+            - generic [ref=f6e166]: 15 min à pied
+          - generic [ref=f6e170]:
+            - generic [ref=f6e171]: Bien noté · 8.2
+            - generic [ref=f6e172]: À 15 min à pied
+            - generic [ref=f6e173]: italian
+    - generic [ref=f6e174]:
+      - button "Annuler" [disabled] [ref=f6e175]
+      - button "Passer" [ref=f6e179] [cursor=pointer]
+      - button "Découvrir" [ref=f6e183] [cursor=pointer]
+      - button "Garder" [ref=f6e187] [cursor=pointer]
+    - generic [ref=f6e190]: ← passer · ↑ voir · garder → · 3 restants
+  - alert [ref=f6e191]

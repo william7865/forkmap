@@ -275,7 +275,7 @@ export default function ActivityFeed({ onClose }: { onClose: () => void }) {
         animation: 'slideUp 240ms cubic-bezier(0.16,1,0.3,1) both',
       }}
     >
-      {/* Header — grand titre serif façon Albo */}
+      {/* Header — grand titre serif */}
       <div style={{ padding: 'calc(var(--safe-top) + 14px) 20px 10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
           <button
@@ -307,7 +307,7 @@ export default function ActivityFeed({ onClose }: { onClose: () => void }) {
           </h1>
         </div>
 
-        {/* Tabs — pastilles façon Albo */}
+        {/* Tabs — pastilles */}
         <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
           {(['friends', 'tastemakers'] as const).map((t) => {
             const active = tab === t
