@@ -73,3 +73,26 @@ describe('buildImportCandidate', () => {
     expect(c.query).toBe('Bouillon Pigalle')
   })
 })
+
+import { decodeEntities } from '@/lib/import/parse'
+
+describe('decodeEntities', () => {
+  it('decodes hex numeric references (emoji, curly apostrophe, NBSP)', () => {
+    expect(decodeEntities('L&#x2019;art culinaire')).toBe('L’art culinaire')
+    expect(decodeEntities('sushis &#x1f602;&#x2764;&#xfe0f;')).toBe('sushis 😂❤️')
+    expect(decodeEntities('le&#xa0;21')).toBe('le 21')
+  })
+  it('decodes decimal numeric references', () => {
+    expect(decodeEntities('caf&#233;')).toBe('café')
+  })
+  it('decodes named entities', () => {
+    expect(decodeEntities('Fish &amp; Chips &lt;3')).toBe('Fish & Chips <3')
+  })
+  it('handles double-encoding (&amp;#x2019;)', () => {
+    expect(decodeEntities('L&amp;#x2019;art')).toBe('L’art')
+  })
+  it('leaves plain text and unknown entities untouched', () => {
+    expect(decodeEntities('Chez Marcel')).toBe('Chez Marcel')
+    expect(decodeEntities('a &bogus; b')).toBe('a &bogus; b')
+  })
+})

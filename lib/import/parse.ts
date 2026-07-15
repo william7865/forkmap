@@ -30,17 +30,41 @@ export interface ImportCandidate {
   query: string
 }
 
-const DECODE: Record<string, string> = {
-  '&amp;': '&',
-  '&lt;': '<',
-  '&gt;': '>',
-  '&quot;': '"',
-  '&#39;': "'",
-  '&#x27;': "'",
-  '&nbsp;': ' ',
+const NAMED: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
 }
-function decodeEntities(s: string): string {
-  return s.replace(/&(amp|lt|gt|quot|#39|#x27|nbsp);/g, (m) => DECODE[m] ?? m)
+
+/** One decode pass: hex & decimal numeric references (emoji, curly quotes, NBSP…)
+ *  then the common named ones. */
+function decodePass(s: string): string {
+  return s
+    .replace(/&#x([0-9a-fA-F]+);/g, (m, hex) => codePoint(m, parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (m, dec) => codePoint(m, parseInt(dec, 10)))
+    .replace(/&([a-z]+);/gi, (m, name) => NAMED[name.toLowerCase()] ?? m)
+}
+
+/** Safe String.fromCodePoint — keep the raw entity if the value is out of range. */
+function codePoint(raw: string, n: number): string {
+  if (!Number.isFinite(n) || n <= 0 || n > 0x10ffff) return raw
+  try {
+    return String.fromCodePoint(n)
+  } catch {
+    return raw
+  }
+}
+
+/**
+ * Decode HTML entities. Runs twice so double-encoded captions (Instagram often
+ * returns `&amp;#x2019;`) come out clean on the first render.
+ */
+export function decodeEntities(s: string): string {
+  const once = decodePass(s)
+  return once.includes('&') ? decodePass(once) : once
 }
 
 /** Extract Open Graph / Twitter card metadata from raw HTML. */

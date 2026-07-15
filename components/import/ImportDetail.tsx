@@ -22,6 +22,7 @@ import { useImportsStore } from '@/lib/hooks/useImportsContext'
 import { useLanguage } from '@/lib/i18n/useLanguage'
 import { useIsNative } from '@/lib/native/platform'
 import { candidateToPlaceCard, toPlaceCard } from '@/lib/import/resolve'
+import { decodeEntities } from '@/lib/import/parse'
 import { searchPlacesOnce, type PlaceSearchResult } from '@/lib/hooks/usePlaceSearch'
 import { placeGradient } from '@/lib/gradients'
 import { apiFetch } from '@/lib/api'
@@ -205,7 +206,10 @@ function Loaded({ imp, imports, native, patch, onToast }: LoadedProps) {
     window.open(imp.url, '_blank', 'noopener,noreferrer')
   }, [imp.url])
 
-  const title = place?.name ?? imp.post_title ?? tr('importPending')
+  // Decode at render too: rows imported before the decoder fix stored the raw
+  // entities (e.g. Instagram's `&#x1f602;`, `L&#x2019;art`).
+  const title =
+    place?.name ?? (imp.post_title ? decodeEntities(imp.post_title) : tr('importPending'))
   const platform = PLATFORM_LABEL[imp.platform] ?? tr('importOpenSource')
   const cover = imp.post_thumb && !thumbBroken ? imp.post_thumb : null
 
@@ -396,7 +400,7 @@ function Loaded({ imp, imports, native, patch, onToast }: LoadedProps) {
               color: 'var(--text-2)',
             }}
           >
-            «&nbsp;{imp.post_caption}&nbsp;»
+            «&nbsp;{decodeEntities(imp.post_caption)}&nbsp;»
           </blockquote>
         )}
 
