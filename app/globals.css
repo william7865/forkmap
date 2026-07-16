@@ -490,6 +490,15 @@ h3 {
     transform: rotate(360deg);
   }
 }
+/* Cinematic slow push-in on a fiche hero photo as it opens (Ken-Burns-lite). */
+@keyframes heroZoom {
+  from {
+    transform: scale(1.06);
+  }
+  to {
+    transform: scale(1);
+  }
+}
 @keyframes markerPop {
   0% {
     transform: translateY(6px) scale(0.7);

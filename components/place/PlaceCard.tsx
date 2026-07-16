@@ -48,6 +48,7 @@ const PlaceCard = memo(function PlaceCard({
 }: Props) {
   const native = useIsNative()
   const [pressing, setPressing] = useState(false)
+  const [favPop, setFavPop] = useState(false)
   const [hasNote, setHasNote] = useState(false)
   useEffect(() => {
     setHasNote(!!getNote(place.osm_id))
@@ -67,9 +68,15 @@ const PlaceCard = memo(function PlaceCard({
   const handleFavClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
+      // Pop only when SAVING (adding), not when removing — the little burst
+      // reads as a "kept it" confirmation.
+      if (!isFav) {
+        setFavPop(true)
+        setTimeout(() => setFavPop(false), 450)
+      }
       onToggleFavorite()
     },
-    [onToggleFavorite]
+    [onToggleFavorite, isFav]
   )
 
   // ─────────────────── NATIVE — ligne « bibliothèque » ──
@@ -306,7 +313,12 @@ const PlaceCard = memo(function PlaceCard({
             color: isFav ? 'var(--accent)' : 'var(--text-3)',
           }}
         >
-          <Bookmark size={19} strokeWidth={1.9} fill={isFav ? 'currentColor' : 'none'} />
+          <Bookmark
+            size={19}
+            strokeWidth={1.9}
+            fill={isFav ? 'currentColor' : 'none'}
+            style={{ animation: favPop ? 'heartBeat 450ms var(--ease-out)' : undefined }}
+          />
         </button>
       </div>
     )
@@ -524,7 +536,12 @@ const PlaceCard = memo(function PlaceCard({
           e.currentTarget.style.color = isFav ? 'var(--ember)' : 'var(--text-3)'
         }}
       >
-        <Bookmark size={18} strokeWidth={1.75} fill={isFav ? 'currentColor' : 'none'} />
+        <Bookmark
+          size={18}
+          strokeWidth={1.75}
+          fill={isFav ? 'currentColor' : 'none'}
+          style={{ animation: favPop ? 'heartBeat 450ms var(--ease-out)' : undefined }}
+        />
       </button>
     </div>
   )

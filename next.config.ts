@@ -65,6 +65,10 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '*.googleusercontent.com' },
       { protocol: 'https', hostname: 'upload.wikimedia.org' },
       { protocol: 'https', hostname: 'commons.wikimedia.org' },
+      // Mapillary street-level thumbnails are served from Facebook's CDN. Without
+      // this, any fiche with a Mapillary gallery photo throws "Invalid src prop"
+      // on the web (the device build is `unoptimized`, so it only bit the web).
+      { protocol: 'https', hostname: '**.fbcdn.net' },
       // Our own image proxy. A mobile build stamps this absolute origin into the
       // photo prefixes it saves in place snapshots, so a snapshot rendered later on
       // the web hands next/image a forkmap.vercel.app URL. Without this entry that
