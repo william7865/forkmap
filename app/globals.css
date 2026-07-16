@@ -490,6 +490,38 @@ h3 {
     transform: rotate(360deg);
   }
 }
+/* Staggered entrance: direct children fade-up one after another. Put `cascade`
+ * on a container whose children are real content sections (never a virtualized
+ * list — rows recycle on scroll and would re-fire). Respects reduced-motion via
+ * the global block below. */
+.cascade > * {
+  animation: fadeUp 460ms var(--ease-out) both;
+}
+.cascade > *:nth-child(1) {
+  animation-delay: 30ms;
+}
+.cascade > *:nth-child(2) {
+  animation-delay: 75ms;
+}
+.cascade > *:nth-child(3) {
+  animation-delay: 120ms;
+}
+.cascade > *:nth-child(4) {
+  animation-delay: 165ms;
+}
+.cascade > *:nth-child(5) {
+  animation-delay: 210ms;
+}
+.cascade > *:nth-child(6) {
+  animation-delay: 255ms;
+}
+.cascade > *:nth-child(7) {
+  animation-delay: 300ms;
+}
+.cascade > *:nth-child(n + 8) {
+  animation-delay: 340ms;
+}
+
 /* Cinematic slow push-in on a fiche hero photo as it opens (Ken-Burns-lite). */
 @keyframes heroZoom {
   from {
