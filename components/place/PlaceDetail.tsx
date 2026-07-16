@@ -498,7 +498,7 @@ export default function PlaceDetail({
           <div
             style={{
               position: 'relative',
-              height: 300,
+              height: 332,
               background: heroPhoto ? undefined : placeGradient(place.osm_id),
               overflow: 'hidden',
             }}
@@ -547,6 +547,19 @@ export default function PlaceDetail({
                 pointerEvents: 'none',
               }}
             />
+            {/* Voile bas — ancre la photo au contenu, donne de la profondeur */}
+            <span
+              aria-hidden
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 88,
+                background: 'linear-gradient(transparent, rgba(0,0,0,0.22))',
+                pointerEvents: 'none',
+              }}
+            />
 
             <button
               type="button"
@@ -575,11 +588,11 @@ export default function PlaceDetail({
           </div>
 
           <div
+            className="cascade"
             style={{
               maxWidth: 560,
               margin: '0 auto',
               padding: '20px 20px 40px',
-              animation: 'fadeUp 340ms var(--ease-out) 40ms both',
             }}
           >
             {/* ── Nom serif + méta ── */}
@@ -1920,6 +1933,7 @@ export default function PlaceDetail({
 
       {/* ── SCROLLABLE BODY ─────────────────────────── */}
       <div
+        className="cascade"
         style={{
           flex: 1,
           overflowY: 'auto',
