@@ -39,14 +39,16 @@ export default function PhotoGallery({
   }
 
   return (
-    <div style={{ position: 'relative', flexShrink: 0 }}>
-      {/* Horizontal scrollable strip */}
+    <div style={{ position: 'relative', flexShrink: 0, height: '100%' }}>
+      {/* Horizontal scrollable strip — fills the hero it sits in (parent sets the
+          height), so the photos never leave a grey band below them. */}
       <div
         ref={galleryRef}
         onScroll={handleGalleryScroll}
         className="no-scrollbar"
         style={{
           display: 'flex',
+          height: '100%',
           overflowX: 'auto',
           scrollSnapType: 'x mandatory',
           gap: 0,
@@ -58,7 +60,7 @@ export default function PhotoGallery({
             style={{
               flexShrink: 0,
               width: '100%',
-              height: 200,
+              height: '100%',
               scrollSnapAlign: 'start',
               position: 'relative',
             }}
