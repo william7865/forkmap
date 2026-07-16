@@ -511,7 +511,7 @@ export default function PlaceDetail({
                 alt=""
                 fill
                 sizes="100vw"
-                style={{ objectFit: 'cover' }}
+                style={{ objectFit: 'cover', animation: 'heroZoom 900ms var(--ease-out) both' }}
                 priority
               />
             ) : (
@@ -1638,7 +1638,7 @@ export default function PlaceDetail({
                 alt=""
                 fill
                 sizes="100vw"
-                style={{ objectFit: 'cover' }}
+                style={{ objectFit: 'cover', animation: 'heroZoom 900ms var(--ease-out) both' }}
                 priority
               />
             ) : (
