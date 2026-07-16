@@ -17,7 +17,7 @@ const config: CapacitorConfig = {
     },
     StatusBar: {
       style: 'Light',
-      backgroundColor: '#fffdf8',
+      backgroundColor: '#fbfaf7',
       overlaysWebView: false,
     },
     SplashScreen: {
@@ -26,7 +26,7 @@ const config: CapacitorConfig = {
       // short minimum (no grey WebView flash between launch and first paint).
       launchShowDuration: 3000,
       launchAutoHide: false,
-      backgroundColor: '#fffdf8',
+      backgroundColor: '#fbfaf7',
       showSpinner: false,
     },
   },
