@@ -129,6 +129,22 @@
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
+
+  /* Où le ToastStack se pose. Desktop web : la NavRail est à gauche, donc rien
+     n'occupe le bas. Partout où une barre est fixée en bas (BottomNav web mobile,
+     AppTabBar native), le toast doit passer AU-DESSUS d'elle : posé à 20px il la
+     chevauchait. Voir components/ui/ToastStack.tsx. */
+  --toast-bottom: 20px;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --toast-bottom: calc(69px + var(--safe-bottom));
+  }
+}
+
+html.native-app {
+  --toast-bottom: calc(69px + var(--safe-bottom));
 }
 
 /* ═══════════════════════════════════════════════════════════════

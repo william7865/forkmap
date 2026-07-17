@@ -5,9 +5,12 @@ import { createPortal } from 'react-dom'
 import { useLists } from '@/lib/hooks/useLists'
 import type { ListVisibility } from '@/types'
 import { CreateListModal } from './CreateListModal'
-import { useToastApi } from '@/lib/hooks/useToastContext'
 import { successTap, lightTap, errorTap } from '@/lib/native/haptics'
 import { friendlyError } from '@/lib/api-errors'
+import { clampPopupRight } from '@/lib/popup-position'
+
+/** Kept in sync with the popup's own maxWidth — the clamp below reasons about it. */
+const POPUP_MAX_WIDTH = 280
 
 interface Props {
   osmId: string
@@ -30,13 +33,16 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set())
   const [showCreate, setShowCreate] = useState(false)
   const [position, setPosition] = useState({ top: 0, right: 0 })
+  const [error, setError] = useState<string | null>(null)
   const popupRef = useRef<HTMLDivElement>(null)
-  const toast = useToastApi()
 
   useEffect(() => {
     if (!anchorRef.current) return
     const rect = anchorRef.current.getBoundingClientRect()
-    setPosition({ top: rect.bottom + 8, right: window.innerWidth - rect.right })
+    setPosition({
+      top: rect.bottom + 8,
+      right: clampPopupRight(rect.right, window.innerWidth, POPUP_MAX_WIDTH),
+    })
   }, [anchorRef])
 
   useEffect(() => {
@@ -70,7 +76,7 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
   const toggle = async (listId: string) => {
     if (pendingIds.has(listId)) return
     setPendingIds((prev) => new Set(prev).add(listId))
-    const listName = lists.find((l) => l.id === listId)?.name ?? 'la liste'
+    setError(null)
     try {
       if (checkedIds.has(listId)) {
         await removeItemFromList(listId, osmId)
@@ -79,18 +85,18 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
           s.delete(listId)
           return s
         })
-        toast.info(`Retiré de « ${listName} »`)
         lightTap()
       } else {
         await addItemToList(listId, osmId, placeSnapshot)
         setCheckedIds((prev) => new Set(prev).add(listId))
-        toast.success(`Ajouté à « ${listName} »`)
+        // The tick IS the confirmation — it lands on the row the user just
+        // pressed, so nothing needs to float over the app to say so.
         successTap()
       }
     } catch (err) {
       // Without this the popup swallowed the failure: the checkbox just never
       // ticked and the user was never told the place hadn't been saved.
-      toast.error(friendlyError(err))
+      setError(friendlyError(err))
       errorTap()
     } finally {
       setPendingIds((prev) => {
@@ -106,15 +112,17 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
     description: string | null,
     visibility: ListVisibility
   ) => {
+    setError(null)
     try {
       const created = await createList(name, description, visibility)
       await addItemToList(created.id, osmId, placeSnapshot)
+      // The new list appears in the popup already ticked — that's the confirmation.
       setCheckedIds((prev) => new Set(prev).add(created.id))
       setShowCreate(false)
-      toast.success(`Liste « ${created.name} » créée`)
       successTap()
     } catch (err) {
-      toast.error(friendlyError(err))
+      setError(friendlyError(err))
+      setShowCreate(false)
       errorTap()
     }
   }
@@ -132,7 +140,7 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
         borderRadius: 'var(--r-xl)',
         boxShadow: '0 8px 32px rgba(14,14,13,0.18)',
         minWidth: 220,
-        maxWidth: 280,
+        maxWidth: POPUP_MAX_WIDTH,
         overflow: 'hidden',
         animation: 'popupIn 160ms var(--ease-out) both',
         transformOrigin: 'top right',
@@ -153,6 +161,24 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
           Enregistrer dans…
         </p>
       </div>
+      {/* Failure is said here, inside the popup the user is looking at, rather
+          than by something floating over the tab bar. */}
+      {error && (
+        <div
+          role="alert"
+          style={{
+            padding: '8px 12px',
+            background: 'var(--closed-bg)',
+            borderBottom: '1px solid var(--border)',
+            fontSize: 11.5,
+            lineHeight: 1.4,
+            color: 'var(--closed)',
+            fontWeight: 600,
+          }}
+        >
+          {error}
+        </div>
+      )}
       <div style={{ maxHeight: 220, overflowY: 'auto' }}>
         {loading && (
           <div style={{ padding: '12px', textAlign: 'center' }}>
