@@ -635,6 +635,14 @@ export default function PlaceDetail({
                   }}
                 >
                   <GoldStar /> {rating.toFixed(1)}
+                  {/* The review count used to justify a whole "Note" section that
+                      restated this very rating, bigger. It's a footnote to the
+                      number, so it lives next to the number. */}
+                  {reviewsCount ? (
+                    <span style={{ fontWeight: 500, color: 'var(--text-3)' }}>
+                      ({reviewsCount.toLocaleString('fr-FR')})
+                    </span>
+                  ) : null}
                 </span>
               )}
               {cuisine && (
@@ -902,24 +910,10 @@ export default function PlaceDetail({
               )}
             </div>
 
-            {/* ── Note (barre) ── */}
-            {rating != null && (
-              <>
-                <ThinDivider />
-                <SectionTitle
-                  action={
-                    reviewsCount ? (
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-3)' }}>
-                        {reviewsCount.toLocaleString('fr-FR')} avis
-                      </span>
-                    ) : undefined
-                  }
-                >
-                  Note
-                </SectionTitle>
-                <RatingBar rating={rating} />
-              </>
-            )}
+            {/* Pas de section « Note » : elle répétait, en plus gros, la note déjà
+                lue à côté du nom — et sur un barème (/10) qui entrait en collision
+                avec le /5 des avis communautaires plus bas. Le nombre d'avis a
+                rejoint la ligne méta. */}
 
             {/* ── Horaires ── */}
             {hours && (
@@ -1027,202 +1021,9 @@ export default function PlaceDetail({
               </>
             )}
 
-            {/* ── Y aller (itinéraire in-app) ── */}
-            <ThinDivider />
-            <SectionTitle>{hasUserLocation ? 'Depuis votre départ' : 'Y aller'}</SectionTitle>
-            {!hasUserLocation ? (
-              <div
-                style={{
-                  borderRadius: 14,
-                  overflow: 'hidden',
-                  border: '1px solid var(--border)',
-                }}
-              >
-                {onLocationChange && onLocateMe ? (
-                  <StartPanel
-                    userLocation={null}
-                    locationLabel={locationLabel ?? null}
-                    onLocationChange={onLocationChange}
-                    onLocateMe={onLocateMe}
-                    locating={!!locating}
-                    locateError={!!locateError}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      padding: 16,
-                      background: 'var(--surface)',
-                      fontSize: 13,
-                      color: 'var(--text-3)',
-                      textAlign: 'center',
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    Définissez un point de départ pour voir les itinéraires
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div
-                style={{
-                  borderRadius: 14,
-                  overflow: 'hidden',
-                  border: '1px solid var(--border)',
-                  background: 'var(--surface)',
-                }}
-              >
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)' }}>
-                  {MODES.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => onTransportChange?.(m.id)}
-                      aria-pressed={routeMode === m.id}
-                      aria-label={m.label}
-                      style={{
-                        padding: '12px 4px 10px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        background: routeMode === m.id ? 'var(--bg)' : 'transparent',
-                        borderBottom: `2px solid ${routeMode === m.id ? 'var(--accent)' : 'transparent'}`,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 4,
-                        color: routeMode === m.id ? 'var(--text)' : 'var(--text-3)',
-                        fontFamily: 'inherit',
-                      }}
-                    >
-                      <span aria-hidden="true">{m.icon}</span>
-                      <span
-                        style={{
-                          fontSize: 9.5,
-                          fontWeight: 700,
-                          letterSpacing: '0.05em',
-                          textTransform: 'uppercase',
-                        }}
-                      >
-                        {m.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <div style={{ padding: 14 }}>
-                  {routeLoading ? (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8,
-                        padding: '10px 0',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 14,
-                          height: 14,
-                          border: '2px solid var(--border)',
-                          borderTop: '2px solid var(--accent)',
-                          borderRadius: '50%',
-                          animation: 'spin 0.7s linear infinite',
-                        }}
-                      />
-                      <span style={{ fontSize: 13, color: 'var(--text-3)' }}>Calcul en cours…</span>
-                    </div>
-                  ) : routeResult ? (
-                    <>
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-end',
-                          marginBottom: 12,
-                        }}
-                      >
-                        <div>
-                          <div
-                            style={{
-                              fontSize: 9,
-                              fontWeight: 700,
-                              letterSpacing: '0.1em',
-                              textTransform: 'uppercase',
-                              color: 'var(--text-4)',
-                              marginBottom: 3,
-                            }}
-                          >
-                            Temps de trajet
-                          </div>
-                          <div
-                            style={{
-                              fontFamily: 'var(--font-display)',
-                              fontSize: 28,
-                              fontWeight: 600,
-                              color: 'var(--text)',
-                              letterSpacing: '-0.02em',
-                              lineHeight: 1,
-                            }}
-                          >
-                            {fmt(routeResult.duration)}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div
-                            style={{
-                              fontSize: 9,
-                              fontWeight: 700,
-                              letterSpacing: '0.1em',
-                              textTransform: 'uppercase',
-                              color: 'var(--text-4)',
-                              marginBottom: 3,
-                            }}
-                          >
-                            Distance
-                          </div>
-                          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-2)' }}>
-                            {fmtDist(routeResult.distance)}
-                          </div>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => openDirections(place.lat, place.lon, currentMode.gmaps)}
-                        style={{
-                          display: 'flex',
-                          width: '100%',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 7,
-                          height: 44,
-                          borderRadius: 12,
-                          background: 'var(--accent)',
-                          color: 'var(--on-accent)',
-                          border: 'none',
-                          cursor: 'pointer',
-                          fontSize: 13.5,
-                          fontWeight: 700,
-                          boxShadow: 'var(--s2)',
-                        }}
-                      >
-                        Ouvrir dans Maps <IcoArrow />
-                      </button>
-                    </>
-                  ) : (
-                    <p
-                      style={{
-                        margin: 0,
-                        padding: '8px 0',
-                        textAlign: 'center',
-                        fontSize: 13,
-                        color: 'var(--text-3)',
-                      }}
-                    >
-                      Sélectionnez un restaurant pour calculer l&apos;itinéraire
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
+            {/* Pas de section « Y aller » : un panneau d'itinéraire de 200 lignes
+                pendant que le bouton « Itinéraire » est en haut et que « Où » donne
+                l'adresse et la mini-carte. Trois fois la même intention. */}
 
             {/* ── Avis communautaires (app-only) ── */}
             <ReviewsSection api={reviewsApi} isSignedIn={!!user} placeName={place.name} />
@@ -1276,39 +1077,44 @@ export default function PlaceDetail({
               <MiniMap lat={place.lat} lon={place.lon} height={170} />
             </div>
 
-            {/* ── Ma note ── */}
-            {note && (
+            {/* ── Moi ici ──
+                « Ma note » et « Mes visites » étaient deux sections séparées, en
+                plus des actions secondaires en haut : trois endroits pour une même
+                chose, « mes données sur ce resto ». Un seul bloc, un seul titre.
+                Le compte des visites vit dans les tuiles, pas dans le titre. */}
+            {(note || visits.length > 0) && (
               <>
                 <ThinDivider />
-                <SectionTitle>Ma note</SectionTitle>
-                <button
-                  type="button"
-                  onClick={() => setShowNote(true)}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '13px 15px',
-                    background: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 14,
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-body)',
-                    fontSize: 14,
-                    color: 'var(--text-2)',
-                    lineHeight: 1.6,
-                  }}
-                >
-                  {note}
-                </button>
+                <SectionTitle>Moi ici</SectionTitle>
               </>
             )}
 
-            {/* ── Mes visites ── */}
+            {note && (
+              <button
+                type="button"
+                onClick={() => setShowNote(true)}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '13px 15px',
+                  marginBottom: visits.length > 0 ? 12 : 0,
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 14,
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 14,
+                  color: 'var(--text-2)',
+                  lineHeight: 1.6,
+                }}
+              >
+                {note}
+              </button>
+            )}
+
             {visits.length > 0 && (
               <>
-                <ThinDivider />
-                <SectionTitle>Mes visites ({visits.length})</SectionTitle>
                 {(() => {
                   const rated = visits.filter((v) => v.personal_rating != null)
                   const spent = visits.filter((v) => v.amount_spent != null && v.amount_spent > 0)
