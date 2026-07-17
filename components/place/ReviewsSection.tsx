@@ -19,7 +19,11 @@ function relDate(iso: string): string {
   if (days === 1) return 'hier'
   if (days < 7) return `il y a ${days} j`
   if (days < 30) return `il y a ${Math.floor(days / 7)} sem`
-  return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
 }
 
 const EYEBROW: CSSProperties = {
@@ -103,7 +107,9 @@ function ReviewItem({ r }: { r: UserReview }) {
           <Stars rating={r.rating} />
         </div>
         {r.text && (
-          <p style={{ fontSize: 13.5, color: 'var(--text-2)', lineHeight: 1.45, margin: '6px 0 0' }}>
+          <p
+            style={{ fontSize: 13.5, color: 'var(--text-2)', lineHeight: 1.45, margin: '6px 0 0' }}
+          >
             {r.text}
           </p>
         )}
@@ -112,9 +118,22 @@ function ReviewItem({ r }: { r: UserReview }) {
             {r.photo_urls.map((u, i) => (
               <div
                 key={i}
-                style={{ position: 'relative', width: 68, height: 68, borderRadius: 10, overflow: 'hidden' }}
+                style={{
+                  position: 'relative',
+                  width: 68,
+                  height: 68,
+                  borderRadius: 10,
+                  overflow: 'hidden',
+                }}
               >
-                <Image src={u} alt="" fill sizes="68px" style={{ objectFit: 'cover' }} unoptimized />
+                <Image
+                  src={u}
+                  alt=""
+                  fill
+                  sizes="68px"
+                  style={{ objectFit: 'cover' }}
+                  unoptimized
+                />
               </div>
             ))}
           </div>
@@ -131,11 +150,21 @@ function ReviewsSkeleton() {
       {[0, 1].map((i) => (
         <div key={i} style={{ display: 'flex', gap: 11, opacity: 0.5 }}>
           <div
-            style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--border)', flexShrink: 0 }}
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: '50%',
+              background: 'var(--border)',
+              flexShrink: 0,
+            }}
           />
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6, paddingTop: 3 }}>
-            <div style={{ width: '38%', height: 9, borderRadius: 4, background: 'var(--border)' }} />
-            <div style={{ width: '72%', height: 9, borderRadius: 4, background: 'var(--border)' }} />
+            <div
+              style={{ width: '38%', height: 9, borderRadius: 4, background: 'var(--border)' }}
+            />
+            <div
+              style={{ width: '72%', height: 9, borderRadius: 4, background: 'var(--border)' }}
+            />
           </div>
         </div>
       ))}
@@ -168,72 +197,49 @@ export default function ReviewsSection({
       : 'Donner mon avis'
 
   // Verified tastemakers first (stable sort keeps the API's newest-first order
-  // within each group); count them for the "N tastemakers ont noté ici" signal.
+  // within each group).
   const sortedReviews = [...reviews].sort(
     (a, b) => (b.author.verified ? 1 : 0) - (a.author.verified ? 1 : 0)
   )
-  const tastemakerCount = reviews.filter((r) => r.author.verified).length
+
+  // An average needs something to average. With a single review the "3.0 / 5" is
+  // just that review's rating restated above the card that already shows it — so
+  // the aggregate only earns its place from two reviews up.
+  const showAggregate = summary.count > 1
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* Header: eyebrow + prominent average (the section's one loud element) */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ ...EYEBROW, marginBottom: summary.count > 0 ? 4 : 0 }}>
-            Avis de la communauté
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      {/* Header: eyebrow + average (the section's one loud element) */}
+      <div>
+        <div style={{ ...EYEBROW, marginBottom: showAggregate ? 6 : 0 }}>Avis de la communauté</div>
+        {showAggregate && (
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <span
+              style={{
+                fontSize: 26,
+                fontWeight: 800,
+                color: 'var(--text)',
+                letterSpacing: '-0.04em',
+                lineHeight: 1,
+              }}
+            >
+              {summary.average.toFixed(1)}
+            </span>
+            {/* No star row beside the number: same value, twice, side by side. */}
+            <span style={{ fontSize: 12, color: 'var(--text-3)' }}>/ 5 · {summary.count} avis</span>
           </div>
-          {summary.count > 0 && (
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <span
-                style={{
-                  fontSize: 26,
-                  fontWeight: 800,
-                  color: 'var(--text)',
-                  letterSpacing: '-0.04em',
-                  lineHeight: 1,
-                }}
-              >
-                {summary.average.toFixed(1)}
-              </span>
-              <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
-                / 5 · {summary.count} avis
-              </span>
-            </div>
-          )}
-        </div>
-        {summary.count > 0 && <Stars rating={Math.round(summary.average)} size={15} />}
+        )}
       </div>
-
-      {/* Quality signal: verified tastemakers who reviewed here (D) */}
-      {tastemakerCount > 0 && (
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            alignSelf: 'flex-start',
-            padding: '5px 10px',
-            borderRadius: 'var(--r-pill)',
-            background: 'var(--accent-light)',
-            color: 'var(--accent-text, var(--accent))',
-            fontSize: 12,
-            fontWeight: 700,
-          }}
-        >
-          <VerifiedBadge verified size={13} />
-          {tastemakerCount} tastemaker{tastemakerCount > 1 ? 's' : ''}{' '}
-          {tastemakerCount > 1 ? 'ont' : 'a'} noté ici
-        </div>
-      )}
 
       {/* CTA — matches the fiche's secondary-action buttons */}
       {isSignedIn ? (
         <button
           onClick={() => setComposerOpen(true)}
+          className="tap-press"
           style={{
             alignSelf: 'flex-start',
-            height: 36,
-            padding: '0 14px',
+            height: 40,
+            padding: '0 16px',
             border: '1px solid var(--border)',
             background: 'var(--surface)',
             borderRadius: 'var(--r-sm)',
@@ -262,7 +268,7 @@ export default function ReviewsSection({
         <ReviewsSkeleton />
       ) : (
         reviews.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {sortedReviews.map((r) => (
               <ReviewItem key={r.id} r={r} />
             ))}

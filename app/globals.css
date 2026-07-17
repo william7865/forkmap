@@ -511,7 +511,7 @@ h3 {
  * list — rows recycle on scroll and would re-fire). Respects reduced-motion via
  * the global block below. */
 .cascade > * {
-  animation: fadeUp 460ms var(--ease-out) both;
+  animation: fadeUp 460ms var(--ease-out) backwards;
 }
 .cascade > *:nth-child(1) {
   animation-delay: 30ms;
@@ -659,10 +659,10 @@ h3 {
 }
 
 .anim-fade-up {
-  animation: fadeUp var(--t3) var(--ease-out) both;
+  animation: fadeUp var(--t3) var(--ease-out) backwards;
 }
 .anim-slide-right {
-  animation: slideInRight var(--t3) var(--ease-out) both;
+  animation: slideInRight var(--t3) var(--ease-out) backwards;
 }
 
 /* ── Input ── */
@@ -859,16 +859,16 @@ h3 {
 
 /* ── Animation utilities ── */
 .anim-fade-in {
-  animation: fadeIn var(--t2) var(--ease-out) both;
+  animation: fadeIn var(--t2) var(--ease-out) backwards;
 }
 .anim-slide-up {
-  animation: slideUp var(--t3) var(--ease-out) both;
+  animation: slideUp var(--t3) var(--ease-out) backwards;
 }
 .anim-scale-in {
-  animation: scaleIn var(--t2) var(--ease-spring) both;
+  animation: scaleIn var(--t2) var(--ease-spring) backwards;
 }
 .anim-card-in {
-  animation: cardIn var(--t3) var(--ease-out) both;
+  animation: cardIn var(--t3) var(--ease-out) backwards;
 }
 
 /* ── Focus visible ── */

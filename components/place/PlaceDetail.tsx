@@ -80,7 +80,9 @@ function SectionTitle({
         alignItems: 'baseline',
         justifyContent: 'space-between',
         gap: 12,
-        margin: '0 0 12px',
+        // A 20px serif heading needs room under it — at 12px the title read as
+        // glued to its own content rather than introducing it.
+        margin: '0 0 16px',
       }}
     >
       <h3
@@ -102,7 +104,7 @@ function SectionTitle({
 
 // Divider fin pleine largeur entre grands blocs.
 function ThinDivider() {
-  return <div style={{ height: 1, background: 'var(--border)', margin: '26px 0' }} />
+  return <div style={{ height: 1, background: 'var(--border)', margin: '32px 0' }} />
 }
 
 // Point séparateur « · » de la ligne méta.
@@ -2773,7 +2775,6 @@ export default function PlaceDetail({
               padding: '10px 12px',
               background: 'var(--forest-pale)',
               border: '1px solid rgba(25,28,29,0.2)',
-              borderLeft: '3px solid var(--forest-mid)',
               borderRadius: 'var(--r-md)',
               cursor: 'pointer',
               textAlign: 'left',

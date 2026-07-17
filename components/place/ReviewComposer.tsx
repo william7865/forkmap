@@ -2,6 +2,7 @@
 // ReviewComposer — bottom sheet to write/edit a community review:
 // star rating + optional text + up to 4 photos. Native-only UI.
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { Star, X, Camera, Trash2, Check } from 'lucide-react'
 import type { UserReview } from '@/types'
@@ -105,7 +106,7 @@ export default function ReviewComposer({ initial, placeName, onClose, onSubmit, 
     else setErr('La suppression a échoué.')
   }
 
-  return (
+  const sheet = (
     <div
       onClick={onClose}
       style={{
@@ -362,4 +363,12 @@ export default function ReviewComposer({ initial, placeName, onClose, onSubmit, 
       </div>
     </div>
   )
+
+  // Portal to <body>: the composer renders inside ReviewsSection, which is a
+  // child of PlaceDetail's `.cascade` — and a `.cascade` child keeps a transform
+  // from its entry animation. A transformed ancestor becomes the containing block
+  // for `position: fixed`, so without this the sheet was trapped INSIDE the
+  // reviews block: no full-screen overlay, the "modal" sitting mid-page.
+  if (typeof document === 'undefined') return null
+  return createPortal(sheet, document.body)
 }
