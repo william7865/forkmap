@@ -18,6 +18,7 @@ import { useIsMobile } from '@/lib/hooks/useMediaQuery'
 import { useIsNative } from '@/lib/native/platform'
 import { useLists, type ListRow as HookListRow } from '@/lib/hooks/useLists'
 import ImportsRow from '@/components/import/ImportsRow'
+import EmptyState from '@/components/states/EmptyState'
 import { useImportsStore } from '@/lib/hooks/useImportsContext'
 import { ListCard, NewListCard } from '@/components/lists/ListCard'
 import CollaboratorsSheet from '@/components/lists/CollaboratorsSheet'
@@ -1190,19 +1191,9 @@ function BulkListModal({
           </h3>
         </div>
         <div style={{ maxHeight: 300, overflowY: 'auto', borderTop: '1px solid var(--border)' }}>
-          {lists.length === 0 && (
-            <p
-              style={{
-                margin: 0,
-                padding: '18px',
-                fontSize: 13,
-                color: 'var(--text-3)',
-                textAlign: 'center',
-              }}
-            >
-              Aucune liste encore.
-            </p>
-          )}
+          {/* First-run moment: the user is here to file a place and has no list
+              to file it into. Say what a list is FOR, not just that there isn't one. */}
+          {lists.length === 0 && <EmptyState variant="no-lists" />}
           {lists.map((list) => (
             <button
               key={list.id}
@@ -2385,7 +2376,6 @@ function FavoritesPageInner() {
             animation: 'spin 0.7s linear infinite',
           }}
         />
-        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     )
 
@@ -3709,21 +3699,21 @@ function FavoritesPageInner() {
                 }
               >
                 {sorted.length === 0 && favorites.length > 0 && (
-                  <div
-                    style={{
-                      gridColumn: '1 / -1',
-                      textAlign: 'center',
-                      padding: '36px 20px',
-                      color: 'var(--text-3)',
-                      fontSize: 13.5,
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    {favTab === 'todo'
-                      ? 'Tous tes favoris sont déjà testés 🎉'
-                      : favTab === 'done'
-                        ? 'Rien de testé pour l’instant. Logue une visite depuis une fiche.'
-                        : 'Aucun favori ici.'}
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    {/* `favorites.length > 0`, so nothing here is "you have no
+                        favourites" — either the tab filtered them all out, or the
+                        search did. Each case names the way out. */}
+                    {favTab === 'todo' ? (
+                      <EmptyState variant="all-tested" onExplore={() => router.push('/')} />
+                    ) : favTab === 'done' ? (
+                      <EmptyState variant="no-tested" />
+                    ) : (
+                      <EmptyState
+                        variant="no-results"
+                        searchQuery={query}
+                        onReset={() => setQuery('')}
+                      />
+                    )}
                   </div>
                 )}
                 {sorted.map((fav, i) => (
@@ -3953,7 +3943,6 @@ function FavoritesPageInner() {
         @keyframes scaleIn { from{opacity:0;transform:scale(0.94)} to{opacity:1;transform:scale(1)} }
         @keyframes cardIn  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
         @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes spin    { to{transform:rotate(360deg)} }
       `}</style>
 
       {!isNative && <GlobalFooter />}

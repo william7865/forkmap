@@ -10,6 +10,42 @@ export function buildPhotoUrl(photo: FoursquarePhoto, width = 600): string {
 }
 
 /**
+ * One gallery photo, fading up from the placeholder as it decodes instead of
+ * hard-popping in.
+ *
+ * The fade is opt-IN, never opt-out: `loaded` starts false but a cached image
+ * can finish decoding before React attaches onLoad, and a headless renderer may
+ * never fire it at all. So the ref check below marks an already-complete image
+ * loaded on mount — the photo is never gated behind an event that might not come.
+ */
+function GalleryImage({ url, priority }: { url: string; priority: boolean }) {
+  const [loaded, setLoaded] = useState(false)
+  const imgRef = useRef<HTMLImageElement>(null)
+
+  useEffect(() => {
+    if (imgRef.current?.complete) setLoaded(true)
+  }, [])
+
+  return (
+    <Image
+      ref={imgRef}
+      src={url}
+      alt=""
+      fill
+      sizes="100vw"
+      priority={priority}
+      onLoad={() => setLoaded(true)}
+      onError={() => setLoaded(true)}
+      style={{
+        objectFit: 'cover',
+        opacity: loaded ? 1 : 0,
+        transition: 'opacity var(--t3) var(--ease-out)',
+      }}
+    />
+  )
+}
+
+/**
  * Horizontal swipeable photo strip with dot indicators.
  * Takes already-resolved URLs so user-uploaded photos and FSQ/Google photos
  * can be shown in the same gallery.
@@ -63,9 +99,12 @@ export default function PhotoGallery({
               height: '100%',
               scrollSnapAlign: 'start',
               position: 'relative',
+              // Photos resolve over the network: without a base the hero flashes
+              // white before each one paints.
+              background: 'var(--surface-2)',
             }}
           >
-            <Image src={url} alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} />
+            <GalleryImage url={url} priority={i === 0} />
           </div>
         ))}
       </div>
@@ -90,7 +129,11 @@ export default function PhotoGallery({
                 height: 5,
                 borderRadius: '50%',
                 background: i === activePhoto ? 'white' : 'rgba(255,255,255,0.45)',
-                transition: 'background 150ms',
+                // scale, not width: keeps the dots off the layout path while
+                // still marking position by size and not by opacity alone.
+                transform: i === activePhoto ? 'scale(1.4)' : 'scale(1)',
+                transition:
+                  'background var(--t2) var(--ease-out), transform var(--t2) var(--ease-out)',
               }}
             />
           ))}

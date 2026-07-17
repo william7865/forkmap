@@ -18,7 +18,6 @@ import { apiFetch } from '@/lib/api'
 import { useIsMobile } from '@/lib/hooks/useMediaQuery'
 import { useIsNative } from '@/lib/native/platform'
 import {
-  IcoFork,
   IcoStats,
   IcoMoodSolo,
   IcoMoodCouple,
@@ -29,6 +28,7 @@ import {
 import type { LucideProps } from 'lucide-react'
 import { Settings as SettingsIcon } from 'lucide-react'
 import ProfileScreen from '@/components/account/ProfileScreen'
+import EmptyState from '@/components/states/EmptyState'
 
 const MOOD_ICONS: Record<string, (p: LucideProps) => React.ReactElement> = {
   solo: IcoMoodSolo,
@@ -727,7 +727,6 @@ function Spinner() {
           animation: 'spin 0.7s linear infinite',
         }}
       />
-      <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
     </div>
   )
 }
@@ -1892,21 +1891,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                 </button>
               </div>
             ) : sortedVisits.length === 0 ? (
-              <div style={{ padding: '28px 0', textAlign: 'center' as const }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    color: 'var(--text-4)',
-                    marginBottom: 10,
-                  }}
-                >
-                  <IcoFork size={30} />
-                </div>
-                <p style={{ margin: 0, fontSize: 13, color: 'var(--text-3)' }}>
-                  Aucune visite enregistrée
-                </p>
-              </div>
+              <EmptyState variant="no-visits" onExplore={() => router.push('/')} />
             ) : (
               <div style={{ marginTop: 4 }}>
                 {sortedVisits.map((visit) => {
@@ -2284,7 +2269,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
         />
       )}
       {!isNative && <GlobalFooter />}
-      <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}} @keyframes spin{to{transform:rotate(360deg)}} .acct-row{padding:13px 0;transition:padding-left 200ms var(--ease-out)} .acct-row:hover{padding-left:8px} .acct-row:hover .acct-row-name{color:var(--accent)} .acct-row-name{transition:color 160ms ease} .acct-row-arrow{transition:color 160ms ease,transform 160ms var(--ease-out)} .acct-row:hover .acct-row-arrow{color:var(--accent);transform:translateX(3px)} @media (prefers-reduced-motion: reduce){.acct-row,.acct-row:hover{padding-left:0}}`}</style>
+      <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}} .acct-row{padding:13px 0;transition:padding-left 200ms var(--ease-out)} .acct-row:hover{padding-left:8px} .acct-row:hover .acct-row-name{color:var(--accent)} .acct-row-name{transition:color 160ms ease} .acct-row-arrow{transition:color 160ms ease,transform 160ms var(--ease-out)} .acct-row:hover .acct-row-arrow{color:var(--accent);transform:translateX(3px)} @media (prefers-reduced-motion: reduce){.acct-row,.acct-row:hover{padding-left:0}}`}</style>
     </div>
   )
 }

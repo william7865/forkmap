@@ -300,7 +300,6 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
       </div>
       <style>{`
         @keyframes popupIn{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}
-        @keyframes spin{to{transform:rotate(360deg)}}
       `}</style>
     </div>
   )

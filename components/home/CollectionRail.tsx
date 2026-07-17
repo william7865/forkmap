@@ -8,6 +8,7 @@ import type { PlaceCard } from '@/types'
 import type { CollectionIcon } from '@/lib/collections'
 import { frCuisine } from '@/lib/cuisine'
 import PlaceThumb from '@/components/place/PlaceThumb'
+import { staggerDelay } from '@/lib/motion'
 
 const ICONS: Record<CollectionIcon, React.ElementType> = {
   sparkles: Sparkles,
@@ -69,12 +70,15 @@ const CollectionRail = memo(function CollectionRail({ title, icon, places, onSel
           scrollSnapType: 'x proximity',
         }}
       >
-        {places.map((p) => {
+        {places.map((p, index) => {
           const c = p.cuisine ?? p.fsq?.categories?.[0]?.name
           return (
             <button
               key={p.osm_id}
               onClick={() => onSelect(p)}
+              // Same entrance + press vocabulary as HomeEditorial's cards, so the
+              // two rails on the home read as one surface rather than two.
+              className="anim-fade-up tap-press"
               style={{
                 flex: '0 0 132px',
                 border: 'none',
@@ -83,6 +87,7 @@ const CollectionRail = memo(function CollectionRail({ title, icon, places, onSel
                 textAlign: 'left',
                 cursor: 'pointer',
                 scrollSnapAlign: 'start',
+                animationDelay: staggerDelay(index),
               }}
             >
               <div
