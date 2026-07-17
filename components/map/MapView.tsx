@@ -665,7 +665,7 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
         <div
           style={{
             position: 'absolute',
-            top: 12,
+            top: 'calc(var(--safe-top) + 12px)',
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 400,

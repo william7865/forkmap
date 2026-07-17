@@ -372,7 +372,7 @@ export default function HomePage() {
             <div
               style={{
                 position: 'absolute',
-                top: 64,
+                top: 'calc(var(--safe-top) + 64px)',
                 left: 12,
                 right: 12,
                 zIndex: 499,
@@ -422,7 +422,7 @@ export default function HomePage() {
       <div
         style={{
           position: 'absolute',
-          top: 12,
+          top: 'calc(var(--safe-top) + 12px)',
           left: searchLeft,
           right: selectedPlace && !isMobile ? 332 : 12,
           zIndex: 500,
