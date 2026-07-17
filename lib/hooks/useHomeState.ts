@@ -8,7 +8,7 @@ import { useAuth, getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { apiFetch } from '@/lib/api'
 import { haversineDistance } from '@/lib/scoring'
 import { nameSimilarity } from '@/lib/foursquare'
-import { useToast } from '@/lib/hooks/useToast'
+import { useToastApi } from '@/lib/hooks/useToastContext'
 import { useIsMobile } from '@/lib/hooks/useMediaQuery'
 import { useLanguage } from '@/lib/i18n/useLanguage'
 import type { MapViewHandle } from '@/components/map/MapView'
@@ -21,7 +21,9 @@ export const UNLISTED = '__unlisted__'
 
 export function useHomeState() {
   const auth = useAuth()
-  const toast = useToast()
+  // The app-wide stack (root layout), not a local one — so a toast raised here
+  // renders in the same place as one raised from Favoris or a modal.
+  const toast = useToastApi()
   const isMobile = useIsMobile()
   const { tr } = useLanguage()
 

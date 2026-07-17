@@ -5,6 +5,9 @@ import { createPortal } from 'react-dom'
 import { useLists } from '@/lib/hooks/useLists'
 import type { ListVisibility } from '@/types'
 import { CreateListModal } from './CreateListModal'
+import { useToastApi } from '@/lib/hooks/useToastContext'
+import { successTap, lightTap, errorTap } from '@/lib/native/haptics'
+import { friendlyError } from '@/lib/api-errors'
 
 interface Props {
   osmId: string
@@ -28,6 +31,7 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
   const [showCreate, setShowCreate] = useState(false)
   const [position, setPosition] = useState({ top: 0, right: 0 })
   const popupRef = useRef<HTMLDivElement>(null)
+  const toast = useToastApi()
 
   useEffect(() => {
     if (!anchorRef.current) return
@@ -66,6 +70,7 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
   const toggle = async (listId: string) => {
     if (pendingIds.has(listId)) return
     setPendingIds((prev) => new Set(prev).add(listId))
+    const listName = lists.find((l) => l.id === listId)?.name ?? 'la liste'
     try {
       if (checkedIds.has(listId)) {
         await removeItemFromList(listId, osmId)
@@ -74,10 +79,19 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
           s.delete(listId)
           return s
         })
+        toast.info(`Retiré de « ${listName} »`)
+        lightTap()
       } else {
         await addItemToList(listId, osmId, placeSnapshot)
         setCheckedIds((prev) => new Set(prev).add(listId))
+        toast.success(`Ajouté à « ${listName} »`)
+        successTap()
       }
+    } catch (err) {
+      // Without this the popup swallowed the failure: the checkbox just never
+      // ticked and the user was never told the place hadn't been saved.
+      toast.error(friendlyError(err))
+      errorTap()
     } finally {
       setPendingIds((prev) => {
         const s = new Set(prev)
@@ -92,10 +106,17 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
     description: string | null,
     visibility: ListVisibility
   ) => {
-    const created = await createList(name, description, visibility)
-    await addItemToList(created.id, osmId, placeSnapshot)
-    setCheckedIds((prev) => new Set(prev).add(created.id))
-    setShowCreate(false)
+    try {
+      const created = await createList(name, description, visibility)
+      await addItemToList(created.id, osmId, placeSnapshot)
+      setCheckedIds((prev) => new Set(prev).add(created.id))
+      setShowCreate(false)
+      toast.success(`Liste « ${created.name} » créée`)
+      successTap()
+    } catch (err) {
+      toast.error(friendlyError(err))
+      errorTap()
+    }
   }
 
   const popup = (

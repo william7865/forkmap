@@ -17,7 +17,6 @@ import PlaceList from '@/components/place/PlaceList'
 import HomeEditorial from '@/components/home/HomeEditorial'
 import MapPlaceCard from '@/components/place/MapPlaceCard'
 import PlaceCardSkeleton from '@/components/place/PlaceCardSkeleton'
-import ToastStack from '@/components/ui/ToastStack'
 import BottomSheet from '@/components/ui/BottomSheet'
 import { ErrorBoundary } from '@/components/states/ErrorBoundary'
 import {
@@ -92,7 +91,6 @@ function SelectParamWatcher({ onSelect }: { onSelect: (osmId: string) => void })
 
 export default function HomePage() {
   const {
-    toast,
     isMobile,
     tr,
     filteredPlaces,
@@ -1566,10 +1564,9 @@ export default function HomePage() {
 
       {sharePlace && <ShareModal place={sharePlace} onClose={() => setSharePlace(null)} />}
 
-      <ToastStack toasts={toast.toasts} onDismiss={toast.dismiss} />
+      {/* The toast stack is mounted once in the root layout (ToastProvider). */}
 
       <style>{`
-        @keyframes spin { to { transform:rotate(360deg); } }
         @keyframes enrichSweep { 0%{left:-50%} 100%{left:100%} }
         @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
         @keyframes slideInRight { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }

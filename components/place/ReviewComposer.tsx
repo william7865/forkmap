@@ -6,8 +6,9 @@ import Image from 'next/image'
 import { Star, X, Camera, Trash2 } from 'lucide-react'
 import type { UserReview } from '@/types'
 import { pickPhoto } from '@/lib/native/camera'
-import { lightTap } from '@/lib/native/haptics'
+import { lightTap, successTap, errorTap } from '@/lib/native/haptics'
 import { canSubmit, REVIEW_TEXT_MAX, REVIEW_PHOTOS_MAX } from '@/lib/reviews'
+import { useToastApi } from '@/lib/hooks/useToastContext'
 
 interface PhotoSlot {
   key: string
@@ -39,6 +40,7 @@ export default function ReviewComposer({ initial, placeName, onClose, onSubmit, 
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const seq = useRef(0)
+  const toast = useToastApi()
 
   // Track the latest photos so the unmount cleanup sees session-added blobs
   // (a []-deps effect would capture only the initial, blob-less slots).
@@ -83,8 +85,16 @@ export default function ReviewComposer({ initial, placeName, onClose, onSubmit, 
       keepUrls: photos.filter((p) => p.keepUrl).map((p) => p.keepUrl!),
     })
     setBusy(false)
-    if (ok) onClose()
-    else setErr("L'envoi a échoué. Réessaie.")
+    if (ok) {
+      // The composer unmounts on close, so the confirmation has to outlive it —
+      // hence the app-wide toast rather than an in-modal success state.
+      toast.success(initial ? 'Ton avis est à jour' : 'Merci, ton avis est publié')
+      successTap()
+      onClose()
+    } else {
+      setErr("L'envoi a échoué. Réessaie.")
+      errorTap()
+    }
   }
 
   const handleDelete = async () => {
