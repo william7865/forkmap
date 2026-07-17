@@ -18,7 +18,11 @@ const config: CapacitorConfig = {
     StatusBar: {
       style: 'Light',
       backgroundColor: '#fffdf8',
-      overlaysWebView: false,
+      // Edge-to-edge: the WebView fills the whole screen (under the status bar).
+      // Required so the dark splash covers the status-bar area instead of leaving
+      // a white band above it and shoving the splash down. The app's top controls
+      // pad by var(--safe-top) so nothing hides behind the status bar.
+      overlaysWebView: true,
     },
     SplashScreen: {
       // Show the branded splash immediately on launch and keep it covering the
@@ -26,7 +30,8 @@ const config: CapacitorConfig = {
       // short minimum (no grey WebView flash between launch and first paint).
       launchShowDuration: 3000,
       launchAutoHide: false,
-      backgroundColor: '#fffdf8',
+      // Matches the dark splash image so no light band shows around it.
+      backgroundColor: '#16150f',
       showSpinner: false,
     },
   },

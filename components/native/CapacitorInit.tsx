@@ -123,6 +123,10 @@ export default function CapacitorInit() {
       await syncTheme()
       try {
         const { SplashScreen } = await import('@capacitor/splash-screen')
+        const { StatusBar, Style } = await import('@capacitor/status-bar')
+        // The splash is dark → force light status-bar text (time/battery) so it
+        // stays readable over it. syncTheme() below restores the app's style.
+        await StatusBar.setStyle({ style: Style.Dark }).catch(() => {})
         // Keep the logo splash visible briefly so it reads even on fast cold
         // starts (Insta/YouTube-style), then reveal the app.
         await new Promise((r) => setTimeout(r, 800))
@@ -130,6 +134,8 @@ export default function CapacitorInit() {
         // Viewport has fully settled by now — re-freeze in case the first
         // measurement (before layout) read a stale 0.
         freezeSafeAreaInsets()
+        // Restore the app's (light) status-bar style now the splash is gone.
+        await syncTheme()
       } catch {
         // plugin absent — ignore
       }

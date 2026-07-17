@@ -11,6 +11,14 @@ export const viewport: Viewport = {
   // Static <meta name="theme-color">, emitted at build time — can't reference a CSS var().
   // Kept in sync with --surface.
   themeColor: '#f8f9fa',
+  // Ship `viewport-fit=cover` in the FIRST frame. Without it the native WebView
+  // starts inset (env(safe-area-inset-*) = 0), then CapacitorInit switches to
+  // cover and the insets jump 0 → 47px — shoving the top UI down right as the
+  // splash lifts (the "screen shifts down on open" glitch). Setting it here means
+  // the insets are correct from frame one, so nothing moves.
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 }
 
 export const metadata: Metadata = {
