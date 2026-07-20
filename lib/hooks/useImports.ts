@@ -176,9 +176,12 @@ export function useImports(center: [number, number] | null) {
             const p = await resolveImport(row, centerRef.current)
             await patch(row.id, p)
           } catch (err) {
-            // The write failed (offline, 400). The row stays `pending` in the DB
-            // and is retried at the next launch — never silently lost.
-            console.warn('[useImports] resolve failed', row.id, err)
+            // Le WRITE a échoué (offline, 400), pas la résolution. On RETIRE la
+            // ligne du garde `attempted` : sans ça elle restait bloquée jusqu'au
+            // prochain lancement. Là, le prochain `reload`/resume la retente
+            // dans la même session.
+            attempted.current.delete(row.id)
+            console.warn('[useImports] resolve write failed', row.id, err)
           }
         }
       } finally {
@@ -186,6 +189,26 @@ export function useImports(center: [number, number] | null) {
       }
     })()
   }, [imports, patch])
+
+  /**
+   * Relance la résolution d'un import bloqué (échec, ou attente qui n'aboutit
+   * pas — scrape Google throttlé le plus souvent). Le repasse en `pending` ET
+   * l'oublie du garde `attempted`, ce qui réveille le resolver de fond. Sans ça,
+   * un import raté attendait le prochain lancement de l'app.
+   */
+  const retry = useCallback(
+    async (id: string) => {
+      attempted.current.delete(id)
+      await patch(id, {
+        status: 'pending',
+        osm_id: null,
+        place_snapshot: null,
+        candidates: null,
+        resolved_at: null,
+      })
+    },
+    [patch]
+  )
 
   return {
     imports,
@@ -197,5 +220,6 @@ export function useImports(center: [number, number] | null) {
     reload,
     patch,
     remove,
+    retry,
   }
 }
