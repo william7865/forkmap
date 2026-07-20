@@ -17,7 +17,10 @@ const config: CapacitorConfig = {
     },
     StatusBar: {
       style: 'Light',
-      backgroundColor: '#fffdf8',
+      // Valeur de départ ; CapacitorInit la repasse à #0f0f10 ou #ffffff selon
+      // le thème résolu. Le crème #fffdf8 d'avant venait du thème papier du
+      // site et ne correspondait à aucun token de l'app.
+      backgroundColor: '#ffffff',
       // Edge-to-edge: the WebView fills the whole screen (under the status bar).
       // Required so the dark splash covers the status-bar area instead of leaving
       // a white band above it and shoving the splash down. The app's top controls
@@ -30,8 +33,12 @@ const config: CapacitorConfig = {
       // short minimum (no grey WebView flash between launch and first paint).
       launchShowDuration: 3000,
       launchAutoHide: false,
-      // Matches the dark splash image so no light band shows around it.
-      backgroundColor: '#16150f',
+      // Le splash iOS visible vient du storyboard + Splash.imageset, qui ont
+      // désormais une variante claire ET sombre (SplashBackground.colorset) :
+      // l'écran de lancement suit le thème au lieu d'imposer un fond unique.
+      // Cette valeur ne sert qu'au fond du plugin ; l'olive #16150f d'avant
+      // était un reste du thème papier/terracotta du site.
+      backgroundColor: '#ffffff',
       showSpinner: false,
     },
   },
