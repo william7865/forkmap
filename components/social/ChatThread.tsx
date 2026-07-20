@@ -1,5 +1,6 @@
 'use client'
 import { Fragment, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, Send, MapPin, X, BarChart3 } from 'lucide-react'
 import dynamic from 'next/dynamic'
@@ -127,7 +128,7 @@ export default function ChatThread({
     if (pressTimer.current) clearTimeout(pressTimer.current)
   }
 
-  return (
+  const sheet = (
     <div
       style={{
         position: 'fixed',
@@ -779,6 +780,13 @@ export default function ChatThread({
       {openPoll && <PublicPoll id={openPoll} onClose={() => setOpenPoll(null)} />}
     </div>
   )
+
+  // Portal to <body>. A full-screen overlay must not depend on its ancestors
+  // staying free of stacking contexts: any `opacity`/`transform` animation on a
+  // wrapper above it silently clamps this z-index and slides the whole sheet
+  // under the tab bar. Rendering at the body level makes that impossible.
+  if (typeof document === 'undefined') return null
+  return createPortal(sheet, document.body)
 }
 
 function SheetBtn({
