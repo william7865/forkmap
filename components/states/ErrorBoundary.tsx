@@ -106,7 +106,7 @@ export class ErrorBoundary extends Component<Props, State> {
             borderRadius: 20,
             boxShadow: '0 24px 64px rgba(28,25,23,0.14), 0 0 0 1px rgba(28,25,23,0.07)',
             overflow: 'hidden',
-            animation: 'scaleIn 280ms cubic-bezier(0.16,1,0.3,1) both',
+            animation: 'scaleIn 280ms cubic-bezier(0.16,1,0.3,1) backwards',
           }}
         >
           {/* Top accent */}

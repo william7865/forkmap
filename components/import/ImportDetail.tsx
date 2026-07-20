@@ -206,7 +206,7 @@ function ConfirmDelete({
           background: 'var(--bg)',
           borderRadius: '20px 20px 0 0',
           padding: '22px 20px calc(var(--safe-bottom) + 16px)',
-          animation: 'slideUp 220ms cubic-bezier(0.16,1,0.3,1) both',
+          animation: 'slideUp 220ms cubic-bezier(0.16,1,0.3,1) backwards',
         }}
       >
         <h3
@@ -431,7 +431,7 @@ function Loaded({ imp, imports, native, patch, remove, onToast }: LoadedProps) {
             cursor: 'pointer',
             background: placeGradient(imp.id),
             boxShadow: 'var(--s3)',
-            animation: 'fadeUp 280ms var(--ease-out) both',
+            animation: 'fadeUp 280ms var(--ease-out) backwards',
           }}
         >
           {cover && (
@@ -516,7 +516,7 @@ function Loaded({ imp, imports, native, patch, remove, onToast }: LoadedProps) {
             letterSpacing: '-0.02em',
             lineHeight: 1.15,
             color: 'var(--text)',
-            animation: 'fadeUp 300ms var(--ease-out) 60ms both',
+            animation: 'fadeUp 300ms var(--ease-out) 60ms backwards',
           }}
         >
           {title}
@@ -565,7 +565,9 @@ function Loaded({ imp, imports, native, patch, remove, onToast }: LoadedProps) {
         )}
 
         {/* 5 — What we found */}
-        <section style={{ marginTop: 28, animation: 'fadeUp 300ms var(--ease-out) 120ms both' }}>
+        <section
+          style={{ marginTop: 28, animation: 'fadeUp 300ms var(--ease-out) 120ms backwards' }}
+        >
           <h2 style={EYEBROW}>{tr('importFoundTitle')}</h2>
 
           {imp.status === 'pending' && <PendingBlock />}
@@ -584,14 +586,18 @@ function Loaded({ imp, imports, native, patch, remove, onToast }: LoadedProps) {
 
         {/* 6 — Where it is */}
         {place && (
-          <section style={{ marginTop: 26, animation: 'fadeUp 300ms var(--ease-out) 180ms both' }}>
+          <section
+            style={{ marginTop: 26, animation: 'fadeUp 300ms var(--ease-out) 180ms backwards' }}
+          >
             <h2 style={EYEBROW}>{tr('importWhereTitle')}</h2>
             <ImportMiniMap lat={place.lat} lon={place.lon} />
           </section>
         )}
 
         {/* 7 — My note */}
-        <section style={{ marginTop: 26, animation: 'fadeUp 300ms var(--ease-out) 240ms both' }}>
+        <section
+          style={{ marginTop: 26, animation: 'fadeUp 300ms var(--ease-out) 240ms backwards' }}
+        >
           <h2 style={EYEBROW}>{tr('importNoteTitle')}</h2>
           <NoteField
             initial={imp.note ?? ''}
@@ -607,7 +613,9 @@ function Loaded({ imp, imports, native, patch, remove, onToast }: LoadedProps) {
 
         {/* 8 — Also seen in */}
         {alsoSeenIn.length > 0 && (
-          <section style={{ marginTop: 26, animation: 'fadeUp 300ms var(--ease-out) 300ms both' }}>
+          <section
+            style={{ marginTop: 26, animation: 'fadeUp 300ms var(--ease-out) 300ms backwards' }}
+          >
             <h2 style={EYEBROW}>{tr('importAlsoSeenIn')}</h2>
             <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
               {alsoSeenIn.map((other) => (

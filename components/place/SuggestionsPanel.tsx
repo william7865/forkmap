@@ -157,7 +157,7 @@ export default function SuggestionsPanel({
       style={{
         background: 'var(--white)',
         borderTop: '1px solid var(--ink-10)',
-        animation: 'slideUp 280ms var(--ease-out) both',
+        animation: 'slideUp 280ms var(--ease-out) backwards',
         flexShrink: 0,
       }}
     >

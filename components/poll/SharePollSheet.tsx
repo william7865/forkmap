@@ -63,7 +63,7 @@ export default function SharePollSheet({
         background: 'var(--bg)',
         overflowY: 'auto',
         padding: 'calc(var(--safe-top) + 14px) 18px calc(var(--safe-bottom) + 40px)',
-        animation: 'slideUp 240ms cubic-bezier(0.16,1,0.3,1) both',
+        animation: 'slideUp 240ms cubic-bezier(0.16,1,0.3,1) backwards',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>

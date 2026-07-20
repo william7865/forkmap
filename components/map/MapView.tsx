@@ -669,7 +669,7 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 400,
-            animation: 'fadeDown 200ms var(--ease-out) both',
+            animation: 'fadeDownCentered 200ms var(--ease-out) backwards',
           }}
         >
           <button

@@ -298,7 +298,7 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
           maxHeight: '92vh',
           overflowY: 'auto',
           boxShadow: '0 -20px 60px rgba(14,14,13,0.2)',
-          animation: 'slideUp 250ms var(--ease-out) both',
+          animation: 'slideUp 250ms var(--ease-out) backwards',
           fontFamily: 'var(--font-body)',
         }}
       >

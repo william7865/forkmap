@@ -166,7 +166,7 @@ export default function AccountSettingsContent({ isMobile }: { isMobile: boolean
           alignItems: 'flex-start',
           justifyContent: 'space-between',
           gap: 16,
-          animation: 'fadeUp 360ms var(--ease-out) both',
+          animation: 'fadeUp 360ms var(--ease-out) backwards',
         }}
       >
         <div style={{ minWidth: 0 }}>
@@ -430,7 +430,7 @@ export default function AccountSettingsContent({ isMobile }: { isMobile: boolean
               width: '100%',
               boxShadow: 'var(--s4)',
               border: '1px solid var(--border)',
-              animation: 'scaleIn 200ms cubic-bezier(0.16,1,0.3,1) both',
+              animation: 'scaleIn 200ms cubic-bezier(0.16,1,0.3,1) backwards',
             }}
           >
             <div
@@ -572,7 +572,7 @@ function Row({
         paddingTop: isMobile ? 26 : 32,
         marginTop: isMobile ? 26 : 32,
         borderTop: '1px solid var(--border)',
-        animation: `fadeUp 360ms var(--ease-out) ${delay}ms both`,
+        animation: `fadeUp 360ms var(--ease-out) ${delay}ms backwards`,
       }}
     >
       <div style={{ width: isMobile ? 'auto' : 188, flexShrink: 0 }}>

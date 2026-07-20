@@ -66,7 +66,7 @@ const MapPlaceCard = memo(function MapPlaceCard({
         padding: 12,
         display: 'flex',
         gap: 14,
-        animation: 'slideUp 240ms cubic-bezier(0.16,1,0.3,1) both',
+        animation: 'slideUp 240ms cubic-bezier(0.16,1,0.3,1) backwards',
       }}
     >
       {/* Photo */}

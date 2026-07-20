@@ -513,7 +513,10 @@ export default function PlaceDetail({
                 alt=""
                 fill
                 sizes="100vw"
-                style={{ objectFit: 'cover', animation: 'heroZoom 900ms var(--ease-out) both' }}
+                style={{
+                  objectFit: 'cover',
+                  animation: 'heroZoom 900ms var(--ease-out) backwards',
+                }}
                 priority
               />
             ) : (
@@ -1459,7 +1462,10 @@ export default function PlaceDetail({
                 alt=""
                 fill
                 sizes="100vw"
-                style={{ objectFit: 'cover', animation: 'heroZoom 900ms var(--ease-out) both' }}
+                style={{
+                  objectFit: 'cover',
+                  animation: 'heroZoom 900ms var(--ease-out) backwards',
+                }}
                 priority
               />
             ) : (

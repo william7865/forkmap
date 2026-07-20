@@ -416,7 +416,7 @@ export default function AccountSettingsNative({ isMobile: _isMobile }: { isMobil
               width: '100%',
               boxShadow: 'var(--s4)',
               border: '1px solid var(--border)',
-              animation: 'scaleIn 200ms cubic-bezier(0.16,1,0.3,1) both',
+              animation: 'scaleIn 200ms cubic-bezier(0.16,1,0.3,1) backwards',
             }}
           >
             <div

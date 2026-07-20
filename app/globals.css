@@ -491,6 +491,34 @@ h3 {
     transform: translateY(0);
   }
 }
+
+/* ── Variantes CENTRÉES ────────────────────────────────────────────────
+   Pour les pastilles centrées par `left: 50%; transform: translateX(-50%)`.
+   Une animation qui anime `transform` REMPLACE le transform inline : les
+   keyframes ci-dessus effacent donc le translateX(-50%) et la pastille part
+   d'un demi-largeur vers la droite (et y reste si le fill-mode est `forwards`).
+   Ces variantes rejouent le centrage à chaque étape.
+   Ne jamais utiliser fadeUp/fadeDown sur un élément centré par transform. */
+@keyframes fadeUpCentered {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+@keyframes fadeDownCentered {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
 @keyframes slideInRight {
   from {
     opacity: 0;

@@ -1265,7 +1265,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
         gap: isMobile ? 14 : 32,
         paddingTop: isMobile ? 28 : 34,
         borderTop: '1px solid var(--border)',
-        animation: `fadeUp 360ms var(--ease-out) ${delay}ms both`,
+        animation: `fadeUp 360ms var(--ease-out) ${delay}ms backwards`,
       }}
     >
       <div style={{ width: isMobile ? 'auto' : 180, flexShrink: 0 }}>
@@ -1440,7 +1440,9 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
           </div>
         )}
         {/* ── Masthead : identité typographique ── */}
-        <header style={{ position: 'relative', animation: 'fadeUp 360ms var(--ease-out) both' }}>
+        <header
+          style={{ position: 'relative', animation: 'fadeUp 360ms var(--ease-out) backwards' }}
+        >
           {/* lueur chaude discrète */}
           <div
             aria-hidden="true"
@@ -1559,7 +1561,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
             flexWrap: 'wrap' as const,
             gap: isMobile ? '22px 32px' : '0 52px',
             margin: isMobile ? '28px 0 36px' : '40px 0 8px',
-            animation: 'fadeUp 360ms var(--ease-out) 60ms both',
+            animation: 'fadeUp 360ms var(--ease-out) 60ms backwards',
           }}
         >
           {figures.map((f, i) => (
@@ -1619,7 +1621,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
               marginTop: isMobile ? 8 : 24,
               paddingTop: isMobile ? 28 : 34,
               borderTop: '1px solid var(--border)',
-              animation: 'fadeUp 360ms var(--ease-out) 90ms both',
+              animation: 'fadeUp 360ms var(--ease-out) 90ms backwards',
             }}
           >
             <Eyebrow>Votre palais</Eyebrow>
@@ -1790,7 +1792,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
             paddingTop: isMobile ? 28 : 34,
             marginTop: isMobile ? 28 : 34,
             borderTop: '1px solid var(--border)',
-            animation: 'fadeUp 360ms var(--ease-out) 260ms both',
+            animation: 'fadeUp 360ms var(--ease-out) 260ms backwards',
           }}
         >
           <div style={{ width: isMobile ? 'auto' : 180, flexShrink: 0 }}>
@@ -2051,7 +2053,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
               paddingTop: isMobile ? 28 : 34,
               marginTop: isMobile ? 28 : 34,
               borderTop: '1px solid var(--border)',
-              animation: 'fadeUp 360ms var(--ease-out) 300ms both',
+              animation: 'fadeUp 360ms var(--ease-out) 300ms backwards',
             }}
           >
             <div style={{ width: isMobile ? 'auto' : 180, flexShrink: 0 }}>
@@ -2147,7 +2149,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
             paddingTop: isMobile ? 28 : 34,
             marginTop: isMobile ? 28 : 34,
             borderTop: '1px solid var(--border)',
-            animation: 'fadeUp 360ms var(--ease-out) 340ms both',
+            animation: 'fadeUp 360ms var(--ease-out) 340ms backwards',
           }}
         >
           <div style={{ width: isMobile ? 'auto' : 180, flexShrink: 0 }}>

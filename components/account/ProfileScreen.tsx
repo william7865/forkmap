@@ -400,7 +400,7 @@ export default function ProfileScreen() {
         </div>
 
         {/* ── Masthead : avatar puis grand titre serif (pile, éditorial) ── */}
-        <header style={{ animation: 'fadeUp 280ms var(--ease-out) both' }}>
+        <header style={{ animation: 'fadeUp 280ms var(--ease-out) backwards' }}>
           <Avatar name={displayName} src={profile?.avatar_url} id={profile?.id ?? 'me'} size={72} />
           <h1
             style={{
@@ -453,7 +453,7 @@ export default function ProfileScreen() {
             display: 'flex',
             flexWrap: 'wrap',
             gap: '18px 26px',
-            animation: 'fadeUp 320ms var(--ease-out) 60ms both',
+            animation: 'fadeUp 320ms var(--ease-out) 60ms backwards',
           }}
         >
           {figures.map((f) => (
@@ -490,7 +490,7 @@ export default function ProfileScreen() {
         {/* ── Mes listes — lignes-collections ── */}
         {previewLists.length > 0 && (
           <section
-            style={{ ...sectionStyle, animation: 'fadeUp 320ms var(--ease-out) 120ms both' }}
+            style={{ ...sectionStyle, animation: 'fadeUp 320ms var(--ease-out) 120ms backwards' }}
           >
             <SecHead
               title="Mes listes"
@@ -511,7 +511,9 @@ export default function ProfileScreen() {
         )}
 
         {/* ── Mes favoris — lignes-favoris ── */}
-        <section style={{ ...sectionStyle, animation: 'fadeUp 320ms var(--ease-out) 180ms both' }}>
+        <section
+          style={{ ...sectionStyle, animation: 'fadeUp 320ms var(--ease-out) 180ms backwards' }}
+        >
           <SecHead
             title="Mes favoris"
             action={favorites.length > 0 ? `${favorites.length} ›` : undefined}

@@ -69,7 +69,7 @@ export default function MapLoadingOverlay({ loading, enriching, routeLoading }: 
             display: 'flex',
             alignItems: 'center',
             gap: 7,
-            animation: 'fadeDown 180ms ease both',
+            animation: 'fadeDownCentered 180ms ease backwards',
             pointerEvents: 'none',
             letterSpacing: '0.02em',
           }}
