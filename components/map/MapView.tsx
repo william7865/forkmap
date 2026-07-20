@@ -298,6 +298,8 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
   // value: { marker, sig } — sig lets us skip unchanged icon rebuilds
   const markersRef = useRef<Map<string, A>>(new Map())
   const clusterRef = useRef<A>(null)
+  /** Observe `data-theme` pour recharger les tuiles en clair/sombre. */
+  const themeObserverRef = useRef<MutationObserver | null>(null)
   const placesMapRef = useRef<Map<string, PlaceCard>>(new Map())
   const selIdRef = useRef<string | undefined>(undefined)
   const hovIdRef = useRef<string | null | undefined>(undefined)
@@ -454,14 +456,40 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
         attributionControl: false,
       })
 
-      // Positron (light_all): minimal light-grey basemap so the black pins and
-      // gold star read as the only colour — matches the Monochrome Premium look.
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      // Fond de carte CARTO, accordé au thème : Positron en clair, Dark Matter
+      // en sombre. Avant, la carte restait BLANCHE en thème sombre — elle
+      // occupe la moitié de l'écran, donc l'app passait d'une dalle blanche à
+      // une interface noire, ce qui cassait toute l'ambiance.
+      const tileUrl = (dark: boolean) =>
+        `https://{s}.basemaps.cartocdn.com/${dark ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`
+      const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark'
+
+      let tiles = L.tileLayer(tileUrl(isDark()), {
         attribution:
           '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">les contributeurs d’OpenStreetMap</a> | <a href="/attribution">Attribution des données</a>',
         subdomains: 'abcd',
         maxZoom: 20,
       }).addTo(map)
+
+      // Le thème peut changer après le montage (réglage manuel, ou bascule
+      // système en mode auto) : on remplace la couche au lieu de laisser une
+      // carte claire sous une UI sombre.
+      let currentDark = isDark()
+      const themeObserver = new MutationObserver(() => {
+        if (isDark() === currentDark) return
+        currentDark = isDark()
+        map.removeLayer(tiles)
+        tiles = L.tileLayer(tileUrl(currentDark), {
+          subdomains: 'abcd',
+          maxZoom: 20,
+        }).addTo(map)
+        tiles.getContainer()?.classList.add('leaflet-tile-pane')
+      })
+      themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme'],
+      })
+      themeObserverRef.current = themeObserver
 
       L.control.zoom({ position: 'bottomright' }).addTo(map)
       mapRef.current = map
@@ -520,6 +548,8 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
     return () => {
       readyRef.current = false
       if (debounceRef.current) clearTimeout(debounceRef.current)
+      themeObserverRef.current?.disconnect()
+      themeObserverRef.current = null
       mapRef.current?.remove()
       mapRef.current = null
       markers.clear()

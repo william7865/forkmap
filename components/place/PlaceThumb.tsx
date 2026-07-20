@@ -5,24 +5,28 @@
 // sur un seul traitement — fini les carrés gris + icône fourchette.
 // Si une photo échoue au chargement (proxy Google bloqué, image 404…), on
 // retombe sur la tuile à initiale au lieu d'un carré d'image cassée.
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
+import { Star } from 'lucide-react'
 import type { PlaceCard } from '@/types'
 
 /**
- * Best available photo URL for a place, most-real first:
- *   1. Google/FSQ thumbnail  2. OSM `wikimedia_commons`  3. Wikidata image
- *   4. Mapillary storefront (street-level, last resort)
- * All hosts are already in the CSP img-src, so these load directly.
+ * Best available photo URL for a place.
+ *
+ * Deux ordres selon le contexte :
+ *
+ * - Défaut (galerie de fiche) : Google/FSQ d'abord, puis Wikimedia, Wikidata,
+ *   Google/FSQ → Wikimedia (OSM Commons) → Wikidata.
+ *
+ * Plus de Mapillary : ses photos de rue montraient trop souvent le mauvais
+ * bâtiment. On assume plutôt de n'avoir AUCUNE photo (→ mode classement) qu'une
+ * fausse façade. `null` ici est un signal exploité : la fiche bascule alors sur
+ * son bandeau « score héros » (voir PlaceDetail). Tous les hôtes restants sont
+ * déjà dans la CSP img-src.
  */
 export function placePhotoUrl(place: PlaceCard, size: number): string | null {
-  const p = place.fsq?.photos?.[0]
-  if (p) return `${p.prefix}${size}x${size}${p.suffix}`
-  return (
-    place.osm_enriched?.image_url ??
-    place.wikidata?.image_url ??
-    place.osm_enriched?.mapillary_url ??
-    null
-  )
+  const google = place.fsq?.photos?.[0]
+  if (google) return `${google.prefix}${size}x${size}${google.suffix}`
+  return place.osm_enriched?.image_url ?? place.wikidata?.image_url ?? null
 }
 
 // Airy light fallback tiles (small thumbs) — a wall of black blocks reads
@@ -64,6 +68,13 @@ interface Props {
   photoSize?: number
   /** Fallback tone: 'light' (airy small tiles, default) or 'dark' (hero). */
   tone?: 'light' | 'dark'
+  /**
+   * Superposition (note, statut…) rendue UNIQUEMENT quand une vraie photo
+   * s'affiche. C'est PlaceThumb qui sait si l'image a chargé — le parent, non.
+   * Le confier ici évite le doublon « badge + tuile-score » quand l'URL existe
+   * mais échoue au chargement (proxy Google bloqué, 404…).
+   */
+  overlay?: ReactNode
 }
 
 export default function PlaceThumb({
@@ -71,6 +82,7 @@ export default function PlaceThumb({
   initialSize = 42,
   photoSize = 240,
   tone = 'light',
+  overlay,
 }: Props) {
   // Track the URL that failed (not a boolean) so a new photo still retries.
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
@@ -78,14 +90,54 @@ export default function PlaceThumb({
 
   if (photo && photo !== failedUrl) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={photo}
-        alt=""
-        loading="lazy"
-        onError={() => setFailedUrl(photo)}
-        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-      />
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={photo}
+          alt=""
+          loading="lazy"
+          onError={() => setFailedUrl(photo)}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+        {overlay}
+      </div>
+    )
+  }
+
+  // Sans photo : tuile-score plutôt que dégradé + initiale. Le classement est la
+  // valeur de Forkmap — autant que la note occupe la place de l'image quand il
+  // n'y en a pas. Sans note, on retombe sur l'initiale serif (rien à montrer).
+  const rating = place.fsq?.rating
+  if (rating != null && tone !== 'dark') {
+    return (
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          boxSizing: 'border-box',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: initialSize * 0.12,
+        }}
+      >
+        <Star size={initialSize * 0.7} strokeWidth={0} fill="var(--star)" />
+        <span
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: initialSize * 0.82,
+            fontWeight: 700,
+            lineHeight: 1,
+            letterSpacing: '-0.02em',
+            color: 'var(--text)',
+          }}
+        >
+          {rating.toFixed(1)}
+        </span>
+      </div>
     )
   }
 

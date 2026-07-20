@@ -44,14 +44,10 @@ const ASSETS = join(ROOT, 'assets')
 // Alignés sur app/globals.css + CapacitorInit.
 const INK = '#1a1a1a' // --accent
 const OFF_WHITE = '#f2f2f3' // --text (thème sombre)
+// Le splash est sombre dans les DEUX thèmes (voir le commentaire dans main()) :
+// pas de LIGHT_BG ici, ce serait rouvrir la faille des deux apparences.
 const DARK_BG = '#0f0f10' // --surface (thème sombre) = StatusBar sombre
-const LIGHT_BG = '#ffffff' // StatusBar clair
 const GOLD = '#f5a623' // --star : la SEULE chroma du système
-
-/** Le logotype « forkmap » (Playfair) extrait du splash d'origine : la police
- *  n'est pas dans le repo, donc on garde le tracé rendu et on le TEINTE. */
-const WORDMARK = join(ASSETS, 'wordmark-forkmap.png')
-const WORDMARK_RATIO = 543 / 157 // largeur / hauteur du sprite
 
 /** Le symbole seul (grille 0..64). `steam` sépare la vapeur du bol pour que
  *  l'or reste la seule couleur — c'est lui qui réchauffe un écran neutre. */
@@ -65,47 +61,26 @@ const mark = (color, steam = color) => `
   <path d="M15 34h34a17 17 0 0 1-34 0Z" fill="${color}"/>`
 
 /**
- * Splash : marque + logotype verrouillés, le bloc optiquement centré.
+ * Splash : la marque SEULE, centrée. Pas de logotype — l'app s'ouvre sur son
+ * symbole, le nom est déjà sous l'icône de l'écran d'accueil.
  *
- * @capacitor/assets recadre ce carré au centre pour chaque écran, donc tout ce
- * qui compte doit rester près du milieu — d'où un bloc compact plutôt que deux
- * éléments repoussés aux extrémités (l'ancien logotype, à 91 % de la hauteur,
- * frôlait le bord une fois recadré).
+ * @capacitor/assets recadre ce carré au centre pour chaque écran : sur un
+ * téléphone portrait, seule la bande centrale (~46 % de la largeur) reste
+ * visible. La marque est dimensionnée pour tenir largement dedans.
  */
 async function splash(px, { bg, ink }, out) {
-  const MARK = px * 0.15 // largeur (et hauteur) de la marque
-  const WORD = px * 0.3 // largeur du logotype
-  const wordH = WORD / WORDMARK_RATIO
-  const GAP = px * 0.05 // respiration entre marque et logotype
-
-  const blockH = MARK + GAP + wordH
-  // Centre optique : un bloc géométriquement centré paraît tomber vers le bas.
-  const top = (px - blockH) / 2 - px * 0.02
-
+  const MARK = px * 0.2
   const s = MARK / 64
+  const x = (px - MARK) / 2
+  // Centre optique : un élément géométriquement centré paraît tomber vers le bas.
+  const y = (px - MARK) / 2 - px * 0.015
+
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="0 0 ${px} ${px}">
     <rect width="${px}" height="${px}" fill="${bg}"/>
-    <g transform="translate(${(px - MARK) / 2} ${top}) scale(${s})">${mark(ink, GOLD)}</g>
+    <g transform="translate(${x} ${y}) scale(${s})">${mark(ink, GOLD)}</g>
   </svg>`
 
-  const w = Math.round(WORD)
-  const h = Math.round(wordH)
-  // Le sprite porte le logotype dans son canal alpha : on s'en sert comme
-  // masque (`dest-in`) sur un aplat `ink` pour le teinter proprement.
-  const alpha = await sharp(WORDMARK).resize(w, h).ensureAlpha().toBuffer()
-  const tinted = await sharp({
-    create: { width: w, height: h, channels: 4, background: ink },
-  })
-    .composite([{ input: alpha, blend: 'dest-in' }])
-    .png()
-    .toBuffer()
-
-  await sharp(Buffer.from(svg))
-    .composite([
-      { input: tinted, left: Math.round((px - WORD) / 2), top: Math.round(top + MARK + GAP) },
-    ])
-    .png()
-    .toFile(join(ASSETS, out))
+  await sharp(Buffer.from(svg)).png().toFile(join(ASSETS, out))
 }
 
 async function main() {
@@ -120,14 +95,21 @@ async function main() {
   // lieu de la dégrader à chaque passage sur le splash.
   // Pour retoucher l'icône : modifier assets/icon-*.png, pas ce script.
 
-  await splash(2732, { bg: LIGHT_BG, ink: INK }, 'splash.png')
+  // ⚠️ UNE SEULE apparence, volontairement : le même visuel en clair et en sombre.
+  // iOS affiche DEUX splashs successifs — l'écran de lancement natif, puis le
+  // plugin Capacitor qui ré-instancie le MÊME storyboard (SplashScreen.swift).
+  // Avec des variantes clair/sombre distinctes, ces deux calques peuvent résoudre
+  // des apparences DIFFÉRENTES (le natif suit le système, le plugin suit le thème
+  // appliqué par l'app) : on voit alors un splash basculer vers l'autre au
+  // lancement. Un visuel unique rend la superposition invisible.
+  await splash(2732, { bg: DARK_BG, ink: OFF_WHITE }, 'splash.png')
   await splash(2732, { bg: DARK_BG, ink: OFF_WHITE }, 'splash-dark.png')
 
   console.warn('✓ sources splash écrites dans assets/ — génération @capacitor/assets…')
   execSync(
     'npx --yes @capacitor/assets generate --ios --android' +
       ` --iconBackgroundColor '${INK}' --iconBackgroundColorDark '${INK}'` +
-      ` --splashBackgroundColor '${LIGHT_BG}' --splashBackgroundColorDark '${DARK_BG}'`,
+      ` --splashBackgroundColor '${DARK_BG}' --splashBackgroundColorDark '${DARK_BG}'`,
     { cwd: ROOT, stdio: 'inherit' }
   )
   console.warn('✓ splash + icônes (inchangées) générés (ios/ et android/).')

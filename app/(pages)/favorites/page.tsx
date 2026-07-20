@@ -800,8 +800,8 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
 
 // ── Fav card — liste ──────────────────────────────────────
 function favPhoto(fav: FavoriteRow, w = 240): string | null {
-  // Same source priority as PlaceThumb: Google/FSQ → OSM Commons → Wikidata →
-  // Mapillary storefront. The snapshot IS a PlaceCard.
+  // Mêmes sources que PlaceThumb : Google/FSQ → Wikimedia → Wikidata (plus de
+  // Mapillary). Le snapshot EST un PlaceCard.
   return fav.snapshot ? placePhotoUrl(fav.snapshot as unknown as PlaceCard, w) : null
 }
 

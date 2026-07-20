@@ -62,46 +62,14 @@ function PickRow({
   const isFav = !!place.is_favorite
   const wt = walkTime(place.distance)
 
+  // Méta secondaire : la note se pose sur la photo (voir plus bas), elle n'est
+  // plus un item parmi cinq où tout avait le même poids.
   const meta: ReactNode[] = []
-  if (rating != null) {
-    meta.push(
-      <span
-        key="rating"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 3,
-          fontWeight: 700,
-          color: 'var(--text)',
-        }}
-      >
-        <Star size={13} strokeWidth={0} fill="var(--star)" />
-        {rating.toFixed(1)}
-      </span>
-    )
-  }
   if (cuisine) meta.push(<span key="cuisine">{frCuisine(cuisine)}</span>)
   if (price != null) {
     meta.push(
       <span key="price" style={{ color: 'var(--text-3)', fontWeight: 600 }}>
         {priceLabel(price)}
-      </span>
-    )
-  }
-  if (place.open_now !== undefined) {
-    meta.push(
-      <span
-        key="open"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 4,
-          fontWeight: 600,
-          color: place.open_now ? 'var(--open)' : 'var(--closed)',
-        }}
-      >
-        <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }} />
-        {place.open_now ? 'Ouvert' : 'Fermé'}
       </span>
     )
   }
@@ -139,18 +107,74 @@ function PickRow({
         fontFamily: 'inherit',
       }}
     >
-      {/* Vignette 66px — photo ou repli dégradé + initiale serif */}
+      {/* Photo 96px — le sujet de la ligne. Le design system dit « photos +
+          étoile dorée = seules vraies couleurs » : à 66px la promesse n'était
+          pas tenue et l'écran restait gris. */}
       <div
         style={{
-          width: 66,
-          height: 66,
-          borderRadius: 15,
+          position: 'relative',
+          width: 96,
+          height: 96,
+          borderRadius: 18,
           overflow: 'hidden',
           flexShrink: 0,
           boxShadow: 'var(--s1)',
         }}
       >
-        <PlaceThumb place={place} initialSize={28} />
+        {/* Note + statut confiés à PlaceThumb : rendus seulement si une vraie
+            photo s'affiche (sinon la tuile-score porte déjà la note). */}
+        <PlaceThumb
+          place={place}
+          initialSize={34}
+          photoSize={256}
+          overlay={
+            <>
+              {rating != null && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 6,
+                    left: 6,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    padding: '3px 7px 3px 5px',
+                    borderRadius: 999,
+                    background: 'rgba(16,16,17,0.72)',
+                    backdropFilter: 'blur(6px)',
+                    color: '#fff',
+                    fontSize: 11.5,
+                    fontWeight: 800,
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  <Star size={11} strokeWidth={0} fill="var(--star)" />
+                  {rating.toFixed(1)}
+                </div>
+              )}
+              {place.open_now === false && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'rgba(16,16,17,0.55)',
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    justifyContent: 'center',
+                    paddingBottom: 7,
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    color: '#fff',
+                  }}
+                >
+                  Fermé
+                </div>
+              )}
+            </>
+          }
+        />
       </div>
 
       {/* Corps — nom serif + méta à points */}

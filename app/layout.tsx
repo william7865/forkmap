@@ -7,6 +7,7 @@ import CapacitorInit from '@/components/native/CapacitorInit'
 import GetAppBanner from '@/components/app/GetAppBanner'
 import { ImportsProvider } from '@/lib/hooks/useImportsContext'
 import { ToastProvider } from '@/lib/hooks/useToastContext'
+import BootSplash from '@/components/native/BootSplash'
 
 export const viewport: Viewport = {
   // Static <meta name="theme-color">, emitted at build time — can't reference a CSS var().
@@ -75,6 +76,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 acknowledge an action without prop-drilling (useToastContext.tsx). */}
             <ToastProvider>
               <ErrorBoundary>
+                {/* Prolonge l'écran de lancement natif avec la MÊME marque, au
+                    même endroit — le relais est invisible. Statique et rendu
+                    avant tout le reste : peint dès la première frame, sans
+                    attendre React. Build natif uniquement. */}
+                {isExport && <BootSplash />}
                 <CapacitorInit />
                 <AppChrome forceNative={isExport} />
                 {/* Nudge web visitors to the native app (self-hides in the app). */}

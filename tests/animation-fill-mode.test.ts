@@ -21,8 +21,13 @@ import { join } from 'node:path'
 // The exceptions below genuinely need their final frame to persist.
 // ───────────────────────────────────────────────────────────────────────────
 
-/** Keyframes whose last frame is NOT the natural state — these must keep `both`. */
-const FILL_REQUIRED = ['heartParticle', 'toastOut']
+/**
+ * Keyframes whose last frame is NOT the natural state, so the fill MUST persist:
+ * heartParticle ends at scale(0), toastOut at opacity 0, bootSplashOut at
+ * opacity 0 + visibility hidden (sans quoi le splash de démarrage réapparaîtrait
+ * à la fin de son propre fondu).
+ */
+const FILL_REQUIRED = ['heartParticle', 'toastOut', 'bootSplashOut']
 
 const ROOTS = ['app', 'components']
 const EXTS = ['.ts', '.tsx', '.css']
