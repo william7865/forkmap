@@ -8,6 +8,7 @@ import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import type { PlaceCard } from '@/types'
 import { friendlyError } from '@/lib/api-errors'
 import { apiFetch } from '@/lib/api'
+import { successTap, errorTap } from '@/lib/native/haptics'
 import {
   IcoMoodSolo,
   IcoMoodCouple,
@@ -221,16 +222,19 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
       if (!res.ok) {
         const d = await res.json()
         setError(friendlyError(d.error))
+        errorTap()
         setSaving(false)
         return
       }
       setSaved(true)
+      successTap()
       setTimeout(() => {
         onSaved()
         onClose()
       }, 700)
     } catch (err) {
       setError(friendlyError(err))
+      errorTap()
       setSaving(false)
     }
   }

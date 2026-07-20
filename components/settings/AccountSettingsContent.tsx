@@ -534,7 +534,6 @@ export default function AccountSettingsContent({ isMobile }: { isMobile: boolean
       )}
 
       <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes scaleIn { from{opacity:0;transform:scale(0.94)} to{opacity:1;transform:scale(1)} }
         @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
         .set-quiet { transition: background 140ms ease, border-color 140ms ease; }

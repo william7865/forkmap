@@ -2,11 +2,12 @@
 // ReviewComposer — bottom sheet to write/edit a community review:
 // star rating + optional text + up to 4 photos. Native-only UI.
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
-import { Star, X, Camera, Trash2 } from 'lucide-react'
+import { Star, X, Camera, Trash2, Check } from 'lucide-react'
 import type { UserReview } from '@/types'
 import { pickPhoto } from '@/lib/native/camera'
-import { lightTap } from '@/lib/native/haptics'
+import { lightTap, successTap, errorTap } from '@/lib/native/haptics'
 import { canSubmit, REVIEW_TEXT_MAX, REVIEW_PHOTOS_MAX } from '@/lib/reviews'
 
 interface PhotoSlot {
@@ -38,6 +39,7 @@ export default function ReviewComposer({ initial, placeName, onClose, onSubmit, 
   )
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [sent, setSent] = useState(false)
   const seq = useRef(0)
 
   // Track the latest photos so the unmount cleanup sees session-added blobs
@@ -83,8 +85,15 @@ export default function ReviewComposer({ initial, placeName, onClose, onSubmit, 
       keepUrls: photos.filter((p) => p.keepUrl).map((p) => p.keepUrl!),
     })
     setBusy(false)
-    if (ok) onClose()
-    else setErr("L'envoi a échoué. Réessaie.")
+    if (ok) {
+      setSent(true)
+      successTap()
+      // Hold the confirmed state briefly so it's seen, then leave.
+      setTimeout(onClose, 700)
+    } else {
+      setErr("L'envoi a échoué. Réessaie.")
+      errorTap()
+    }
   }
 
   const handleDelete = async () => {
@@ -97,7 +106,7 @@ export default function ReviewComposer({ initial, placeName, onClose, onSubmit, 
     else setErr('La suppression a échoué.')
   }
 
-  return (
+  const sheet = (
     <div
       onClick={onClose}
       style={{
@@ -313,24 +322,53 @@ export default function ReviewComposer({ initial, placeName, onClose, onSubmit, 
           )}
           <button
             onClick={handleSubmit}
-            disabled={!submittable || busy}
+            disabled={!submittable || busy || sent}
             style={{
               flex: 1,
               height: 46,
               border: 'none',
               borderRadius: 'var(--r-lg)',
-              background: submittable && !busy ? 'var(--accent)' : 'var(--border)',
-              color: submittable && !busy ? 'var(--on-accent, #fff)' : 'var(--text-3)',
+              background: sent
+                ? 'var(--open)'
+                : submittable && !busy
+                  ? 'var(--accent)'
+                  : 'var(--border)',
+              color: sent || (submittable && !busy) ? 'var(--on-accent, #fff)' : 'var(--text-3)',
               fontSize: 15,
               fontWeight: 600,
-              cursor: submittable && !busy ? 'pointer' : 'default',
-              transition: 'background 150ms',
+              cursor: submittable && !busy && !sent ? 'pointer' : 'default',
+              transition: 'background var(--t2) var(--ease-out)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
             }}
           >
-            {busy ? 'Envoi…' : initial ? 'Mettre à jour' : 'Publier mon avis'}
+            {/* Confirm on the control that was pressed, then leave — same shape as
+                VisitModal's save button, so committing feels the same everywhere. */}
+            {sent ? (
+              <>
+                <Check size={17} strokeWidth={3} />
+                {initial ? 'Mis à jour' : 'Publié'}
+              </>
+            ) : busy ? (
+              'Envoi…'
+            ) : initial ? (
+              'Mettre à jour'
+            ) : (
+              'Publier mon avis'
+            )}
           </button>
         </div>
       </div>
     </div>
   )
+
+  // Portal to <body>: the composer renders inside ReviewsSection, which is a
+  // child of PlaceDetail's `.cascade` — and a `.cascade` child keeps a transform
+  // from its entry animation. A transformed ancestor becomes the containing block
+  // for `position: fixed`, so without this the sheet was trapped INSIDE the
+  // reviews block: no full-screen overlay, the "modal" sitting mid-page.
+  if (typeof document === 'undefined') return null
+  return createPortal(sheet, document.body)
 }

@@ -7,6 +7,7 @@ import { apiFetch } from '@/lib/api'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { useIsNative } from '@/lib/native/platform'
 import { Avatar } from '@/components/social/Avatar'
+import { staggerDelay } from '@/lib/motion'
 
 interface FriendLite {
   id: string
@@ -92,10 +93,14 @@ export default function PlaceSocialProof({ osmId }: { osmId: string }) {
         {union.slice(0, 3).map((p, i) => (
           <div
             key={p.id}
+            // The faces gather one after the other rather than blinking in as a
+            // block — the one place on the fiche where the data IS people.
+            className="anim-scale-in"
             style={{
               marginLeft: i === 0 ? 0 : -9,
               borderRadius: '50%',
               boxShadow: '0 0 0 2px var(--surface)',
+              animationDelay: staggerDelay(i, 70),
             }}
           >
             <Avatar name={p.display_name} src={p.avatar_url} id={p.id} size={30} />

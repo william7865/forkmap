@@ -1,44 +1,92 @@
 // ============================================================
 // components/states/EmptyState.tsx — reusable empty state
-// Variants: no-results, no-favorites, no-location, no-area
+//
+// Every variant names the GESTURE that fills it. An empty screen is the one
+// moment a user is guaranteed to be looking for what to do next, so "Aucun
+// favori ici." is a dead end where one sentence would have taught the app.
 // ============================================================
 'use client'
 
-import { Search, UtensilsCrossed, MapPin, Radio } from 'lucide-react'
+import {
+  Search,
+  UtensilsCrossed,
+  MapPin,
+  Radio,
+  Utensils,
+  PartyPopper,
+  ListPlus,
+} from 'lucide-react'
+
+export type EmptyVariant =
+  | 'no-results'
+  | 'no-favorites'
+  | 'no-area'
+  | 'no-location'
+  | 'no-visits'
+  | 'no-tested'
+  | 'all-tested'
+  | 'no-lists'
 
 interface Props {
-  variant: 'no-results' | 'no-favorites' | 'no-area' | 'no-location'
+  variant: EmptyVariant
   searchQuery?: string
   onReset?: () => void
   onExplore?: () => void
 }
 
-const CONFIG = {
+const CONFIG: Record<
+  EmptyVariant,
+  { Icon: typeof Search; title: string; desc: (q?: string) => string; cta: string | null }
+> = {
   'no-results': {
     Icon: Search,
     title: 'Aucun résultat',
     desc: (q?: string) =>
       q
-        ? `Aucun restaurant ne correspond à "${q}"`
-        : 'Aucun restaurant ne correspond à vos filtres',
+        ? `Aucun restaurant ne correspond à « ${q} »`
+        : 'Aucun restaurant ne correspond à tes filtres',
     cta: 'Réinitialiser les filtres',
   },
   'no-favorites': {
     Icon: UtensilsCrossed,
     title: "Rien d'enregistré",
-    desc: () => "Appuyez sur le marque-page d'un restaurant pour l'enregistrer ici",
+    desc: () => "Appuie sur le marque-page d'un restaurant pour le retrouver ici",
     cta: 'Explorer la carte',
   },
   'no-area': {
     Icon: MapPin,
     title: 'Aucun restaurant ici',
-    desc: () => 'Déplacez la carte pour explorer une nouvelle zone',
+    desc: () => 'Déplace la carte pour explorer une nouvelle zone',
     cta: null,
   },
   'no-location': {
     Icon: Radio,
     title: 'Position non définie',
-    desc: () => 'Définissez un point de départ pour voir les distances et itinéraires',
+    desc: () => 'Définis un point de départ pour voir les distances et les itinéraires',
+    cta: null,
+  },
+  'no-visits': {
+    Icon: Utensils,
+    title: 'Aucune visite',
+    desc: () => "Ouvre la fiche d'un restaurant et consigne ta visite pour suivre tes dépenses ici",
+    cta: 'Explorer la carte',
+  },
+  'no-tested': {
+    Icon: Utensils,
+    title: 'Rien de testé',
+    desc: () => "Consigne une visite depuis la fiche d'un resto pour le marquer comme testé",
+    cta: null,
+  },
+  'all-tested': {
+    Icon: PartyPopper,
+    title: 'Tout est testé',
+    desc: () => "Tu as visité tous tes favoris. Enregistres-en d'autres pour continuer",
+    cta: 'Explorer la carte',
+  },
+  'no-lists': {
+    Icon: ListPlus,
+    title: 'Aucune liste',
+    desc: () => 'Crée une liste pour ranger tes favoris par envie, quartier ou occasion',
     cta: null,
   },
 }

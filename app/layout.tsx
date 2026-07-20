@@ -6,6 +6,7 @@ import AppChrome from '@/components/ui/AppChrome'
 import CapacitorInit from '@/components/native/CapacitorInit'
 import GetAppBanner from '@/components/app/GetAppBanner'
 import { ImportsProvider } from '@/lib/hooks/useImportsContext'
+import { ToastProvider } from '@/lib/hooks/useToastContext'
 
 export const viewport: Viewport = {
   // Static <meta name="theme-color">, emitted at build time — can't reference a CSS var().
@@ -70,14 +71,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               row and the import detail all read it — and only ONE background
               resolver ever runs (see lib/hooks/useImportsContext.tsx). */}
           <ImportsProvider>
-            <ErrorBoundary>
-              <CapacitorInit />
-              <AppChrome forceNative={isExport} />
-              {/* Nudge web visitors to the native app (self-hides in the app). */}
-              <GetAppBanner />
-              {/* Push content right on desktop, up on mobile */}
-              <div className="main-content-offset">{children}</div>
-              <style>{`
+            {/* One toast stack for the whole app — every screen and modal can
+                acknowledge an action without prop-drilling (useToastContext.tsx). */}
+            <ToastProvider>
+              <ErrorBoundary>
+                <CapacitorInit />
+                <AppChrome forceNative={isExport} />
+                {/* Nudge web visitors to the native app (self-hides in the app). */}
+                <GetAppBanner />
+                {/* Push content right on desktop, up on mobile */}
+                <div className="main-content-offset">{children}</div>
+                <style>{`
               /* Sole reservation for the fixed web chrome: the 52px NavRail on desktop,
                  the 56px + 1px border BottomNav on mobile. Pages must not add their own.
                  html.native-app renders AppTabBar instead, which reserves nothing here. */
@@ -87,7 +91,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               }
               html.native-app .main-content-offset { margin-left: 0; margin-bottom: 0; }
             `}</style>
-            </ErrorBoundary>
+              </ErrorBoundary>
+            </ToastProvider>
           </ImportsProvider>
         </LanguageProvider>
       </body>

@@ -54,10 +54,12 @@ const IcoInfo = () => (
 )
 
 const STYLES = {
+  // --open-bg/--open, not a hardcoded green: the palette's only true chroma is the
+  // gold star, and every other colour here has to come from a token or it drifts.
   success: {
-    bg: '#dcfce7',
+    bg: 'var(--open-bg)',
     border: 'rgba(27,127,79,0.25)',
-    color: 'var(--green)',
+    color: 'var(--open)',
     icon: <IcoCheck />,
   },
   error: {
@@ -79,7 +81,8 @@ export default function ToastStack({ toasts, onDismiss }: Props) {
       aria-atomic="false"
       style={{
         position: 'fixed',
-        bottom: 20,
+        // Above the bottom bar, never across it (see --toast-bottom in globals.css).
+        bottom: 'var(--toast-bottom)',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 2000,
