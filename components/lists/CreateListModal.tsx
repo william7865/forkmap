@@ -268,7 +268,7 @@ export function CreateListModal({ initial, onSave, onClose }: Props) {
               cursor: name.trim() ? 'pointer' : 'not-allowed',
               fontSize: 13,
               fontWeight: 600,
-              color: name.trim() ? 'white' : 'var(--text-3)',
+              color: name.trim() ? 'var(--on-accent)' : 'var(--text-3)',
               fontFamily: 'inherit',
               boxShadow: name.trim() ? 'var(--s-forest)' : 'none',
               transition: 'all 150ms',

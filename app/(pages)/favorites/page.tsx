@@ -849,7 +849,10 @@ function chipStyle(active: boolean): React.CSSProperties {
     borderRadius: 999,
     border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
     background: active ? 'var(--accent)' : 'var(--bg)',
-    color: active ? '#fff' : 'var(--text-2)',
+    // var(--on-accent), pas #fff en dur : en thème sombre l'accent devient
+    // clair, donc un texte blanc dessus était invisible. --on-accent est
+    // blanc en clair, sombre en sombre.
+    color: active ? 'var(--on-accent)' : 'var(--text-2)',
     fontFamily: 'var(--font-body)',
     fontSize: 13.5,
     fontWeight: 600,
@@ -2484,7 +2487,9 @@ function FavoritesPageInner() {
                     style={{
                       ...icoBtnStyle,
                       background: viewMode === 'grid' ? 'var(--accent)' : 'var(--surface)',
-                      color: viewMode === 'grid' ? '#fff' : 'var(--text-2)',
+                      // var(--on-accent) : #fff en dur devenait invisible sur
+                      // l'accent clair du thème sombre.
+                      color: viewMode === 'grid' ? 'var(--on-accent)' : 'var(--text-2)',
                       borderColor: viewMode === 'grid' ? 'var(--accent)' : 'var(--border)',
                     }}
                   >

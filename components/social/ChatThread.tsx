@@ -468,7 +468,7 @@ export default function ChatThread({
                         padding: '9px 13px',
                         borderRadius: 16,
                         background: mine ? 'var(--accent)' : 'var(--white)',
-                        color: mine ? '#fff' : 'var(--ink)',
+                        color: mine ? 'var(--on-accent)' : 'var(--ink)',
                         border: mine ? 'none' : '1px solid var(--b2)',
                         fontSize: 14.5,
                         lineHeight: 1.35,

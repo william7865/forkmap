@@ -168,7 +168,7 @@ export default function PublicListSheet({
                   borderRadius: 'var(--r-md)',
                   border: '1px solid var(--b2)',
                   background: isSaved ? 'var(--accent)' : 'var(--white)',
-                  color: isSaved ? '#fff' : 'var(--accent)',
+                  color: isSaved ? 'var(--on-accent)' : 'var(--accent)',
                   cursor: isSaved ? 'default' : 'pointer',
                   flexShrink: 0,
                 }}
