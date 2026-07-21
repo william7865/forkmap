@@ -15,13 +15,13 @@
 // session, so it always has the correct auth state.
 // ============================================================
 
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server'
 
 export function middleware() {
-  return NextResponse.next();
+  return NextResponse.next()
 }
 
 // Empty matcher = middleware never runs, zero overhead
 export const config = {
   matcher: [],
-};
+}

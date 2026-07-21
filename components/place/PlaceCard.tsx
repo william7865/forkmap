@@ -6,7 +6,7 @@ import { Bookmark, MapPin, Star } from 'lucide-react'
 import { frCuisine } from '@/lib/cuisine'
 import { useIsNative } from '@/lib/native/platform'
 import PlaceThumb from '@/components/place/PlaceThumb'
-import { Avatar } from '@/components/social/Avatar'
+import PlaceRowThumb from '@/components/place/PlaceRowThumb'
 
 interface Props {
   place: T
@@ -147,110 +147,8 @@ const PlaceCard = memo(function PlaceCard({
           }
         }}
       >
-        {/* Photo 96px — le sujet de la ligne, pas une vignette d'appoint. */}
-        <div
-          style={{
-            position: 'relative',
-            width: 96,
-            height: 96,
-            borderRadius: 18,
-            overflow: 'hidden',
-            flexShrink: 0,
-            boxShadow: 'var(--s1)',
-            border: isSelected ? '2px solid var(--accent)' : 'none',
-          }}
-        >
-          {/* Note + statut confiés à PlaceThumb : rendus SEULEMENT si une vraie
-              photo s'affiche (sinon la tuile-score porte déjà la note). */}
-          <PlaceThumb
-            place={place}
-            initialSize={34}
-            photoSize={256}
-            overlay={
-              <>
-                {rating != null && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 6,
-                      left: 6,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 3,
-                      padding: '3px 7px 3px 5px',
-                      borderRadius: 999,
-                      background: 'rgba(16,16,17,0.72)',
-                      backdropFilter: 'blur(6px)',
-                      color: '#fff',
-                      fontSize: 11.5,
-                      fontWeight: 800,
-                      letterSpacing: '-0.01em',
-                    }}
-                  >
-                    <Star size={11} strokeWidth={0} fill="var(--star)" />
-                    {rating.toFixed(1)}
-                  </div>
-                )}
-                {place.open_now === false && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      background: 'rgba(16,16,17,0.55)',
-                      display: 'flex',
-                      alignItems: 'flex-end',
-                      justifyContent: 'center',
-                      paddingBottom: 7,
-                      fontSize: 10.5,
-                      fontWeight: 800,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      color: '#fff',
-                    }}
-                  >
-                    Fermé
-                  </div>
-                )}
-              </>
-            }
-          />
-
-          {place.friendsSaved && place.friendsSaved.length > 0 && (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: 4,
-                left: 4,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 3,
-                background: 'rgba(255,255,255,0.94)',
-                backdropFilter: 'blur(4px)',
-                borderRadius: 999,
-                padding: '2px 6px 2px 3px',
-                boxShadow: 'var(--s1)',
-              }}
-            >
-              <div style={{ display: 'flex' }}>
-                {place.friendsSaved.slice(0, 2).map((f, i) => (
-                  <div
-                    key={f.id}
-                    style={{
-                      marginLeft: i === 0 ? 0 : -6,
-                      boxShadow: '0 0 0 1.5px #fff',
-                      borderRadius: '50%',
-                    }}
-                  >
-                    <Avatar name={f.display_name} src={f.avatar_url} id={f.id} size={14} />
-                  </div>
-                ))}
-              </div>
-              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text)' }}>
-                {place.friendsSaved.length}
-              </span>
-            </div>
-          )}
-        </div>
+        {/* Tuile photo partagée avec HomeEditorial (PlaceRowThumb). */}
+        <PlaceRowThumb place={place} selected={isSelected} showFriends />
 
         {/* Corps — nom serif + méta à points */}
         <div style={{ flex: 1, minWidth: 0 }}>

@@ -28,7 +28,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ us
 }
 
 // Supprimer la conversation (pour moi).
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ userId: string }> }
+) {
   const limited = rateLimit(req, { limit: 60, windowMs: 60_000 })
   if (limited) return limited
   const auth = await requireUser(req)

@@ -184,7 +184,11 @@ export default function ProfileEdit({ onClose, allowUsername = false }: Props) {
       }
     }
     // Nothing left to persist (e.g. only the avatar changed) → just close.
-    if (patch.display_name === undefined && patch.username === undefined && patch.bio === undefined) {
+    if (
+      patch.display_name === undefined &&
+      patch.username === undefined &&
+      patch.bio === undefined
+    ) {
       onClose()
       return
     }

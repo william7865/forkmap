@@ -39,7 +39,9 @@ function run(cmd, args, env) {
     })
     child.on('error', reject)
     child.on('close', (code) =>
-      code === 0 ? resolve() : reject(new Error(`${cmd} ${args.join(' ')} exited with code ${code}`))
+      code === 0
+        ? resolve()
+        : reject(new Error(`${cmd} ${args.join(' ')} exited with code ${code}`))
     )
   })
 }

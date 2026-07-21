@@ -6,13 +6,13 @@
 // hors mode « enregistrés », quand il y a des lieux.
 import { memo, useEffect, useMemo, useState, Fragment, type ReactNode } from 'react'
 import type { PlaceCard } from '@/types'
-import { Star, Bookmark, MapPin, Sparkles } from 'lucide-react'
+import { Bookmark, MapPin, Sparkles } from 'lucide-react'
 import { frCuisine } from '@/lib/cuisine'
 import { getMoment, momentEyebrow } from '@/lib/context'
 import { loadTasteProfile, tasteBoost, emptyProfile } from '@/lib/taste'
 import { buildCollections } from '@/lib/collections'
 import { staggerDelay } from '@/lib/motion'
-import PlaceThumb from '@/components/place/PlaceThumb'
+import PlaceRowThumb from '@/components/place/PlaceRowThumb'
 
 interface Props {
   places: PlaceCard[]
@@ -56,7 +56,6 @@ function PickRow({
   onToggleFavorite: (p: PlaceCard) => void
   index: number
 }) {
-  const rating = place.fsq?.rating
   const cuisine = place.cuisine ?? place.fsq?.categories?.[0]?.name
   const price = place.fsq?.price
   const isFav = !!place.is_favorite
@@ -107,75 +106,9 @@ function PickRow({
         fontFamily: 'inherit',
       }}
     >
-      {/* Photo 96px — le sujet de la ligne. Le design system dit « photos +
-          étoile dorée = seules vraies couleurs » : à 66px la promesse n'était
-          pas tenue et l'écran restait gris. */}
-      <div
-        style={{
-          position: 'relative',
-          width: 96,
-          height: 96,
-          borderRadius: 18,
-          overflow: 'hidden',
-          flexShrink: 0,
-          boxShadow: 'var(--s1)',
-        }}
-      >
-        {/* Note + statut confiés à PlaceThumb : rendus seulement si une vraie
-            photo s'affiche (sinon la tuile-score porte déjà la note). */}
-        <PlaceThumb
-          place={place}
-          initialSize={34}
-          photoSize={256}
-          overlay={
-            <>
-              {rating != null && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 6,
-                    left: 6,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 3,
-                    padding: '3px 7px 3px 5px',
-                    borderRadius: 999,
-                    background: 'rgba(16,16,17,0.72)',
-                    backdropFilter: 'blur(6px)',
-                    color: '#fff',
-                    fontSize: 11.5,
-                    fontWeight: 800,
-                    letterSpacing: '-0.01em',
-                  }}
-                >
-                  <Star size={11} strokeWidth={0} fill="var(--star)" />
-                  {rating.toFixed(1)}
-                </div>
-              )}
-              {place.open_now === false && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: 'rgba(16,16,17,0.55)',
-                    display: 'flex',
-                    alignItems: 'flex-end',
-                    justifyContent: 'center',
-                    paddingBottom: 7,
-                    fontSize: 10.5,
-                    fontWeight: 800,
-                    letterSpacing: '0.06em',
-                    textTransform: 'uppercase',
-                    color: '#fff',
-                  }}
-                >
-                  Fermé
-                </div>
-              )}
-            </>
-          }
-        />
-      </div>
+      {/* Tuile photo partagée avec la liste principale (PlaceRowThumb). Pas de
+          badge amis ici : la sélection éditoriale reste calme. */}
+      <PlaceRowThumb place={place} />
 
       {/* Corps — nom serif + méta à points */}
       <div style={{ flex: 1, minWidth: 0 }}>

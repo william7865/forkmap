@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  haversineDistance,
-  computeScore,
-  applyFilters,
-  extractCuisines,
-} from '@/lib/scoring'
+import { haversineDistance, computeScore, applyFilters, extractCuisines } from '@/lib/scoring'
 import type { PlaceCard, FilterState } from '@/types'
 
 // ---------- Helpers ----------
@@ -53,7 +48,14 @@ describe('computeScore', () => {
 
   it('is higher for a verified place with a good rating', () => {
     const good = makePlace({
-      fsq: { fsq_id: 'a', rating: 9, verified: true, total_ratings: 400, photos: [], categories: [] },
+      fsq: {
+        fsq_id: 'a',
+        rating: 9,
+        verified: true,
+        total_ratings: 400,
+        photos: [],
+        categories: [],
+      },
     })
     const plain = makePlace()
     expect(computeScore(good)).toBeGreaterThan(computeScore(plain))
@@ -74,14 +76,30 @@ const places: PlaceCard[] = [
     name: 'Chez Pierre',
     cuisine: 'french',
     distance: 300,
-    fsq: { fsq_id: 'x', rating: 8, price: 2, total_ratings: 100, verified: false, photos: [], categories: [] },
+    fsq: {
+      fsq_id: 'x',
+      rating: 8,
+      price: 2,
+      total_ratings: 100,
+      verified: false,
+      photos: [],
+      categories: [],
+    },
   }),
   makePlace({
     osm_id: 'b',
     name: 'Sushi Yuki',
     cuisine: 'japanese',
     distance: 800,
-    fsq: { fsq_id: 'y', rating: 6, price: 3, total_ratings: 50, verified: false, photos: [], categories: [] },
+    fsq: {
+      fsq_id: 'y',
+      rating: 6,
+      price: 3,
+      total_ratings: 50,
+      verified: false,
+      photos: [],
+      categories: [],
+    },
   }),
   makePlace({
     osm_id: 'c',

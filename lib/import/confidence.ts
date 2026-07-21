@@ -79,10 +79,7 @@ export function nameSimilarity(guess: string, candidate: string): number {
  *     are excluded, so a real ambiguity stays ambiguous.
  * Returns [] when there is no chain (fewer than two matching branches).
  */
-export function chainMatches(
-  guess: PlaceGuess,
-  results: PlaceSearchResult[]
-): PlaceSearchResult[] {
+export function chainMatches(guess: PlaceGuess, results: PlaceSearchResult[]): PlaceSearchResult[] {
   if (results.length < 2) return []
   const scored = results
     .map((place) => ({ place, score: nameSimilarity(guess.name, place.name) }))

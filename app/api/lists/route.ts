@@ -41,8 +41,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.message }, { status: 400 })
   }
 
-  const visibility =
-    parsed.data.visibility ?? (parsed.data.is_public ? 'public' : 'private')
+  const visibility = parsed.data.visibility ?? (parsed.data.is_public ? 'public' : 'private')
   try {
     const list = await createList(
       auth.userId,

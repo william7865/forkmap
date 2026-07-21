@@ -77,7 +77,9 @@ describe('extractPlaceCandidates', () => {
     it('nettoie les suffixes séparés (officiel, .fr, _off, paris)', () => {
       expect(names(extractPlaceCandidates(post({ handle: 'bistrot.officiel' })))[0]).toBe('bistrot')
       expect(names(extractPlaceCandidates(post({ handle: 'lami_off' })))[0]).toBe('lami')
-      expect(names(extractPlaceCandidates(post({ account: 'Frenchie France' })))[0]).toBe('Frenchie')
+      expect(names(extractPlaceCandidates(post({ account: 'Frenchie France' })))[0]).toBe(
+        'Frenchie'
+      )
       expect(names(extractPlaceCandidates(post({ account: 'Clover Paris' })))[0]).toBe('Clover')
     })
 

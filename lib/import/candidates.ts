@@ -526,11 +526,7 @@ const GLUED_SUFFIX = ['officiel', 'official', 'restaurant', 'france', 'paris']
  * peeled only when a real stem (≥ 4 chars) survives. Never returns empty.
  */
 function stripBrandSuffix(raw: string): string {
-  let tokens = raw
-    .replace(/[._]+/g, ' ')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
+  let tokens = raw.replace(/[._]+/g, ' ').trim().split(/\s+/).filter(Boolean)
   if (tokens.length === 0) return raw.trim()
   // Drop trailing suffix tokens ("sushiwan france", "lami off"), but never the
   // last surviving word.

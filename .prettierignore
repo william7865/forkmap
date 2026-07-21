@@ -1,4 +1,17 @@
+# Dépendances & sorties de build
 .next/
 node_modules/
-public/
+out/
+coverage/
 *.lock
+
+# Coques natives (générées / gérées par Xcode & Gradle, pas par Prettier)
+ios/
+android/
+
+# Artefacts d'outils
+.impeccable/
+public/
+
+# Specs/plans locaux (gitignore aussi)
+docs/superpowers/

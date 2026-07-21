@@ -23,7 +23,12 @@ async function oembed(endpoint: string): Promise<OgMeta | null> {
       thumbnail_url?: string
     }
     if (!j.title && !j.thumbnail_url) return null
-    return { title: j.title, description: j.title, image: j.thumbnail_url, site_name: j.author_name }
+    return {
+      title: j.title,
+      description: j.title,
+      image: j.thumbnail_url,
+      site_name: j.author_name,
+    }
   } catch {
     return null
   }
