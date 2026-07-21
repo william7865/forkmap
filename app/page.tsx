@@ -89,6 +89,24 @@ function SelectParamWatcher({ onSelect }: { onSelect: (osmId: string) => void })
   return null
 }
 
+/**
+ * Adresse compacte pour distinguer deux restos homonymes dans la recherche.
+ * `p.address` = « n°, rue, code postal, ville » (OSM) ; on retire le token
+ * code postal (que des chiffres) — c'est du bruit — et on garde rue + ville.
+ * Repli sur la ville enrichie si l'adresse OSM manque.
+ */
+function searchAddress(p: PlaceCard): string | null {
+  const raw = p.address
+  if (raw) {
+    const parts = raw
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s && !/^\d{4,6}$/.test(s))
+    if (parts.length) return parts.join(', ')
+  }
+  return p.osm_enriched?.city ?? null
+}
+
 export default function HomePage() {
   const {
     isMobile,
@@ -698,13 +716,57 @@ export default function HomePage() {
                       onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface)')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
                     >
-                      <Search size={14} strokeWidth={1.75} color="var(--text-3)" />
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-                        {p.name}
+                      <Search
+                        size={14}
+                        strokeWidth={1.75}
+                        color="var(--text-3)"
+                        style={{ flexShrink: 0 }}
+                      />
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span
+                          style={{
+                            display: 'flex',
+                            alignItems: 'baseline',
+                            gap: 6,
+                            minWidth: 0,
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 600,
+                              color: 'var(--text)',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {p.name}
+                          </span>
+                          {p.cuisine && (
+                            <span style={{ fontSize: 11, color: 'var(--text-3)', flexShrink: 0 }}>
+                              {p.cuisine}
+                            </span>
+                          )}
+                        </span>
+                        {/* Adresse : distingue deux restos du même nom (« Gangnam »).
+                            Rue + ville depuis OSM, sans le code postal (bruit). */}
+                        {searchAddress(p) && (
+                          <span
+                            style={{
+                              display: 'block',
+                              marginTop: 1,
+                              fontSize: 11,
+                              color: 'var(--text-3)',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {searchAddress(p)}
+                          </span>
+                        )}
                       </span>
-                      {p.cuisine && (
-                        <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{p.cuisine}</span>
-                      )}
                     </button>
                   ))}
 

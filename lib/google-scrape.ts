@@ -88,6 +88,7 @@ interface ScrapePlace {
   name: string
   lat?: number
   lon?: number
+  address?: string
   fsq: FoursquareData
 }
 
@@ -96,6 +97,9 @@ export interface ScrapeSearchResult {
   name: string
   lat: number
   lon: number
+  /** Adresse formatée Google (« 36 Rue de Belleville, 75020 Paris »), pour
+   *  distinguer deux résultats homonymes dans la recherche. */
+  address?: string
   /** Full enrichment (rating/photos/hours) so a card can open from Google alone. */
   fsq: FoursquareData
 }
@@ -133,7 +137,9 @@ function mapScrapeEntry(entry: Node): ScrapePlace | null {
     photos: photoMatch ? [scrapePhoto(photoMatch[0])] : undefined,
     hours: hasHours ? { open_now: openNow, display: display || undefined } : undefined,
   }
-  return { name: p[11], lat: p[9]?.[2], lon: p[9]?.[3], fsq }
+  // p[39] = adresse formatée sans le nom (« 36 Rue de Belleville, 75020 Paris »).
+  const address = typeof p[39] === 'string' ? p[39] : undefined
+  return { name: p[11], lat: p[9]?.[2], lon: p[9]?.[3], address, fsq }
 }
 
 /**
@@ -152,7 +158,7 @@ export function parseScrapeResults(text: string): ScrapeSearchResult[] {
   for (const e of entries) {
     const m = mapScrapeEntry(e)
     if (m && typeof m.lat === 'number' && typeof m.lon === 'number') {
-      out.push({ name: m.name, lat: m.lat, lon: m.lon, fsq: m.fsq })
+      out.push({ name: m.name, lat: m.lat, lon: m.lon, address: m.address, fsq: m.fsq })
     }
   }
   return out

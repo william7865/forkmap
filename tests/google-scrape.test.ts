@@ -8,7 +8,13 @@ import {
 
 // Build a minimal Google-map place node (entry[14]): p[11]=name, p[4][7]=rating,
 // p[10]=id, p[9]=[.., .., lat, lon].
-function makeEntry(name: string, rating?: number, lat?: number, lon?: number): unknown[] {
+function makeEntry(
+  name: string,
+  rating?: number,
+  lat?: number,
+  lon?: number,
+  address?: string
+): unknown[] {
   const p: unknown[] = []
   const ratingArr: unknown[] = []
   if (rating != null) ratingArr[7] = rating
@@ -16,6 +22,7 @@ function makeEntry(name: string, rating?: number, lat?: number, lon?: number): u
   if (lat != null && lon != null) p[9] = [null, null, lat, lon]
   p[10] = 'fsq-id'
   p[11] = name
+  if (address != null) p[39] = address
   const entry: unknown[] = []
   entry[14] = p
   return entry
@@ -88,6 +95,28 @@ describe('parseScrapeResults', () => {
   it('skips entries without coordinates', () => {
     const body = ")]}'\n" + JSON.stringify([[null, [makeEntry('No Coords', 4.0)]]])
     expect(parseScrapeResults(body)).toHaveLength(0)
+  })
+
+  it("extrait l'adresse formatée (p[39]) — distingue les homonymes", () => {
+    const body =
+      ")]}'\n" +
+      JSON.stringify([
+        [
+          null,
+          [
+            makeEntry('Gangnam', 4.4, 48.87, 2.38, '36 Rue de Belleville, 75020 Paris'),
+            makeEntry('Gangnam', 4.1, 48.85, 2.35, '12 Rue Montmartre, 75002 Paris'),
+          ],
+        ],
+      ])
+    const results = parseScrapeResults(body)
+    expect(results[0].address).toBe('36 Rue de Belleville, 75020 Paris')
+    expect(results[1].address).toBe('12 Rue Montmartre, 75002 Paris')
+  })
+
+  it("laisse l'adresse indéfinie quand p[39] manque", () => {
+    const body = makeSearchBody([['Le Comptoir', 4.6, 48.85, 2.34]])
+    expect(parseScrapeResults(body)[0].address).toBeUndefined()
   })
 
   it('returns [] when blocked', () => {
