@@ -1109,14 +1109,16 @@ function DeckCard({
                   fontWeight: 700,
                   padding: '5px 11px',
                   borderRadius: 'var(--r-pill)',
+                  // Pastille BLANCHE posée sur la photo : son contenu doit être
+                  // une encre FIXE sombre. `var(--text)` devenait blanc en thème
+                  // sombre → texte blanc sur pastille blanche, invisible.
                   background: 'rgba(255,255,255,0.94)',
-                  color: 'var(--text)',
+                  color: '#191c1d',
                   backdropFilter: 'blur(6px)',
                   boxShadow: 'var(--s1)',
                 }}
               >
-                <Heart size={11} strokeWidth={2.5} fill="var(--accent)" color="var(--accent)" />{' '}
-                Déjà enregistré
+                <Heart size={11} strokeWidth={2.5} fill="#191c1d" color="#191c1d" /> Déjà enregistré
               </span>
             )}
             {madeForYou && (
