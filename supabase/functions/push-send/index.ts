@@ -52,7 +52,8 @@ function pemToArrayBuffer(pem: string): ArrayBuffer {
 // Les data FCM doivent être des chaînes.
 function stringifyData(data?: Record<string, unknown>): Record<string, string> {
   const out: Record<string, string> = {}
-  for (const [k, v] of Object.entries(data ?? {})) out[k] = typeof v === 'string' ? v : JSON.stringify(v)
+  for (const [k, v] of Object.entries(data ?? {}))
+    out[k] = typeof v === 'string' ? v : JSON.stringify(v)
   return out
 }
 
@@ -81,11 +82,7 @@ async function getFcmAccessToken(): Promise<string> {
     false,
     ['sign']
   )
-  const sig = await crypto.subtle.sign(
-    'RSASSA-PKCS1-v1_5',
-    key,
-    new TextEncoder().encode(unsigned)
-  )
+  const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(unsigned))
   const jwt = `${unsigned}.${b64url(sig)}`
 
   const res = await fetch('https://oauth2.googleapis.com/token', {
@@ -151,7 +148,8 @@ async function getApnsJwt(): Promise<string> {
 async function sendApns(p: Payload, token: string): Promise<boolean> {
   const jwt = await getApnsJwt()
   const bundleId = env('APNS_BUNDLE_ID') || 'com.forkmap.app'
-  const host = env('APNS_PRODUCTION') === 'true' ? 'api.push.apple.com' : 'api.sandbox.push.apple.com'
+  const host =
+    env('APNS_PRODUCTION') === 'true' ? 'api.push.apple.com' : 'api.sandbox.push.apple.com'
   const res = await fetch(`https://${host}/3/device/${token}`, {
     method: 'POST',
     headers: {

@@ -35,7 +35,10 @@ describe('enrichOsmClient', () => {
   })
 
   it('preserves existing google/fsq data and adds nothing for tag-less places', () => {
-    const fsq = { fsq_id: 'x', photos: [{ id: 'p', prefix: 'a', suffix: 'b', width: 1, height: 1 }] }
+    const fsq = {
+      fsq_id: 'x',
+      photos: [{ id: 'p', prefix: 'a', suffix: 'b', width: 1, height: 1 }],
+    }
     const out = enrichOsmClient(place({}, { fsq: fsq as PlaceCard['fsq'], fsq_rating: 9 }))
     expect(out.fsq).toEqual(fsq)
     expect(out.fsq_rating).toBe(9)

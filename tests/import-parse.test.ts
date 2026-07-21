@@ -49,7 +49,10 @@ describe('cleanTitle', () => {
 
   it('handles the French « sur » prefix (og:title Instagram FR)', () => {
     expect(
-      cleanTitle('SUSHIWAN sur Instagram: IDENTIFIE LA PERSONNE QUI TE DOIT DES SUSHIS', 'instagram')
+      cleanTitle(
+        'SUSHIWAN sur Instagram: IDENTIFIE LA PERSONNE QUI TE DOIT DES SUSHIS',
+        'instagram'
+      )
     ).toBe('IDENTIFIE LA PERSONNE QUI TE DOIT DES SUSHIS')
   })
 })

@@ -61,9 +61,5 @@ function getSnapshot(): ReadonlySet<string> {
 
 // Ensemble des ids en ligne (réactif).
 export function useOnlineUsers(): ReadonlySet<string> {
-  return useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    () => EMPTY
-  )
+  return useSyncExternalStore(subscribe, getSnapshot, () => EMPTY)
 }

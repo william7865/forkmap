@@ -211,6 +211,6 @@ Tailwind est configuré mais la plupart des composants utilisent des **styles in
 
 ## CI / Automatisation (`.github/workflows/`)
 
-- `ci.yml` — au push/PR vers `master` : lint · type-check · build.
+- `ci.yml` — au push/PR vers `master` : deux jobs. **build** (lint · type-check · build) et **test** (`npm run test:run`, Vitest). Les deux doivent passer.
 
-Aucune étape `npm test` ne tourne encore dans `ci.yml` — lancer Vitest en local.
+`format:check` (`prettier --check .`) n'est PAS dans la CI — le lancer en local avant un gros commit de style. `.prettierignore` exclut les coques natives (`ios/`, `android/`), les sorties de build et les artefacts d'outils.

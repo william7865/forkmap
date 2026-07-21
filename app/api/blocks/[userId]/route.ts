@@ -20,7 +20,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ use
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ userId: string }> }
+) {
   const limited = rateLimit(req, { limit: 30, windowMs: 60_000 })
   if (limited) return limited
   const auth = await requireUser(req)

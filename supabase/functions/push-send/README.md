@@ -52,7 +52,7 @@ C'est tout côté serveur : `lib/db.ts → sendPushToUser()` postera automatique
 
 ## 4. Prérequis app (pour recevoir vraiment le push)
 
-- **iOS** : capability *Push Notifications* + *Background Modes → Remote notifications* dans Xcode,
+- **iOS** : capability _Push Notifications_ + _Background Modes → Remote notifications_ dans Xcode,
   et un **appareil physique** (le simulateur ne reçoit pas de push APNs). Les tokens iOS collectés
   par Capacitor sont des tokens **APNs** → gérés par la branche APNs ci-dessus.
 - **Android** : `google-services.json` dans `android/app/` (Firebase) → les tokens sont des tokens **FCM**.
