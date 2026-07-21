@@ -108,6 +108,10 @@ export type TranslationKey =
   | 'importNeedsConfirm'
   | 'importNotFound'
   | 'importNotFoundHint'
+  | 'importRetry'
+  | 'importWrongPlace'
+  | 'importCorrectHint'
+  | 'importCorrectCancel'
   | 'importWhichOne'
   | 'importSearchManually'
   | 'importSearchPlaceholder'
@@ -228,6 +232,10 @@ export const t: Translations = {
     importNeedsConfirm: 'À confirmer',
     importNotFound: 'Resto non reconnu',
     importNotFoundHint: 'On n’a pas reconnu le resto. Cherche-le à la main.',
+    importRetry: 'Réessayer la reconnaissance',
+    importWrongPlace: 'Ce n’est pas le bon resto ?',
+    importCorrectHint: 'Cherche le bon resto pour corriger.',
+    importCorrectCancel: 'Garder ce resto',
     importWhichOne: 'C’est lequel ?',
     importSearchManually: 'Chercher à la main',
     importSearchPlaceholder: 'Nom du resto, ville…',
@@ -346,6 +354,10 @@ export const t: Translations = {
     importNeedsConfirm: 'To confirm',
     importNotFound: 'Restaurant not recognised',
     importNotFoundHint: 'We couldn’t recognise the restaurant. Search for it by hand.',
+    importRetry: 'Try recognition again',
+    importWrongPlace: 'Wrong restaurant?',
+    importCorrectHint: 'Search for the right restaurant to fix it.',
+    importCorrectCancel: 'Keep this one',
     importWhichOne: 'Which one is it?',
     importSearchManually: 'Search by hand',
     importSearchPlaceholder: 'Restaurant name, city…',
@@ -464,6 +476,10 @@ export const t: Translations = {
     importNeedsConfirm: 'Por confirmar',
     importNotFound: 'Restaurante no reconocido',
     importNotFoundHint: 'No hemos reconocido el restaurante. Búscalo a mano.',
+    importRetry: 'Reintentar el reconocimiento',
+    importWrongPlace: '¿Restaurante incorrecto?',
+    importCorrectHint: 'Busca el restaurante correcto para corregirlo.',
+    importCorrectCancel: 'Mantener este',
     importWhichOne: '¿Cuál es?',
     importSearchManually: 'Buscar a mano',
     importSearchPlaceholder: 'Nombre del restaurante, ciudad…',
@@ -582,6 +598,10 @@ export const t: Translations = {
     importNeedsConfirm: 'Zu bestätigen',
     importNotFound: 'Restaurant nicht erkannt',
     importNotFoundHint: 'Wir haben das Restaurant nicht erkannt. Suche es von Hand.',
+    importRetry: 'Erkennung erneut versuchen',
+    importWrongPlace: 'Falsches Restaurant?',
+    importCorrectHint: 'Suche das richtige Restaurant, um es zu korrigieren.',
+    importCorrectCancel: 'Dieses behalten',
     importWhichOne: 'Welches ist es?',
     importSearchManually: 'Manuell suchen',
     importSearchPlaceholder: 'Name des Restaurants, Stadt…',
@@ -700,6 +720,10 @@ export const t: Translations = {
     importNeedsConfirm: '要確認',
     importNotFound: 'レストランを特定できません',
     importNotFoundHint: 'レストランを特定できませんでした。手動で検索してください。',
+    importRetry: '認識をもう一度試す',
+    importWrongPlace: 'お店が違いますか？',
+    importCorrectHint: '正しいお店を検索して修正してください。',
+    importCorrectCancel: 'このお店のままにする',
     importWhichOne: 'どれですか？',
     importSearchManually: '手動で検索',
     importSearchPlaceholder: '店名、都市…',

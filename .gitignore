@@ -76,3 +76,4 @@ ios/App/App/.env.local
 .playwright-mcp/
 favoris-albo.png
 snap.yml
+ios/App/build-sim/

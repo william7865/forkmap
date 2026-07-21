@@ -142,7 +142,7 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
         minWidth: 220,
         maxWidth: POPUP_MAX_WIDTH,
         overflow: 'hidden',
-        animation: 'popupIn 160ms var(--ease-out) both',
+        animation: 'popupIn 160ms var(--ease-out) backwards',
         transformOrigin: 'top right',
         fontFamily: 'var(--font-body)',
       }}

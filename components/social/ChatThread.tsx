@@ -698,7 +698,7 @@ export default function ChatThread({
               borderTopLeftRadius: 20,
               borderTopRightRadius: 20,
               padding: '8px 8px calc(var(--safe-bottom) + 10px)',
-              animation: 'slideUp 200ms cubic-bezier(0.16,1,0.3,1) both',
+              animation: 'slideUp 200ms cubic-bezier(0.16,1,0.3,1) backwards',
             }}
           >
             {/* Réactions rapides */}

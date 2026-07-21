@@ -322,7 +322,7 @@ export default function HelpContent() {
                             color: 'var(--text-2)',
                             lineHeight: 1.75,
                             maxWidth: MEASURE,
-                            animation: 'fadeUp 150ms var(--ease-out) both',
+                            animation: 'fadeUp 150ms var(--ease-out) backwards',
                           }}
                         >
                           {faq.a}

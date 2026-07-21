@@ -32,7 +32,7 @@ export default function StepShell({
         background: 'var(--bg)',
         display: 'flex',
         justifyContent: 'center',
-        animation: 'overlayIn 200ms ease both',
+        animation: 'overlayIn 200ms ease backwards',
       }}
     >
       <div

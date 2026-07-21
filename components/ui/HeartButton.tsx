@@ -103,9 +103,9 @@ export default function HeartButton({
     justifyContent: 'center',
     animation:
       animState === 'adding'
-        ? 'heartBeat 550ms cubic-bezier(0.16, 1, 0.3, 1) both'
+        ? 'heartBeat 550ms cubic-bezier(0.16, 1, 0.3, 1) backwards'
         : animState === 'removing'
-          ? 'heartUnbeat 350ms ease both'
+          ? 'heartUnbeat 350ms ease backwards'
           : 'none',
   }
 

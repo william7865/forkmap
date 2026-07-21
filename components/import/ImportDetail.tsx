@@ -24,6 +24,7 @@ import {
   Search,
   Navigation,
   Trash2,
+  RotateCcw,
 } from 'lucide-react'
 import type { ImportCandidatePlace, ImportPlatform, ImportRow, PlaceCard as TPlace } from '@/types'
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
@@ -81,7 +82,7 @@ export default function ImportDetail() {
   const search = useSearchParams()
   const { tr } = useLanguage()
   const native = useIsNative()
-  const { imports, loading, patch, remove } = useImportsStore()
+  const { imports, loading, patch, remove, retry } = useImportsStore()
   const { toasts, show, dismiss } = useToast()
 
   // `/import/[id]` gives a route param; `/import?id=` (native) a query param.
@@ -107,6 +108,7 @@ export default function ImportDetail() {
           imp={imp}
           patch={patch}
           remove={remove}
+          retry={retry}
           imports={imports}
           native={native}
           onToast={(msg, kind) => show(msg, kind ?? 'info')}
@@ -206,7 +208,7 @@ function ConfirmDelete({
           background: 'var(--bg)',
           borderRadius: '20px 20px 0 0',
           padding: '22px 20px calc(var(--safe-bottom) + 16px)',
-          animation: 'slideUp 220ms cubic-bezier(0.16,1,0.3,1) both',
+          animation: 'slideUp 220ms cubic-bezier(0.16,1,0.3,1) backwards',
         }}
       >
         <h3
@@ -307,14 +309,18 @@ interface LoadedProps {
   native: boolean
   patch: (id: string, p: Partial<ImportRow>) => Promise<void>
   remove: (id: string) => Promise<void>
+  retry: (id: string) => Promise<void>
   onToast: (msg: string, kind?: ToastType) => void
 }
 
-function Loaded({ imp, imports, native, patch, remove, onToast }: LoadedProps) {
+function Loaded({ imp, imports, native, patch, remove, retry, onToast }: LoadedProps) {
   const { tr } = useLanguage()
   const router = useRouter()
   const [thumbBroken, setThumbBroken] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  // A : l'utilisateur veut corriger un match résolu jugé faux → on rouvre la
+  // recherche manuelle (le même bloc que pour un échec).
+  const [correcting, setCorrecting] = useState(false)
 
   const place = imp.place_snapshot
   const openPost = useCallback(() => {
@@ -431,7 +437,7 @@ function Loaded({ imp, imports, native, patch, remove, onToast }: LoadedProps) {
             cursor: 'pointer',
             background: placeGradient(imp.id),
             boxShadow: 'var(--s3)',
-            animation: 'fadeUp 280ms var(--ease-out) both',
+            animation: 'fadeUp 280ms var(--ease-out) backwards',
           }}
         >
           {cover && (
@@ -516,7 +522,7 @@ function Loaded({ imp, imports, native, patch, remove, onToast }: LoadedProps) {
             letterSpacing: '-0.02em',
             lineHeight: 1.15,
             color: 'var(--text)',
-            animation: 'fadeUp 300ms var(--ease-out) 60ms both',
+            animation: 'fadeUp 300ms var(--ease-out) 60ms backwards',
           }}
         >
           {title}
@@ -565,12 +571,49 @@ function Loaded({ imp, imports, native, patch, remove, onToast }: LoadedProps) {
         )}
 
         {/* 5 — What we found */}
-        <section style={{ marginTop: 28, animation: 'fadeUp 300ms var(--ease-out) 120ms both' }}>
+        <section
+          style={{ marginTop: 28, animation: 'fadeUp 300ms var(--ease-out) 120ms backwards' }}
+        >
           <h2 style={EYEBROW}>{tr('importFoundTitle')}</h2>
 
           {imp.status === 'pending' && <PendingBlock />}
 
-          {imp.status === 'resolved' && place && <ResolvedBlock place={place} onToast={onToast} />}
+          {imp.status === 'resolved' &&
+            place &&
+            (correcting ? (
+              // A : correction d'un match résolu — même recherche manuelle que
+              // pour un échec ; onPick re-résout vers le bon lieu.
+              <FailedBlock
+                onPick={(r) => {
+                  setCorrecting(false)
+                  void resolveTo(toPlaceCard(r))
+                }}
+                onCancel={() => setCorrecting(false)}
+              />
+            ) : (
+              <>
+                <ResolvedBlock place={place} onToast={onToast} />
+                <button
+                  type="button"
+                  onClick={() => setCorrecting(true)}
+                  style={{
+                    marginTop: 14,
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    color: 'var(--text-3)',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    textDecoration: 'underline',
+                    textUnderlineOffset: 3,
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-body)',
+                  }}
+                >
+                  {tr('importWrongPlace')}
+                </button>
+              </>
+            ))}
 
           {imp.status === 'ambiguous' && (
             <AmbiguousBlock
@@ -579,19 +622,28 @@ function Loaded({ imp, imports, native, patch, remove, onToast }: LoadedProps) {
             />
           )}
 
-          {imp.status === 'failed' && <FailedBlock onPick={(r) => resolveTo(toPlaceCard(r))} />}
+          {imp.status === 'failed' && (
+            <FailedBlock
+              onPick={(r) => resolveTo(toPlaceCard(r))}
+              onRetry={native ? () => void retry(imp.id) : undefined}
+            />
+          )}
         </section>
 
         {/* 6 — Where it is */}
         {place && (
-          <section style={{ marginTop: 26, animation: 'fadeUp 300ms var(--ease-out) 180ms both' }}>
+          <section
+            style={{ marginTop: 26, animation: 'fadeUp 300ms var(--ease-out) 180ms backwards' }}
+          >
             <h2 style={EYEBROW}>{tr('importWhereTitle')}</h2>
             <ImportMiniMap lat={place.lat} lon={place.lon} />
           </section>
         )}
 
         {/* 7 — My note */}
-        <section style={{ marginTop: 26, animation: 'fadeUp 300ms var(--ease-out) 240ms both' }}>
+        <section
+          style={{ marginTop: 26, animation: 'fadeUp 300ms var(--ease-out) 240ms backwards' }}
+        >
           <h2 style={EYEBROW}>{tr('importNoteTitle')}</h2>
           <NoteField
             initial={imp.note ?? ''}
@@ -607,7 +659,9 @@ function Loaded({ imp, imports, native, patch, remove, onToast }: LoadedProps) {
 
         {/* 8 — Also seen in */}
         {alsoSeenIn.length > 0 && (
-          <section style={{ marginTop: 26, animation: 'fadeUp 300ms var(--ease-out) 300ms both' }}>
+          <section
+            style={{ marginTop: 26, animation: 'fadeUp 300ms var(--ease-out) 300ms backwards' }}
+          >
             <h2 style={EYEBROW}>{tr('importAlsoSeenIn')}</h2>
             <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
               {alsoSeenIn.map((other) => (
@@ -988,9 +1042,19 @@ function Rating({ value }: { value: number }) {
   )
 }
 
-// ── status: failed ────────────────────────────────────────
+// ── status: failed (aussi réutilisé pour corriger un match résolu) ────────
+// onRetry : relance la résolution AUTO (échec). onCancel : abandonne la
+// correction manuelle et revient au match résolu.
 
-function FailedBlock({ onPick }: { onPick: (r: PlaceSearchResult) => void }) {
+function FailedBlock({
+  onPick,
+  onRetry,
+  onCancel,
+}: {
+  onPick: (r: PlaceSearchResult) => void
+  onRetry?: () => void
+  onCancel?: () => void
+}) {
   const { tr } = useLanguage()
   const [q, setQ] = useState('')
   const [results, setResults] = useState<PlaceSearchResult[]>([])
@@ -1015,8 +1079,37 @@ function FailedBlock({ onPick }: { onPick: (r: PlaceSearchResult) => void }) {
 
   return (
     <div>
+      {/* B : relancer la résolution AUTO avant de chercher à la main — un échec
+          vient souvent d'un scrape Google throttlé, pas d'un vrai « introuvable ». */}
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            width: '100%',
+            height: 46,
+            marginBottom: 14,
+            borderRadius: 14,
+            border: 'none',
+            background: 'var(--accent)',
+            color: 'var(--on-accent, #fff)',
+            fontSize: 14,
+            fontWeight: 700,
+            fontFamily: 'var(--font-body)',
+            cursor: 'pointer',
+          }}
+        >
+          <RotateCcw size={16} strokeWidth={2} />
+          {tr('importRetry')}
+        </button>
+      )}
+
       <p style={{ margin: '0 0 12px', fontSize: 14, color: 'var(--text-2)', lineHeight: 1.5 }}>
-        {tr('importNotFoundHint')}
+        {onCancel ? tr('importCorrectHint') : tr('importNotFoundHint')}
       </p>
 
       <div style={{ display: 'flex', gap: 8 }}>
@@ -1127,6 +1220,26 @@ function FailedBlock({ onPick }: { onPick: (r: PlaceSearchResult) => void }) {
             </button>
           ))}
         </div>
+      )}
+
+      {onCancel && (
+        <button
+          type="button"
+          onClick={onCancel}
+          style={{
+            marginTop: 14,
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            color: 'var(--text-3)',
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontFamily: 'var(--font-body)',
+          }}
+        >
+          {tr('importCorrectCancel')}
+        </button>
       )}
     </div>
   )

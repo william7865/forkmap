@@ -2,13 +2,17 @@
 // components/ui/BottomSheet.tsx
 // Swipeable bottom sheet for mobile layout.
 // Used to replace the desktop sidebar on screens < 768px.
-// Supports three snap points: peek (64px) → half → full.
+//
+// DEUX positions : peek (72px) → half (52%). Pas de plein écran : la carte est
+// le sujet de cet écran, et un sheet qui la recouvre à 92% la faisait
+// disparaître — on se retrouvait dans une liste plein écran sans l'avoir voulu.
+// On peut donc replier la liste ou la remonter à mi-hauteur, rien de plus.
 // ============================================================
 'use client'
 
 import { useState, useRef, useCallback, type ReactNode } from 'react'
 
-type SnapPoint = 'peek' | 'half' | 'full'
+type SnapPoint = 'peek' | 'half'
 
 interface Props {
   children: ReactNode
@@ -46,8 +50,7 @@ export default function BottomSheet({
     if (typeof window === 'undefined') return 300
     const wh = window.innerHeight
     if (sp === 'peek') return 72
-    if (sp === 'half') return Math.round(wh * 0.52)
-    return Math.round(wh * 0.92)
+    return Math.round(wh * 0.52)
   }, [])
 
   const snapTo = useCallback(
@@ -76,7 +79,10 @@ export default function BottomSheet({
     (e: React.PointerEvent) => {
       if (!isDragging.current) return
       const dy = startY.current - e.clientY // positive = dragging up
-      const newH = Math.max(40, Math.min(window.innerHeight * 0.95, startH.current + dy))
+      // Borné à la position haute : sans ce plafond on pouvait tirer la feuille
+      // jusqu'à 95% de l'écran avant qu'elle ne retombe — la carte disparaissait
+      // le temps du geste.
+      const newH = Math.max(40, Math.min(getSnapPx('half'), startH.current + dy))
       setDragOffset(newH - getSnapPx(snap))
     },
     [snap, getSnapPx]
@@ -93,12 +99,10 @@ export default function BottomSheet({
     // Snap to nearest point
     const peekH = 72
     const halfH = Math.round(wh * 0.52)
-    const fullH = Math.round(wh * 0.92)
 
     const distances: [number, SnapPoint][] = [
       [Math.abs(currentH - peekH), 'peek'],
       [Math.abs(currentH - halfH), 'half'],
-      [Math.abs(currentH - fullH), 'full'],
     ]
     distances.sort((a, b) => a[0] - b[0])
     snapTo(distances[0][1])
@@ -106,15 +110,10 @@ export default function BottomSheet({
 
   const currentHeight = getSnapPx(snap) + (dragging ? dragOffset : 0)
 
-  // Tap on handle cycles through snap points
+  // Tap on the handle toggles between the two positions.
   const handleTap = useCallback(() => {
     if (dragging) return
-    const cycle: Record<SnapPoint, SnapPoint> = {
-      peek: 'half',
-      half: 'full',
-      full: 'peek',
-    }
-    snapTo(cycle[snap])
+    snapTo(snap === 'peek' ? 'half' : 'peek')
   }, [snap, snapTo, dragging])
 
   return (
@@ -211,7 +210,9 @@ export default function BottomSheet({
             strokeWidth="2.5"
             strokeLinecap="round"
             style={{
-              transform: snap === 'full' ? 'rotate(180deg)' : 'rotate(0deg)',
+              // Chevron vers le bas quand la liste est ouverte (il replie), vers
+              // le haut quand elle est repliée (il déplie).
+              transform: snap === 'half' ? 'rotate(0deg)' : 'rotate(180deg)',
               transition: 'transform 300ms ease',
             }}
           >

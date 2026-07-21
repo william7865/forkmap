@@ -123,18 +123,17 @@ export default function CapacitorInit() {
       await syncTheme()
       try {
         const { SplashScreen } = await import('@capacitor/splash-screen')
-        const { StatusBar, Style } = await import('@capacitor/status-bar')
-        // The splash is dark → force light status-bar text (time/battery) so it
-        // stays readable over it. syncTheme() below restores the app's style.
-        await StatusBar.setStyle({ style: Style.Dark }).catch(() => {})
-        // Keep the logo splash visible briefly so it reads even on fast cold
-        // starts (Insta/YouTube-style), then reveal the app.
-        await new Promise((r) => setTimeout(r, 800))
-        await SplashScreen.hide()
-        // Viewport has fully settled by now — re-freeze in case the first
-        // measurement (before layout) read a stale 0.
+        // Le splash du plugin ne sert qu'à couvrir le trou entre l'écran de
+        // lancement natif et la première peinture de la WebView. Si ce code
+        // s'exécute, la WebView a peint — donc BootSplash (markup statique) est
+        // déjà à l'écran, avec le MÊME logo au même endroit. On retire le pont
+        // immédiatement et sans fondu : le relais est invisible, et c'est
+        // BootSplash qui tient le logo jusqu'au bout.
+        await SplashScreen.hide({ fadeOutDuration: 0 })
+        // Un tour de boucle pour laisser le viewport se stabiliser, puis
+        // re-mesurer : la première lecture (avant layout) peut valoir 0.
+        await new Promise((r) => requestAnimationFrame(() => r(null)))
         freezeSafeAreaInsets()
-        // Restore the app's (light) status-bar style now the splash is gone.
         await syncTheme()
       } catch {
         // plugin absent — ignore

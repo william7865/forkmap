@@ -1277,7 +1277,7 @@ export default function HomePage() {
             fontSize: 12,
             fontWeight: 500,
             boxShadow: 'var(--s3)',
-            animation: 'fadeUp 180ms ease both',
+            animation: 'fadeUpCentered 180ms ease backwards',
             zIndex: 500,
             whiteSpace: 'nowrap',
           }}
@@ -1313,7 +1313,7 @@ export default function HomePage() {
             bottom: 16,
             width: 304,
             zIndex: 600,
-            animation: 'slideInRight 260ms cubic-bezier(0.16,1,0.3,1) both',
+            animation: 'slideInRight 260ms cubic-bezier(0.16,1,0.3,1) backwards',
             display: 'flex',
             flexDirection: 'column',
           }}
@@ -1503,7 +1503,7 @@ export default function HomePage() {
             right: 0,
             bottom: 'calc(56px + var(--safe-bottom))',
             zIndex: 900,
-            animation: 'slideUp 260ms cubic-bezier(0.16,1,0.3,1) both',
+            animation: 'slideUp 260ms cubic-bezier(0.16,1,0.3,1) backwards',
           }}
         >
           <PlaceDetail

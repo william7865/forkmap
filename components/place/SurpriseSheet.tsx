@@ -398,7 +398,7 @@ export default function SurpriseSheet({
         background: pal.overlayBg,
         display: 'flex',
         flexDirection: 'column',
-        animation: 'overlayIn 220ms ease both',
+        animation: 'overlayIn 220ms ease backwards',
         color: pal.fg,
       }}
     >
@@ -537,7 +537,7 @@ export default function SurpriseSheet({
             gap: 11,
             padding: '6px 18px 10px',
             flexShrink: 0,
-            animation: 'fadeDown 160ms var(--ease-out) both',
+            animation: 'fadeDown 160ms var(--ease-out) backwards',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -656,7 +656,7 @@ export default function SurpriseSheet({
                     fill="var(--ember)"
                     color="var(--ember)"
                     style={{
-                      animation: 'fmHeartPop 820ms var(--ease-spring) both',
+                      animation: 'fmHeartPop 820ms var(--ease-spring) backwards',
                       filter: pal.n
                         ? 'drop-shadow(0 10px 34px rgba(17,17,18,0.4))'
                         : 'drop-shadow(0 10px 34px rgba(25,28,29,0.6))',

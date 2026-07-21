@@ -320,7 +320,7 @@ export default function ShareModal({ place, onClose }: Props) {
           maxWidth: 400,
           boxShadow: '0 32px 80px rgba(14,14,13,0.24), 0 0 0 1px rgba(14,14,13,0.07)',
           overflow: 'hidden',
-          animation: 'scaleIn 220ms var(--ease-spring) both',
+          animation: 'scaleIn 220ms var(--ease-spring) backwards',
           fontFamily: 'var(--font-body)',
         }}
       >

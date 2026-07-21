@@ -248,7 +248,7 @@ function DeleteModal({
           width: '100%',
           border: '1px solid var(--border)',
           boxShadow: 'var(--s4)',
-          animation: 'scaleIn 200ms var(--ease-spring) both',
+          animation: 'scaleIn 200ms var(--ease-spring) backwards',
           fontFamily: 'var(--font-body)',
         }}
       >
@@ -380,7 +380,7 @@ function NoteDrawer({
           padding: '20px 20px 32px',
           border: '1px solid var(--border)',
           boxShadow: 'var(--s4)',
-          animation: 'slideUp 240ms var(--ease-out) both',
+          animation: 'slideUp 240ms var(--ease-out) backwards',
           fontFamily: 'var(--font-body)',
         }}
       >
@@ -606,7 +606,7 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
           padding: '20px 20px 32px',
           border: '1px solid var(--border)',
           boxShadow: 'var(--s4)',
-          animation: 'slideUp 240ms var(--ease-out) both',
+          animation: 'slideUp 240ms var(--ease-out) backwards',
           fontFamily: 'var(--font-body)',
         }}
       >
@@ -800,8 +800,8 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
 
 // ── Fav card — liste ──────────────────────────────────────
 function favPhoto(fav: FavoriteRow, w = 240): string | null {
-  // Same source priority as PlaceThumb: Google/FSQ → OSM Commons → Wikidata →
-  // Mapillary storefront. The snapshot IS a PlaceCard.
+  // Mêmes sources que PlaceThumb : Google/FSQ → Wikimedia → Wikidata (plus de
+  // Mapillary). Le snapshot EST un PlaceCard.
   return fav.snapshot ? placePhotoUrl(fav.snapshot as unknown as PlaceCard, w) : null
 }
 
@@ -1025,7 +1025,7 @@ function CardActionsMenu({
               minWidth: 184,
               overflow: 'hidden',
               padding: '4px 0',
-              animation: 'scaleIn 140ms var(--ease-out) both',
+              animation: 'scaleIn 140ms var(--ease-out) backwards',
               transformOrigin: 'top right',
               fontFamily: 'var(--font-body)',
             }}
@@ -1160,7 +1160,7 @@ function BulkListModal({
         alignItems: 'center',
         justifyContent: 'center',
         padding: 20,
-        animation: 'overlayIn 180ms ease both',
+        animation: 'overlayIn 180ms ease backwards',
       }}
     >
       <div
@@ -2434,7 +2434,7 @@ function FavoritesPageInner() {
                   alignItems: 'flex-end',
                   justifyContent: 'space-between',
                   marginBottom: 4,
-                  animation: 'fadeUp 280ms var(--ease-out) both',
+                  animation: 'fadeUp 280ms var(--ease-out) backwards',
                 }}
               >
                 <div style={{ minWidth: 0 }}>
@@ -2506,7 +2506,7 @@ function FavoritesPageInner() {
               </div>
             )
           ) : (
-            <div style={{ marginBottom: 24, animation: 'fadeUp 280ms var(--ease-out) both' }}>
+            <div style={{ marginBottom: 24, animation: 'fadeUp 280ms var(--ease-out) backwards' }}>
               <h1
                 style={{
                   margin: '0 0 4px',
@@ -2725,7 +2725,7 @@ function FavoritesPageInner() {
                     background: photo ? undefined : placeGradient(featured.osm_id),
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
-                    animation: 'fadeUp 320ms var(--ease-out) both',
+                    animation: 'fadeUp 320ms var(--ease-out) backwards',
                   }}
                 >
                   <span
@@ -2847,7 +2847,7 @@ function FavoritesPageInner() {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 marginBottom: 12,
-                animation: 'fadeUp 280ms var(--ease-out) 40ms both',
+                animation: 'fadeUp 280ms var(--ease-out) 40ms backwards',
               }}
             >
               <span
@@ -2940,7 +2940,10 @@ function FavoritesPageInner() {
           {/* Mes listes — grille (web) / lignes-collections (natif) */}
           {!activeListId && lists.length > 0 && isNative && (
             <div
-              style={{ margin: '26px 0 8px', animation: 'fadeUp 280ms var(--ease-out) 20ms both' }}
+              style={{
+                margin: '26px 0 8px',
+                animation: 'fadeUp 280ms var(--ease-out) 20ms backwards',
+              }}
             >
               <SecHead title="Mes listes" />
               <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -2969,7 +2972,9 @@ function FavoritesPageInner() {
             </div>
           )}
           {!activeListId && lists.length > 0 && !isNative && (
-            <div style={{ marginBottom: 32, animation: 'fadeUp 280ms var(--ease-out) 20ms both' }}>
+            <div
+              style={{ marginBottom: 32, animation: 'fadeUp 280ms var(--ease-out) 20ms backwards' }}
+            >
               <p
                 style={{
                   margin: '0 0 10px',
@@ -3008,7 +3013,7 @@ function FavoritesPageInner() {
             activeList &&
             (isNative ? (
               /* ── App native : détail d'une liste ── */
-              <div style={{ animation: 'fadeUp 280ms var(--ease-out) both' }}>
+              <div style={{ animation: 'fadeUp 280ms var(--ease-out) backwards' }}>
                 {/* Barre supérieure : retour + actions de liste */}
                 <div
                   style={{
@@ -3068,7 +3073,7 @@ function FavoritesPageInner() {
                 </div>
 
                 {/* Masthead — nom de la liste en grand serif (entre en premier) */}
-                <div style={{ animation: 'fadeUp 280ms var(--ease-out) both' }}>
+                <div style={{ animation: 'fadeUp 280ms var(--ease-out) backwards' }}>
                   <h1
                     style={{
                       margin: 0,
@@ -3788,7 +3793,7 @@ function FavoritesPageInner() {
             borderRadius: 'var(--r-pill)',
             padding: '8px 8px 8px 18px',
             boxShadow: 'var(--s4)',
-            animation: 'fadeUp 200ms var(--ease-out) both',
+            animation: 'fadeUpCentered 200ms var(--ease-out) backwards',
             maxWidth: 'calc(100vw - 24px)',
           }}
         >

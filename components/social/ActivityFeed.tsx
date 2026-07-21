@@ -272,7 +272,7 @@ export default function ActivityFeed({ onClose }: { onClose: () => void }) {
         background: 'var(--bg)',
         display: 'flex',
         flexDirection: 'column',
-        animation: 'slideUp 240ms cubic-bezier(0.16,1,0.3,1) both',
+        animation: 'slideUp 240ms cubic-bezier(0.16,1,0.3,1) backwards',
       }}
     >
       {/* Header — grand titre serif */}

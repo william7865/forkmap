@@ -78,7 +78,7 @@ export function CreateListModal({ initial, onSave, onClose }: Props) {
           maxHeight: '90dvh',
           overflowY: 'auto',
           boxShadow: '0 -8px 40px rgba(14,14,13,0.2)',
-          animation: 'slideUp 240ms cubic-bezier(0.16,1,0.3,1) both',
+          animation: 'slideUp 240ms cubic-bezier(0.16,1,0.3,1) backwards',
           fontFamily: 'var(--font-body)',
           display: 'flex',
           flexDirection: 'column',

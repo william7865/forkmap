@@ -52,6 +52,7 @@ import { isNativeRuntime } from '@/lib/native/platform'
 import { nativeShare } from '@/lib/native/share'
 import { placeGradient } from '@/lib/gradients'
 import PlaceThumb, { placeInitial } from '@/components/place/PlaceThumb'
+import { placeRank, rankLabel } from '@/lib/ranking'
 import PlaceSocialProof from '@/components/place/PlaceSocialProof'
 import PhotoGallery, { buildPhotoUrl } from '@/components/place/PhotoGallery'
 import ReviewsSection from '@/components/place/ReviewsSection'
@@ -383,9 +384,11 @@ export default function PlaceDetail({
   // re-renders (otherwise its reset effect would snap the swipe back to photo 1).
   const { user } = useAuth()
   const reviewsApi = useReviews(place, user?.id ?? null)
-  // Gallery = every real photo we have, deduped, best source first: Google/FSQ
-  // photos, then the OSM/Commons & Wikidata venue images, then nearby Mapillary
-  // street shots. This is what turns a "one photo or none" fiche into a strip.
+  // Gallery = les vraies photos qu'on a, dédupliquées, meilleure source d'abord :
+  // Google/FSQ, puis les images de lieu OSM/Commons & Wikidata. Plus de Mapillary
+  // (façades de rue trop souvent du mauvais bâtiment) : sans photo, la fiche
+  // bascule sur son bandeau « score héros » plutôt que d'afficher une fausse
+  // devanture.
   const gallery = useMemo(() => {
     const urls: string[] = []
     const credits = new Set<string>()
@@ -401,11 +404,6 @@ export default function PlaceDetail({
     if (place.wikidata?.image_url) {
       urls.push(place.wikidata.image_url)
       credits.add('Wikimedia')
-    }
-    const mly = e?.mapillary_urls ?? (e?.mapillary_url ? [e.mapillary_url] : [])
-    for (const m of mly) {
-      urls.push(m)
-      credits.add('Mapillary')
     }
     const seen = new Set<string>()
     const deduped = urls.filter((u) => (seen.has(u) ? false : (seen.add(u), true)))
@@ -445,6 +443,9 @@ export default function PlaceDetail({
   if (isNativeRuntime()) {
     const heroPhoto = galleryUrls[0] ?? place.wikidata?.image_url ?? null
     const rating = place.fsq?.rating
+    // Sans photo, le bandeau devient « score héros » : on calcule le rang honnête
+    // (parmi les mêmes cuisines chargées autour, cf. lib/ranking) uniquement là.
+    const bannerRank = heroPhoto ? null : placeRank(place, nearbyPlaces)
     const price = place.fsq?.price
     const reviewsCount = place.fsq?.total_ratings
     const michelin = place.wikidata?.michelin_stars ?? place.osm_enriched?.michelin ?? 0
@@ -496,12 +497,13 @@ export default function PlaceDetail({
             WebkitOverflowScrolling: 'touch',
           }}
         >
-          {/* ── Héros plein cadre ── */}
+          {/* ── Héros plein cadre : photo, ou « score héros » sans photo ── */}
           <div
             style={{
               position: 'relative',
-              height: 332,
-              background: heroPhoto ? undefined : placeGradient(place.osm_id),
+              height: bannerRank !== null || !heroPhoto ? 300 : 332,
+              background: heroPhoto ? undefined : 'var(--surface)',
+              borderBottom: heroPhoto ? undefined : '1px solid var(--border)',
               overflow: 'hidden',
             }}
           >
@@ -513,55 +515,130 @@ export default function PlaceDetail({
                 alt=""
                 fill
                 sizes="100vw"
-                style={{ objectFit: 'cover', animation: 'heroZoom 900ms var(--ease-out) both' }}
+                style={{
+                  objectFit: 'cover',
+                  animation: 'heroZoom 900ms var(--ease-out) backwards',
+                }}
                 priority
               />
             ) : (
-              <span
-                aria-hidden
+              // Pas de vraie photo → le classement devient le héros. La note en
+              // grand (l'or ressort sur le fond neutre), le rang honnête, le statut.
+              <div
                 style={{
                   position: 'absolute',
                   inset: 0,
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 120,
-                  fontWeight: 600,
-                  letterSpacing: '-0.02em',
-                  color: 'rgba(255,255,255,0.9)',
+                  gap: 12,
+                  padding: '0 24px',
+                  textAlign: 'center',
                 }}
               >
-                {placeInitial(place.name)}
-              </span>
+                {rating != null ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <Star size={40} strokeWidth={0} fill="var(--star)" />
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        fontSize: 64,
+                        fontWeight: 700,
+                        lineHeight: 1,
+                        letterSpacing: '-0.03em',
+                        color: 'var(--text)',
+                      }}
+                    >
+                      {rating.toFixed(1)}
+                    </span>
+                  </div>
+                ) : (
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      fontSize: 26,
+                      fontWeight: 600,
+                      color: 'var(--text-3)',
+                    }}
+                  >
+                    Pas encore noté
+                  </span>
+                )}
+
+                {bannerRank && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '6px 14px',
+                      borderRadius: 999,
+                      background: 'var(--accent)',
+                      color: 'var(--on-accent)',
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      letterSpacing: '-0.01em',
+                    }}
+                  >
+                    {rankLabel(bannerRank)}
+                  </span>
+                )}
+
+                {place.open_now !== undefined && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: place.open_now ? 'var(--open)' : 'var(--closed)',
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: '50%',
+                        background: 'currentColor',
+                      }}
+                    />
+                    {place.open_now ? 'Ouvert' : 'Fermé'}
+                  </span>
+                )}
+              </div>
             )}
 
-            {/* Voile haut pour la lisibilité du bouton retour */}
-            <span
-              aria-hidden
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 96,
-                background: 'linear-gradient(rgba(0,0,0,0.28), transparent)',
-                pointerEvents: 'none',
-              }}
-            />
-            {/* Voile bas — ancre la photo au contenu, donne de la profondeur */}
-            <span
-              aria-hidden
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: 88,
-                background: 'linear-gradient(transparent, rgba(0,0,0,0.22))',
-                pointerEvents: 'none',
-              }}
-            />
+            {/* Voiles de lisibilité : seulement sur photo (inutiles sur le fond
+                clair du bandeau score, ils y feraient une ombre parasite). */}
+            {heroPhoto && (
+              <>
+                <span
+                  aria-hidden
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 96,
+                    background: 'linear-gradient(rgba(0,0,0,0.28), transparent)',
+                    pointerEvents: 'none',
+                  }}
+                />
+                <span
+                  aria-hidden
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 88,
+                    background: 'linear-gradient(transparent, rgba(0,0,0,0.22))',
+                    pointerEvents: 'none',
+                  }}
+                />
+              </>
+            )}
 
             <button
               type="button"
@@ -1414,15 +1491,11 @@ export default function PlaceDetail({
     >
       {/* ── Photo banner with overlay ── */}
       {(() => {
-        // Banner photo: first gallery photo (user photos first, then FSQ/Google),
-        // falling back to the free sources — OSM Commons, Wikidata, then the
-        // Mapillary storefront — so the banner matches the list card.
+        // Banner photo : première photo de galerie (photos user d'abord, puis
+        // FSQ/Google), avec repli sur les sources libres OSM Commons / Wikidata.
+        // Plus de Mapillary. `null` → bandeau « score héros » (voir plus bas).
         const photoUrl =
-          galleryUrls[0] ??
-          place.osm_enriched?.image_url ??
-          place.wikidata?.image_url ??
-          place.osm_enriched?.mapillary_url ??
-          null
+          galleryUrls[0] ?? place.osm_enriched?.image_url ?? place.wikidata?.image_url ?? null
 
         const glassBtnStyle: React.CSSProperties = {
           width: 36,
@@ -1459,7 +1532,10 @@ export default function PlaceDetail({
                 alt=""
                 fill
                 sizes="100vw"
-                style={{ objectFit: 'cover', animation: 'heroZoom 900ms var(--ease-out) both' }}
+                style={{
+                  objectFit: 'cover',
+                  animation: 'heroZoom 900ms var(--ease-out) backwards',
+                }}
                 priority
               />
             ) : (

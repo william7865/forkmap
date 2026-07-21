@@ -164,7 +164,7 @@ export default function PublicProfile({
               borderTopLeftRadius: 20,
               borderTopRightRadius: 20,
               padding: '8px 8px calc(var(--safe-bottom) + 10px)',
-              animation: 'slideUp 200ms cubic-bezier(0.16,1,0.3,1) both',
+              animation: 'slideUp 200ms cubic-bezier(0.16,1,0.3,1) backwards',
             }}
           >
             <button
@@ -247,7 +247,7 @@ export default function PublicProfile({
         </div>
 
         {/* ── Masthead : avatar puis grand titre serif (pile, éditorial) ── */}
-        <header style={{ animation: 'fadeUp 280ms var(--ease-out) both' }}>
+        <header style={{ animation: 'fadeUp 280ms var(--ease-out) backwards' }}>
           <Avatar name={p.display_name} src={p.avatar_url} id={p.id} size={72} />
           <h1
             style={{
@@ -378,7 +378,7 @@ export default function PublicProfile({
             display: 'flex',
             flexWrap: 'wrap',
             gap: '18px 26px',
-            animation: 'fadeUp 320ms var(--ease-out) 60ms both',
+            animation: 'fadeUp 320ms var(--ease-out) 60ms backwards',
           }}
         >
           {figures.map((f) => (
@@ -413,7 +413,9 @@ export default function PublicProfile({
         </section>
 
         {/* ── Ses listes — lignes-collections ── */}
-        <section style={{ ...sectionStyle, animation: 'fadeUp 320ms var(--ease-out) 120ms both' }}>
+        <section
+          style={{ ...sectionStyle, animation: 'fadeUp 320ms var(--ease-out) 120ms backwards' }}
+        >
           <SecHead title="Ses listes" />
           {bundle.lists.length === 0 ? (
             <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-3)' }}>

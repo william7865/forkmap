@@ -311,7 +311,19 @@ h3 {
   background: #eceeef !important;
 }
 .native-app .leaflet-tile-pane {
-  filter: grayscale(0.55) contrast(1.06) brightness(1.02);
+  /* Désaturation ALLÉGÉE (0.55 → 0.18). À 55% la carte, qui occupe la moitié de
+     l'écran, n'avait plus aucune couleur : c'était la principale cause de
+     froideur de l'app. Le fond Positron est déjà très sobre, ce léger voile
+     suffit à faire ressortir les marqueurs. */
+  filter: grayscale(0.18) contrast(1.04);
+}
+/* En thème sombre, les tuiles Dark Matter sont déjà monochromes et sombres :
+   les désaturer les rendrait ternes et illisibles. */
+.native-app[data-theme='dark'] .leaflet-tile-pane {
+  filter: none;
+}
+.native-app[data-theme='dark'] .leaflet-container {
+  background: #0f0f10;
 }
 .leaflet-control-zoom {
   border: none !important;
@@ -489,6 +501,34 @@ h3 {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* ── Variantes CENTRÉES ────────────────────────────────────────────────
+   Pour les pastilles centrées par `left: 50%; transform: translateX(-50%)`.
+   Une animation qui anime `transform` REMPLACE le transform inline : les
+   keyframes ci-dessus effacent donc le translateX(-50%) et la pastille part
+   d'un demi-largeur vers la droite (et y reste si le fill-mode est `forwards`).
+   Ces variantes rejouent le centrage à chaque étape.
+   Ne jamais utiliser fadeUp/fadeDown sur un élément centré par transform. */
+@keyframes fadeUpCentered {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+@keyframes fadeDownCentered {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
   }
 }
 @keyframes slideInRight {

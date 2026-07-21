@@ -61,7 +61,7 @@ export default function AppInviteModal({
           borderTopRightRadius: 'var(--r-2xl)',
           padding: '10px 22px calc(26px + var(--safe-bottom, 0px))',
           boxShadow: 'var(--s4)',
-          animation: 'sheetUp 280ms var(--ease-out) both',
+          animation: 'sheetUp 280ms var(--ease-out) backwards',
         }}
       >
         <div

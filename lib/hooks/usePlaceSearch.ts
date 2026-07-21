@@ -10,6 +10,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import type { FoursquareData } from '@/types'
 import { searchGoogleNearby } from '@/lib/google-client'
+import { frCuisine } from '@/lib/cuisine'
 
 export interface PlaceSearchResult {
   /** Stable list key. */
@@ -103,7 +104,11 @@ async function search(q: string, center: [number, number] | null): Promise<Place
     out = g.map((r) => ({
       id: `g:${r.lat.toFixed(5)},${r.lon.toFixed(5)}`,
       name: r.name,
-      context: 'Google Maps',
+      // La catégorie du lieu, pas le nom du fournisseur : « Google Maps » à côté
+      // de chaque résultat n'apprenait rien à l'utilisateur et parasitait la
+      // liste. Le scraper ne renvoie pas d'adresse, donc à défaut de catégorie
+      // on laisse vide (la ligne se contente du nom).
+      context: frCuisine(r.fsq?.categories?.[0]?.name ?? ''),
       lat: r.lat,
       lon: r.lon,
       rating: r.fsq.rating,

@@ -113,7 +113,7 @@ export default function ToastStack({ toasts, onDismiss }: Props) {
               color: 'var(--ink)',
               animation: toast.leaving
                 ? 'toastOut 300ms var(--ease-out) both'
-                : 'toastIn 280ms var(--ease-out) both',
+                : 'toastIn 280ms var(--ease-out) backwards',
               pointerEvents: 'auto',
               cursor: 'pointer',
               minWidth: 180,

@@ -130,7 +130,7 @@ function DropdownPanel({ anchorRef, auth, onClose }: PanelProps) {
         minWidth: 228,
         overflow: 'hidden',
         fontFamily: 'var(--font-body)',
-        animation: 'fadeDown 180ms cubic-bezier(0.16,1,0.3,1) both',
+        animation: 'fadeDown 180ms cubic-bezier(0.16,1,0.3,1) backwards',
       }}
     >
       {/* Header */}

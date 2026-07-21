@@ -279,7 +279,7 @@ export default function StartPanel({
                 margin: 0,
                 padding: '4px 0',
                 listStyle: 'none',
-                animation: 'fadeUp 160ms var(--ease-out) both',
+                animation: 'fadeUp 160ms var(--ease-out) backwards',
               }}
             >
               {suggestions.slice(0, 5).map((s) => {
