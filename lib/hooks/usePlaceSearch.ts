@@ -104,11 +104,10 @@ async function search(q: string, center: [number, number] | null): Promise<Place
     out = g.map((r) => ({
       id: `g:${r.lat.toFixed(5)},${r.lon.toFixed(5)}`,
       name: r.name,
-      // La catégorie du lieu, pas le nom du fournisseur : « Google Maps » à côté
-      // de chaque résultat n'apprenait rien à l'utilisateur et parasitait la
-      // liste. Le scraper ne renvoie pas d'adresse, donc à défaut de catégorie
-      // on laisse vide (la ligne se contente du nom).
-      context: frCuisine(r.fsq?.categories?.[0]?.name ?? ''),
+      // L'ADRESSE d'abord : c'est ce qui distingue deux homonymes (« Gangnam,
+      // 36 Rue de Belleville » vs un autre « Gangnam »). Sans adresse Google,
+      // repli sur la cuisine (mieux que rien) ; jamais le nom du fournisseur.
+      context: r.address ?? frCuisine(r.fsq?.categories?.[0]?.name ?? ''),
       lat: r.lat,
       lon: r.lon,
       rating: r.fsq.rating,
