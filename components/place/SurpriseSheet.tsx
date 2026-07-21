@@ -400,13 +400,20 @@ export default function SurpriseSheet({
         flexDirection: 'column',
         animation: 'overlayIn 220ms ease backwards',
         color: pal.fg,
+        // Une carte qui s'envole à translateX(±140%) (voir flyStyle) élargissait
+        // la zone scrollable horizontale faute de clip ici — le viewport se
+        // redimensionnait à chaque swipe. On clippe tout ce qui déborde.
+        overflow: 'hidden',
       }}
     >
       {/* ── Header ── */}
       <div
-        className="safe-top"
         style={{
-          padding: '16px 18px 8px',
+          // var(--safe-top), pas env() brut : dans une WKWebView, env(safe-area-
+          // inset-top) vaut 0 sur un overlay non défilant (fixed; inset:0), donc
+          // l'eyebrow passait sous l'encoche. --safe-top est la valeur figée par
+          // la sonde de CapacitorInit (cf. mémoire).
+          padding: 'calc(var(--safe-top) + 16px) 18px 8px',
           display: 'flex',
           alignItems: 'center',
           gap: 12,
