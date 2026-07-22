@@ -36,7 +36,7 @@ describe('extractPlaceCandidates', () => {
     expect(home[0].name).toBe('Kodawari Ramen')
   })
 
-  // Le cas qu'Albo rate : le nom est dans une phrase, sans marqueur.
+  // Le cas difficile : le nom est dans une phrase, sans marqueur explicite.
   it('trouve un nom propre capitalisé dans une phrase narrative', () => {
     const out = extractPlaceCandidates(
       post({ description: "J'ai testé Le Train Bleu et c'était incroyable" })
