@@ -2,9 +2,8 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import ErrorBoundary from '@/components/states/ErrorBoundary'
 import { LanguageProvider } from '@/lib/i18n/useLanguage'
-import AppChrome from '@/components/ui/AppChrome'
+import AppShell from '@/components/ui/AppShell'
 import CapacitorInit from '@/components/native/CapacitorInit'
-import GetAppBanner from '@/components/app/GetAppBanner'
 import { ImportsProvider } from '@/lib/hooks/useImportsContext'
 import { ToastProvider } from '@/lib/hooks/useToastContext'
 import BootSplash from '@/components/native/BootSplash'
@@ -82,21 +81,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     attendre React. Build natif uniquement. */}
                 {isExport && <BootSplash />}
                 <CapacitorInit />
-                <AppChrome forceNative={isExport} />
-                {/* Nudge web visitors to the native app (self-hides in the app). */}
-                <GetAppBanner />
-                {/* Push content right on desktop, up on mobile */}
-                <div className="main-content-offset">{children}</div>
-                <style>{`
-              /* Sole reservation for the fixed web chrome: the 52px NavRail on desktop,
-                 the 56px + 1px border BottomNav on mobile. Pages must not add their own.
-                 html.native-app renders AppTabBar instead, which reserves nothing here. */
-              @media (min-width: 768px) { .main-content-offset { margin-left: 52px; } }
-              @media (max-width: 767px) {
-                .main-content-offset { margin-bottom: calc(57px + var(--safe-bottom)); }
-              }
-              html.native-app .main-content-offset { margin-left: 0; margin-bottom: 0; }
-            `}</style>
+                {/* Route-aware chrome: nav rail / tab bar everywhere, except the
+                    web marketing landing at `/` which owns its full-bleed layout. */}
+                <AppShell forceNative={isExport}>{children}</AppShell>
               </ErrorBoundary>
             </ToastProvider>
           </ImportsProvider>
