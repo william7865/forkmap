@@ -856,6 +856,66 @@ function chezMatches(text: string): PlaceGuess[] {
   return out
 }
 
+// ── Multi-venue list posts ────────────────────────────────
+// "5 addresses in Paris: – Melané @melane_paris — Gloria Osteria @gloriaosteria …"
+// A single post that lists several venues, each on its own line as "<Name> @handle".
+
+export interface VenueEntry {
+  name: string
+  handle: string | null
+}
+
+/** A line that introduces one venue: an optional bullet, a name, then its @handle. */
+const VENUE_LINE = /^[\s–—\-•*·>#0-9.)]*\s*(.{1,60}?)\s+@([a-zA-Z0-9._]{2,40})\b/
+/** A real list bullet at the very start of the line. */
+const BULLET_START = /^\s*[–—\-•*·]/
+
+/**
+ * Detect a list-style caption and return its venues in order, each a name paired
+ * with its @handle. The name is the trailing capitalised run before the handle,
+ * falling back to the humanised handle when the text name isn't a clean venue.
+ * Curator/prose lines ("merci @ami") are dropped. Deduped. A caller treats
+ * length ≥ 3 as "this is a list".
+ */
+export function extractVenueList(caption: string): VenueEntry[] {
+  const out: VenueEntry[] = []
+  const seen = new Set<string>()
+  for (const line of caption.split('\n')) {
+    const m = VENUE_LINE.exec(line)
+    if (!m) continue
+    const handle = m[2].replace(/[._]+$/, '')
+    if (isCurator(handle)) continue
+    let name = trailingName(m[1])
+    const validText =
+      !!name && !isStopword(name.split(' ')[0]) && !isGeneric(name) && !isCurator(name)
+    if (!validText) {
+      // No clean venue name before the @. Only trust the handle as the venue when
+      // the line is an actual list item (a bullet) — otherwise it's a prose
+      // mention ("merci @mon_ami"), not a venue.
+      if (!BULLET_START.test(line)) continue
+      name = stripBrandSuffix(humanizeHandle(handle))
+    }
+    if (name.length < 2 || isGeneric(name) || isCurator(name)) continue
+    const key = normalise(name)
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push({ name, handle })
+  }
+  return out
+}
+
+/** A human title for a list import — the first substantive caption line (skips the
+ *  poster handle, venue lines and hashtag piles). Capped; falls back to "Adresses". */
+export function listTitle(caption: string): string {
+  for (const raw of caption.split('\n')) {
+    const line = raw.trim()
+    if (line.includes(' ') && line.length >= 12 && !line.includes('@') && !line.startsWith('#')) {
+      return line.replace(/\s+/g, ' ').slice(0, 80).trim()
+    }
+  }
+  return 'Adresses'
+}
+
 /**
  * Rank restaurant-name guesses from a parsed post.
  * Ordered by confidence, deduped (case-insensitive), never empty-named.

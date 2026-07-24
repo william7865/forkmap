@@ -410,6 +410,31 @@ describe('resolveImport — nouveaux signaux (géotag + OCR)', () => {
     expect(patch.place_snapshot?.name).toBe('Bouillon Pigalle')
   })
 
+  it('résout un post-liste en status "list" avec les venues résolues', async () => {
+    meta.mockResolvedValue({
+      og: {
+        title: '',
+        description:
+          '5 spots food à Paris à tester\n– Melané @melane_paris\n– Gloria Osteria @gloriaosteria.paris\n– Udon Jubey @jubey39',
+      },
+      location: null,
+    })
+    search.mockImplementation(async (q: string) => {
+      const s = q.toLowerCase()
+      if (s.includes('melan')) return [osmResult('Melané')]
+      if (s.includes('gloria')) return [osmResult('Gloria Osteria')]
+      if (s.includes('udon') || s.includes('jubey')) return [osmResult('Udon Jubey')]
+      return []
+    })
+
+    const patch = await resolveImport(row(), PARIS)
+
+    expect(patch.status).toBe('list')
+    expect(patch.candidates?.length).toBeGreaterThanOrEqual(2)
+    expect(patch.post_title).toContain('5 spots')
+    expect(patch.place_snapshot).toBeNull()
+  })
+
   it("n'appelle pas l'OCR quand la légende résout déjà (chemin rapide)", async () => {
     meta.mockResolvedValue({
       og: { title: '📍 Septime', description: '', image: 'https://cdn.tiktok.com/t.jpg' },

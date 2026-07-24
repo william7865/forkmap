@@ -106,6 +106,7 @@ export function ImportTile({ imp }: { imp: ImportRow }) {
   const title = imp.place_snapshot?.name ?? (cleanTitleText(imp.post_title) || tr('importPending'))
   const cover = imp.post_thumb && !broken ? imp.post_thumb : null
 
+  const listCount = imp.status === 'list' ? (imp.candidates?.length ?? 0) : 0
   const status =
     imp.status === 'pending'
       ? tr('importPending')
@@ -113,7 +114,9 @@ export function ImportTile({ imp }: { imp: ImportRow }) {
         ? tr('importNeedsConfirm')
         : imp.status === 'failed'
           ? tr('importNotFound')
-          : null
+          : imp.status === 'list'
+            ? `${listCount} ${tr('places')}`
+            : null
   // A fresh share has no title yet, so the title line already reads "Analyse en
   // cours…" — printing the status under it would just say it twice.
   const label = status === title ? null : status
@@ -170,6 +173,10 @@ export function ImportTile({ imp }: { imp: ImportRow }) {
         ) : imp.status === 'ambiguous' || imp.status === 'failed' ? (
           <Badge tone="alert">
             <AlertCircle size={11} />
+          </Badge>
+        ) : imp.status === 'list' ? (
+          <Badge>
+            <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{listCount}</span>
           </Badge>
         ) : (
           <Badge>

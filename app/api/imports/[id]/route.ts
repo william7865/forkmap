@@ -23,7 +23,9 @@ const CandidateSchema = z.object({
 
 const PatchImportSchema = z
   .object({
-    status: z.enum(['pending', 'resolved', 'ambiguous', 'failed']).optional(),
+    // 'list' = a post that lists several venues; the resolved venues live in
+    // `candidates` (which then holds up to 8 places, not the 3 ambiguity options).
+    status: z.enum(['pending', 'resolved', 'ambiguous', 'failed', 'list']).optional(),
     note: z.string().max(500).nullable().optional(),
     post_title: z.string().max(500).nullable().optional(),
     post_caption: z.string().max(3000).nullable().optional(),
@@ -31,7 +33,7 @@ const PatchImportSchema = z
     post_thumb: z.string().url().max(2048).nullable().optional(),
     osm_id: z.string().max(64).nullable().optional(),
     place_snapshot: z.record(z.unknown()).nullable().optional(),
-    candidates: z.array(CandidateSchema).max(3).nullable().optional(),
+    candidates: z.array(CandidateSchema).max(8).nullable().optional(),
     resolved_at: z.string().datetime().nullable().optional(),
   })
   .strict()

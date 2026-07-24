@@ -29,6 +29,7 @@ import {
 import type { ImportCandidatePlace, ImportPlatform, ImportRow, PlaceCard as TPlace } from '@/types'
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
 import { useImportsStore } from '@/lib/hooks/useImportsContext'
+import { useLists } from '@/lib/hooks/useLists'
 import { useLanguage } from '@/lib/i18n/useLanguage'
 import { useIsNative } from '@/lib/native/platform'
 import { candidateToPlaceCard, toPlaceCard } from '@/lib/import/resolve'
@@ -563,7 +564,11 @@ function Loaded({ imp, imports, native, patch, remove, retry, onToast }: LoadedP
         <section
           style={{ marginTop: 28, animation: 'fadeUp 300ms var(--ease-out) 120ms backwards' }}
         >
-          <h2 style={EYEBROW}>{tr('importFoundTitle')}</h2>
+          <h2 style={EYEBROW}>
+            {tr(imp.status === 'list' ? 'importListSection' : 'importFoundTitle')}
+          </h2>
+
+          {imp.status === 'list' && <ListBlock imp={imp} onToast={onToast} />}
 
           {imp.status === 'pending' && <PendingBlock />}
 
@@ -712,6 +717,165 @@ function PendingBlock() {
           {tr('importPendingHint')}
         </p>
       </div>
+    </div>
+  )
+}
+
+// ── status: list (post multi-restos) ──────────────────────
+
+function ListBlock({
+  imp,
+  onToast,
+}: {
+  imp: ImportRow
+  onToast: (msg: string, kind?: ToastType) => void
+}) {
+  const { tr } = useLanguage()
+  const router = useRouter()
+  const { createList, addItemToList } = useLists()
+  const [creating, setCreating] = useState(false)
+  const [created, setCreated] = useState(false)
+
+  const places = useMemo(
+    () => (imp.candidates ?? []).map(candidateToPlaceCard).filter((p): p is TPlace => p !== null),
+    [imp.candidates]
+  )
+
+  const openOnMap = useCallback(
+    (p: TPlace) => {
+      setPendingSelect(p)
+      router.push(`/?select=${encodeURIComponent(p.osm_id)}`)
+    },
+    [router]
+  )
+
+  const create = useCallback(async () => {
+    if (creating || created || places.length === 0) return
+    setCreating(true)
+    try {
+      const list = await createList(imp.post_title?.slice(0, 80) || 'Adresses', null, 'private')
+      for (const p of places) {
+        try {
+          await addItemToList(list.id, p.osm_id, p as unknown as Record<string, unknown>)
+        } catch {
+          /* skip a single failed item, keep the rest */
+        }
+      }
+      setCreated(true)
+      onToast(tr('importListCreated'), 'success')
+    } catch {
+      onToast(tr('error'), 'error')
+    } finally {
+      setCreating(false)
+    }
+  }, [creating, created, places, createList, addItemToList, imp.post_title, onToast, tr])
+
+  return (
+    <div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {places.map((p, i) => (
+          <button
+            key={`${p.osm_id}-${i}`}
+            type="button"
+            onClick={() => openOnMap(p)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: 12,
+              borderRadius: 16,
+              border: '1px solid var(--border)',
+              background: 'var(--surface)',
+              cursor: 'pointer',
+              textAlign: 'left',
+              fontFamily: 'var(--font-body)',
+            }}
+          >
+            <span
+              aria-hidden
+              style={{
+                width: 34,
+                height: 34,
+                flexShrink: 0,
+                borderRadius: 10,
+                background: placeGradient(p.osm_id),
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: 14,
+              }}
+            >
+              {i + 1}
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span
+                style={{
+                  display: 'block',
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 15.5,
+                  fontWeight: 600,
+                  color: 'var(--text)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {p.name}
+              </span>
+              {p.address && (
+                <span
+                  style={{
+                    display: 'block',
+                    marginTop: 2,
+                    fontSize: 12,
+                    color: 'var(--text-3)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {p.address}
+                </span>
+              )}
+            </span>
+            {typeof p.fsq?.rating === 'number' && <Rating value={p.fsq.rating} />}
+          </button>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => void create()}
+        disabled={creating || created}
+        style={{
+          marginTop: 14,
+          width: '100%',
+          height: 46,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 7,
+          borderRadius: 14,
+          border: created ? '1px solid var(--border)' : 'none',
+          background: created ? 'var(--surface)' : 'var(--accent)',
+          color: created ? 'var(--text)' : 'var(--on-accent, #fff)',
+          fontFamily: 'var(--font-body)',
+          fontSize: 14,
+          fontWeight: 700,
+          cursor: creating || created ? 'default' : 'pointer',
+          boxShadow: created ? 'none' : 'var(--s2)',
+        }}
+      >
+        {creating ? (
+          <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+        ) : created ? (
+          tr('importListCreated')
+        ) : (
+          tr('importListCreate')
+        )}
+      </button>
     </div>
   )
 }
