@@ -32,7 +32,8 @@ import { useImportsStore } from '@/lib/hooks/useImportsContext'
 import { useLanguage } from '@/lib/i18n/useLanguage'
 import { useIsNative } from '@/lib/native/platform'
 import { candidateToPlaceCard, toPlaceCard } from '@/lib/import/resolve'
-import { decodeEntities } from '@/lib/import/parse'
+import { cleanTitleText } from '@/lib/import/caption'
+import ImportCaption from '@/components/import/ImportCaption'
 import { searchPlacesOnce, type PlaceSearchResult } from '@/lib/hooks/usePlaceSearch'
 import { placeGradient } from '@/lib/gradients'
 import { apiFetch } from '@/lib/api'
@@ -337,10 +338,11 @@ function Loaded({ imp, imports, native, patch, remove, retry, onToast }: LoadedP
     }
   }, [remove, imp.id, router, onToast, tr])
 
-  // Decode at render too: rows imported before the decoder fix stored the raw
-  // entities (e.g. Instagram's `&#x1f602;`, `L&#x2019;art`).
-  const title =
-    place?.name ?? (imp.post_title ? decodeEntities(imp.post_title) : tr('importPending'))
+  // A resolved place wins; otherwise tidy the post title (strip leading emoji,
+  // hashtags, boilerplate — cleanTitleText also decodes stored HTML entities like
+  // Instagram's `&#x1f602;`). Emoji-only titles clean to '' → the pending label.
+  const cleanedTitle = cleanTitleText(imp.post_title)
+  const title = place?.name ?? (cleanedTitle || tr('importPending'))
   const platform = PLATFORM_LABEL[imp.platform] ?? tr('importOpenSource')
   const cover = imp.post_thumb && !thumbBroken ? imp.post_thumb : null
 
@@ -552,23 +554,10 @@ function Loaded({ imp, imports, native, patch, remove, retry, onToast }: LoadedP
           <ArrowUpRight size={13} />
         </button>
 
-        {/* 4 — The creator's caption, quoted verbatim. Never paraphrased: their
-            words are the reason this post was saved. */}
-        {imp.post_caption && (
-          <blockquote
-            style={{
-              margin: '16px 0 0',
-              paddingLeft: 12,
-              borderLeft: '2px solid var(--border)',
-              fontSize: 14,
-              fontStyle: 'italic',
-              lineHeight: 1.6,
-              color: 'var(--text-2)',
-            }}
-          >
-            «&nbsp;{decodeEntities(imp.post_caption)}&nbsp;»
-          </blockquote>
-        )}
+        {/* 4 — The creator's caption. Quoted verbatim (never paraphrased: their
+            words are why this was saved), but split into readable prose + hashtag
+            chips with its line breaks kept — see ImportCaption. */}
+        <ImportCaption raw={imp.post_caption} />
 
         {/* 5 — What we found */}
         <section
