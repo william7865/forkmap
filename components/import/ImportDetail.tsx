@@ -753,7 +753,12 @@ function ListBlock({
     if (creating || created || places.length === 0) return
     setCreating(true)
     try {
-      const list = await createList(imp.post_title?.slice(0, 80) || 'Adresses', null, 'private')
+      // Le nom de liste est plafonné à 40 caractères côté API (POST /api/lists).
+      const list = await createList(
+        imp.post_title?.slice(0, 40).trim() || 'Adresses',
+        null,
+        'private'
+      )
       for (const p of places) {
         try {
           await addItemToList(list.id, p.osm_id, p as unknown as Record<string, unknown>)
