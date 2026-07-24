@@ -119,6 +119,8 @@ export type TranslationKey =
   | 'importNoSearchResult'
   | 'importFoundTitle'
   | 'importAlsoSeenIn'
+  | 'importSeeMore'
+  | 'importSeeLess'
   | 'importOpenSource'
   | 'importAddNote'
   | 'importNoteTitle'
@@ -243,6 +245,8 @@ export const t: Translations = {
     importNoSearchResult: 'Aucun résultat.',
     importFoundTitle: 'Ce qu’on a trouvé',
     importAlsoSeenIn: 'Vu aussi dans',
+    importSeeMore: 'Voir plus',
+    importSeeLess: 'Voir moins',
     importOpenSource: 'Voir le post',
     importAddNote: 'Ajoute une note…',
     importNoteTitle: 'Ma note',
@@ -365,6 +369,8 @@ export const t: Translations = {
     importNoSearchResult: 'No result.',
     importFoundTitle: 'What we found',
     importAlsoSeenIn: 'Also seen in',
+    importSeeMore: 'See more',
+    importSeeLess: 'See less',
     importOpenSource: 'View the post',
     importAddNote: 'Add a note…',
     importNoteTitle: 'My note',
@@ -487,6 +493,8 @@ export const t: Translations = {
     importNoSearchResult: 'Sin resultados.',
     importFoundTitle: 'Lo que hemos encontrado',
     importAlsoSeenIn: 'Visto también en',
+    importSeeMore: 'Ver más',
+    importSeeLess: 'Ver menos',
     importOpenSource: 'Ver la publicación',
     importAddNote: 'Añade una nota…',
     importNoteTitle: 'Mi nota',
@@ -609,6 +617,8 @@ export const t: Translations = {
     importNoSearchResult: 'Kein Ergebnis.',
     importFoundTitle: 'Das haben wir gefunden',
     importAlsoSeenIn: 'Auch gesehen in',
+    importSeeMore: 'Mehr anzeigen',
+    importSeeLess: 'Weniger anzeigen',
     importOpenSource: 'Post ansehen',
     importAddNote: 'Notiz hinzufügen…',
     importNoteTitle: 'Meine Notiz',
@@ -731,6 +741,8 @@ export const t: Translations = {
     importNoSearchResult: '結果がありません。',
     importFoundTitle: '見つかった店',
     importAlsoSeenIn: 'こちらでも紹介',
+    importSeeMore: 'もっと見る',
+    importSeeLess: '閉じる',
     importOpenSource: '投稿を見る',
     importAddNote: 'メモを追加…',
     importNoteTitle: 'マイメモ',

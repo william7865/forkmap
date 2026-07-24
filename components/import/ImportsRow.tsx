@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { Play, Loader2, AlertCircle } from 'lucide-react'
 import type { ImportRow } from '@/types'
 import { useLanguage } from '@/lib/i18n/useLanguage'
-import { decodeEntities } from '@/lib/import/parse'
+import { cleanTitleText } from '@/lib/import/caption'
 import { placeGradient } from '@/lib/gradients'
 import { useIsNative } from '@/lib/native/platform'
 
@@ -103,9 +103,7 @@ export function ImportTile({ imp }: { imp: ImportRow }) {
   const { tr } = useLanguage()
   const native = useIsNative()
   const [broken, setBroken] = useState(false)
-  const title =
-    imp.place_snapshot?.name ??
-    (imp.post_title ? decodeEntities(imp.post_title) : tr('importPending'))
+  const title = imp.place_snapshot?.name ?? (cleanTitleText(imp.post_title) || tr('importPending'))
   const cover = imp.post_thumb && !broken ? imp.post_thumb : null
 
   const status =
