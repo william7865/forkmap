@@ -14,6 +14,9 @@ export interface OgMeta {
   description?: string
   image?: string
   site_name?: string
+  /** A directly-playable video URL (og:video), when the crawler HTML exposes one.
+   *  Used as a last-resort OCR source (sample frames) — often absent. */
+  video?: string
 }
 
 export interface ImportCandidate {
@@ -87,6 +90,7 @@ export function extractOgTags(html: string): OgMeta {
     description: pick('og:description') ?? pick('twitter:description'),
     image: pick('og:image') ?? pick('twitter:image'),
     site_name: pick('og:site_name'),
+    video: pick('og:video:secure_url') ?? pick('og:video:url') ?? pick('og:video'),
   }
 }
 

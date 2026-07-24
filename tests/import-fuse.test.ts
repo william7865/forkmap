@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { fuseCandidates } from '@/lib/import/candidates'
+import { fuseCandidates, cleanOcrText } from '@/lib/import/candidates'
 import type { ImportCandidate } from '@/lib/import/parse'
 
 function post(overrides: Partial<ImportCandidate> = {}): ImportCandidate {
@@ -61,5 +61,30 @@ describe('fuseCandidates', () => {
     const g = find(guesses, 'Chez Aline')!
     expect(g.confidence).toBeGreaterThanOrEqual(0.8)
     expect(g.confidence).toBeLessThan(0.97)
+  })
+})
+
+describe('cleanOcrText', () => {
+  it('keeps venue-name lines, drops overlay chrome', () => {
+    const out = cleanOcrText([
+      'BOUILLON PIGALLE',
+      '★ 9.0',
+      '12€',
+      '8 min',
+      'OUVERT',
+      '@bouillon.pigalle',
+      'MENU',
+      'Le meilleur bouillon',
+    ])
+    expect(out).toBe('BOUILLON PIGALLE\nLe meilleur bouillon')
+  })
+
+  it('drops ratings, prices and durations', () => {
+    expect(cleanOcrText(['4,8/5', '15,90 €', '3 km', '1.2k avis'])).toBe('')
+  })
+
+  it('returns empty for empty input', () => {
+    expect(cleanOcrText([])).toBe('')
+    expect(cleanOcrText(['', '  '])).toBe('')
   })
 })
