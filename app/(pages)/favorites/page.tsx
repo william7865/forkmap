@@ -1326,9 +1326,9 @@ function FavCardList({
           aria-label={selectMode ? `Sélectionner ${fav.name}` : `Voir ${fav.name} sur la carte`}
           style={{
             position: 'relative',
-            width: 66,
-            height: 66,
-            borderRadius: 15,
+            width: 72,
+            height: 72,
+            borderRadius: 16,
             overflow: 'hidden',
             flexShrink: 0,
             background: placeGradient(fav.osm_id),
@@ -1378,9 +1378,11 @@ function FavCardList({
           <p
             style={{
               margin: 0,
-              fontFamily: 'var(--font-display)',
-              fontSize: 16.5,
-              fontWeight: 600,
+              // Albo grammar: venue names in bold sans (the serif is reserved for
+              // the big screen title), tighter and a touch larger.
+              fontFamily: 'var(--font-body)',
+              fontSize: 18,
+              fontWeight: 700,
               color: 'var(--text)',
               letterSpacing: '-0.01em',
               lineHeight: 1.15,

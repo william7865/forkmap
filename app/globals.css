@@ -453,6 +453,20 @@ h3 {
     opacity: 1;
   }
 }
+/* Native screen transition: a content screen slides up as it settles, instead of
+   a web-style cross-fade. Ends at the natural state (translateY 0 / opacity 1) so,
+   with `backwards` fill, it leaves no lingering transform/opacity — no trapped
+   stacking context for full-screen overlays (see app/(pages)/template.tsx). */
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
 @keyframes slideUp {
   from {
     opacity: 0;
