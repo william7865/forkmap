@@ -4,14 +4,26 @@ import { useIsNative } from '@/lib/native/platform'
 import AppChrome from './AppChrome'
 import GetAppBanner from '@/components/app/GetAppBanner'
 
-// Route-aware chrome. Everywhere in the web app (and the whole native app) the
+// Route-aware chrome. Everywhere in the web APP (and the whole native app) the
 // content is framed by AppChrome — the desktop NavRail / mobile BottomNav — and
-// offset to clear it. The ONE exception is the web marketing landing at `/`: it
-// owns its full-bleed layout (its own top nav, no offset, no get-app banner).
+// offset to clear it. The exception is the public marketing SITE: the landing at
+// `/` plus its content/legal pages. Those own the full-bleed SiteHeader/GlobalFooter
+// layout (no NavRail, no offset, no get-app banner), so the whole public web reads
+// as one site rather than the app rail bleeding into marketing pages.
 //
 // `forceNative` is true only for the Capacitor static export, where `/` is the
 // map, not the landing — so the exception never applies there and the chrome
 // always shows. On the web, useIsNative() is false and pathname decides.
+const SITE_ROUTES = new Set([
+  '/',
+  '/about',
+  '/help',
+  '/contact',
+  '/privacy',
+  '/terms',
+  '/attribution',
+])
+
 export default function AppShell({
   children,
   forceNative = false,
@@ -21,9 +33,9 @@ export default function AppShell({
 }) {
   const pathname = usePathname()
   const native = useIsNative() || forceNative
-  const bareLanding = pathname === '/' && !native
+  const bareSite = SITE_ROUTES.has(pathname) && !native
 
-  if (bareLanding) return <>{children}</>
+  if (bareSite) return <>{children}</>
 
   return (
     <>

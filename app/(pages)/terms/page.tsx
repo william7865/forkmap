@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <InfoPage headerLabel="Conditions d’utilisation">
+    <InfoPage>
       <h1
         style={{
           fontSize: 'clamp(28px, 7vw, 36px)',

@@ -72,7 +72,7 @@ export default function ContactContent() {
 
   if (status === 'success') {
     return (
-      <InfoPage headerLabel="Contact">
+      <InfoPage>
         <div style={{ textAlign: 'center', padding: '60px 0 40px' }}>
           <div
             style={{
@@ -128,7 +128,7 @@ export default function ContactContent() {
               Envoyer un autre message
             </button>
             <Link
-              href="/"
+              href="/carte"
               style={{
                 padding: '10px 20px',
                 borderRadius: 10,
@@ -148,7 +148,7 @@ export default function ContactContent() {
   }
 
   return (
-    <InfoPage headerLabel="Contact">
+    <InfoPage>
       <h1
         style={{
           margin: '0 0 16px',

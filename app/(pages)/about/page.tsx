@@ -32,7 +32,7 @@ const CAPABILITIES = [
 
 export default function AboutPage() {
   return (
-    <InfoPage headerLabel="À propos">
+    <InfoPage>
       {/* Hero */}
       <div className="anim-slide-up" style={{ marginBottom: 40 }}>
         <div
@@ -181,7 +181,7 @@ export default function AboutPage() {
           </p>
         </div>
         <Link
-          href="/"
+          href="/carte"
           style={{
             padding: '11px 24px',
             borderRadius: 'var(--r-md)',

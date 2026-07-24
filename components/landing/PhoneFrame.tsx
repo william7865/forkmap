@@ -34,6 +34,12 @@ export default function PhoneFrame({
           overflow: 'hidden',
           background: 'var(--bg)',
           boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.4)',
+          // WebKit doesn't clip a rounded `overflow:hidden` box when an ancestor
+          // is transform-animated (the floating hero) — the screenshot leaked past
+          // the bottom corners on Safari. Own compositing layer + mask force the clip.
+          isolation: 'isolate',
+          transform: 'translateZ(0)',
+          WebkitMaskImage: '-webkit-radial-gradient(white, black)',
         }}
       >
         {/* No drawn notch: the app screenshot carries its own status bar + Dynamic Island. */}

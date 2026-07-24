@@ -6,8 +6,9 @@ import { useAuth, getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { Map, Bookmark, User, MoreHorizontal, LogOut } from 'lucide-react'
 
 // Mirrors NavRail so the same destinations are reachable on both breakpoints.
+// Web chrome only (native renders AppTabBar). The web map lives at /carte.
 const TABS = [
-  { href: '/', Icon: Map, label: 'Carte' },
+  { href: '/carte', Icon: Map, label: 'Carte' },
   { href: '/favorites', Icon: Bookmark, label: 'Enregistrés' },
   { href: '/account', Icon: User, label: 'Compte' },
 ]
@@ -193,7 +194,7 @@ export default function BottomNav() {
               </button>
             ) : (
               <Link
-                href="/?auth=required"
+                href="/carte?auth=required"
                 onClick={() => setSheet(false)}
                 style={{
                   display: 'block',

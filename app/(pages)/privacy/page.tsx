@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <InfoPage headerLabel="Politique de confidentialité">
+    <InfoPage>
       <h1
         style={{
           fontSize: 'clamp(28px, 7vw, 36px)',

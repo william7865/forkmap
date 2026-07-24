@@ -92,7 +92,7 @@ const linkStyle = { color: 'var(--accent)', textDecoration: 'none', fontWeight: 
 
 export default function AttributionPage() {
   return (
-    <InfoPage headerLabel="Attribution des données">
+    <InfoPage>
       <div className="anim-slide-up" style={{ marginBottom: 40 }}>
         <h1
           style={{

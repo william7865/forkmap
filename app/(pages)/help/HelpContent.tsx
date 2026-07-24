@@ -126,7 +126,7 @@ export default function HelpContent() {
   })).filter((g) => g.items.length > 0)
 
   return (
-    <InfoPage headerLabel="Aide & FAQ" maxWidth={720}>
+    <InfoPage maxWidth={720}>
       <h1
         style={{
           margin: '0 0 16px',
