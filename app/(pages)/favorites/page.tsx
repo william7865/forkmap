@@ -864,6 +864,23 @@ function chipStyle(active: boolean): React.CSSProperties {
   }
 }
 
+// Pilule d'action à la Albo (« ＋ Ajouter », « Décider pour moi ») — contour discret.
+const favPillStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+  height: 46,
+  padding: '0 20px',
+  borderRadius: 999,
+  border: '1px solid var(--border-strong)',
+  background: 'transparent',
+  color: 'var(--text)',
+  fontFamily: 'var(--font-body)',
+  fontSize: 15,
+  fontWeight: 600,
+  cursor: 'pointer',
+}
+
 const icoBtnStyle: React.CSSProperties = {
   width: 38,
   height: 38,
@@ -2535,6 +2552,35 @@ function FavoritesPageInner() {
             </div>
           )}
 
+          {/* ── Pilules d'action (natif, à la Albo) ── */}
+          {isNative && !activeListId && !loading && favorites.length > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                gap: 12,
+                margin: '18px 0 2px',
+                animation: 'fadeUp 300ms var(--ease-out) 40ms backwards',
+              }}
+            >
+              <button
+                type="button"
+                className="tap-press"
+                onClick={() => setShowCreateList(true)}
+                style={favPillStyle}
+              >
+                <span style={{ fontSize: 18, lineHeight: 1 }}>＋</span> Ajouter
+              </button>
+              <button
+                type="button"
+                className="tap-press"
+                onClick={() => router.push('/?surprise=1')}
+                style={favPillStyle}
+              >
+                <span style={{ fontSize: 15 }}>🗂</span> Décider pour moi
+              </button>
+            </div>
+          )}
+
           {/* ── Barre de recherche (natif) ── */}
           {isNative && !activeListId && (
             <div
@@ -2629,35 +2675,63 @@ function FavoritesPageInner() {
                 .slice(0, 6)
                 .map(([c]) => c)
               return (
-                <div
-                  className="no-scrollbar"
-                  style={{
-                    display: 'flex',
-                    gap: 8,
-                    overflowX: 'auto',
-                    margin: '14px 0 6px',
-                    paddingBottom: 2,
-                  }}
-                >
-                  {stateChips.map((c) => (
-                    <button
-                      key={c.key}
-                      onClick={() => setFavTab(c.key)}
-                      style={chipStyle(favTab === c.key)}
+                <>
+                  {/* Onglets soulignés (à la Albo) — remplacent les chips d'état */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: 26,
+                      margin: '18px 0 0',
+                      borderBottom: '1px solid var(--border)',
+                    }}
+                  >
+                    {stateChips.map((c) => (
+                      <button
+                        key={c.key}
+                        type="button"
+                        onClick={() => setFavTab(c.key)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: '0 0 10px',
+                          cursor: 'pointer',
+                          fontFamily: 'var(--font-body)',
+                          fontSize: 16,
+                          fontWeight: favTab === c.key ? 700 : 500,
+                          color: favTab === c.key ? 'var(--text)' : 'var(--text-3)',
+                          borderBottom:
+                            favTab === c.key ? '2px solid var(--text)' : '2px solid transparent',
+                          marginBottom: -1,
+                        }}
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Chips cuisine (sous les onglets) */}
+                  {topCuisines.length > 0 && (
+                    <div
+                      className="no-scrollbar"
+                      style={{
+                        display: 'flex',
+                        gap: 8,
+                        overflowX: 'auto',
+                        margin: '12px 0 6px',
+                        paddingBottom: 2,
+                      }}
                     >
-                      {c.label}
-                    </button>
-                  ))}
-                  {topCuisines.map((c) => (
-                    <button
-                      key={c}
-                      onClick={() => setFavCuisine(favCuisine === c ? null : c)}
-                      style={chipStyle(favCuisine === c)}
-                    >
-                      {frCuisine(c)}
-                    </button>
-                  ))}
-                </div>
+                      {topCuisines.map((c) => (
+                        <button
+                          key={c}
+                          onClick={() => setFavCuisine(favCuisine === c ? null : c)}
+                          style={chipStyle(favCuisine === c)}
+                        >
+                          {frCuisine(c)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
               )
             })()}
 
