@@ -32,6 +32,9 @@ export interface ImportCandidate {
   description: string
   /** Hashtags found in the text (lowercased, without #). */
   hashtags: string[]
+  /** @mentions found in the caption (without @). In food content a mention is
+   *  very often the VENUE's own account ("grâce à @bouillon.pigalle"). */
+  mentions?: string[]
   /** The search string to feed the place resolver. */
   query: string
 }
@@ -146,6 +149,25 @@ export function extractHashtags(text: string): string[] {
   return [...text.matchAll(/#([\p{L}0-9_]{2,30})/gu)].map((m) => m[1].toLowerCase())
 }
 
+/**
+ * @mentions in the caption, deduped (case-insensitive), original casing kept,
+ * trailing dots/underscores trimmed ("@bouillon.pigalle" → "bouillon.pigalle").
+ * A mention in a food caption is usually the venue's account.
+ */
+export function extractMentions(text: string): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const m of text.matchAll(/@([a-zA-Z0-9._]{2,30})/g)) {
+    const handle = m[1].replace(/[._]+$/, '')
+    const key = handle.toLowerCase()
+    if (handle.length >= 2 && !seen.has(key)) {
+      seen.add(key)
+      out.push(handle)
+    }
+  }
+  return out
+}
+
 /** A handle like "kodawari.ramen" → "kodawari ramen" for a readable query. */
 function humanizeHandle(handle: string): string {
   return handle.replace(/[._]+/g, ' ').trim()
@@ -163,6 +185,8 @@ export function buildImportCandidate(og: OgMeta, url: string): ImportCandidate {
   const title = cleanTitle(og.title ?? '', platform)
   const description = decodeEntities(og.description ?? '').trim()
   const hashtags = extractHashtags(`${title} ${description}`)
+  // From the RAW caption (cleanTitle strips it), so an "@venue" mention survives.
+  const mentions = extractMentions(`${decodeEntities(og.title ?? '')} ${description}`)
 
   const parts: string[] = []
   if (handle) parts.push(humanizeHandle(handle))
@@ -175,5 +199,5 @@ export function buildImportCandidate(og: OgMeta, url: string): ImportCandidate {
   // Cap length so the resolver query stays focused.
   query = query.replace(/\s+/g, ' ').slice(0, 80).trim()
 
-  return { platform, handle, account, title, description, hashtags, query }
+  return { platform, handle, account, title, description, hashtags, mentions, query }
 }

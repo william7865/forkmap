@@ -6,6 +6,7 @@ import {
   cleanTitle,
   accountFromTitle,
   extractHashtags,
+  extractMentions,
   buildImportCandidate,
 } from '@/lib/import/parse'
 
@@ -125,5 +126,17 @@ describe('decodeEntities', () => {
   it('leaves plain text and unknown entities untouched', () => {
     expect(decodeEntities('Chez Marcel')).toBe('Chez Marcel')
     expect(decodeEntities('a &bogus; b')).toBe('a &bogus; b')
+  })
+})
+
+describe('extractMentions', () => {
+  it('pulls @mentions, deduped, trailing punctuation trimmed', () => {
+    expect(extractMentions('merci @bouillon.pigalle et @Bouillon.Pigalle 🔥 @chef_paul.')).toEqual([
+      'bouillon.pigalle',
+      'chef_paul',
+    ])
+  })
+  it('returns [] when there is no mention', () => {
+    expect(extractMentions('trop bon ce resto')).toEqual([])
   })
 })

@@ -52,6 +52,9 @@ const SEGMENT_SPLIT = /[^\p{L}\p{N}'’\-\s]+/u
 /** How much we trust each extraction path. */
 const CONFIDENCE = {
   pin: 0.95,
+  /** "<Name>, 12 rue X, Paris" — a name pinned to a street address is nearly as
+   *  certain as an explicit 📍, and it beats the posting account. */
+  address: 0.9,
   chez: 0.8,
   /** The posting account's display name ("SUSHIWAN sur Instagram: …"). For a
    *  venue account this IS the place — a strong signal, on par with a chez pin,
@@ -60,6 +63,9 @@ const CONFIDENCE = {
   /** A capitalised run beats the handle: when a proper noun is in the caption,
    *  it is more likely the venue than the creator's own account name. */
   run: 0.65,
+  /** An @mention in the caption — in food content, usually the venue's account
+   *  ("grâce à @bouillon.pigalle"). On par with the posting handle. */
+  mention: 0.6,
   handle: 0.6,
   /** Single proper nouns (Septime, Frenchie…) are real, but noisier. */
   word: 0.35,
@@ -324,6 +330,90 @@ const PROSE_STOP = new Set([
  */
 const CHEZ_EXCLUDE = new Set(['moi', 'toi', 'nous', 'eux', 'lui', 'elle', 'soi', 'vous'])
 
+/**
+ * Imperative call-to-action verbs that open a caption sentence right before the
+ * venue name ("Découvrez Onyx", "Testez ce spot", "Réservez votre table").
+ * Capitalised by sentence-start, so the run scanner would glue them onto the name
+ * — they are stripped, and a run made only of them is dropped (isFiller).
+ * Stored normalised (lowercase, no accent).
+ */
+const CTA_VERBS = new Set([
+  'decouvrez',
+  'decouvre',
+  'decouvrir',
+  'testez',
+  'teste',
+  'tester',
+  'goutez',
+  'goute',
+  'gouter',
+  'essayez',
+  'essaye',
+  'essayer',
+  'reservez',
+  'reserve',
+  'reserver',
+  'foncez',
+  'fonce',
+  'courez',
+  'allez',
+  'visitez',
+  'notez',
+  'retrouvez',
+  'filez',
+  'direction',
+])
+
+function isCtaVerb(token: string): boolean {
+  return CTA_VERBS.has(key(token))
+}
+
+/**
+ * Words that mark a food GUIDE / curator account, never a venue's own name
+ * ("Guide Restoaparis", "parisfoodie", "bestrestos"). A curator account posts
+ * ABOUT restaurants — trusting it as the place short-circuits resolution onto the
+ * wrong venue. Deliberately strong-only markers: "resto/paris/food" are too common
+ * in real venue names and are handled by stripBrandSuffix instead.
+ */
+const CURATOR_MARKERS = new Set([
+  'guide',
+  'guides',
+  'blog',
+  'blogueur',
+  'blogueuse',
+  'foodie',
+  'foodies',
+  'addict',
+  'addicts',
+  'lover',
+  'lovers',
+  'best',
+  'top',
+  'tips',
+  'bonplan',
+  'bonsplans',
+  'bonneadresse',
+  'bonnesadresses',
+  'review',
+  'reviews',
+  'insta',
+  'media',
+  'foodporn',
+  'foodguide',
+  'foodstagram',
+  'tastemaker',
+  'critique',
+])
+
+/** True when a name looks like a food guide/curator, not a venue. Splits on dots
+ *  and underscores too, so a separated handle ("paris.foodie") is caught. */
+function isCurator(name: string): boolean {
+  return normalise(name)
+    .split(/[\s._]+/)
+    .map((w) => w.replace(/[^a-z0-9]/g, ''))
+    .some((w) => CURATOR_MARKERS.has(w))
+}
+
 /** Trailing country of a postal address — never the city we want. */
 const COUNTRIES = new Set([
   'france',
@@ -398,7 +488,7 @@ function isGeneric(name: string): boolean {
 function isFiller(words: string[]): boolean {
   return words.every((w) => {
     const k = key(w)
-    return !k || PROSE_STOP.has(k) || GENERIC.has(k)
+    return !k || PROSE_STOP.has(k) || GENERIC.has(k) || CTA_VERBS.has(k)
   })
 }
 
@@ -479,7 +569,9 @@ function plainHead(tokens: string[], max = 3): string {
  * all), falls back to the case-blind head.
  */
 function nominalHead(chunk: string, fallback = true): string {
-  const tokens = tokenize(chunk)
+  let tokens = tokenize(chunk)
+  // "Découvrez Onyx" → drop the leading CTA verb, keep the name.
+  while (tokens.length >= 2 && isCtaVerb(tokens[0])) tokens = tokens.slice(1)
   if (isShouted(chunk)) return fallback ? plainHead(tokens, 4) : ''
 
   const head: string[] = []
@@ -607,45 +699,115 @@ function splitNameCity(chunk: string): { name: string; city: string | null } {
  * A run whose first word is a stopword drops that word — "Avec Thomas" must not
  * offer "Thomas", but "Voici Le Train Bleu" must still offer the venue.
  */
+/**
+ * Valid capitalised-run names within ONE chunk, in reading order (with word
+ * counts). A run whose first word is a CTA verb ("Découvrez Onyx") drops it and
+ * keeps the name; a run whose first word is a stopword ("Avec Thomas") drops it
+ * and keeps a ≥2-word tail; filler / generic / too-short runs are discarded.
+ * SHOUTED chunks yield nothing.
+ */
+function runsIn(chunk: string): { name: string; words: string[] }[] {
+  if (isShouted(chunk)) return []
+  const tokens = chunk.split(/\s+/).filter(Boolean)
+  const runs: string[][] = []
+  let cur: string[] = []
+  let pending: string[] = []
+  for (const tok of tokens) {
+    if (isCapitalised(tok) || (cur.length > 0 && isNumeric(tok))) {
+      cur.push(...pending.splice(0), tok)
+    } else if (cur.length > 0 && isConnector(tok)) {
+      pending.push(tok)
+    } else {
+      if (cur.length > 0) runs.push(cur)
+      cur = []
+      pending = []
+    }
+  }
+  if (cur.length > 0) runs.push(cur)
+
+  const out: { name: string; words: string[] }[] = []
+  for (const run of runs) {
+    let words = run
+    // "Découvrez Onyx" → drop the leading CTA verb, keep the name.
+    while (words.length >= 2 && isCtaVerb(words[0])) words = words.slice(1)
+    if (isStopword(words[0])) {
+      // "Avec Thomas" / "Je Recommande": the capitalised word after a stopword
+      // is a friend or a verb, never a venue → drop it. But "Aujourd'hui
+      // Brasserie Lipp": two chained proper nouns after the stopword still name a
+      // venue, so keep the tail in that case only.
+      words = words.slice(1)
+      if (words.length < 2) continue
+    }
+    const name = clean(words.join(' '))
+    if (name.length < 4 || isGeneric(name) || isFiller(words)) continue
+    out.push({ name, words })
+  }
+  return out
+}
+
+/**
+ * Capitalised runs of the text ("Le Train Bleu") and isolated proper nouns
+ * ("Septime"), kept apart because they don't deserve the same confidence.
+ * Punctuation and emojis break a run.
+ */
 function capitalisedRuns(text: string): { multi: string[]; single: string[] } {
   const multi: string[] = []
   const single: string[] = []
   for (const chunk of stripEmoji(text).split(SEGMENT_SPLIT)) {
-    if (isShouted(chunk)) continue
-    const tokens = chunk.split(/\s+/).filter(Boolean)
-    const runs: string[][] = []
-    let cur: string[] = []
-    let pending: string[] = []
-    for (const tok of tokens) {
-      if (isCapitalised(tok) || (cur.length > 0 && isNumeric(tok))) {
-        cur.push(...pending.splice(0), tok)
-      } else if (cur.length > 0 && isConnector(tok)) {
-        pending.push(tok)
-      } else {
-        if (cur.length > 0) runs.push(cur)
-        cur = []
-        pending = []
-      }
-    }
-    if (cur.length > 0) runs.push(cur)
-
-    for (const run of runs) {
-      let words = run
-      if (isStopword(words[0])) {
-        // "Avec Thomas" / "Je Recommande": the capitalised word after a stopword
-        // is a friend or a verb, never a venue → drop it. But "Aujourd'hui
-        // Brasserie Lipp": two chained proper nouns after the stopword still
-        // name a venue, so keep the tail in that case only.
-        words = words.slice(1)
-        if (words.length < 2) continue
-      }
-      const name = clean(words.join(' '))
-      if (name.length < 4 || isGeneric(name) || isFiller(words)) continue
+    for (const { name, words } of runsIn(chunk)) {
       if (words.length >= 2) multi.push(name)
       else single.push(name)
     }
   }
   return { multi, single }
+}
+
+/** The LAST capitalised-run name of a chunk — the venue that sits right before an
+ *  address ("…cadre chic. Découvrez Onyx" → "Onyx"). '' when there is none. */
+function trailingName(chunk: string): string {
+  const runs = runsIn(chunk)
+  return runs.length ? runs[runs.length - 1].name : ''
+}
+
+/**
+ * "<Name>, 12 rue X, Paris" — a venue pinned to a street address, as strong a
+ * signal as an explicit 📍. The name is the trailing capitalised run of the
+ * segment BEFORE the street line; the city is the first following non-street
+ * segment. Splitting on '.' too lets it read a name mid-sentence
+ * ("…chic. Découvrez Onyx, 71 rue de Provence, Paris").
+ */
+function addressMatches(text: string): PlaceGuess[] {
+  const out: PlaceGuess[] = []
+  const segments = stripEmoji(text)
+    .split(/[,\n•|.]/)
+    .map(clean)
+    .filter(Boolean)
+  for (let i = 1; i < segments.length; i++) {
+    if (!STREET.test(segments[i])) continue
+    const name = trailingName(segments[i - 1])
+    if (name.length < 3 || isStopword(name.split(' ')[0]) || isGeneric(name) || isCurator(name)) {
+      continue
+    }
+    let city: string | null = null
+    for (let j = i + 1; j < segments.length; j++) {
+      const seg = segments[j]
+      if (STREET.test(seg) || COUNTRIES.has(normalise(seg))) continue
+      const postal = POSTAL.exec(seg)
+      if (postal) {
+        const tail = clean(postal[1])
+        if (tail && !/^\d/.test(tail)) {
+          city = nominalHead(tail) || tail
+          break
+        }
+        continue
+      }
+      if (/^\d/.test(seg)) continue
+      city = nominalHead(seg) || seg
+      break
+    }
+    out.push({ name, city, confidence: CONFIDENCE.address })
+  }
+  return out
 }
 
 /**
@@ -706,14 +868,20 @@ export function extractPlaceCandidates(post: ImportCandidate): PlaceGuess[] {
     }
   })
 
+  // 1bis. "<Name>, 12 rue X, Paris" — a name pinned to a street address. As strong
+  //        as a 📍, and crucially it beats a posting account (so a food guide that
+  //        writes "Découvrez Onyx, 71 rue de Provence" resolves to Onyx, not the guide).
+  out.push(...addressMatches(text))
+
   // 2. "chez <Nom>" — the textual equivalent of a pin.
   out.push(...chezMatches(text))
 
   const { multi, single } = capitalisedRuns(text)
 
   // 2bis. The posting account's display name ("SUSHIWAN sur Instagram: …"). For a
-  //       venue account this IS the place — a strong signal, brand suffix stripped.
-  if (post.account) {
+  //       venue account this IS the place — but a food GUIDE/curator account posts
+  //       ABOUT restaurants, so trusting it resolves onto the wrong venue: skip those.
+  if (post.account && !isCurator(post.account)) {
     const name = stripBrandSuffix(post.account)
     if (name.length >= 3 && !isGeneric(name)) {
       out.push({ name, city: null, confidence: CONFIDENCE.account })
@@ -724,11 +892,22 @@ export function extractPlaceCandidates(post: ImportCandidate): PlaceGuess[] {
   for (const name of multi) out.push({ name, city: null, confidence: CONFIDENCE.run })
 
   // 4. The account handle — food venues often post from their own account.
-  //    Brand suffix stripped too ("sushiwanfrance" → "sushiwan").
-  if (post.handle) {
+  //    Brand suffix stripped too ("sushiwanfrance" → "sushiwan"). A curator handle
+  //    ("parisfoodguide") is skipped, like the curator account above.
+  if (post.handle && !isCurator(post.handle)) {
     const name = stripBrandSuffix(humanizeHandle(post.handle))
     if (name.length >= 3 && !isGeneric(name)) {
       out.push({ name, city: null, confidence: CONFIDENCE.handle })
+    }
+  }
+
+  // 4bis. @mentions in the caption — when a third party credits the venue's own
+  //       account ("grâce à @bouillon.pigalle"), that mention IS the restaurant.
+  for (const mention of post.mentions ?? []) {
+    if (isCurator(mention)) continue
+    const name = stripBrandSuffix(humanizeHandle(mention))
+    if (name.length >= 3 && !isGeneric(name)) {
+      out.push({ name, city: null, confidence: CONFIDENCE.mention })
     }
   }
 

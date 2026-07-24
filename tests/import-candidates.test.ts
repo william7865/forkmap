@@ -74,6 +74,13 @@ describe('extractPlaceCandidates', () => {
       expect(names(out).map((n) => n.toLowerCase())).not.toContain('sushiwanfrance')
     })
 
+    it('utilise une @mention de la légende comme candidat (le compte du resto)', () => {
+      const out = extractPlaceCandidates(post({ mentions: ['bouillon.pigalle'] }))
+      const g = out.find((c) => c.name.toLowerCase() === 'bouillon pigalle')
+      expect(g).toBeTruthy()
+      expect(g!.confidence).toBe(0.6)
+    })
+
     it('nettoie les suffixes séparés (officiel, .fr, _off, paris)', () => {
       expect(names(extractPlaceCandidates(post({ handle: 'bistrot.officiel' })))[0]).toBe('bistrot')
       expect(names(extractPlaceCandidates(post({ handle: 'lami_off' })))[0]).toBe('lami')
@@ -81,6 +88,46 @@ describe('extractPlaceCandidates', () => {
         'Frenchie'
       )
       expect(names(extractPlaceCandidates(post({ account: 'Clover Paris' })))[0]).toBe('Clover')
+    })
+
+    it('cas réel Onyx : compte guide ignoré, adresse exploitée, verbe CTA retiré', () => {
+      // Reel Instagram posté par « 🍴 Guide Restoaparis » (un guide, pas le resto).
+      const out = extractPlaceCandidates(
+        post({
+          account: '🍴 Guide Restoaparis depuis 1999',
+          description:
+            'La grande cuisine française dans un cadre chic. Découvrez Onyx, 71 rue de Provence, Paris. Réservez votre table.',
+        })
+      )
+      // Le resto (Onyx, via l'adresse) est le meilleur candidat, avec sa ville.
+      expect(out[0].name).toBe('Onyx')
+      expect(out[0].city).toBe('Paris')
+      expect(out[0].confidence).toBeGreaterThanOrEqual(0.9)
+      // Le compte guide n'est jamais proposé, ni « Découvrez Onyx ».
+      const lowered = names(out).map((n) => n.toLowerCase())
+      expect(lowered.some((n) => n.includes('guide') || n.includes('restoaparis'))).toBe(false)
+      expect(lowered).not.toContain('découvrez onyx')
+    })
+
+    it('retire le verbe d’appel à l’action d’un run (Découvrez Onyx → Onyx)', () => {
+      const out = extractPlaceCandidates(post({ description: 'Découvrez Onyx, une pépite' }))
+      expect(names(out)).toContain('Onyx')
+      expect(names(out)).not.toContain('Découvrez Onyx')
+    })
+
+    it('ignore un compte/handle de curateur (guide, foodie, best…)', () => {
+      expect(names(extractPlaceCandidates(post({ account: 'Paris Foodie' })))).toHaveLength(0)
+      expect(names(extractPlaceCandidates(post({ handle: 'best_restos' })))).toHaveLength(0)
+      expect(names(extractPlaceCandidates(post({ handle: 'paris.foodguide' })))).toHaveLength(0)
+    })
+
+    it('extrait « Nom, adresse, ville » sans marqueur 📍', () => {
+      const out = extractPlaceCandidates(
+        post({ description: 'Septime, 80 rue de Charonne, Paris' })
+      )
+      expect(out[0].name).toBe('Septime')
+      expect(out[0].city).toBe('Paris')
+      expect(out[0].confidence).toBeGreaterThanOrEqual(0.9)
     })
 
     it('un pin de la légende passe toujours devant le nom de compte', () => {
