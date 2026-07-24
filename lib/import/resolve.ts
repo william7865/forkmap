@@ -22,7 +22,14 @@
 import type { ImportRow, ImportCandidatePlace, PlaceCard, PlaceBase } from '@/types'
 import { fetchPostMetadata } from '@/lib/import/metadata'
 import { buildImportCandidate } from '@/lib/import/parse'
-import { fuseCandidates, cleanOcrText, type PlaceGuess } from '@/lib/import/candidates'
+import {
+  fuseCandidates,
+  cleanOcrText,
+  extractVenueList,
+  listTitle,
+  type PlaceGuess,
+  type VenueEntry,
+} from '@/lib/import/candidates'
 import { scoreResolution, nameSimilarity, chainMatches } from '@/lib/import/confidence'
 import { searchPlacesOnce, type PlaceSearchResult } from '@/lib/hooks/usePlaceSearch'
 import { nativeOcrRecognize, nativeOcrRecognizeVideo } from '@/lib/native/ocr'
@@ -38,6 +45,13 @@ const PARIS: [number, number] = [48.8566, 2.3522]
  * worth paying for anyway.
  */
 const MAX_GUESSES = 3
+
+/** A list post is resolved venue-by-venue; cap the searches so a long list can't
+ *  fire a dozen Google scrapes back to back and get the device blocked. */
+const MAX_LIST_VENUES = 6
+/** A list item is more lenient than a single import (the user can prune it): the
+ *  best name-matching result is kept when it clears this similarity. */
+const LIST_NAME_MIN = 0.6
 
 /** The PATCH route caps `candidates` at 3 (same cap as `scoreResolution`). */
 const MAX_CANDIDATES = 3
@@ -270,6 +284,14 @@ async function run(row: ImportRow, center: [number, number] | null): Promise<Par
     post_thumb: safeUrl(og.image),
   }
 
+  // 0. A multi-venue LIST post ("5 spots in Paris: – Melané @… – Gloria @…")?
+  //    Resolve each venue and return them as a list, rather than importing one.
+  const venues = extractVenueList(parsed.description)
+  if (venues.length >= 3) {
+    const listed = await resolveList(venues, meta, at, parsed.description)
+    if (listed) return listed
+  }
+
   // Each phase adds a signal and re-tries. We return on the FIRST resolution;
   // otherwise we keep the richest "à confirmer" list seen (later phases fuse more
   // signals, so their ambiguous set is a superset) and fall back to it at the end.
@@ -410,6 +432,50 @@ async function resolveByCoords(
     source: 'google',
   })
   return synth ? resolvedPatch(meta, synth) : null
+}
+
+/**
+ * Resolve a multi-venue list: search each venue, keep the best name-matching
+ * result. Returns a `status: 'list'` patch (venues in `candidates`) when at least
+ * two resolve, else null so the caller falls back to the single-venue flow.
+ */
+async function resolveList(
+  venues: VenueEntry[],
+  meta: Partial<ImportRow>,
+  at: [number, number],
+  caption: string
+): Promise<Partial<ImportRow> | null> {
+  const resolved: ImportCandidatePlace[] = []
+  const seen = new Set<string>()
+  for (const v of venues.slice(0, MAX_LIST_VENUES)) {
+    const results = await askOracle(v.name, at)
+    let best: PlaceSearchResult | null = null
+    let bestScore = 0
+    for (const r of results) {
+      const s = nameSimilarity(v.name, r.name)
+      if (s > bestScore) {
+        bestScore = s
+        best = r
+      }
+    }
+    if (!best || bestScore < LIST_NAME_MIN) continue
+    const c = toCandidatePlace(best)
+    if (!c) continue
+    const key = c.osm_id ?? `${c.lat.toFixed(4)},${c.lon.toFixed(4)}`
+    if (seen.has(key)) continue // two venue names → the same place
+    seen.add(key)
+    resolved.push(c)
+  }
+  if (resolved.length < 2) return null
+  return {
+    ...meta,
+    post_title: truncate(listTitle(caption), LIMIT.title),
+    status: 'list',
+    osm_id: null,
+    place_snapshot: null,
+    candidates: resolved,
+    resolved_at: nowIso(),
+  }
 }
 
 function resolvedPatch(meta: Partial<ImportRow>, place: PlaceCard): Partial<ImportRow> {

@@ -121,6 +121,9 @@ export type TranslationKey =
   | 'importAlsoSeenIn'
   | 'importSeeMore'
   | 'importSeeLess'
+  | 'importListSection'
+  | 'importListCreate'
+  | 'importListCreated'
   | 'importOpenSource'
   | 'importAddNote'
   | 'importNoteTitle'
@@ -245,6 +248,9 @@ export const t: Translations = {
     importNoSearchResult: 'Aucun résultat.',
     importFoundTitle: 'Ce qu’on a trouvé',
     importAlsoSeenIn: 'Vu aussi dans',
+    importListSection: 'Les lieux',
+    importListCreate: 'Créer la liste dans mon carnet',
+    importListCreated: 'Liste créée ✓',
     importSeeMore: 'Voir plus',
     importSeeLess: 'Voir moins',
     importOpenSource: 'Voir le post',
@@ -369,6 +375,9 @@ export const t: Translations = {
     importNoSearchResult: 'No result.',
     importFoundTitle: 'What we found',
     importAlsoSeenIn: 'Also seen in',
+    importListSection: 'The places',
+    importListCreate: 'Create the list in my book',
+    importListCreated: 'List created ✓',
     importSeeMore: 'See more',
     importSeeLess: 'See less',
     importOpenSource: 'View the post',
@@ -493,6 +502,9 @@ export const t: Translations = {
     importNoSearchResult: 'Sin resultados.',
     importFoundTitle: 'Lo que hemos encontrado',
     importAlsoSeenIn: 'Visto también en',
+    importListSection: 'Los lugares',
+    importListCreate: 'Crear la lista en mi cuaderno',
+    importListCreated: 'Lista creada ✓',
     importSeeMore: 'Ver más',
     importSeeLess: 'Ver menos',
     importOpenSource: 'Ver la publicación',
@@ -617,6 +629,9 @@ export const t: Translations = {
     importNoSearchResult: 'Kein Ergebnis.',
     importFoundTitle: 'Das haben wir gefunden',
     importAlsoSeenIn: 'Auch gesehen in',
+    importListSection: 'Die Orte',
+    importListCreate: 'Liste in meinem Buch erstellen',
+    importListCreated: 'Liste erstellt ✓',
     importSeeMore: 'Mehr anzeigen',
     importSeeLess: 'Weniger anzeigen',
     importOpenSource: 'Post ansehen',
@@ -741,6 +756,9 @@ export const t: Translations = {
     importNoSearchResult: '結果がありません。',
     importFoundTitle: '見つかった店',
     importAlsoSeenIn: 'こちらでも紹介',
+    importListSection: '掲載スポット',
+    importListCreate: 'リストを作成',
+    importListCreated: 'リストを作成しました ✓',
     importSeeMore: 'もっと見る',
     importSeeLess: '閉じる',
     importOpenSource: '投稿を見る',

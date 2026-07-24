@@ -436,7 +436,7 @@ export interface ConversationSummary {
 
 // ---------- Import depuis les réseaux ----------
 
-export type ImportStatus = 'pending' | 'resolved' | 'ambiguous' | 'failed'
+export type ImportStatus = 'pending' | 'resolved' | 'ambiguous' | 'failed' | 'list'
 
 /** Un candidat restaurant proposé quand la résolution est ambiguë. */
 export interface ImportCandidatePlace {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { extractPlaceCandidates } from '@/lib/import/candidates'
+import { extractPlaceCandidates, extractVenueList, listTitle } from '@/lib/import/candidates'
 import type { ImportCandidate } from '@/lib/import/parse'
 
 function post(partial: Partial<ImportCandidate>): ImportCandidate {
@@ -402,5 +402,50 @@ describe('extractPlaceCandidates', () => {
       )
       expect(names(out)).toContain('Bouillon 47')
     })
+  })
+})
+
+describe('extractVenueList (posts multi-restos)', () => {
+  const CAPTION = `5 addresses food & coffee spots you have to try in Paris – part 2
+
+– Melané @melane_paris
+My favorite spot for bingsu.
+
+– Gloria Osteria Paris @gloriaosteria.paris
+A beautiful Italian restaurant.
+
+– Udon Jubey @jubey39
+Fresh handmade udon.
+
+– Café Isaka @cafe_isaka
+Ice cream spot.
+
+#parisfoodguide #adresseparis`
+
+  it('extrait chaque venue (nom + handle) d’un post-liste', () => {
+    const venues = extractVenueList(CAPTION)
+    expect(venues.map((v) => v.name)).toEqual([
+      'Melané',
+      'Gloria Osteria Paris',
+      'Udon Jubey',
+      'Café Isaka',
+    ])
+    expect(venues[0].handle).toBe('melane_paris')
+    expect(venues.length).toBeGreaterThanOrEqual(3) // → traité comme une liste
+  })
+
+  it('ignore une @mention en prose (merci @ami) — pas une venue', () => {
+    expect(extractVenueList('trop bon, merci @mon_ami pour le tip')).toEqual([])
+  })
+
+  it('un post à une seule venue n’est pas une liste', () => {
+    expect(extractVenueList('chez @sphere.restaurant.paris').length).toBeLessThan(3)
+  })
+
+  it('listTitle prend la première ligne substantielle', () => {
+    expect(listTitle(CAPTION)).toBe(
+      '5 addresses food & coffee spots you have to try in Paris – part 2'
+    )
+    expect(listTitle('@poster\n#tag\nSalut')).toBe('Adresses')
   })
 })
