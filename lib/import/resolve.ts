@@ -22,9 +22,10 @@
 import type { ImportRow, ImportCandidatePlace, PlaceCard, PlaceBase } from '@/types'
 import { fetchPostMetadata } from '@/lib/import/metadata'
 import { buildImportCandidate } from '@/lib/import/parse'
-import { extractPlaceCandidates, type PlaceGuess } from '@/lib/import/candidates'
+import { fuseCandidates, type PlaceGuess } from '@/lib/import/candidates'
 import { scoreResolution, nameSimilarity, chainMatches } from '@/lib/import/confidence'
 import { searchPlacesOnce, type PlaceSearchResult } from '@/lib/hooks/usePlaceSearch'
+import { nativeOcrRecognize } from '@/lib/native/ocr'
 import { haversineDistance } from '@/lib/scoring'
 
 /** Paris — a fallback centre so the resolver never silently no-ops at cold start. */
@@ -60,6 +61,11 @@ const LIMIT = {
  *  breaks it (the nearest venue is the likelier one). Used ONLY to order the
  *  choices we show the user — never to promote a match past the confidence gate. */
 const TIE = 0.05
+
+/** Geotag fast path: a tagged venue must sit within this of the tag's coords, and
+ *  the name must match at least this well, to resolve by proximity. */
+const GEO_RADIUS_KM = 0.4
+const GEO_NAME_MIN = 0.6
 
 function nowIso(): string {
   return new Date().toISOString()
@@ -249,11 +255,12 @@ function failed(meta: Partial<ImportRow>): Partial<ImportRow> {
 async function run(row: ImportRow, center: [number, number] | null): Promise<Partial<ImportRow>> {
   const at = center ?? PARIS
 
-  // 1. Read the post (oEmbed, else Open Graph as a crawler UA — residential IP).
-  //    On the web the native bridge is absent and this is always null: the hook
-  //    is what keeps the web from burning `pending` rows (see useImports).
-  const og = await readMetadata(row.url)
-  if (!og) return failed({})
+  // 1. Read the post: caption + thumbnail (Open Graph / oEmbed) AND the geotag,
+  //    all through the residential-IP bridge. On the web the bridge is absent and
+  //    this is always null: the hook keeps the web from burning `pending` rows.
+  const read = await readMetadata(row.url)
+  if (!read) return failed({})
+  const { og, location } = read
 
   const parsed = buildImportCandidate(og, row.url)
   const meta: Partial<ImportRow> = {
@@ -263,15 +270,46 @@ async function run(row: ImportRow, center: [number, number] | null): Promise<Par
     post_thumb: safeUrl(og.image),
   }
 
-  // 2. Guess the venue names, best first. Roughly one caption in ten names
-  //    nothing at all — that is a `failed`, and the user picks by hand.
-  const guesses = extractPlaceCandidates(parsed).slice(0, MAX_GUESSES)
-  if (guesses.length === 0) return failed(meta)
+  // 2. Phase 1 — the fast path: caption + geotag only. A clean 📍 or a geotag
+  //    resolves here without paying for OCR.
+  const phase1 = fuseCandidates({ post: parsed, location }).slice(0, MAX_GUESSES)
+  const r1 = await resolveGuesses(phase1, meta, at)
+  if (r1?.status === 'resolved') return r1
 
-  // 3. Ask the oracle (Google first — it is authoritative; OSM is the safety net,
-  //    and searchPlacesOnce already queries both). Stop at the first guess that
-  //    yields a verdict; a guess that resolves to nothing just moves to the next.
+  // 3. Phase 2 — nothing resolved cleanly: read the name off the thumbnail (native
+  //    OCR) and try the fused set again. This rescues captions that never spell
+  //    the venue out. Phase 2's candidate set is a superset of phase 1's, so its
+  //    verdict is at least as good — return it when present.
+  const ocrLines = meta.post_thumb ? await readOcr(meta.post_thumb) : null
+  if (ocrLines) {
+    const phase2 = fuseCandidates({ post: parsed, location, ocrText: ocrLines }).slice(
+      0,
+      MAX_GUESSES
+    )
+    const r2 = await resolveGuesses(phase2, meta, at)
+    if (r2) return r2
+  }
+
+  return r1 ?? failed(meta)
+}
+
+/**
+ * Try each guess best-first; return the first terminal verdict (resolved or
+ * ambiguous), or null when every guess came up empty. A guess carrying geotag
+ * coordinates takes a proximity fast path first.
+ */
+async function resolveGuesses(
+  guesses: PlaceGuess[],
+  meta: Partial<ImportRow>,
+  at: [number, number]
+): Promise<Partial<ImportRow> | null> {
   for (const guess of guesses) {
+    // Geotag fast path: the venue sits at known coordinates.
+    if (guess.lat != null && guess.lon != null) {
+      const byCoords = await resolveByCoords(guess, guess.lat, guess.lon, meta)
+      if (byCoords) return byCoords
+    }
+
     const query = guess.city ? `${guess.name} ${guess.city}` : guess.name
     const results = await askOracle(query, at)
     const verdict = scoreResolution(guess, results)
@@ -279,16 +317,7 @@ async function run(row: ImportRow, center: [number, number] | null): Promise<Par
     if (verdict.status === 'resolved') {
       const place = toPlaceCard(verdict.place)
       // Invariant 1: `resolved` ⇒ snapshot + osm_id, together, or not at all.
-      if (place) {
-        return {
-          ...meta,
-          status: 'resolved',
-          osm_id: place.osm_id,
-          place_snapshot: place,
-          candidates: null,
-          resolved_at: nowIso(),
-        }
-      }
+      if (place) return resolvedPatch(meta, place)
       // The winner can't be snapshotted → this is not a resolution. Ask instead.
       const fallback = pickCandidates(guess, results, at)
       if (fallback.length > 0) return ambiguous(meta, fallback)
@@ -304,17 +333,7 @@ async function run(row: ImportRow, center: [number, number] | null): Promise<Par
       if (branches.length >= 2) {
         const nearest = nearestTo(branches, at)
         const place = nearest ? toPlaceCard(nearest) : null
-        // Invariant 1 still holds: only `resolved` with a real snapshot + osm_id.
-        if (place) {
-          return {
-            ...meta,
-            status: 'resolved',
-            osm_id: place.osm_id,
-            place_snapshot: place,
-            candidates: null,
-            resolved_at: nowIso(),
-          }
-        }
+        if (place) return resolvedPatch(meta, place)
       }
 
       const candidates = pickCandidates(guess, verdict.candidates, at)
@@ -324,7 +343,70 @@ async function run(row: ImportRow, center: [number, number] | null): Promise<Par
     // 'failed' for this guess → try the next one.
   }
 
-  return failed(meta)
+  return null
+}
+
+/**
+ * Resolve a geotagged guess by proximity: search its name near the tagged coords
+ * and take the nearest strong-name match within GEO_RADIUS_KM. When no real place
+ * matches, the creator's tag itself (name + coords) is trustworthy enough to
+ * resolve to — a tagged venue is the strongest signal there is.
+ */
+async function resolveByCoords(
+  guess: PlaceGuess,
+  lat: number,
+  lon: number,
+  meta: Partial<ImportRow>
+): Promise<Partial<ImportRow> | null> {
+  const results = await askOracle(guess.name, [lat, lon])
+  let best: PlaceSearchResult | null = null
+  let bestDistance = Infinity
+  for (const r of results) {
+    if (nameSimilarity(guess.name, r.name) < GEO_NAME_MIN) continue
+    const d = haversineDistance(lat, lon, r.lat, r.lon)
+    if (d < bestDistance) {
+      bestDistance = d
+      best = r
+    }
+  }
+  if (best && bestDistance <= GEO_RADIUS_KM) {
+    const place = toPlaceCard(best)
+    if (place) return resolvedPatch(meta, place)
+  }
+
+  // No matching real place near the tag → resolve to the tagged venue itself.
+  const synth = toPlaceCard({
+    id: `g:${lat.toFixed(5)},${lon.toFixed(5)}`,
+    name: guess.name,
+    context: '',
+    lat,
+    lon,
+    source: 'google',
+  })
+  return synth ? resolvedPatch(meta, synth) : null
+}
+
+function resolvedPatch(meta: Partial<ImportRow>, place: PlaceCard): Partial<ImportRow> {
+  return {
+    ...meta,
+    status: 'resolved',
+    osm_id: place.osm_id,
+    place_snapshot: place,
+    candidates: null,
+    resolved_at: nowIso(),
+  }
+}
+
+/** OCR the thumbnail into one text blob. Native-only; null on web or on failure. */
+async function readOcr(imageUrl: string): Promise<string | null> {
+  try {
+    const lines = await nativeOcrRecognize(imageUrl)
+    if (!lines || lines.length === 0) return null
+    return lines.join('\n')
+  } catch (err) {
+    console.warn('[resolveImport] OCR failed', err)
+    return null
+  }
 }
 
 function pickCandidates(

@@ -7,13 +7,16 @@ import type { PlaceSearchResult } from '@/lib/hooks/usePlaceSearch'
 // else (parse → candidates → confidence) runs for real.
 vi.mock('@/lib/import/metadata', () => ({ fetchPostMetadata: vi.fn() }))
 vi.mock('@/lib/hooks/usePlaceSearch', () => ({ searchPlacesOnce: vi.fn() }))
+vi.mock('@/lib/native/ocr', () => ({ nativeOcrRecognize: vi.fn() }))
 
 import { resolveImport } from '@/lib/import/resolve'
 import { fetchPostMetadata } from '@/lib/import/metadata'
 import { searchPlacesOnce } from '@/lib/hooks/usePlaceSearch'
+import { nativeOcrRecognize } from '@/lib/native/ocr'
 
 const meta = vi.mocked(fetchPostMetadata)
 const search = vi.mocked(searchPlacesOnce)
+const ocr = vi.mocked(nativeOcrRecognize)
 
 const PARIS: [number, number] = [48.8566, 2.3522]
 
@@ -72,9 +75,12 @@ beforeEach(() => {
 describe('resolveImport — chemin résolu', () => {
   it('renvoie un patch resolved contenant À LA FOIS place_snapshot et osm_id', async () => {
     meta.mockResolvedValue({
-      title: 'Le Train Bleu',
-      description: '📍 Le Train Bleu, Paris — la plus belle salle de Paris',
-      image: 'https://p16.tiktokcdn.com/thumb.jpg',
+      og: {
+        title: 'Le Train Bleu',
+        description: '📍 Le Train Bleu, Paris — la plus belle salle de Paris',
+        image: 'https://p16.tiktokcdn.com/thumb.jpg',
+      },
+      location: null,
     })
     search.mockResolvedValue([osmResult('Le Train Bleu'), osmResult('Pizza Roma')])
 
@@ -93,7 +99,7 @@ describe('resolveImport — chemin résolu', () => {
   })
 
   it('donne un osm_id synthétique aux résultats Google (pas d’osm_id natif)', async () => {
-    meta.mockResolvedValue({ title: '📍 Septime, Paris', description: '' })
+    meta.mockResolvedValue({ og: { title: '📍 Septime, Paris', description: '' }, location: null })
     search.mockResolvedValue([googleResult('Septime')])
 
     const patch = await resolveImport(row(), PARIS)
@@ -105,7 +111,7 @@ describe('resolveImport — chemin résolu', () => {
   })
 
   it('cherche autour de Paris quand le centre de carte est inconnu', async () => {
-    meta.mockResolvedValue({ title: '📍 Septime', description: '' })
+    meta.mockResolvedValue({ og: { title: '📍 Septime', description: '' }, location: null })
     search.mockResolvedValue([osmResult('Septime')])
 
     await resolveImport(row(), null)
@@ -116,7 +122,7 @@ describe('resolveImport — chemin résolu', () => {
 
 describe('resolveImport — chemin ambigu', () => {
   it('renvoie ambiguous avec une liste de candidats non vide', async () => {
-    meta.mockResolvedValue({ title: '📍 Le Train Bleu', description: '' })
+    meta.mockResolvedValue({ og: { title: '📍 Le Train Bleu', description: '' }, location: null })
     search.mockResolvedValue([osmResult('Le Train Bleu'), osmResult('Le Train Bleu Café')])
 
     const patch = await resolveImport(row(), PARIS)
@@ -129,7 +135,7 @@ describe('resolveImport — chemin ambigu', () => {
   })
 
   it('deux résultats de noms DIFFÉRENTS restent ambigus (jamais resolved)', async () => {
-    meta.mockResolvedValue({ title: '📍 Le Train Bleu', description: '' })
+    meta.mockResolvedValue({ og: { title: '📍 Le Train Bleu', description: '' }, location: null })
     search.mockResolvedValue([osmResult('Le Train Bleu'), osmResult('Le Train Bleu Café')])
 
     const patch = await resolveImport(row(), PARIS)
@@ -141,7 +147,7 @@ describe('resolveImport — chemin ambigu', () => {
 
 describe('resolveImport — chaîne (succursale la plus proche)', () => {
   it('plusieurs résultats au MÊME nom → resolved sur la plus proche du centre', async () => {
-    meta.mockResolvedValue({ title: '📍 SUSHIWAN', description: '' })
+    meta.mockResolvedValue({ og: { title: '📍 SUSHIWAN', description: '' }, location: null })
     // Three branches of the same chain. Only the position separates them.
     search.mockResolvedValue([
       osmResult('SUSHIWAN', { id: 'node/far', osm_id: 'node/far', lat: 45.75, lon: 4.85 }), // Lyon
@@ -158,7 +164,7 @@ describe('resolveImport — chaîne (succursale la plus proche)', () => {
   })
 
   it('chaîne dont la plus proche est incartographiable → retombe sur ambiguous', async () => {
-    meta.mockResolvedValue({ title: '📍 SUSHIWAN', description: '' })
+    meta.mockResolvedValue({ og: { title: '📍 SUSHIWAN', description: '' }, location: null })
     search.mockResolvedValue([
       osmResult('SUSHIWAN', { id: 'node/a', osm_id: 'node/a', lat: 48.86, lon: 2.35 }),
       osmResult('SUSHIWAN', { id: 'node/b', osm_id: 'node/b', lat: 48.87, lon: 2.36 }),
@@ -182,7 +188,10 @@ describe('resolveImport — chemin échec', () => {
   })
 
   it('échoue quand la légende ne nomme aucun lieu', async () => {
-    meta.mockResolvedValue({ title: 'trop bon', description: 'vraiment incroyable 😍' })
+    meta.mockResolvedValue({
+      og: { title: 'trop bon', description: 'vraiment incroyable 😍' },
+      location: null,
+    })
 
     const patch = await resolveImport(
       row({ url: 'https://example.com/v/42', platform: 'other' }),
@@ -196,7 +205,7 @@ describe('resolveImport — chemin échec', () => {
   })
 
   it('échoue quand le résolveur ne trouve rien pour aucun candidat', async () => {
-    meta.mockResolvedValue({ title: '📍 Le Train Bleu', description: '' })
+    meta.mockResolvedValue({ og: { title: '📍 Le Train Bleu', description: '' }, location: null })
     search.mockResolvedValue([])
 
     const patch = await resolveImport(row(), PARIS)
@@ -207,7 +216,7 @@ describe('resolveImport — chemin échec', () => {
   })
 
   it('échoue proprement quand la recherche réseau lève une exception', async () => {
-    meta.mockResolvedValue({ title: '📍 Le Train Bleu', description: '' })
+    meta.mockResolvedValue({ og: { title: '📍 Le Train Bleu', description: '' }, location: null })
     search.mockRejectedValue(new Error('network down'))
 
     const patch = await resolveImport(row(), PARIS)
@@ -227,9 +236,12 @@ describe('resolveImport — chemin échec', () => {
 describe('resolveImport — garde-fous', () => {
   it('essaie au plus 3 candidats, même quand la légende en propose beaucoup', async () => {
     meta.mockResolvedValue({
-      title: '',
-      description:
-        'Le Train Bleu puis Brasserie Lipp puis Chez Aline puis Le Comptoir Du Relais puis Bouillon Chartier #septime #frenchie',
+      og: {
+        title: '',
+        description:
+          'Le Train Bleu puis Brasserie Lipp puis Chez Aline puis Le Comptoir Du Relais puis Bouillon Chartier #septime #frenchie',
+      },
+      location: null,
     })
     search.mockResolvedValue([])
 
@@ -240,7 +252,10 @@ describe('resolveImport — garde-fous', () => {
   })
 
   it('passe au candidat suivant quand le premier ne donne rien', async () => {
-    meta.mockResolvedValue({ title: '📍 Le Train Bleu', description: 'avec Brasserie Lipp aussi' })
+    meta.mockResolvedValue({
+      og: { title: '📍 Le Train Bleu', description: 'avec Brasserie Lipp aussi' },
+      location: null,
+    })
     search.mockResolvedValueOnce([]).mockResolvedValueOnce([osmResult('Brasserie Lipp')])
 
     const patch = await resolveImport(row(), PARIS)
@@ -251,7 +266,7 @@ describe('resolveImport — garde-fous', () => {
   })
 
   it('n’écrit jamais resolved sans snapshot exploitable (coordonnées cassées)', async () => {
-    meta.mockResolvedValue({ title: '📍 Le Train Bleu', description: '' })
+    meta.mockResolvedValue({ og: { title: '📍 Le Train Bleu', description: '' }, location: null })
     search.mockResolvedValue([
       osmResult('Le Train Bleu', { lat: Number.NaN, lon: Number.NaN }),
       osmResult('Le Train Bleu', { id: 'node/ok', osm_id: 'node/ok', lat: 48.84, lon: 2.37 }),
@@ -265,7 +280,7 @@ describe('resolveImport — garde-fous', () => {
   })
 
   it('ne devient jamais ambiguous avec une liste de candidats vide', async () => {
-    meta.mockResolvedValue({ title: '📍 Le Train Bleu', description: '' })
+    meta.mockResolvedValue({ og: { title: '📍 Le Train Bleu', description: '' }, location: null })
     // Two look-alikes (→ ambiguous), but both are unusable.
     search.mockResolvedValue([
       osmResult('Le Train Bleu', { lat: Number.NaN }),
@@ -279,7 +294,10 @@ describe('resolveImport — garde-fous', () => {
   })
 
   it('n’envoie jamais un post_thumb qui n’est pas une URL (la route le refuserait)', async () => {
-    meta.mockResolvedValue({ title: '📍 Septime', description: '', image: 'thumb.jpg' })
+    meta.mockResolvedValue({
+      og: { title: '📍 Septime', description: '', image: 'thumb.jpg' },
+      location: null,
+    })
     search.mockResolvedValue([osmResult('Septime')])
 
     const patch = await resolveImport(row(), PARIS)
@@ -289,7 +307,10 @@ describe('resolveImport — garde-fous', () => {
   })
 
   it('tronque la légende aux limites acceptées par la route', async () => {
-    meta.mockResolvedValue({ title: '📍 Septime', description: 'x'.repeat(5000) })
+    meta.mockResolvedValue({
+      og: { title: '📍 Septime', description: 'x'.repeat(5000) },
+      location: null,
+    })
     search.mockResolvedValue([osmResult('Septime')])
 
     const patch = await resolveImport(row(), PARIS)
@@ -303,18 +324,18 @@ describe('resolveImport — garde-fous', () => {
         meta.mockResolvedValue(null)
       },
       () => {
-        meta.mockResolvedValue({ title: '', description: '' })
+        meta.mockResolvedValue({ og: { title: '', description: '' }, location: null })
       },
       () => {
-        meta.mockResolvedValue({ title: '📍 Septime', description: '' })
+        meta.mockResolvedValue({ og: { title: '📍 Septime', description: '' }, location: null })
         search.mockResolvedValue([])
       },
       () => {
-        meta.mockResolvedValue({ title: '📍 Septime', description: '' })
+        meta.mockResolvedValue({ og: { title: '📍 Septime', description: '' }, location: null })
         search.mockRejectedValue(new Error('boom'))
       },
       () => {
-        meta.mockResolvedValue({ title: '📍 Septime', description: '' })
+        meta.mockResolvedValue({ og: { title: '📍 Septime', description: '' }, location: null })
         search.mockResolvedValue([osmResult('Septime')])
       },
     ]
@@ -333,5 +354,68 @@ describe('resolveImport — garde-fous', () => {
         expect(patch.candidates?.length).toBeGreaterThan(0)
       }
     }
+  })
+})
+
+describe('resolveImport — nouveaux signaux (géotag + OCR)', () => {
+  it('résout par proximité quand le post porte un géotag avec coordonnées', async () => {
+    meta.mockResolvedValue({
+      og: { title: 'trop bon', description: 'incroyable' },
+      location: { name: 'Le Train Bleu', city: 'Paris', lat: 48.8443, lon: 2.3735 },
+    })
+    search.mockResolvedValue([osmResult('Le Train Bleu')])
+
+    const patch = await resolveImport(row(), PARIS)
+
+    expect(patch.status).toBe('resolved')
+    expect(patch.place_snapshot?.name).toBe('Le Train Bleu')
+  })
+
+  it('résout via le géotag lui-même quand aucun lieu réel ne correspond', async () => {
+    meta.mockResolvedValue({
+      og: { title: '', description: 'miam' },
+      location: { name: 'Le Petit Resto Secret', city: null, lat: 48.85, lon: 2.35 },
+    })
+    search.mockResolvedValue([]) // rien trouvé près des coordonnées
+
+    const patch = await resolveImport(row(), PARIS)
+
+    expect(patch.status).toBe('resolved')
+    expect(patch.place_snapshot?.name).toBe('Le Petit Resto Secret')
+    expect(patch.osm_id).toMatch(/^g\//) // id google synthétique (nom + coords du tag)
+  })
+
+  it('récupère via OCR de la miniature quand la légende ne nomme rien', async () => {
+    meta.mockResolvedValue({
+      og: {
+        title: 'trop bon 🔥',
+        description: 'allez-y les yeux fermés',
+        image: 'https://cdn.tiktok.com/t.jpg',
+      },
+      location: null,
+    })
+    ocr.mockResolvedValue(['BOUILLON PIGALLE'])
+    search.mockImplementation(async (q: string) =>
+      q.toLowerCase().includes('bouillon') ? [osmResult('Bouillon Pigalle')] : []
+    )
+
+    const patch = await resolveImport(row(), PARIS)
+
+    expect(ocr).toHaveBeenCalled()
+    expect(patch.status).toBe('resolved')
+    expect(patch.place_snapshot?.name).toBe('Bouillon Pigalle')
+  })
+
+  it("n'appelle pas l'OCR quand la légende résout déjà (chemin rapide)", async () => {
+    meta.mockResolvedValue({
+      og: { title: '📍 Septime', description: '', image: 'https://cdn.tiktok.com/t.jpg' },
+      location: null,
+    })
+    search.mockResolvedValue([osmResult('Septime')])
+
+    const patch = await resolveImport(row(), PARIS)
+
+    expect(patch.status).toBe('resolved')
+    expect(ocr).not.toHaveBeenCalled()
   })
 })
