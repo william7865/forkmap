@@ -356,6 +356,26 @@ export default function MapHome() {
         </ErrorBoundary>
       </div>
 
+      {/* Status-bar scrim — the map is edge-to-edge, so cluster markers otherwise
+          render UNDER the iOS clock / Dynamic Island. A soft top fade (height =
+          the safe-area inset) keeps the status bar legible over a clean ground.
+          Native only: on the web there is no status bar and --safe-top is 0. */}
+      {native && (
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 'calc(var(--safe-top) + 14px)',
+            background: 'linear-gradient(to bottom, var(--bg) 0%, var(--bg) 62%, transparent 100%)',
+            zIndex: 300,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+
       {/* ═══ FLOATING CUISINE CHIPS (natif — sous la recherche) ═══ */}
       {native &&
         !savedOnly &&
