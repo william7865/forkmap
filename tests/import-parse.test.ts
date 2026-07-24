@@ -7,6 +7,8 @@ import {
   accountFromTitle,
   extractHashtags,
   extractMentions,
+  instagramEmbedUrl,
+  parseEmbedCaption,
   buildImportCandidate,
 } from '@/lib/import/parse'
 
@@ -138,5 +140,35 @@ describe('extractMentions', () => {
   })
   it('returns [] when there is no mention', () => {
     expect(extractMentions('trop bon ce resto')).toEqual([])
+  })
+})
+
+describe('instagramEmbedUrl', () => {
+  it('builds the embed/captioned URL from a /p/ or /reel/ link', () => {
+    expect(instagramEmbedUrl('https://www.instagram.com/p/DVqai-LAERC/')).toBe(
+      'https://www.instagram.com/p/DVqai-LAERC/embed/captioned/'
+    )
+    expect(instagramEmbedUrl('https://www.instagram.com/reel/ABC123_x/?igsh=1')).toBe(
+      'https://www.instagram.com/p/ABC123_x/embed/captioned/'
+    )
+  })
+  it('returns null for a non-Instagram URL', () => {
+    expect(instagramEmbedUrl('https://www.tiktok.com/@x/video/1')).toBeNull()
+  })
+})
+
+describe('parseEmbedCaption', () => {
+  const EMBED = `<div class="Caption"><a class="CaptionUsername" href="/leparisdalexis/">leparisdalexis</a><br /><br />🥩 Je déjeune chez <a href="/sphere.restaurant.paris/">&#064;sphere.restaurant.paris</a><br />📍 18, rue la Boetie - Paris 8<br />🕦 Ferm&#xe9; le lundi</div>`
+
+  it('extracts the caption, keeps @mentions as text, drops the poster handle', () => {
+    const out = parseEmbedCaption(EMBED)!
+    expect(out.startsWith('🥩 Je déjeune chez @sphere.restaurant.paris')).toBe(true)
+    expect(out).toContain('📍 18, rue la Boetie - Paris 8')
+    expect(out).toContain('Fermé le lundi')
+    expect(out).not.toContain('leparisdalexis') // poster username dropped
+  })
+
+  it('returns null when there is no caption block', () => {
+    expect(parseEmbedCaption('<html><body>login required</body></html>')).toBeNull()
   })
 })

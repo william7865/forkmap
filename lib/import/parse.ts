@@ -97,6 +97,38 @@ export function extractOgTags(html: string): OgMeta {
   }
 }
 
+/**
+ * Instagram's public embed endpoint. It returns the FULL caption (with @mentions
+ * as text) even when the main post page login-walls a crawler — the single most
+ * reliable way to read an IG caption without auth. Null when the URL isn't a
+ * recognisable IG post/reel.
+ */
+export function instagramEmbedUrl(url: string): string | null {
+  const m = /instagram\.com\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/i.exec(url)
+  return m ? `https://www.instagram.com/p/${m[1]}/embed/captioned/` : null
+}
+
+/**
+ * Pull the caption text out of an Instagram `/embed/captioned/` page. The caption
+ * lives in `<div class="Caption">`: a leading poster-username link, then the text
+ * with @mention <a> links and <br> line breaks. We drop the username, turn <br>
+ * into newlines, keep link TEXT (so "@venue" survives), strip tags and decode.
+ * Null when there is no caption block.
+ */
+export function parseEmbedCaption(html: string): string | null {
+  const m = /<div[^>]*class="Caption"[^>]*>([\s\S]*?)<\/div>/i.exec(html)
+  if (!m) return null
+  const body = m[1]
+    .replace(/<a[^>]*class="CaptionUsername"[\s\S]*?<\/a>/i, '') // drop poster handle
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, '') // strip remaining tags, keep their text (mentions)
+  const text = decodeEntities(body)
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .trim()
+  return text.length > 0 ? text : null
+}
+
 export function platformFromUrl(url: string): ImportPlatform {
   const u = url.toLowerCase()
   if (u.includes('tiktok.')) return 'tiktok'

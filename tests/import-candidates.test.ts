@@ -121,6 +121,18 @@ describe('extractPlaceCandidates', () => {
       expect(names(extractPlaceCandidates(post({ handle: 'paris.foodguide' })))).toHaveLength(0)
     })
 
+    it('cas réel Sphere : « chez @handle » gagne, chef/menu et 📍 adresse ignorés', () => {
+      const caption =
+        '🥩 un des mieux notés du 8e, je déjeune chez @sphere.restaurant.paris, où le chef japonais Tetsuya Yoshida délivre une cuisine française. Menu Carte Blanche. 👉 @sphere.restaurant.paris 📍 18, rue la Boetie - Paris 8'
+      const out = extractPlaceCandidates(
+        post({ description: caption, mentions: ['sphere.restaurant.paris'] })
+      )
+      expect(out[0].name.toLowerCase()).toBe('sphere')
+      expect(out[0].confidence).toBe(0.8)
+      // Le numéro d'adresse "18" n'est jamais un candidat.
+      expect(names(out)).not.toContain('18')
+    })
+
     it('extrait « Nom, adresse, ville » sans marqueur 📍', () => {
       const out = extractPlaceCandidates(
         post({ description: 'Septime, 80 rue de Charonne, Paris' })

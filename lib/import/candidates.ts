@@ -831,11 +831,26 @@ function chezMatches(text: string): PlaceGuess[] {
       if (head.length < 3 || isStopword(head.split(' ')[0]) || isGeneric(head)) continue
       const owned = !shouted && /^[\p{Lu}]/u.test(m[2])
       const split = detachCity(head)
+      // "chez @sphere.restaurant.paris" → the target is a handle; humanise it and
+      // strip the brand suffix so it searches as "sphere", not "sphere.restaurant.paris".
+      const cleaned = /\./.test(split.name)
+        ? stripBrandSuffix(humanizeHandle(split.name))
+        : split.name
       out.push({
-        name: owned ? `${m[2]} ${split.name}` : split.name,
+        name: owned ? `${m[2]} ${cleaned}` : cleaned,
         city: split.city,
         confidence: CONFIDENCE.chez,
       })
+    }
+  }
+
+  // "chez @sphere.restaurant.paris" — the @ is a segment break above, so the loop
+  // misses it. Catch the handle form on the full text: "chez @<handle>" is the
+  // strongest phrasing ("at X's place"), so it keeps the chez confidence.
+  for (const m of stripEmoji(text).matchAll(/\bchez\s+@([a-zA-Z0-9._]{2,40})/giu)) {
+    const name = stripBrandSuffix(humanizeHandle(m[1]))
+    if (name.length >= 3 && !isGeneric(name) && !isCurator(name)) {
+      out.push({ name, city: null, confidence: CONFIDENCE.chez })
     }
   }
   return out
@@ -862,7 +877,11 @@ export function extractPlaceCandidates(post: ImportCandidate): PlaceGuess[] {
       name.length >= 2 &&
       !isStopword(name.split(' ')[0]) &&
       !isGeneric(name) &&
-      !isCountPhrase(name)
+      !isCountPhrase(name) &&
+      // "📍 18, rue la Boétie" points at an ADDRESS, not a name — a bare number or
+      // a street fragment must not become a 0.95 candidate ("3 Brasseurs" survives).
+      !isNumeric(name) &&
+      !STREET.test(name)
     ) {
       out.push({ name, city, confidence: CONFIDENCE.pin })
     }
