@@ -19,6 +19,7 @@
 // routed to a case-blind extractor instead of being fed to the run scanner.
 // ============================================================
 import type { ImportCandidate } from '@/lib/import/parse'
+import type { LocationTag } from '@/lib/import/location'
 
 export interface PlaceGuess {
   name: string
@@ -26,6 +27,9 @@ export interface PlaceGuess {
   city: string | null
   /** 0–1. Drives which guess the resolver tries first. */
   confidence: number
+  /** Coordinates, when the guess came from a geotag — the resolver's fast path. */
+  lat?: number | null
+  lon?: number | null
 }
 
 /**
@@ -749,4 +753,104 @@ export function extractPlaceCandidates(post: ImportCandidate): PlaceGuess[] {
     }
   }
   return [...best.values()].sort((a, b) => b.confidence - a.confidence)
+}
+
+// ── Signal fusion ─────────────────────────────────────────
+// The caption is one signal. On-screen text (OCR of the thumbnail) and the post's
+// geotag are two more — the same venue named a different way. fuseCandidates runs
+// each through the SAME extractor, then rewards agreement: a name confirmed by
+// more than one source is likelier the real venue.
+
+export interface FuseInput {
+  post: ImportCandidate
+  /** Text read off the thumbnail (native OCR). Noisier than the caption. */
+  ocrText?: string | null
+  /** The venue the creator tagged, from lib/import/location.ts. */
+  location?: LocationTag | null
+}
+
+/** On-screen text is noisier than a caption, so an OCR guess never outranks a
+ *  clean caption pin — its confidence is capped here. */
+const OCR_CAP = 0.6
+/** A geotag WITH coordinates is near-certain; name-only is still very strong. */
+const LOCATION_WITH_COORDS = 0.97
+const LOCATION_NAME_ONLY = 0.85
+/** Confirmation bonus when ≥2 distinct sources name the same venue. */
+const CROSS_BOOST = 0.12
+
+/**
+ * Merge the caption, OCR and geotag into one ranked guess list.
+ * - Each source is extracted with the existing heuristics (OCR through a
+ *   synthetic post so it reuses pins / runs / proper-noun detection).
+ * - Guesses are deduped by normalised name; a name seen from ≥2 sources gets a
+ *   confidence boost (cross-validation).
+ * - A geotag carries its coordinates onto its guess, giving the resolver a fast,
+ *   proximity-based path (see resolve.ts).
+ */
+export function fuseCandidates({ post, ocrText, location }: FuseInput): PlaceGuess[] {
+  const raw: (PlaceGuess & { source: string })[] = []
+
+  for (const g of extractPlaceCandidates(post)) raw.push({ ...g, source: 'caption' })
+
+  const ocr = (ocrText ?? '').trim()
+  if (ocr) {
+    const synth: ImportCandidate = {
+      platform: post.platform,
+      handle: null,
+      account: null,
+      title: '',
+      description: ocr,
+      hashtags: [],
+      query: '',
+    }
+    for (const g of extractPlaceCandidates(synth)) {
+      raw.push({ ...g, confidence: Math.min(g.confidence, OCR_CAP), source: 'ocr' })
+    }
+  }
+
+  // A geotag names the venue — unless it's a city/area ("Paris"), which would
+  // resolve to a point, not a restaurant. isGeneric drops those.
+  if (location?.name && !isGeneric(location.name)) {
+    const hasCoords = location.lat != null && location.lon != null
+    raw.push({
+      name: location.name,
+      city: location.city,
+      lat: location.lat ?? null,
+      lon: location.lon ?? null,
+      confidence: hasCoords ? LOCATION_WITH_COORDS : LOCATION_NAME_ONLY,
+      source: 'location',
+    })
+  }
+
+  // Merge by normalised name: keep the max confidence, union the sources, and
+  // carry any coordinates a source contributed.
+  const merged = new Map<string, PlaceGuess & { sources: Set<string> }>()
+  for (const g of raw) {
+    const k = normalise(g.name)
+    if (!k) continue
+    const prev = merged.get(k)
+    if (!prev) {
+      merged.set(k, {
+        name: g.name,
+        city: g.city ?? null,
+        confidence: g.confidence,
+        lat: g.lat ?? null,
+        lon: g.lon ?? null,
+        sources: new Set([g.source]),
+      })
+    } else {
+      prev.sources.add(g.source)
+      if (g.confidence > prev.confidence) prev.confidence = g.confidence
+      prev.city = prev.city ?? g.city ?? null
+      prev.lat = prev.lat ?? g.lat ?? null
+      prev.lon = prev.lon ?? g.lon ?? null
+    }
+  }
+
+  const fused: PlaceGuess[] = []
+  for (const { sources, ...guess } of merged.values()) {
+    if (sources.size >= 2) guess.confidence = Math.min(0.98, guess.confidence + CROSS_BOOST)
+    fused.push(guess)
+  }
+  return fused.sort((a, b) => b.confidence - a.confidence)
 }

@@ -1,9 +1,11 @@
 'use client'
-// lib/import/metadata.ts — fetch a social post's Open Graph / oEmbed metadata
-// from the DEVICE (residential IP; the same reason the Google scrape runs on
-// device). Returns null on web, where the native HTTP bridge is unavailable.
+// lib/import/metadata.ts — fetch a social post's signals from the DEVICE
+// (residential IP; the same reason the Google scrape runs on device). Returns the
+// Open Graph caption/title/thumbnail AND the venue the creator geotagged. Null on
+// web, where the native HTTP bridge is unavailable.
 import { nativeHttpGetText } from '@/lib/native/http'
 import { extractOgTags, platformFromUrl, type OgMeta } from '@/lib/import/parse'
+import { extractLocationTag, type LocationTag } from '@/lib/import/location'
 
 // TikTok/Instagram serve a JS-only shell to normal browser UAs (no Open Graph
 // in the HTML). They DO serve og:title/og:description to link-preview crawlers.
@@ -11,6 +13,12 @@ import { extractOgTags, platformFromUrl, type OgMeta } from '@/lib/import/parse'
 const HEADERS = {
   'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
   Accept: 'text/html,application/xhtml+xml',
+}
+
+export interface PostMetadata {
+  og: OgMeta
+  /** The venue the creator tagged on the post, when the page exposes one. */
+  location: LocationTag | null
 }
 
 async function oembed(endpoint: string): Promise<OgMeta | null> {
@@ -35,26 +43,41 @@ async function oembed(endpoint: string): Promise<OgMeta | null> {
 }
 
 /**
- * Fetch a post's metadata (title/caption/description/thumbnail).
- * Tries oEmbed for TikTok/YouTube (clean caption), else scrapes Open Graph tags.
+ * Fetch a post's metadata: caption/title/thumbnail (Open Graph) + geotag.
+ *
+ * The page HTML is fetched once — it carries BOTH the Open Graph tags and the
+ * geotag (JSON-LD / TikTok POI / Instagram location). For TikTok & YouTube an
+ * extra oEmbed call refines the caption (cleaner than the crawler's og:title),
+ * while the higher-res og:image and the geotag are kept from the HTML.
+ *
  * Native-only — returns null on web.
  */
-export async function fetchPostMetadata(url: string): Promise<OgMeta | null> {
+export async function fetchPostMetadata(url: string): Promise<PostMetadata | null> {
   const platform = platformFromUrl(url)
   const enc = encodeURIComponent(url)
 
-  if (platform === 'tiktok') {
-    const og = await oembed(`https://www.tiktok.com/oembed?url=${enc}`)
-    if (og?.title) return og
-  }
-  if (platform === 'youtube') {
-    const og = await oembed(`https://www.youtube.com/oembed?url=${enc}&format=json`)
-    if (og?.title) return og
+  const page = await nativeHttpGetText(url, HEADERS)
+  const html = page?.status === 200 ? page.data : ''
+  const location = html ? extractLocationTag(html, platform) : null
+  let og: OgMeta = html ? extractOgTags(html) : {}
+
+  if (platform === 'tiktok' || platform === 'youtube') {
+    const endpoint =
+      platform === 'tiktok'
+        ? `https://www.tiktok.com/oembed?url=${enc}`
+        : `https://www.youtube.com/oembed?url=${enc}&format=json`
+    const oe = await oembed(endpoint)
+    if (oe?.title) {
+      og = {
+        title: oe.title,
+        description: oe.description ?? oe.title,
+        image: og.image ?? oe.image,
+        site_name: oe.site_name ?? og.site_name,
+      }
+    }
   }
 
-  // Fallback: fetch the page and read Open Graph tags.
-  const res = await nativeHttpGetText(url, HEADERS)
-  if (!res || res.status !== 200) return null
-  const og = extractOgTags(res.data)
-  return og.title || og.description ? og : null
+  const hasOg = !!(og.title || og.description)
+  if (!hasOg && !location) return null
+  return { og, location }
 }

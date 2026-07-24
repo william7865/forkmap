@@ -151,12 +151,75 @@ public class AppGroupPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 }
 
-// Registers app-local plugins (RawHttp, AppGroup). Capacitor does not
+// ============================================================
+// Ocr — read the text printed on an image with Apple's Vision framework.
+// Food reels stamp the venue's name on the thumbnail even when the caption never
+// spells it out; recognising it on the DEVICE (free, offline, private) gives the
+// import resolver a second pair of eyes. See lib/native/ocr.ts + lib/import/resolve.ts.
+// ============================================================
+import Vision
+
+@objc(OcrPlugin)
+public class OcrPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "OcrPlugin"
+    public let jsName = "Ocr"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "recognize", returnType: CAPPluginReturnPromise)
+    ]
+
+    @objc func recognize(_ call: CAPPluginCall) {
+        guard let urlStr = call.getString("imageUrl"), let url = URL(string: urlStr) else {
+            call.reject("bad url")
+            return
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        req.timeoutInterval = 12
+        // Social CDNs 403 a default URLSession UA; a browser-ish one fetches the image.
+        req.setValue(
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+            forHTTPHeaderField: "User-Agent")
+
+        URLSession.shared.dataTask(with: req) { data, _, err in
+            if let err = err {
+                call.reject(err.localizedDescription)
+                return
+            }
+            guard let data = data, let image = UIImage(data: data), let cg = image.cgImage else {
+                call.resolve(["lines": [String]()])
+                return
+            }
+
+            let request = VNRecognizeTextRequest { req, _ in
+                let observations = (req.results as? [VNRecognizedTextObservation]) ?? []
+                // Vision returns observations unordered; sort top-to-bottom (its Y axis
+                // is 0 at the bottom, 1 at the top) so a title card reads in order.
+                let lines = observations
+                    .sorted { $0.boundingBox.maxY > $1.boundingBox.maxY }
+                    .compactMap { $0.topCandidates(1).first?.string }
+                call.resolve(["lines": lines])
+            }
+            request.recognitionLevel = .accurate
+            request.usesLanguageCorrection = true
+            request.recognitionLanguages = ["fr-FR", "en-US"]
+
+            let handler = VNImageRequestHandler(cgImage: cg, options: [:])
+            do {
+                try handler.perform([request])
+            } catch {
+                call.resolve(["lines": [String]()])
+            }
+        }.resume()
+    }
+}
+
+// Registers app-local plugins (RawHttp, AppGroup, Ocr). Capacitor does not
 // auto-discover plugins defined in the app target, so we register them on the
 // bridge here. Wired via Main.storyboard (the initial view controller's class).
 class MainViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(RawHttpPlugin())
         bridge?.registerPluginInstance(AppGroupPlugin())
+        bridge?.registerPluginInstance(OcrPlugin())
     }
 }
