@@ -1449,23 +1449,6 @@ export default function PlaceDetail({
                 </div>
               </>
             )}
-
-            {/* ── Source ── */}
-            <a
-              href={`https://www.openstreetmap.org/${place.osm_type}/${place.osm_id.split('/')[1]}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'block',
-                textAlign: 'center',
-                marginTop: 26,
-                fontSize: 12,
-                color: 'var(--text-4)',
-                textDecoration: 'none',
-              }}
-            >
-              Voir sur OpenStreetMap
-            </a>
           </div>
         </div>
         {modals}
@@ -3007,22 +2990,6 @@ export default function PlaceDetail({
             </div>
           </div>
         )}
-
-        <a
-          href={`https://www.openstreetmap.org/${place.osm_type}/${place.osm_id.split('/')[1]}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: 'block',
-            textAlign: 'center',
-            fontSize: 10,
-            color: 'var(--ink-40)',
-            textDecoration: 'none',
-            letterSpacing: '0.02em',
-          }}
-        >
-          Voir sur OpenStreetMap
-        </a>
       </div>
 
       {/* Note modal */}
