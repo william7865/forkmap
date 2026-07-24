@@ -15,7 +15,7 @@ import type { ReactNode } from 'react'
 
 export default function PagesTemplate({ children }: { children: ReactNode }) {
   return (
-    <div style={{ animation: 'fadeIn 300ms var(--ease-out) backwards', minHeight: '100%' }}>
+    <div style={{ animation: 'pageIn 340ms var(--ease-out) backwards', minHeight: '100%' }}>
       {children}
     </div>
   )
