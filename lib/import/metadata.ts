@@ -4,7 +4,13 @@
 // Open Graph caption/title/thumbnail AND the venue the creator geotagged. Null on
 // web, where the native HTTP bridge is unavailable.
 import { nativeHttpGetText } from '@/lib/native/http'
-import { extractOgTags, platformFromUrl, type OgMeta } from '@/lib/import/parse'
+import {
+  extractOgTags,
+  platformFromUrl,
+  instagramEmbedUrl,
+  parseEmbedCaption,
+  type OgMeta,
+} from '@/lib/import/parse'
 import { extractLocationTag, type LocationTag } from '@/lib/import/location'
 
 // TikTok/Instagram serve a JS-only shell to normal browser UAs (no Open Graph
@@ -75,6 +81,18 @@ export async function fetchPostMetadata(url: string): Promise<PostMetadata | nul
         site_name: oe.site_name ?? og.site_name,
         video: og.video, // oEmbed has no video — keep the one parsed from the HTML
       }
+    }
+  }
+
+  // Instagram often login-walls the main page for a crawler (no caption). The
+  // public /embed/captioned/ endpoint returns the full caption regardless — the
+  // real venue name / address / @mention live there, so prefer it.
+  if (platform === 'instagram') {
+    const embedUrl = instagramEmbedUrl(url)
+    if (embedUrl) {
+      const embed = await nativeHttpGetText(embedUrl, HEADERS)
+      const caption = embed?.status === 200 ? parseEmbedCaption(embed.data) : null
+      if (caption) og = { ...og, title: caption, description: caption }
     }
   }
 
