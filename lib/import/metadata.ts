@@ -73,6 +73,7 @@ export async function fetchPostMetadata(url: string): Promise<PostMetadata | nul
         description: oe.description ?? oe.title,
         image: og.image ?? oe.image,
         site_name: oe.site_name ?? og.site_name,
+        video: og.video, // oEmbed has no video — keep the one parsed from the HTML
       }
     }
   }

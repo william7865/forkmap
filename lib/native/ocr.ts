@@ -9,6 +9,7 @@ import { isNativeRuntime } from './platform'
 
 interface OcrPlugin {
   recognize(options: { imageUrl: string }): Promise<{ lines: string[] }>
+  recognizeVideo(options: { videoUrl: string; frames?: number }): Promise<{ lines: string[] }>
 }
 
 const Ocr = registerPlugin<OcrPlugin>('Ocr')
@@ -22,6 +23,24 @@ export async function nativeOcrRecognize(imageUrl: string): Promise<string[] | n
   if (!isNativeRuntime() || !imageUrl) return null
   try {
     const res = await Ocr.recognize({ imageUrl })
+    return Array.isArray(res?.lines) ? res.lines : []
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Download a video and OCR `frames` evenly-spaced frames (deduped lines). The
+ * heavy last-resort signal: used only when caption/geotag/thumbnail all fail.
+ * Returns null on web / when the native call fails or the video can't be read.
+ */
+export async function nativeOcrRecognizeVideo(
+  videoUrl: string,
+  frames = 5
+): Promise<string[] | null> {
+  if (!isNativeRuntime() || !videoUrl) return null
+  try {
+    const res = await Ocr.recognizeVideo({ videoUrl, frames })
     return Array.isArray(res?.lines) ? res.lines : []
   } catch {
     return null

@@ -22,10 +22,10 @@
 import type { ImportRow, ImportCandidatePlace, PlaceCard, PlaceBase } from '@/types'
 import { fetchPostMetadata } from '@/lib/import/metadata'
 import { buildImportCandidate } from '@/lib/import/parse'
-import { fuseCandidates, type PlaceGuess } from '@/lib/import/candidates'
+import { fuseCandidates, cleanOcrText, type PlaceGuess } from '@/lib/import/candidates'
 import { scoreResolution, nameSimilarity, chainMatches } from '@/lib/import/confidence'
 import { searchPlacesOnce, type PlaceSearchResult } from '@/lib/hooks/usePlaceSearch'
-import { nativeOcrRecognize } from '@/lib/native/ocr'
+import { nativeOcrRecognize, nativeOcrRecognizeVideo } from '@/lib/native/ocr'
 import { haversineDistance } from '@/lib/scoring'
 
 /** Paris — a fallback centre so the resolver never silently no-ops at cold start. */
@@ -270,27 +270,53 @@ async function run(row: ImportRow, center: [number, number] | null): Promise<Par
     post_thumb: safeUrl(og.image),
   }
 
-  // 2. Phase 1 — the fast path: caption + geotag only. A clean 📍 or a geotag
-  //    resolves here without paying for OCR.
-  const phase1 = fuseCandidates({ post: parsed, location }).slice(0, MAX_GUESSES)
-  const r1 = await resolveGuesses(phase1, meta, at)
-  if (r1?.status === 'resolved') return r1
+  // Each phase adds a signal and re-tries. We return on the FIRST resolution;
+  // otherwise we keep the richest "à confirmer" list seen (later phases fuse more
+  // signals, so their ambiguous set is a superset) and fall back to it at the end.
+  let best: Partial<ImportRow> | null = null
 
-  // 3. Phase 2 — nothing resolved cleanly: read the name off the thumbnail (native
-  //    OCR) and try the fused set again. This rescues captions that never spell
-  //    the venue out. Phase 2's candidate set is a superset of phase 1's, so its
-  //    verdict is at least as good — return it when present.
-  const ocrLines = meta.post_thumb ? await readOcr(meta.post_thumb) : null
-  if (ocrLines) {
-    const phase2 = fuseCandidates({ post: parsed, location, ocrText: ocrLines }).slice(
-      0,
-      MAX_GUESSES
+  // Phase 1 — the fast path: caption + geotag only. A clean 📍 or a geotag
+  // resolves here without paying for any OCR.
+  const r1 = await resolveGuesses(
+    fuseCandidates({ post: parsed, location }).slice(0, MAX_GUESSES),
+    meta,
+    at
+  )
+  if (r1?.status === 'resolved') return r1
+  best = r1 ?? best
+
+  // Phase 2 — read the name off the thumbnail (native OCR). Rescues captions that
+  // never spell the venue out (the name is stamped on the cover).
+  const thumbOcr = meta.post_thumb ? await readOcr(meta.post_thumb) : null
+  if (thumbOcr) {
+    const r2 = await resolveGuesses(
+      fuseCandidates({ post: parsed, location, ocrText: thumbOcr }).slice(0, MAX_GUESSES),
+      meta,
+      at
     )
-    const r2 = await resolveGuesses(phase2, meta, at)
-    if (r2) return r2
+    if (r2?.status === 'resolved') return r2
+    best = r2 ?? best
   }
 
-  return r1 ?? failed(meta)
+  // Phase 3 — last resort: OCR a few frames of the video itself, for a name shown
+  // only mid-clip. Heavy (downloads the video), so it runs ONLY when everything
+  // else failed and the post exposes a playable video URL.
+  const videoUrl = safeUrl(og.video)
+  if (videoUrl) {
+    const videoOcr = await readVideoOcr(videoUrl)
+    if (videoOcr) {
+      const combined = [thumbOcr, videoOcr].filter(Boolean).join('\n')
+      const r3 = await resolveGuesses(
+        fuseCandidates({ post: parsed, location, ocrText: combined }).slice(0, MAX_GUESSES),
+        meta,
+        at
+      )
+      if (r3?.status === 'resolved') return r3
+      best = r3 ?? best
+    }
+  }
+
+  return best ?? failed(meta)
 }
 
 /**
@@ -397,14 +423,28 @@ function resolvedPatch(meta: Partial<ImportRow>, place: PlaceCard): Partial<Impo
   }
 }
 
-/** OCR the thumbnail into one text blob. Native-only; null on web or on failure. */
+/** OCR the thumbnail into clean text. Native-only; null on web or on failure. */
 async function readOcr(imageUrl: string): Promise<string | null> {
   try {
     const lines = await nativeOcrRecognize(imageUrl)
     if (!lines || lines.length === 0) return null
-    return lines.join('\n')
+    const text = cleanOcrText(lines)
+    return text.length > 0 ? text : null
   } catch (err) {
     console.warn('[resolveImport] OCR failed', err)
+    return null
+  }
+}
+
+/** OCR a few frames of the video into clean text. Native-only; null on failure. */
+async function readVideoOcr(videoUrl: string): Promise<string | null> {
+  try {
+    const lines = await nativeOcrRecognizeVideo(videoUrl)
+    if (!lines || lines.length === 0) return null
+    const text = cleanOcrText(lines)
+    return text.length > 0 ? text : null
+  } catch (err) {
+    console.warn('[resolveImport] video OCR failed', err)
     return null
   }
 }

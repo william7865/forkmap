@@ -761,6 +761,63 @@ export function extractPlaceCandidates(post: ImportCandidate): PlaceGuess[] {
 // each through the SAME extractor, then rewards agreement: a name confirmed by
 // more than one source is likelier the real venue.
 
+/** UI chrome an OCR pass reads off a reel's overlay — never part of a venue name. */
+const OCR_NOISE = new Set([
+  'menu',
+  'carte',
+  'ouvert',
+  'ferme',
+  'fermee',
+  'avis',
+  'note',
+  'reservation',
+  'reserver',
+  'commander',
+  'livraison',
+  'adresse',
+  'horaires',
+  'tel',
+  'telephone',
+  'prix',
+  'euro',
+  'euros',
+  'abonne',
+  'abonnez',
+  'follow',
+  'like',
+  'partage',
+  'partager',
+])
+
+/**
+ * Turn raw OCR lines into clean text for the extractor. On-screen overlays carry
+ * the venue name AND clutter — prices, a rating, a duration, a handle, "OUVERT",
+ * "MENU". Those lines form spurious capitalised runs, so they're dropped before
+ * the text ever reaches extractPlaceCandidates. Pure, testable.
+ */
+export function cleanOcrText(lines: string[]): string {
+  return lines
+    .map((l) => l.trim())
+    .filter((l) => {
+      if (l.length < 2) return false
+      // Pure numbers / prices / ratings / symbols ("12€", "★ 9.0", "4,8/5").
+      if (/^[\d\s.,:€$£★☆%/+\-–—()]+$/u.test(l)) return false
+      // A leading count + unit ("12 min", "3 km", "1.2k avis").
+      if (/^\d[\d.,\s]*\s*(?:min|mins|km|m|h|€|euros?|avis|reviews?|k|abonn)/iu.test(l))
+        return false
+      // A lone @handle or #hashtag.
+      if (/^[@#][\p{L}0-9_.]+$/u.test(l)) return false
+      // A line made only of UI-chrome words.
+      const words = normalise(l)
+        .split(/\s+/)
+        .map((w) => w.replace(/[^a-z0-9]/g, ''))
+        .filter(Boolean)
+      if (words.length > 0 && words.every((w) => OCR_NOISE.has(w))) return false
+      return true
+    })
+    .join('\n')
+}
+
 export interface FuseInput {
   post: ImportCandidate
   /** Text read off the thumbnail (native OCR). Noisier than the caption. */

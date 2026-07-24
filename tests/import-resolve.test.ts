@@ -7,16 +7,20 @@ import type { PlaceSearchResult } from '@/lib/hooks/usePlaceSearch'
 // else (parse → candidates → confidence) runs for real.
 vi.mock('@/lib/import/metadata', () => ({ fetchPostMetadata: vi.fn() }))
 vi.mock('@/lib/hooks/usePlaceSearch', () => ({ searchPlacesOnce: vi.fn() }))
-vi.mock('@/lib/native/ocr', () => ({ nativeOcrRecognize: vi.fn() }))
+vi.mock('@/lib/native/ocr', () => ({
+  nativeOcrRecognize: vi.fn(),
+  nativeOcrRecognizeVideo: vi.fn(),
+}))
 
 import { resolveImport } from '@/lib/import/resolve'
 import { fetchPostMetadata } from '@/lib/import/metadata'
 import { searchPlacesOnce } from '@/lib/hooks/usePlaceSearch'
-import { nativeOcrRecognize } from '@/lib/native/ocr'
+import { nativeOcrRecognize, nativeOcrRecognizeVideo } from '@/lib/native/ocr'
 
 const meta = vi.mocked(fetchPostMetadata)
 const search = vi.mocked(searchPlacesOnce)
 const ocr = vi.mocked(nativeOcrRecognize)
+const videoOcr = vi.mocked(nativeOcrRecognizeVideo)
 
 const PARIS: [number, number] = [48.8566, 2.3522]
 
@@ -417,5 +421,29 @@ describe('resolveImport — nouveaux signaux (géotag + OCR)', () => {
 
     expect(patch.status).toBe('resolved')
     expect(ocr).not.toHaveBeenCalled()
+    expect(videoOcr).not.toHaveBeenCalled()
+  })
+
+  it('récupère via OCR vidéo en dernier recours (légende + miniature échouent)', async () => {
+    meta.mockResolvedValue({
+      og: {
+        title: 'allez-y',
+        description: 'incroyable',
+        image: 'https://cdn.tiktok.com/t.jpg',
+        video: 'https://cdn.tiktok.com/v.mp4',
+      },
+      location: null,
+    })
+    ocr.mockResolvedValue(['★ 9.0', '12€']) // miniature : que du bruit → aucun candidat
+    videoOcr.mockResolvedValue(['SEPTIME']) // une frame montre le nom
+    search.mockImplementation(async (q: string) =>
+      q.toLowerCase().includes('septime') ? [osmResult('Septime')] : []
+    )
+
+    const patch = await resolveImport(row(), PARIS)
+
+    expect(videoOcr).toHaveBeenCalled()
+    expect(patch.status).toBe('resolved')
+    expect(patch.place_snapshot?.name).toBe('Septime')
   })
 })

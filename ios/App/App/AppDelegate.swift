@@ -158,14 +158,29 @@ public class AppGroupPlugin: CAPPlugin, CAPBridgedPlugin {
 // import resolver a second pair of eyes. See lib/native/ocr.ts + lib/import/resolve.ts.
 // ============================================================
 import Vision
+import AVFoundation
 
 @objc(OcrPlugin)
 public class OcrPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "OcrPlugin"
     public let jsName = "Ocr"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "recognize", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "recognize", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "recognizeVideo", returnType: CAPPluginReturnPromise)
     ]
+
+    /** Run Vision text recognition on one CGImage, top-to-bottom. */
+    private func recognizeLines(in cgImage: CGImage) -> [String] {
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.usesLanguageCorrection = true
+        request.recognitionLanguages = ["fr-FR", "en-US"]
+        try? VNImageRequestHandler(cgImage: cgImage, options: [:]).perform([request])
+        let observations = (request.results as? [VNRecognizedTextObservation]) ?? []
+        return observations
+            .sorted { $0.boundingBox.maxY > $1.boundingBox.maxY }
+            .compactMap { $0.topCandidates(1).first?.string }
+    }
 
     @objc func recognize(_ call: CAPPluginCall) {
         guard let urlStr = call.getString("imageUrl"), let url = URL(string: urlStr) else {
@@ -189,26 +204,72 @@ public class OcrPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.resolve(["lines": [String]()])
                 return
             }
+            call.resolve(["lines": self.recognizeLines(in: cg)])
+        }.resume()
+    }
 
-            let request = VNRecognizeTextRequest { req, _ in
-                let observations = (req.results as? [VNRecognizedTextObservation]) ?? []
-                // Vision returns observations unordered; sort top-to-bottom (its Y axis
-                // is 0 at the bottom, 1 at the top) so a title card reads in order.
-                let lines = observations
-                    .sorted { $0.boundingBox.maxY > $1.boundingBox.maxY }
-                    .compactMap { $0.topCandidates(1).first?.string }
-                call.resolve(["lines": lines])
+    // Download a video and OCR a few evenly-spaced frames (deduped, top-to-bottom).
+    // The heavy last-resort signal — the resolver only calls it when everything
+    // else failed. Downloading on the DEVICE also helps with IP-locked media URLs.
+    @objc func recognizeVideo(_ call: CAPPluginCall) {
+        guard let urlStr = call.getString("videoUrl"), let url = URL(string: urlStr) else {
+            call.reject("bad url")
+            return
+        }
+        let frameCount = max(1, min(call.getInt("frames") ?? 5, 8))
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        req.timeoutInterval = 15
+        req.setValue(
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+            forHTTPHeaderField: "User-Agent")
+
+        URLSession.shared.dataTask(with: req) { data, _, err in
+            if let err = err {
+                call.reject(err.localizedDescription)
+                return
             }
-            request.recognitionLevel = .accurate
-            request.usesLanguageCorrection = true
-            request.recognitionLanguages = ["fr-FR", "en-US"]
-
-            let handler = VNImageRequestHandler(cgImage: cg, options: [:])
-            do {
-                try handler.perform([request])
-            } catch {
+            guard let data = data, !data.isEmpty else {
                 call.resolve(["lines": [String]()])
+                return
             }
+            // AVURLAsset needs a file/remote URL, not in-memory bytes → temp file.
+            let tmp = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString + ".mp4")
+            do { try data.write(to: tmp) } catch {
+                call.resolve(["lines": [String]()])
+                return
+            }
+            defer { try? FileManager.default.removeItem(at: tmp) }
+
+            let asset = AVURLAsset(url: tmp)
+            let generator = AVAssetImageGenerator(asset: asset)
+            generator.appliesPreferredTrackTransform = true
+            // Nearest keyframe is fine and much faster than exact seeking.
+            generator.requestedTimeToleranceBefore = .positiveInfinity
+            generator.requestedTimeToleranceAfter = .positiveInfinity
+
+            let duration = CMTimeGetSeconds(asset.duration)
+            guard duration.isFinite, duration > 0 else {
+                call.resolve(["lines": [String]()])
+                return
+            }
+
+            var seen = Set<String>()
+            var ordered: [String] = []
+            for i in 0..<frameCount {
+                let fraction = (Double(i) + 0.5) / Double(frameCount) // skip the very ends
+                let time = CMTime(seconds: duration * fraction, preferredTimescale: 600)
+                guard let cg = try? generator.copyCGImage(at: time, actualTime: nil) else { continue }
+                for line in self.recognizeLines(in: cg) {
+                    let key = line.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                    if !key.isEmpty && !seen.contains(key) {
+                        seen.insert(key)
+                        ordered.append(line)
+                    }
+                }
+            }
+            call.resolve(["lines": ordered])
         }.resume()
     }
 }
