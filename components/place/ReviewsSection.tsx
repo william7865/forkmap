@@ -238,18 +238,18 @@ export default function ReviewsSection({
           className="tap-press"
           style={{
             alignSelf: 'flex-start',
-            height: 40,
-            padding: '0 16px',
-            border: '1px solid var(--border)',
-            background: 'var(--surface)',
-            borderRadius: 'var(--r-sm)',
-            fontSize: 12.5,
-            fontWeight: 700,
+            height: 46,
+            padding: '0 20px',
+            border: '1px solid var(--border-strong)',
+            background: 'transparent',
+            borderRadius: 999,
+            fontSize: 14,
+            fontWeight: 600,
             color: 'var(--text)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: 7,
+            gap: 8,
           }}
         >
           <Star size={14} strokeWidth={1.8} color="var(--accent)" fill="var(--accent)" />

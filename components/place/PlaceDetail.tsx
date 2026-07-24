@@ -1373,9 +1373,11 @@ export default function PlaceDetail({
                           alignItems: 'center',
                           gap: 14,
                           padding: '11px 0',
-                          borderBottom: '1px solid var(--border)',
+                          // `border:'none'` MUST come before `borderBottom`, else it
+                          // resets the bottom to a 3px currentColor line (the ugly
+                          // blue bars). Order matters.
                           border: 'none',
-                          borderBottomStyle: 'solid',
+                          borderBottom: '1px solid var(--border)',
                           background: 'none',
                           cursor: 'pointer',
                           textAlign: 'left',
