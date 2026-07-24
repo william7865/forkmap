@@ -4,8 +4,9 @@ import { usePathname } from 'next/navigation'
 import { Map, Bookmark, User, Settings } from 'lucide-react'
 import { LogoMark } from '@/components/icons/Logo'
 
+// Web chrome only (native renders AppTabBar). The web map lives at /carte.
 const NAV = [
-  { href: '/', Icon: Map, label: 'Carte' },
+  { href: '/carte', Icon: Map, label: 'Carte' },
   { href: '/favorites', Icon: Bookmark, label: 'Lieux enregistrés' },
   { href: '/account', Icon: User, label: 'Compte' },
 ]
@@ -31,7 +32,7 @@ export default function NavRail() {
       }}
     >
       {/* Logo */}
-      <Link href="/" style={{ marginBottom: 20, textDecoration: 'none' }}>
+      <Link href="/carte" style={{ marginBottom: 20, textDecoration: 'none' }}>
         <div
           style={{
             width: 32,

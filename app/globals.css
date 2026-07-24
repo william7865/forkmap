@@ -994,3 +994,33 @@ a:focus:not(:focus-visible) {
     scroll-behavior: auto !important;
   }
 }
+
+/* ── Marketing site (landing + public content pages) ──
+   Shared by SiteHeader, GlobalFooter and Landing so the whole public web reads
+   as one site. Landing-only motion (hero float / reveal) stays local to Landing. */
+.lp-wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+.lp-cta {
+  transition:
+    transform 160ms var(--ease-out),
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+.lp-cta:hover {
+  transform: translateY(-1px);
+}
+.lp-navlink {
+  transition: color 140ms ease;
+}
+.lp-navlink:hover {
+  color: var(--accent);
+}
+@media (max-width: 720px) {
+  .lp-nav-links {
+    display: none !important;
+  }
+}

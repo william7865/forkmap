@@ -8,75 +8,12 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { useIsMobile } from '@/lib/hooks/useMediaQuery'
 import { useIsNative } from '@/lib/native/platform'
-import { LogoMark } from '@/components/icons/Logo'
+import { ForkmapLogo, ForkmapWordmark } from './Brand'
+import SiteHeader from '@/components/site/SiteHeader'
 
-// ── Logo brandbook — le bol fumant, la marque courante ───
-// Dessinait encore l'ancienne fourchette, alors que NavRail, AppTabBar et le
-// favicon portent LogoMark : le logo différait selon l'écran.
-export function ForkmapLogo({ size = 30 }: { size?: number }) {
-  const r = Math.round(size * 0.267)
-  const ico = Math.round(size * 0.6)
-  return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: r,
-        background: 'var(--ink)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-        boxShadow: 'var(--s2)',
-      }}
-    >
-      <LogoMark size={ico} color="white" />
-    </div>
-  )
-}
-
-// ── Wordmark brandbook — Fraunces italic ─────────────────
-// `asLink={false}` for surfaces that already carry a link to the map (PageHeader),
-// where a clickable wordmark would be a second identical target.
-export function ForkmapWordmark({
-  compact = false,
-  asLink = true,
-}: {
-  compact?: boolean
-  asLink?: boolean
-}) {
-  const style = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: compact ? 7 : 9,
-    textDecoration: 'none',
-  } as const
-  const inner = (
-    <>
-      <ForkmapLogo size={compact ? 24 : 30} />
-      {!compact && (
-        <span
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontWeight: 400,
-            fontSize: 20,
-            letterSpacing: '-0.04em',
-            color: 'var(--ink)',
-            lineHeight: 1,
-          }}
-        >
-          fork<em style={{ fontStyle: 'italic', color: 'var(--forest-mid)' }}>map</em>
-        </span>
-      )}
-    </>
-  )
-  if (!asLink) return <div style={style}>{inner}</div>
-  return (
-    <Link href="/" style={style}>
-      {inner}
-    </Link>
-  )
-}
+// The brand lockup now lives in Brand.tsx (shared with SiteHeader without a cycle).
+// Re-exported here so existing `@/components/ui/PageLayout` importers keep working.
+export { ForkmapLogo, ForkmapWordmark }
 
 // ── Icônes header brandbook stroke 1.7 ───────────────────
 const IcoArrowLeft = () => (
@@ -114,9 +51,9 @@ export function PageHeader({ current, actions }: { current: string; actions?: Re
         zIndex: 100,
       }}
     >
-      {/* Back to map */}
+      {/* Back to map — the web map lives at /carte (native keeps it at / via AppTabBar). */}
       <Link
-        href="/"
+        href="/carte"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -227,17 +164,11 @@ export function LegalSection({ title, children }: { title: string; children: Rea
 }
 
 // ── InfoPage — wrapper complet pour pages statiques ──────
-export function InfoPage({
-  children,
-  headerLabel,
-  headerActions,
-  maxWidth = 720,
-}: {
-  children: ReactNode
-  headerLabel: string
-  headerActions?: ReactNode
-  maxWidth?: number
-}) {
+// On the web these are marketing/legal pages of the public SITE, so they wear the
+// shared SiteHeader + GlobalFooter — the same chrome as the landing, not the app's
+// NavRail. On native they're reached from inside the app, so they show only a
+// history.back button (SiteHeader/GlobalFooter are web surfaces).
+export function InfoPage({ children, maxWidth = 720 }: { children: ReactNode; maxWidth?: number }) {
   const isNative = useIsNative()
   return (
     <div
@@ -250,7 +181,7 @@ export function InfoPage({
         flexDirection: 'column',
       }}
     >
-      {!isNative && <PageHeader current={headerLabel} actions={headerActions} />}
+      {!isNative && <SiteHeader />}
       <main style={{ flex: 1, background: 'var(--white)' }}>
         <div
           style={{

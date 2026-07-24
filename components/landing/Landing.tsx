@@ -13,24 +13,11 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { ArrowRight } from 'lucide-react'
 import { mapDeepLinkTarget } from '@/lib/landing'
+import { GlobalFooter } from '@/components/ui/PageLayout'
+import SiteHeader from '@/components/site/SiteHeader'
 import PhoneFrame from './PhoneFrame'
 import ShowcaseSection from './ShowcaseSection'
 import { Reveal } from './useReveal'
-
-const NAV_LINKS = [
-  { href: '#import', label: "L'import" },
-  { href: '#decouvrir', label: 'Découvrir' },
-  { href: '#carnet', label: 'Amis & carnet' },
-]
-
-const FOOTER_LINKS = [
-  { href: '/about', label: 'À propos' },
-  { href: '/help', label: 'Aide' },
-  { href: '/contact', label: 'Contact' },
-  { href: '/privacy', label: 'Confidentialité' },
-  { href: '/terms', label: 'CGU' },
-  { href: '/attribution', label: 'Attribution' },
-]
 
 export default function Landing() {
   const router = useRouter()
@@ -52,69 +39,7 @@ export default function Landing() {
       }}
     >
       {/* ─── Nav ─── */}
-      <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 50,
-          background: 'rgba(255,255,255,0.82)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          borderBottom: '1px solid var(--border)',
-        }}
-      >
-        <nav
-          className="lp-wrap"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            height: 62,
-          }}
-        >
-          <Link
-            href="/"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              textDecoration: 'none',
-              color: 'var(--text)',
-            }}
-          >
-            <span
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: 22,
-                fontWeight: 700,
-                letterSpacing: '-0.02em',
-              }}
-            >
-              Forkmap
-            </span>
-          </Link>
-          <div className="lp-nav-links" style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
-            {NAV_LINKS.map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
-                className="lp-navlink"
-                style={{
-                  fontSize: 14,
-                  fontWeight: 500,
-                  color: 'var(--text-2)',
-                  textDecoration: 'none',
-                }}
-              >
-                {l.label}
-              </a>
-            ))}
-          </div>
-          <Link href="/carte" className="lp-cta" style={pillCta(true)}>
-            Ouvrir la carte
-            <ArrowRight size={15} strokeWidth={2} />
-          </Link>
-        </nav>
-      </header>
+      <SiteHeader />
 
       {/* ─── Hero ─── */}
       <section className="lp-wrap" style={{ paddingTop: 44, paddingBottom: 30 }}>
@@ -271,68 +196,18 @@ export default function Landing() {
       </section>
 
       {/* ─── Footer ─── */}
-      <footer style={{ borderTop: '1px solid var(--border)', background: 'var(--bg)' }}>
-        <div
-          className="lp-wrap lp-footer"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 20,
-            paddingTop: 26,
-            paddingBottom: 26,
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <span
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: 18,
-                fontWeight: 700,
-                letterSpacing: '-0.02em',
-              }}
-            >
-              Forkmap
-            </span>
-            <span style={{ fontSize: 12.5, color: 'var(--text-3)' }}>© 2026</span>
-          </div>
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-            {FOOTER_LINKS.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="lp-navlink"
-                style={{ fontSize: 13, color: 'var(--text-3)', textDecoration: 'none' }}
-              >
-                {l.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </footer>
+      <GlobalFooter />
 
       <style>{`
-        .lp-wrap { max-width: 1120px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
         @keyframes lpUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes lpFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
         .lp-float { animation: lpFloat 6s var(--ease-in-out) infinite; }
-        .lp-cta { transition: transform 160ms var(--ease-out), background 160ms ease, box-shadow 160ms ease; }
-        .lp-cta:hover { transform: translateY(-1px); }
-        .lp-navlink { transition: color 140ms ease; }
-        .lp-navlink:hover { color: var(--accent); }
         @media (prefers-reduced-motion: reduce) {
           .lp-float, .lp-hero-copy, .lp-hero-device { animation: none !important; }
         }
         @media (max-width: 900px) {
           .lp-hero, .lp-showcase { grid-template-columns: 1fr !important; gap: 32px !important; }
           .lp-hero-device, .lp-showcase-device { order: -1; }
-        }
-        @media (max-width: 720px) {
-          .lp-nav-links { display: none !important; }
-        }
-        @media (max-width: 560px) {
-          .lp-footer { flex-direction: column; align-items: flex-start !important; }
         }
       `}</style>
     </div>
