@@ -32,8 +32,10 @@ import { frCuisine } from '@/lib/cuisine'
 import ActionSheet from '@/components/ui/ActionSheet'
 import { nativeShare } from '@/lib/native/share'
 import PullToRefresh from '@/components/ui/PullToRefresh'
-import { Plus, Vote, ChevronRight, Users } from 'lucide-react'
+import { Plus, Vote, ChevronRight, Users, Sparkles } from 'lucide-react'
 import { lightTap } from '@/lib/native/haptics'
+import AddImportSheet from '@/components/import/AddImportSheet'
+import { SigSparkle } from '@/components/icons/signature'
 import { setPendingSelect } from '@/lib/pendingSelect'
 import {
   NativeListRow,
@@ -1014,6 +1016,7 @@ function FavoritesPageInner() {
   const activeListId = searchParams.get('list')
   // Volets « Restos | Listes » (segmenté natif) — fin des longs empilements.
   const [libTab, setLibTab] = useState<'places' | 'lists'>('places')
+  const [addImportOpen, setAddImportOpen] = useState(false)
 
   const {
     lists,
@@ -1027,6 +1030,8 @@ function FavoritesPageInner() {
 
   // Les posts partagés depuis les réseaux (store unique de l'app — voir useImportsContext).
   const { imports } = useImportsStore()
+  // Premier lancement : rien à montrer, donc quelque chose à apprendre.
+  const isFirstRun = favorites.length === 0 && lists.length === 0 && imports.length === 0
 
   // ── Multi-select ──
   const [selectMode, setSelectMode] = useState(false)
@@ -1484,6 +1489,134 @@ function FavoritesPageInner() {
             </div>
           )}
 
+          {/* PREMIER LANCEMENT — le Carnet est l'accueil de l'app, donc ce
+             bloc est littéralement le premier écran d'un nouvel utilisateur.
+             Il n'a ni import, ni favori, ni liste, ni ami : le seul de ces
+             manques qu'il puisse combler SEUL, tout de suite, c'est l'import.
+             On lui apprend donc le geste au lieu de lui montrer un vide avec
+             un bouton dessus. La carte reste offerte en second, parce qu'elle
+             est le seul écran plein à J+0. */}
+          {isNative && !activeListId && !loading && isFirstRun && (
+            <div
+              style={{
+                marginTop: 'var(--sp-5)',
+                padding: '22px 20px',
+                borderRadius: 18,
+                background: 'var(--bg)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <h2
+                style={{
+                  margin: 0,
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 22,
+                  fontWeight: 600,
+                  letterSpacing: '-0.02em',
+                  color: 'var(--text)',
+                }}
+              >
+                Ton carnet est vide. C’est normal.
+              </h2>
+              <p
+                style={{
+                  margin: '8px 0 0',
+                  fontSize: 14,
+                  lineHeight: 1.55,
+                  color: 'var(--text-2)',
+                }}
+              >
+                La prochaine fois qu’un resto te fait envie sur TikTok ou Instagram, touche{' '}
+                <strong>Partager</strong>, puis <strong>Forkmap</strong>. On retrouve le restaurant
+                et on le range ici — même si son nom n’est écrit nulle part.
+              </p>
+              <button
+                type="button"
+                className="tap-press"
+                onClick={() => {
+                  lightTap()
+                  setAddImportOpen(true)
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 9,
+                  width: '100%',
+                  minHeight: 48,
+                  marginTop: 16,
+                  borderRadius: 13,
+                  border: 'none',
+                  background: 'var(--accent)',
+                  color: 'var(--on-accent)',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 15,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                <Sparkles size={17} strokeWidth={2} />
+                Essayer avec un lien
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push('/carte')}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  marginTop: 10,
+                  padding: '10px 0',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-3)',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Ou explore les restos autour de toi
+              </button>
+            </div>
+          )}
+
+          {/* L'import est la fonction phare de Forkmap : il lui faut une entrée
+             permanente et visible, haut dans l'écran d'accueil. Elle a remplacé
+             le bouton central de la tab bar, qui n'avait rien à y faire (une
+             barre d'onglets porte des destinations, pas des actions). Une fois
+             le carnet amorcé, elle remplace le bloc de premier lancement. */}
+          {isNative && !activeListId && !isFirstRun && (
+            <button
+              type="button"
+              className="tap-press"
+              onClick={() => {
+                lightTap()
+                setAddImportOpen(true)
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 9,
+                width: '100%',
+                minHeight: 50,
+                marginTop: 'var(--sp-4)',
+                borderRadius: 14,
+                border: 'none',
+                background: 'var(--accent)',
+                color: 'var(--on-accent)',
+                fontFamily: 'var(--font-body)',
+                fontSize: 15,
+                fontWeight: 600,
+                cursor: 'pointer',
+                boxShadow: 'var(--s-accent)',
+              }}
+            >
+              <Sparkles size={17} strokeWidth={2} />
+              Ajouter une vidéo
+            </button>
+          )}
+
           {/* « Vus sur les réseaux » — full-bleed, garde son propre en-tête. */}
           {!activeListId && (
             <div
@@ -1493,6 +1626,44 @@ function FavoritesPageInner() {
             >
               <ImportsRow imports={imports} />
             </div>
+          )}
+
+          {/* « Je ne sais pas quoi manger » — le geste signature. Il a perdu
+             le bouton central de la tab bar (une barre porte des destinations,
+             pas des actions) ; il lui faut donc une vraie place ailleurs, et
+             le Carnet est l'écran d'accueil, celui où la question se pose. En
+             CONTOUR, pas en accent : l'unique bouton accent de l'écran reste
+             « Ajouter une vidéo », qui est la promesse de l'app. Il ouvre le
+             concierge sur la carte via ?surprise=1, que MapHome sait lire. */}
+          {isNative && !activeListId && (
+            <button
+              type="button"
+              className="tap-press"
+              onClick={() => {
+                lightTap()
+                router.push('/carte?surprise=1')
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 9,
+                width: '100%',
+                minHeight: 48,
+                marginTop: 'var(--sp-3)',
+                borderRadius: 14,
+                border: '1.5px solid var(--border-strong)',
+                background: 'var(--bg)',
+                color: 'var(--text)',
+                fontFamily: 'var(--font-body)',
+                fontSize: 14.5,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <SigSparkle size={16} />
+              Je ne sais pas quoi manger
+            </button>
           )}
 
           {/* Entrée « Amis » — le fil social vit à /discover, qui n'a plus
@@ -2079,7 +2250,7 @@ function FavoritesPageInner() {
                       </p>
                     </div>
                     <button
-                      onClick={() => router.push('/')}
+                      onClick={() => router.push('/carte')}
                       style={{
                         background: 'var(--accent)',
                         color: 'var(--on-accent)',
@@ -2324,7 +2495,7 @@ function FavoritesPageInner() {
                       </p>
                     </div>
                     <button
-                      onClick={() => router.push('/')}
+                      onClick={() => router.push('/carte')}
                       style={{
                         background: 'var(--accent)',
                         color: 'var(--on-accent)',
@@ -2540,7 +2711,7 @@ function FavoritesPageInner() {
                 pour le garder précieusement ici.
               </p>
               <Link
-                href="/"
+                href="/carte"
                 className="btn-ember tap-press"
                 style={{
                   display: 'inline-flex',
@@ -2654,7 +2825,7 @@ function FavoritesPageInner() {
                         favourites" — either the tab filtered them all out, or the
                         search did. Each case names the way out. */}
                     {favTab === 'todo' ? (
-                      <EmptyState variant="all-tested" onExplore={() => router.push('/')} />
+                      <EmptyState variant="all-tested" onExplore={() => router.push('/carte')} />
                     ) : favTab === 'done' ? (
                       <EmptyState variant="no-tested" />
                     ) : (
@@ -2915,6 +3086,8 @@ function FavoritesPageInner() {
           onCancel={() => setDeleteListTarget(null)}
         />
       )}
+
+      {addImportOpen && <AddImportSheet onClose={() => setAddImportOpen(false)} />}
 
       {!isNative && <GlobalFooter />}
     </div>

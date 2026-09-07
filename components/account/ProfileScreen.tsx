@@ -702,7 +702,7 @@ export default function ProfileScreen() {
                 className="tap-press"
                 onClick={() => {
                   lightTap()
-                  router.push('/')
+                  router.push('/carte')
                 }}
                 style={{
                   background: 'var(--accent)',
