@@ -1,8 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Map, Bookmark, User } from 'lucide-react'
-import { SigSparkle } from '@/components/icons/signature'
+import { Map, Bookmark, User, Sparkles } from 'lucide-react'
 import { useEffect } from 'react'
 import { lightTap } from '@/lib/native/haptics'
 import { useUnreadMessages } from '@/lib/hooks/useUnreadMessages'
@@ -34,14 +33,14 @@ const TABS: Tab[] = [
     // En natif le Carnet EST `/` (app/page.tsx) ; sur le web il vit à
     // `/favorites`, `/` étant la landing. Les deux chemins sont actifs.
     href: '/',
-    icon: (active) => <Bookmark size={22} strokeWidth={active ? 2 : 1.75} />,
+    icon: (active) => <Bookmark size={22} strokeWidth={active ? 2.4 : 1.7} />,
     label: 'Carnet',
     match: (p) => p === '/' || p.startsWith('/favorites'),
     badge: 'imports',
   },
   {
     href: '/carte',
-    icon: (active) => <Map size={22} strokeWidth={active ? 2 : 1.75} />,
+    icon: (active) => <Map size={22} strokeWidth={active ? 2.4 : 1.7} />,
     label: 'Carte',
     match: (p) => p.startsWith('/carte'),
   },
@@ -52,7 +51,12 @@ const TABS: Tab[] = [
     // résultat. Il est plein écran une fois ouvert, donc il se lit bien comme
     // une destination.
     href: '/carte?surprise=1',
-    icon: () => <SigSparkle size={22} />,
+    // L'étincelle de marque (SigSparkle) est une forme PLEINE ; entourée de
+    // trois icônes en trait, elle pesait beaucoup plus lourd et se lisait
+    // comme l'onglet sélectionné même inactive. Ici on prend la version en
+    // trait pour que les quatre icônes parlent la même langue — SigSparkle
+    // reste la signature de la marque partout ailleurs.
+    icon: (active) => <Sparkles size={22} strokeWidth={active ? 2.4 : 1.7} />,
     label: 'Surprends-moi',
     // Jamais « actif » : `?surprise=1` est nettoyé par SurpriseParamWatcher dès
     // l'ouverture, et le deck (z-index 1000) recouvre la barre (950) tant qu'il
@@ -63,7 +67,7 @@ const TABS: Tab[] = [
   },
   {
     href: '/account',
-    icon: (active) => <User size={22} strokeWidth={active ? 2 : 1.75} />,
+    icon: (active) => <User size={22} strokeWidth={active ? 2.4 : 1.7} />,
     label: 'Profil',
     match: (p) => p.startsWith('/account'),
     badge: 'messages',
@@ -121,11 +125,19 @@ function TabLink({ tab, active, badge }: { tab: Tab; active: boolean; badge: num
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: active ? '10px 16px' : '10px 14px',
-          borderRadius: 14,
-          background: active ? 'var(--surface-2)' : 'transparent',
+          // Pas de pastille de fond sur l'onglet actif : elle se lisait comme
+          // un survol ou un appui, pas comme une sélection — et en icônes
+          // seules elle prenait toute la place. La sélection passe par la
+          // couleur et l'épaisseur du trait, comme dans les barres iOS.
+          //
+          // Le padding est aussi devenu UNIFORME : il valait 16px sur l'actif
+          // et 14px ailleurs, donc l'icône se décalait d'un onglet à l'autre.
+          padding: '10px 14px',
+          // --text-3 et pas --text-4 : ce dernier tombe à ~2,3:1 sur blanc,
+          // sous le seuil de 3:1 des éléments non textuels. L'écart avec
+          // l'actif se joue sur l'épaisseur du trait, pas sur la pâleur.
           color: active ? 'var(--accent)' : 'var(--text-3)',
-          transition: 'background 160ms ease, color 160ms ease',
+          transition: 'color 160ms ease',
         }}
       >
         <span style={{ position: 'relative', display: 'inline-flex' }}>
