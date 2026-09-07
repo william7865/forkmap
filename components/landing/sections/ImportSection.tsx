@@ -6,8 +6,23 @@ import { Reveal } from '../useReveal'
 // ailleurs : ils portent l'ordre, ils ne décorent pas un titre.
 //
 // Visuel : pas de téléphone. On montre la TRANSFORMATION elle-même, recadrée
-// dans la capture réelle — la vidéo Instagram en haut, la fiche que Forkmap en
-// a tirée en dessous. C'est l'argument de la section, montré plutôt que décrit.
+// dans la capture réelle — la vidéo Instagram, puis la fiche que Forkmap en a
+// tirée. C'est l'argument de la section, montré plutôt que décrit.
+//
+// ⚠️ Deux contraintes qui ont dicté cette mise en page :
+//
+// 1. NETTETÉ. La région vidéo fait 735px de large dans la capture source. En
+//    dpr2 il faut donc rester sous ~368px d'affichage pour ne pas l'agrandir.
+//    À 516px (l'état précédent) elle était en x1,4 et visiblement floue. La
+//    colonne des artefacts est plafonnée à 340px : c'est la résolution qui
+//    fixe la taille, pas l'envie de faire grand.
+//
+// 2. ÉQUILIBRE. Titre et chapô étaient seuls en haut à gauche, la moitié
+//    droite vide, l'énorme photo dessous. Tout le texte (titre, chapô,
+//    séquence) vit maintenant dans UNE colonne à droite, les deux artefacts
+//    dans l'autre : les deux colonnes font à peu près la même hauteur, il n'y
+//    a plus de trou. Les images sont à gauche ici et à droite dans Ton
+//    carnet — les deux sections se lisent en miroir.
 
 const STEPS = [
   {
@@ -33,59 +48,60 @@ export default function ImportSection() {
   return (
     <section id="import" style={{ background: 'var(--bg)', borderTop: '1px solid var(--border)' }}>
       <div
-        className="lp-wrap"
-        style={{ paddingTop: 'clamp(72px, 9vw, 120px)', paddingBottom: 'clamp(72px, 9vw, 120px)' }}
+        className="lp-wrap lp-import"
+        style={{ paddingTop: 'clamp(72px, 9vw, 116px)', paddingBottom: 'clamp(72px, 9vw, 116px)' }}
       >
-        <Reveal y={18}>
-          <h2 className="lp-h2">
-            Un resto vu en vidéo,
-            <br />
-            <span style={{ color: 'var(--text-3)' }}>sauvé en un geste.</span>
-          </h2>
-          <p className="lp-lead" style={{ marginTop: 18, maxWidth: 460 }}>
-            Tu ne notes plus le nom dans tes messages à toi-même : tu partages, et c’est rangé.
-          </p>
-        </Reveal>
+        {/* La transformation : le post d'origine, puis ce que Forkmap en tire. */}
+        <div className="lp-transform">
+          <Reveal y={24}>
+            <figure className="lp-artifact">
+              <Shot
+                src="/landing/app-import.png"
+                alt="Une vidéo de ramen partagée depuis Instagram par @ramenlover"
+                // Le cadrage démarre à 140 et pas au bord du conteneur vidéo
+                // (108) : l'app y laisse dépasser un badge turquoise que son
+                // propre coin arrondi rogne. Recadré hors contexte, ce demi-
+                // badge se lisait comme un défaut d'affichage.
+                x={35}
+                y={140}
+                w={735}
+                h={878}
+                radius={16}
+                sizes="(max-width: 980px) 78vw, 340px"
+              />
+              <figcaption className="lp-artifact-tag">La vidéo que tu partages</figcaption>
+            </figure>
+          </Reveal>
 
-        <div className="lp-import-grid">
-          {/* La transformation : le post d'origine, puis ce que Forkmap en tire. */}
-          <div className="lp-transform">
-            <Reveal y={24}>
-              <figure className="lp-artifact lp-artifact-video">
-                <Shot
-                  src="/landing/app-import.png"
-                  alt="Une vidéo de ramen partagée depuis Instagram par @ramenlover"
-                  // Le cadrage démarre à 140 et pas au bord du conteneur vidéo
-                  // (108) : l'app y laisse dépasser un badge turquoise que son
-                  // propre coin arrondi rogne. Recadré hors contexte, ce demi-
-                  // badge se lisait comme un défaut d'affichage.
-                  x={35}
-                  y={140}
-                  w={735}
-                  h={878}
-                  radius={16}
-                  sizes="(max-width: 980px) 84vw, 540px"
-                />
-                <figcaption className="lp-artifact-tag">La vidéo que tu partages</figcaption>
-              </figure>
-            </Reveal>
+          <Reveal y={20} delay={200}>
+            <figure className="lp-artifact">
+              <Shot
+                src="/landing/app-import.png"
+                alt="La fiche trouvée par Forkmap : Kodawari Ramen, Ramen, ouvert, noté 9,1"
+                x={55}
+                y={1286}
+                w={693}
+                h={186}
+                radius={12}
+                sizes="(max-width: 980px) 78vw, 340px"
+              />
+              <figcaption className="lp-artifact-tag">Ce que Forkmap en retrouve</figcaption>
+            </figure>
+          </Reveal>
+        </div>
 
-            <Reveal y={20} delay={200}>
-              <figure className="lp-artifact lp-artifact-card">
-                <Shot
-                  src="/landing/app-import.png"
-                  alt="La fiche trouvée par Forkmap : Kodawari Ramen, Ramen, ouvert, noté 9,1"
-                  x={55}
-                  y={1286}
-                  w={693}
-                  h={186}
-                  radius={12}
-                  sizes="(max-width: 980px) 84vw, 540px"
-                />
-                <figcaption className="lp-artifact-tag">Ce que Forkmap en retrouve</figcaption>
-              </figure>
-            </Reveal>
-          </div>
+        {/* Tout le texte dans une seule colonne : titre, chapô, puis la séquence. */}
+        <div className="lp-import-copy">
+          <Reveal y={18}>
+            <h2 className="lp-h2">
+              Un resto vu en vidéo,
+              <br />
+              <span style={{ color: 'var(--text-3)' }}>sauvé en un geste.</span>
+            </h2>
+            <p className="lp-lead" style={{ marginTop: 18 }}>
+              Tu ne notes plus le nom dans tes messages à toi-même : tu partages, et c’est rangé.
+            </p>
+          </Reveal>
 
           <ol className="lp-steps">
             {STEPS.map((s, i) => (

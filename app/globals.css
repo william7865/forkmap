@@ -1204,12 +1204,23 @@ a:focus:not(:focus-visible) {
 }
 
 /* ── L'import : la séquence ── */
-.lp-import-grid {
+/* Colonne des artefacts plafonnée à 340px : au-delà on agrandit une région
+   source de 735px (voir ImportSection). Le texte prend tout le reste, donc
+   plus de moitié droite vide. */
+.lp-import {
   display: grid;
-  grid-template-columns: minmax(280px, 0.9fr) 1fr;
+  grid-template-columns: minmax(240px, 340px) 1fr;
   align-items: center;
-  gap: clamp(36px, 6vw, 76px);
-  margin-top: clamp(44px, 5vw, 64px);
+  gap: clamp(32px, 5vw, 68px);
+}
+.lp-import-copy {
+  min-width: 0;
+}
+.lp-import-copy .lp-lead {
+  max-width: 480px;
+}
+.lp-import-copy .lp-steps {
+  margin-top: clamp(30px, 3.6vw, 44px);
 }
 
 /* ── Artefacts recadrés (Shot) : de vrais bouts d'app, sans coque ── */
@@ -1233,9 +1244,7 @@ a:focus:not(:focus-visible) {
   flex-direction: column;
   gap: 22px;
 }
-.lp-artifact-card {
-  margin-left: clamp(16px, 5%, 44px);
-}
+
 .lp-steps {
   list-style: none;
   margin: 0;
@@ -1446,12 +1455,12 @@ a:focus:not(:focus-visible) {
     order: -1;
     justify-content: center;
   }
-  .lp-import-grid,
+  .lp-import,
   .lp-carnet-top {
     grid-template-columns: 1fr;
   }
   .lp-transform {
-    max-width: 420px;
+    max-width: 360px;
   }
   .lp-steps {
     max-width: 520px;
