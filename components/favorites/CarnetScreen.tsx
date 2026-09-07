@@ -32,10 +32,9 @@ import { frCuisine } from '@/lib/cuisine'
 import ActionSheet from '@/components/ui/ActionSheet'
 import { nativeShare } from '@/lib/native/share'
 import PullToRefresh from '@/components/ui/PullToRefresh'
-import { Plus, Vote, ChevronRight, Users, Sparkles } from 'lucide-react'
+import { Plus, Vote, ChevronRight, Sparkles } from 'lucide-react'
 import { lightTap } from '@/lib/native/haptics'
 import AddImportSheet from '@/components/import/AddImportSheet'
-import { SigSparkle } from '@/components/icons/signature'
 import { setPendingSelect } from '@/lib/pendingSelect'
 import {
   NativeListRow,
@@ -1580,43 +1579,6 @@ function FavoritesPageInner() {
             </div>
           )}
 
-          {/* L'import est la fonction phare de Forkmap : il lui faut une entrée
-             permanente et visible, haut dans l'écran d'accueil. Elle a remplacé
-             le bouton central de la tab bar, qui n'avait rien à y faire (une
-             barre d'onglets porte des destinations, pas des actions). Une fois
-             le carnet amorcé, elle remplace le bloc de premier lancement. */}
-          {isNative && !activeListId && !isFirstRun && (
-            <button
-              type="button"
-              className="tap-press"
-              onClick={() => {
-                lightTap()
-                setAddImportOpen(true)
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 9,
-                width: '100%',
-                minHeight: 50,
-                marginTop: 'var(--sp-4)',
-                borderRadius: 14,
-                border: 'none',
-                background: 'var(--accent)',
-                color: 'var(--on-accent)',
-                fontFamily: 'var(--font-body)',
-                fontSize: 15,
-                fontWeight: 600,
-                cursor: 'pointer',
-                boxShadow: 'var(--s-accent)',
-              }}
-            >
-              <Sparkles size={17} strokeWidth={2} />
-              Ajouter une vidéo
-            </button>
-          )}
-
           {/* « Vus sur les réseaux » — full-bleed, garde son propre en-tête. */}
           {!activeListId && (
             <div
@@ -1624,97 +1586,8 @@ function FavoritesPageInner() {
                 margin: isNative ? 'var(--sp-6) calc(-1 * var(--gutter)) 0' : '0 -16px',
               }}
             >
-              <ImportsRow imports={imports} />
+              <ImportsRow imports={imports} onAdd={() => setAddImportOpen(true)} />
             </div>
-          )}
-
-          {/* « Je ne sais pas quoi manger » — le geste signature. Il a perdu
-             le bouton central de la tab bar (une barre porte des destinations,
-             pas des actions) ; il lui faut donc une vraie place ailleurs, et
-             le Carnet est l'écran d'accueil, celui où la question se pose. En
-             CONTOUR, pas en accent : l'unique bouton accent de l'écran reste
-             « Ajouter une vidéo », qui est la promesse de l'app. Il ouvre le
-             concierge sur la carte via ?surprise=1, que MapHome sait lire. */}
-          {isNative && !activeListId && (
-            <button
-              type="button"
-              className="tap-press"
-              onClick={() => {
-                lightTap()
-                router.push('/carte?surprise=1')
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 9,
-                width: '100%',
-                minHeight: 48,
-                marginTop: 'var(--sp-3)',
-                borderRadius: 14,
-                border: '1.5px solid var(--border-strong)',
-                background: 'var(--bg)',
-                color: 'var(--text)',
-                fontFamily: 'var(--font-body)',
-                fontSize: 14.5,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              <SigSparkle size={16} />
-              Je ne sais pas quoi manger
-            </button>
-          )}
-
-          {/* Entrée « Amis » — le fil social vit à /discover, qui n'a plus
-             d'onglet : il ne méritait pas une destination permanente tant
-             qu'il est vide pour qui n'a pas encore d'amis. Il reste à un tap
-             d'ici, avec le compteur de messages non lus. */}
-          {isNative && !activeListId && (
-            <button
-              type="button"
-              className="tap-press"
-              onClick={() => {
-                lightTap()
-                router.push('/discover')
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                width: '100%',
-                minHeight: 56,
-                marginTop: 'var(--sp-5)',
-                padding: '0 14px',
-                borderRadius: 14,
-                border: '1px solid var(--border)',
-                background: 'var(--bg)',
-                cursor: 'pointer',
-                fontFamily: 'var(--font-body)',
-                textAlign: 'left',
-              }}
-            >
-              <Users
-                size={19}
-                strokeWidth={1.9}
-                style={{ color: 'var(--text-2)', flexShrink: 0 }}
-              />
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span
-                  style={{ display: 'block', fontSize: 15, fontWeight: 600, color: 'var(--text)' }}
-                >
-                  Amis
-                </span>
-                <span style={{ display: 'block', fontSize: 12.5, color: 'var(--text-3)' }}>
-                  Où ils ont mangé, et vos messages
-                </span>
-              </span>
-              <ChevronRight
-                size={17}
-                strokeWidth={2}
-                style={{ color: 'var(--text-4)', flexShrink: 0 }}
-              />
-            </button>
           )}
 
           {/* Segmenté Restos | Listes */}

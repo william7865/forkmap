@@ -4,7 +4,7 @@
 // skin (light monochrome, gold star).
 import { useState } from 'react'
 import Link from 'next/link'
-import { Play, Loader2, AlertCircle } from 'lucide-react'
+import { Play, Loader2, AlertCircle, Plus } from 'lucide-react'
 import type { ImportRow } from '@/types'
 import { useLanguage } from '@/lib/i18n/useLanguage'
 import { cleanTitleText } from '@/lib/import/caption'
@@ -26,11 +26,15 @@ export function importHref(id: string, native: boolean): string {
 
 interface Props {
   imports: ImportRow[]
+  /** Ouvre « Ajouter une vidéo ». Absent = pas de tuile d'ajout. */
+  onAdd?: () => void
 }
 
-export default function ImportsRow({ imports }: Props) {
+export default function ImportsRow({ imports, onAdd }: Props) {
   const { tr } = useLanguage()
-  if (imports.length === 0) return null
+  // Ne plus se masquer quand il n'y a aucun import : la tuile d'ajout vit ici,
+  // et elle est justement le plus utile quand le carnet est vide.
+  if (imports.length === 0 && !onAdd) return null
 
   const needsAttention = imports.filter(
     (i) => i.status === 'ambiguous' || i.status === 'failed'
@@ -90,6 +94,10 @@ export default function ImportsRow({ imports }: Props) {
           WebkitOverflowScrolling: 'touch',
         }}
       >
+        {/* L'ajout vit DANS le rail, en première tuile : c'est l'endroit
+           contextuel (on ajoute une vidéo à ce qui contient les vidéos) et ça
+           ne coûte pas une ligne de plus dans un écran qui en avait déjà dix. */}
+        {onAdd && <AddTile onAdd={onAdd} />}
         {imports.map((imp) => (
           <ImportTile key={imp.id} imp={imp} />
         ))}
@@ -225,5 +233,42 @@ function Badge({ children, tone }: { children: React.ReactNode; tone?: 'alert' }
     >
       {children}
     </span>
+  )
+}
+
+// Tuile « Ajouter » — même gabarit que les vignettes d'import pour que le rail
+// reste une seule rangée cohérente.
+function AddTile({ onAdd }: { onAdd: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onAdd}
+      className="tap-press"
+      aria-label="Ajouter une vidéo"
+      style={{
+        flexShrink: 0,
+        width: 104,
+        aspectRatio: '104 / 148',
+        borderRadius: 14,
+        border: '1.5px dashed var(--border-strong)',
+        background: 'var(--bg)',
+        color: 'var(--text-2)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 7,
+        cursor: 'pointer',
+        fontFamily: 'var(--font-body)',
+        fontSize: 12.5,
+        fontWeight: 600,
+        lineHeight: 1.25,
+        padding: '0 8px',
+        textAlign: 'center',
+      }}
+    >
+      <Plus size={20} strokeWidth={2} />
+      Ajouter une vidéo
+    </button>
   )
 }
