@@ -18,8 +18,21 @@ import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { isNativeRuntime } from '@/lib/native/platform'
 import { resolveImport } from '@/lib/import/resolve'
 import { getAuthHeaders } from '@/lib/auth-headers'
+import { useToastApi } from '@/lib/hooks/useToastContext'
+import { successTap } from '@/lib/native/haptics'
 
 export function useImports(center: [number, number] | null) {
+  // ⚠️ Ne fonctionne que parce que ToastProvider enveloppe ImportsProvider
+  // (app/layout.tsx). Dans l'autre sens ce serait le contexte par défaut, dont
+  // les méthodes sont des no-op : aucun toast, et rien pour le signaler.
+  //
+  // Gardé dans une REF, pas mis en dépendance de l'effet de résolution :
+  // `useToast` renvoie un objet littéral neuf à chaque rendu (pas de useMemo),
+  // et il change dès qu'un toast s'affiche. En dépendance, l'effet se
+  // relancerait à chaque toast de l'app.
+  const toast = useToastApi()
+  const toastRef = useRef(toast)
+  toastRef.current = toast
   const [imports, setImports] = useState<ImportRow[]>([])
   /** True until the first list lands. The import detail needs it: without it, an
    *  empty list is indistinguishable from a list still in flight, and the screen
@@ -155,6 +168,11 @@ export function useImports(center: [number, number] | null) {
 
     resolving.current = true
     void (async () => {
+      // Le moment où une vidéo devient un restaurant est la promesse de
+      // l'app, et il se produisait en SILENCE : la tuile passait du spinner au
+      // résultat, sans un mot. Qui ne regardait pas l'écran à cet instant ne
+      // voyait jamais l'app faire son travail. On annonce donc les réussites.
+      const found: string[] = []
       try {
         for (const row of pending) {
           attempted.current.add(row.id)
@@ -163,6 +181,9 @@ export function useImports(center: [number, number] | null) {
             // happens, the row leaves the spinner.
             const p = await resolveImport(row, centerRef.current)
             await patch(row.id, p)
+            if (p.status === 'resolved' && p.place_snapshot?.name) {
+              found.push(p.place_snapshot.name)
+            }
           } catch (err) {
             // Le WRITE a échoué (offline, 400), pas la résolution. On RETIRE la
             // ligne du garde `attempted` : sans ça elle restait bloquée jusqu'au
@@ -174,6 +195,19 @@ export function useImports(center: [number, number] | null) {
         }
       } finally {
         resolving.current = false
+        // Un seul retour pour tout le lot : au lancement, plusieurs imports en
+        // attente peuvent se résoudre d'affilée, et autant de toasts empilés
+        // seraient du bruit, pas une bonne nouvelle.
+        if (found.length === 1) {
+          void successTap()
+          toastRef.current.success(`${found[0]} est dans ton carnet`)
+        } else if (found.length > 1) {
+          void successTap()
+          toastRef.current.success(`${found.length} adresses ajoutées à ton carnet`)
+        }
+        // Les échecs et les cas ambigus ne disent rien ici : la pastille du
+        // Carnet les compte déjà, et interrompre quelqu'un pour lui annoncer
+        // un échec qu'il n'a pas provoqué n'aide personne.
       }
     })()
   }, [imports, patch])
