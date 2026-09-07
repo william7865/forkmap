@@ -1445,6 +1445,25 @@ export default function MapHome() {
           <PlaceList
             header={
               <>
+                {/* Le concierge ouvre la liste : c'est le premier geste proposé
+                    quand on ne sait pas quoi manger, donc il passe AVANT le bloc
+                    éditorial. Il était masqué en natif tant que la tab bar portait
+                    un bouton central Surprise ; ce bouton a été retiré (une barre
+                    d'onglets porte des destinations, pas des actions), et ce CTA
+                    est devenu le seul accès sur mobile — ne pas le re-masquer, et
+                    ne pas le renvoyer sous l'éditorial où il faut scroller. */}
+                {!savedOnly && (
+                  <button
+                    onClick={() => setShowSurprise(true)}
+                    className="btn-ember"
+                    // Aligné sur le retrait de la liste : sans marge latérale il
+                    // touchait les deux bords alors que tout le reste est en retrait.
+                    style={{ margin: '4px 16px 14px', width: 'calc(100% - 32px)' }}
+                  >
+                    <SigSparkle size={16} />
+                    Je ne sais pas quoi manger
+                  </button>
+                )}
                 {native && !savedOnly && visiblePlaces.length > 0 && (
                   <HomeEditorial
                     places={socialPlaces}
@@ -1455,18 +1474,6 @@ export default function MapHome() {
                     onToggleFavorite={handleToggleFavorite}
                     onNeedPhotos={requestPhotos}
                   />
-                )}
-                {/* En natif, le concierge vit dans le bouton central Surprise de la
-                    tab bar — pas de doublon dans la sheet. CTA conservé sur le web. */}
-                {!native && (
-                  <button
-                    onClick={() => setShowSurprise(true)}
-                    className="btn-ember"
-                    style={{ margin: '4px 0 12px' }}
-                  >
-                    <SigSparkle size={16} />
-                    Je ne sais pas quoi manger
-                  </button>
                 )}
                 {savedOnly && savedListTabs}
                 {native && !savedOnly && visiblePlaces.length > 0 && (

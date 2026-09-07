@@ -4,7 +4,6 @@ import { usePathname } from 'next/navigation'
 import { Map, Bookmark, User, Compass } from 'lucide-react'
 import { useEffect } from 'react'
 import { lightTap } from '@/lib/native/haptics'
-import { SigSparkle } from '@/components/icons/signature'
 import { useUnreadMessages } from '@/lib/hooks/useUnreadMessages'
 import { useImportsStore } from '@/lib/hooks/useImportsContext'
 import { useAuth } from '@/lib/hooks/useAuth'
@@ -18,10 +17,15 @@ type Tab = {
   badge?: 'messages' | 'imports'
 }
 
-// IA sociale : Carte (explorer la ville) · Découvrir (le fil — les Messages
-// vivent derrière, d'où le badge non-lus ici) · Surprise (bouton central
-// signature, rendu à part) · Enregistrés · Profil.
-const LEFT_TABS: Tab[] = [
+// Une barre d'onglets porte des DESTINATIONS, pas des actions. Le bouton
+// central surélevé « Surprise » a été retiré pour cette raison : c'était une
+// action, et une action occasionnelle occupait la place la plus visible de
+// l'app. Le concierge se déclenche maintenant depuis la carte (MapHome), où
+// il est au bon endroit — on cherche où manger en regardant la carte.
+//
+// Carte · Découvrir (les Messages vivent derrière, d'où le badge non-lus) ·
+// Carnet · Profil.
+const TABS: Tab[] = [
   {
     href: '/',
     icon: (active) => <Map size={22} strokeWidth={active ? 2 : 1.75} />,
@@ -36,13 +40,10 @@ const LEFT_TABS: Tab[] = [
       p.startsWith('/discover') || p.startsWith('/messages') || p.startsWith('/friends'),
     badge: 'messages',
   },
-]
-
-const RIGHT_TABS: Tab[] = [
   {
     href: '/favorites',
     icon: (active) => <Bookmark size={22} strokeWidth={active ? 2 : 1.75} />,
-    label: 'Enregistrés',
+    label: 'Carnet',
     match: (p) => p.startsWith('/favorites'),
     badge: 'imports',
   },
@@ -135,56 +136,6 @@ function TabLink({ tab, active, badge }: { tab: Tab; active: boolean; badge: num
   )
 }
 
-// Le geste signature de la marque, toujours à portée de pouce : cercle encre
-// surélevé, étincelle dorée. Ouvre le concierge (SurpriseSheet) via ?surprise=1.
-function SurpriseButton() {
-  return (
-    <Link
-      href="/?surprise=1"
-      onClick={() => lightTap()}
-      aria-label="Surprise — je ne sais pas quoi manger"
-      style={{
-        flex: 1,
-        display: 'flex',
-        justifyContent: 'center',
-        textDecoration: 'none',
-        minHeight: 56,
-        alignItems: 'center',
-      }}
-    >
-      <span
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 4,
-          padding: '6px 8px',
-        }}
-      >
-        <span
-          className="tap-press"
-          style={{
-            width: 50,
-            height: 50,
-            marginTop: -28,
-            borderRadius: 999,
-            background: 'var(--accent)',
-            color: 'var(--star)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: 'var(--s-accent)',
-            border: '3px solid var(--bg)',
-          }}
-        >
-          <SigSparkle size={23} />
-        </span>
-        <span style={{ ...labelStyle, color: 'var(--text-3)' }}>Surprise</span>
-      </span>
-    </Link>
-  )
-}
-
 export default function AppTabBar() {
   const pathname = usePathname()
   const unread = useUnreadMessages()
@@ -214,18 +165,14 @@ export default function AppTabBar() {
         borderTop: '1px solid var(--border)',
         display: 'flex',
         // Au-dessus de la BottomSheet carte (900) et de la fiche mobile (900,
-        // qui réserve déjà la hauteur de la barre) — le bouton central Surprise
-        // ne doit jamais être recouvert. Sous les overlays plein écran (≥1300).
+        // qui réserve déjà la hauteur de la barre). Sous les overlays plein
+        // écran (≥1300).
         zIndex: 950,
         paddingBottom: 'var(--safe-bottom)',
         boxShadow: 'var(--s2)',
       }}
     >
-      {LEFT_TABS.map((tab) => (
-        <TabLink key={tab.label} tab={tab} active={tab.match(pathname)} badge={badgeFor(tab)} />
-      ))}
-      <SurpriseButton />
-      {RIGHT_TABS.map((tab) => (
+      {TABS.map((tab) => (
         <TabLink key={tab.label} tab={tab} active={tab.match(pathname)} badge={badgeFor(tab)} />
       ))}
     </nav>
