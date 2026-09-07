@@ -55,10 +55,14 @@ export default function ImportSection() {
                 <Shot
                   src="/landing/app-import.png"
                   alt="Une vidéo de ramen partagée depuis Instagram par @ramenlover"
+                  // Le cadrage démarre à 140 et pas au bord du conteneur vidéo
+                  // (108) : l'app y laisse dépasser un badge turquoise que son
+                  // propre coin arrondi rogne. Recadré hors contexte, ce demi-
+                  // badge se lisait comme un défaut d'affichage.
                   x={35}
-                  y={108}
+                  y={140}
                   w={735}
-                  h={910}
+                  h={878}
                   radius={16}
                   sizes="(max-width: 980px) 84vw, 540px"
                 />

@@ -1,17 +1,27 @@
 import Shot from '../Shot'
 import { Reveal } from '../useReveal'
 
-// Ton carnet — la section de la PLURALITÉ. Un seul artefact, mais qui contient
-// BEAUCOUP d'objets : le rail des adresses vues sur les réseaux. Pas de
-// téléphone (voir Shot.tsx) — il n'y en a qu'un sur la page, dans le hero.
+// Ton carnet — la section de la PLURALITÉ. Pas de téléphone (voir Shot.tsx) :
+// on montre les adresses enregistrées elles-mêmes.
 //
-// Rythme horizontal, à l'opposé de L'import qui descend en séquence numérotée :
-// ici trois usages parallèles, sans ordre, alignés sous un filet.
+// Le rail est RECOMPOSÉ en HTML, pas découpé d'un bloc dans la capture. Le
+// découpage en un seul morceau coupait les légendes en bas et un nom en plein
+// milieu à droite — ça se lisait comme une capture ratée. Ici chaque photo est
+// recadrée sur ses bornes exactes (208×296 px dans la source, mesurées) et les
+// noms sont du vrai texte : ils restent nets à tous les zooms au lieu d'être
+// des pixels agrandis.
 //
-// ⚠️ Le rail est volontairement CONTENU (≈560px) et non pleine largeur : la
-// capture source ne fait que 804px de large, donc l'afficher à 1100px+ le
-// remontait à un upscale ×2.9 en dpr2 — flou. La largeur d'affichage d'un Shot
-// ne doit pas trop dépasser la largeur en pixels de sa région source.
+// ⚠️ Plafond de netteté : la capture source ne fait que 804 px de large, donc
+// chaque vignette n'a que 208 px. Affichée à ~150 px CSS elle est déjà en
+// upscale ×1.4 sur un écran Retina. Pour aller au-delà il faut des captures
+// @3x (1206×2622), pas un changement de code.
+
+const SAVED = [
+  { x: 32, name: 'Septime', src: 'Instagram' },
+  { x: 260, name: 'Kodawari Ramen', src: 'TikTok' },
+  { x: 488, name: 'Ce bar à vin caché du 11e', src: 'Reels' },
+]
+const PHOTO = { y: 366, w: 208, h: 296 }
 
 const USES = [
   {
@@ -51,20 +61,28 @@ export default function NotebookSection() {
             </p>
           </Reveal>
 
-          {/* Le rail est coupé net à droite, comme dans l'app : il continue
-             au-delà du cadre. C'est ce débordement qui dit « il y en a d'autres ». */}
-          <Reveal y={24} delay={80} className="lp-rail">
-            <Shot
-              src="/landing/app-favoris.png"
-              alt="Les adresses vues sur les réseaux et enregistrées : Septime, Kodawari Ramen, un bar à vin du 11e, une adresse en cours d’analyse"
-              x={32}
-              y={356}
-              w={772}
-              h={420}
-              radius={0}
-              sizes="(max-width: 980px) 92vw, 560px"
-            />
-          </Reveal>
+          <div className="lp-saved">
+            {SAVED.map((s, i) => (
+              <Reveal key={s.name} y={20} delay={60 + i * 90}>
+                <figure className="lp-saved-item">
+                  <Shot
+                    src="/landing/app-favoris.png"
+                    alt={`${s.name}, enregistré depuis ${s.src}`}
+                    x={s.x}
+                    y={PHOTO.y}
+                    w={PHOTO.w}
+                    h={PHOTO.h}
+                    radius={12}
+                    sizes="(max-width: 980px) 30vw, 160px"
+                  />
+                  <figcaption>
+                    <span className="lp-saved-name">{s.name}</span>
+                    <span className="lp-saved-src">{s.src}</span>
+                  </figcaption>
+                </figure>
+              </Reveal>
+            ))}
+          </div>
         </div>
 
         <div className="lp-uses">

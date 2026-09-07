@@ -10,7 +10,22 @@ import Image from 'next/image'
 // collection — recadrée directement dans les captures réelles. Aucune image
 // inventée : ce que le visiteur voit est exactement ce que l'app affiche.
 //
-// Les coordonnées sont exprimées en pixels de la capture source (804×1748).
+// Les coordonnées sont exprimées dans le repère de la capture source
+// (804×1748). Elles ne servent que de RATIOS : la résolution réelle du fichier
+// n'entre nulle part dans le calcul.
+//
+// ⚠️ PLAFOND DE NETTETÉ — c'est la contrainte qui décide de la taille
+// d'affichage, pas le goût. Les captures actuelles font 804px de large, soit
+// ~208px par vignette du rail des favoris. Sur un écran Retina (dpr 2), une
+// vignette montrée à 160px CSS demande 320px réels : elle est déjà agrandie
+// ×1,5. Aucun réglage de code ne récupère du détail qui n'est pas dans le
+// fichier.
+//
+// POUR Y REMÉDIER : refaire les 4 captures de public/landing en @3x
+// (~1206×2622) depuis le simulateur. Comme tout ici est proportionnel, il
+// suffit de remplacer les fichiers — aucune coordonnée à re-mesurer, tant que
+// la mise en page des écrans ne change pas. Seul SHOT_W/SHOT_H est à ajuster
+// si le RATIO de l'appareil change (804/1748 = 0,460).
 
 const SHOT_W = 804
 const SHOT_H = 1748

@@ -1216,7 +1216,7 @@ a:focus:not(:focus-visible) {
 .lp-artifact {
   margin: 0;
 }
-.lp-artifact :first-child {
+.lp-artifact > :first-child {
   box-shadow: var(--s3);
 }
 .lp-artifact-tag {
@@ -1356,16 +1356,44 @@ a:focus:not(:focus-visible) {
 /* ── Ton carnet : le rythme horizontal ── */
 .lp-carnet-top {
   display: grid;
-  grid-template-columns: 1fr minmax(320px, 560px);
+  grid-template-columns: 1fr minmax(300px, 520px);
   align-items: center;
   gap: clamp(32px, 5vw, 64px);
 }
-/* Largeur bornée : au-delà, on upscale une source de 804px (voir
-   NotebookSection). Le coin droit reste carré — le rail est coupé, pas fini. */
-.lp-rail :first-child {
-  box-shadow: var(--s3);
-  border-top-left-radius: 14px;
-  border-bottom-left-radius: 14px;
+/* Rail recomposé : photos recadrées + noms en vrai texte. Les largeurs sont
+   bornées par la résolution source (208px/vignette), pas par le goût. */
+.lp-saved {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(12px, 1.6vw, 18px);
+}
+.lp-saved-item {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+.lp-saved-item > :first-child {
+  box-shadow: var(--s2);
+}
+.lp-saved-item figcaption {
+  display: block;
+  margin-top: 10px;
+}
+.lp-saved-name {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  color: var(--text);
+}
+.lp-saved-src {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-3);
 }
 /* Trois usages PARALLÈLES (pas une séquence : ni numéros ni filet vertical,
    c'est L'import qui porte l'ordre). Des filets horizontaux les séparent. */
