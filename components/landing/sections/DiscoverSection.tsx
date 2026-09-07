@@ -1,15 +1,15 @@
-import Image from 'next/image'
 import { MOODS } from '@/lib/surprise'
-import PhoneFrame from '../PhoneFrame'
+import Shot from '../Shot'
 import { Reveal } from '../useReveal'
 
-// Découvrir / Surprends-moi — le seul plein écran de la page : une idée, une
-// colonne, centrée. Là où L'import déroule une séquence en deux colonnes, ici
-// tout converge vers l'appareil.
+// Découvrir / Surprends-moi — la section de la DÉCISION : une seule adresse,
+// tranchée. Le visuel dit la même chose que le propos : un artefact unique,
+// centré, posé dans le noir. Pas de téléphone (il n'y en a qu'un sur la page,
+// dans le hero) — c'est la carte du deck telle qu'elle sort de l'app.
 //
-// Le noir précédent (#141310) avalait le téléphone : bezel sombre sur fond
-// sombre, l'objet disparaissait. Une source de lumière derrière l'écran le
-// décolle du fond — c'est de la profondeur, pas de la décoration.
+// Progression volontaire d'une section à l'autre : L'import montre DEUX objets
+// (avant → après), Découvrir UN seul, Ton carnet BEAUCOUP. Une par une, une, en
+// grand nombre — chaque section a sa quantité, donc sa forme.
 //
 // Les humeurs viennent de MOODS (lib/surprise.ts), la source du deck réel :
 // la landing ne peut pas raconter autre chose que ce que l'app propose.
@@ -26,7 +26,6 @@ export default function DiscoverSection() {
           flexDirection: 'column',
           alignItems: 'center',
           textAlign: 'center',
-          position: 'relative',
         }}
       >
         <Reveal y={18}>
@@ -44,7 +43,6 @@ export default function DiscoverSection() {
           </p>
         </Reveal>
 
-        {/* Le deck : les humeurs réelles, distribuées comme des cartes. */}
         <div className="lp-moods">
           {MOODS.map((m, i) => (
             <Reveal key={m.id} y={14} delay={90 + i * 70} duration={560}>
@@ -53,17 +51,23 @@ export default function DiscoverSection() {
           ))}
         </div>
 
-        <Reveal y={30} delay={180} className="lp-discover-device">
+        {/* L'adresse proposée, telle quelle. Une lueur la décolle du noir —
+           sans elle, une carte sombre sur fond sombre disparaît. */}
+        <Reveal y={30} delay={180} className="lp-pick">
           <div className="lp-glow">
-            <PhoneFrame width={318}>
-              <Image
-                src="/landing/app-decouvrir.png"
-                alt="Le mode « Surprends-moi » de Forkmap propose une adresse — ici Bouillon Pigalle — selon ton envie"
-                fill
-                sizes="318px"
-                style={{ objectFit: 'cover' }}
-              />
-            </PhoneFrame>
+            {/* Capture @3x (1206×2622) prise au simulateur. Les coordonnées
+               restent exprimées dans le repère 804 de Shot.tsx : elles ne
+               servent que de ratios, la résolution du fichier n'y entre pas. */}
+            <Shot
+              src="/landing/app-decouvrir.png"
+              alt="L’adresse proposée par « Surprends-moi » : L’Alivi, noté 9,2, à 5 min à pied, ouvert ce midi"
+              x={39}
+              y={508}
+              w={728}
+              h={963}
+              radius={20}
+              sizes="(max-width: 980px) 82vw, 330px"
+            />
           </div>
         </Reveal>
       </div>

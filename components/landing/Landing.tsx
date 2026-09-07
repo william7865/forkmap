@@ -88,8 +88,7 @@ export default function Landing() {
             </div>
 
             <p className="lp-note lp-hero-in" style={{ '--i': 4 } as React.CSSProperties}>
-              Gratuit. Les restaurants viennent d’OpenStreetMap — des lieux réels, pas des fiches
-              sponsorisées.
+              Gratuit, sans publicité — des lieux réels, pas des fiches sponsorisées.
             </p>
           </div>
 
