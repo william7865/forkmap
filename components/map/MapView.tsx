@@ -4,6 +4,7 @@ import { IcoSearch } from '@/components/icons'
 import type { PlaceCard } from '@/types'
 import { lightTap } from '@/lib/native/haptics'
 import { isNativeRuntime } from '@/lib/native/platform'
+import { markerPopDelay } from '@/lib/motion'
 
 // Accent des marqueurs : noir monochrome (unifié avec l'app native).
 function mapAccent(): string {
@@ -236,11 +237,20 @@ function iconDims(state: MState): [number, number] {
   return [28, 38]
 }
 
-function makeDivIcon(L: A, state: MState, rating?: number): A {
+function makeDivIcon(L: A, state: MState, rating?: number, entranceDelayMs?: number): A {
   const [sz, sh] = iconDims(state)
+  const inner = markerHTML(state, rating)
+  // L'origine suit la forme : le marqueur web est une goutte ancrée par sa
+  // pointe basse, le natif un rond ancré au centre. Grandir depuis le centre
+  // sur une goutte la ferait dériver vers le haut pendant l'animation.
+  const origin = isNativeRuntime() ? '50% 50%' : '50% 100%'
+  const html =
+    entranceDelayMs === undefined
+      ? inner
+      : `<span style="display:block;width:100%;height:100%;transform-origin:${origin};animation:markerPop 360ms var(--ease-out) ${entranceDelayMs}ms backwards">${inner}</span>`
   return L.divIcon({
     className: '',
-    html: markerHTML(state, rating),
+    html,
     iconSize: [sz, sh],
     // natif : marqueur rond → ancre au centre ; web : teardrop → ancre en pointe basse
     iconAnchor: isNativeRuntime() ? [sz / 2, sh / 2] : [sz / 2, sh],
@@ -608,6 +618,10 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
     }
 
     const toAdd: A[] = []
+    // Compté sur les seuls marqueurs neufs de ce lot : un re-rendu (survol,
+    // note qui arrive) passe par setIcon plus bas et ne rejoue donc jamais
+    // l'apparition. Sans ça les marqueurs repoperaient à chaque survol.
+    let popIndex = 0
     for (const place of places) {
       // Skip entries without a usable id or coordinates: a NaN/undefined
       // L.marker throws and would abort the rest of the loop (dropping pins).
@@ -625,7 +639,9 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
         // An element is inserted as a node — textContent can't become markup.
         const tip = document.createElement('span')
         tip.textContent = place.name
-        const marker = L.marker([place.lat, place.lon], { icon: makeDivIcon(L, state, rating) })
+        const marker = L.marker([place.lat, place.lon], {
+          icon: makeDivIcon(L, state, rating, markerPopDelay(popIndex++)),
+        })
           .bindTooltip(tip, {
             direction: 'top',
             offset: [0, -34],

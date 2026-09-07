@@ -67,13 +67,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       )}
       <body style={{ height: '100%', margin: 0, padding: 0 }}>
         <LanguageProvider>
-          {/* One imports store for the whole app: the tab-bar badge, the Favoris
-              row and the import detail all read it — and only ONE background
-              resolver ever runs (see lib/hooks/useImportsContext.tsx). */}
-          <ImportsProvider>
-            {/* One toast stack for the whole app — every screen and modal can
-                acknowledge an action without prop-drilling (useToastContext.tsx). */}
-            <ToastProvider>
+          {/* One toast stack for the whole app — every screen and modal can
+              acknowledge an action without prop-drilling (useToastContext.tsx).
+              ⚠️ Il enveloppe ImportsProvider, et l'ordre compte : le résolveur
+              d'imports annonce ses résultats par un toast. Dans l'autre sens il
+              lisait le contexte par DÉFAUT, dont les méthodes sont des no-op —
+              donc aucun toast, et aucune erreur pour le signaler. */}
+          <ToastProvider>
+            {/* One imports store for the whole app: the tab-bar badge, the Favoris
+                row and the import detail all read it — and only ONE background
+                resolver ever runs (see lib/hooks/useImportsContext.tsx). */}
+            <ImportsProvider>
               <ErrorBoundary>
                 {/* Prolonge l'écran de lancement natif avec la MÊME marque, au
                     même endroit — le relais est invisible. Statique et rendu
@@ -85,8 +89,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     web marketing landing at `/` which owns its full-bleed layout. */}
                 <AppShell forceNative={isExport}>{children}</AppShell>
               </ErrorBoundary>
-            </ToastProvider>
-          </ImportsProvider>
+            </ImportsProvider>
+          </ToastProvider>
         </LanguageProvider>
       </body>
     </html>
