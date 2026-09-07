@@ -32,6 +32,13 @@ import {
   Bell,
 } from 'lucide-react'
 import { nativeShare } from '@/lib/native/share'
+import { lightTap } from '@/lib/native/haptics'
+import {
+  readPreviewMode,
+  writePreviewMode,
+  PREVIEW_MODES,
+  type PreviewMode,
+} from '@/lib/preview-mode'
 import { apiFetch } from '@/lib/api'
 import { getAuthHeaders } from '@/lib/auth-headers'
 import TasteEditor from '@/components/settings/TasteEditor'
@@ -359,6 +366,14 @@ export default function SettingsHub() {
           <ThemeControl />
         </Section>
 
+        {/* ── Aperçu de conception — TEMPORAIRE ──
+           Sert à comparer deux traitements du Carnet sur l'appareil sans
+           réinstaller. À retirer avec la variante perdante une fois la
+           direction tranchée (voir lib/preview-mode.ts). */}
+        <Section title="Aperçu (temporaire)" index={1}>
+          <PreviewControl />
+        </Section>
+
         {/* ── Préférences ── */}
         <Section title="Préférences" index={1}>
           <SettingRow icon={Utensils} label="Tes goûts" onClick={() => setEditingTaste(true)} />
@@ -464,6 +479,55 @@ export default function SettingsHub() {
       {showVerification && <VerificationSheet onClose={() => setShowVerification(false)} />}
       {showNotifyPref && <NotifyPrefSheet onClose={() => setShowNotifyPref(false)} />}
       {showAdmin && <AdminVerificationsSheet onClose={() => setShowAdmin(false)} />}
+    </div>
+  )
+}
+
+// ── Aperçu de conception (temporaire) ──
+// Trois traitements du Carnet, à comparer sur l'appareil. Le changement
+// s'applique au prochain affichage du Carnet : l'écran lit le mode à son
+// montage, il n'écoute pas les changements en direct — inutile pour un
+// réglage qu'on bascule une fois puis qu'on va regarder.
+function PreviewControl() {
+  const [mode, setMode] = useState<PreviewMode>('actuel')
+  useEffect(() => setMode(readPreviewMode()), [])
+
+  return (
+    <div style={{ padding: '10px 14px 14px' }}>
+      <div style={{ display: 'flex', gap: 6 }}>
+        {PREVIEW_MODES.map((m) => {
+          const on = mode === m.id
+          return (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => {
+                lightTap()
+                setMode(m.id)
+                writePreviewMode(m.id)
+              }}
+              aria-pressed={on}
+              style={{
+                flex: 1,
+                minHeight: 42,
+                borderRadius: 11,
+                border: on ? 'none' : '1px solid var(--border)',
+                background: on ? 'var(--accent)' : 'var(--bg)',
+                color: on ? 'var(--on-accent)' : 'var(--text-2)',
+                fontFamily: 'var(--font-body)',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              {m.label}
+            </button>
+          )
+        })}
+      </div>
+      <p style={{ margin: '9px 0 0', fontSize: 12.5, lineHeight: 1.45, color: 'var(--text-3)' }}>
+        {PREVIEW_MODES.find((m) => m.id === mode)?.hint} — visible dans le Carnet.
+      </p>
     </div>
   )
 }

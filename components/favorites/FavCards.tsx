@@ -1237,3 +1237,250 @@ function ActionBtn({
     </button>
   )
 }
+
+// ════════════════════════════════════════════════════════════
+// APERÇUS DE TRAITEMENT — deux façons de montrer les mêmes
+// adresses, à comparer sur l'appareil avant de trancher.
+//
+// Constat qui les motive : le Carnet range 144 restaurants avec
+// leurs photos et leurs notes dans des vignettes de 38px, sous
+// quatre couches de filtres. C'est un annuaire. Les apps qui
+// paraissent vivantes (Letterboxd, Beli, BeReal) font l'inverse :
+// le contenu occupe l'écran, le chrome disparaît. La matière
+// première est déjà là — elle est juste rangée trop petit.
+//
+// Les deux variantes ne changent NI la palette NI la typo : on
+// isole une seule question, la place donnée au contenu.
+// ════════════════════════════════════════════════════════════
+
+/** A — « Photos en grand » : chaque adresse est une image, pas une ligne. */
+export function FavCardFeed({
+  fav,
+  index,
+  visited,
+  onOpenMap,
+}: {
+  fav: FavoriteRow
+  index: number
+  visited?: boolean
+  onOpenMap: () => void
+}) {
+  const photo = favPhoto(fav, 800)
+  const rating = fav.snapshot?.fsq?.rating
+  const cuisine = fav.snapshot?.cuisine ?? fav.snapshot?.fsq?.categories?.[0]?.name
+
+  return (
+    <button
+      type="button"
+      onClick={onOpenMap}
+      className="tap-press anim-fade-up"
+      style={{
+        animationDelay: staggerDelay(index),
+        display: 'block',
+        width: '100%',
+        padding: 0,
+        border: 'none',
+        background: 'none',
+        cursor: 'pointer',
+        textAlign: 'left',
+      }}
+    >
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          aspectRatio: '3 / 2',
+          borderRadius: 16,
+          overflow: 'hidden',
+          background: photo ? 'var(--surface-2)' : placeGradient(fav.osm_id),
+          // Le dégradé du bas rend le titre lisible quelle que soit la photo :
+          // sans lui, un plat clair avale le texte blanc posé dessus.
+          isolation: 'isolate',
+        }}
+      >
+        {photo && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={photo}
+            alt=""
+            loading="lazy"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        )}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.15) 42%, transparent 68%)',
+          }}
+        />
+        {rating != null && (
+          <span
+            style={{
+              position: 'absolute',
+              top: 12,
+              left: 12,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '5px 10px',
+              borderRadius: 999,
+              background: 'rgba(0,0,0,0.62)',
+              backdropFilter: 'blur(8px)',
+              color: '#fff',
+              fontSize: 13,
+              fontWeight: 700,
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            <span style={{ color: 'var(--star)' }}>★</span>
+            {rating.toFixed(1)}
+          </span>
+        )}
+        {visited && (
+          <span
+            style={{
+              position: 'absolute',
+              top: 12,
+              right: 12,
+              padding: '5px 10px',
+              borderRadius: 999,
+              background: 'rgba(255,255,255,0.92)',
+              color: '#191c1d',
+              fontSize: 11.5,
+              fontWeight: 700,
+            }}
+          >
+            Testé
+          </span>
+        )}
+        <div style={{ position: 'absolute', left: 14, right: 14, bottom: 12 }}>
+          <div
+            className="truncate-1"
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 21,
+              fontWeight: 600,
+              letterSpacing: '-0.02em',
+              color: '#fff',
+            }}
+          >
+            {fav.name}
+          </div>
+          {cuisine && (
+            <div style={{ marginTop: 2, fontSize: 12.5, color: 'rgba(255,255,255,0.78)' }}>
+              {frCuisine(cuisine)}
+            </div>
+          )}
+        </div>
+      </div>
+    </button>
+  )
+}
+
+/** B — « Les notes en héros » : le classement devient le sujet de l'écran. */
+export function FavCardScore({
+  fav,
+  index,
+  rank,
+  visited,
+  onOpenMap,
+}: {
+  fav: FavoriteRow
+  index: number
+  rank: number
+  visited?: boolean
+  onOpenMap: () => void
+}) {
+  const photo = favPhoto(fav, 160)
+  const rating = fav.snapshot?.fsq?.rating
+  const cuisine = fav.snapshot?.cuisine ?? fav.snapshot?.fsq?.categories?.[0]?.name
+
+  return (
+    <button
+      type="button"
+      onClick={onOpenMap}
+      className="tap-press anim-fade-up"
+      style={{
+        animationDelay: staggerDelay(index),
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        width: '100%',
+        padding: '14px 4px',
+        border: 'none',
+        borderBottom: '1px solid var(--border)',
+        background: 'none',
+        cursor: 'pointer',
+        textAlign: 'left',
+      }}
+    >
+      <span
+        style={{
+          width: 22,
+          flexShrink: 0,
+          fontSize: 13,
+          fontWeight: 700,
+          color: 'var(--text-4)',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {rank}
+      </span>
+      <span
+        style={{
+          flexShrink: 0,
+          width: 54,
+          textAlign: 'right',
+          fontFamily: 'var(--font-display)',
+          fontSize: 30,
+          fontWeight: 600,
+          letterSpacing: '-0.03em',
+          lineHeight: 1,
+          color: rating != null ? 'var(--text)' : 'var(--text-4)',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {rating != null ? rating.toFixed(1) : '—'}
+      </span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span
+          className="truncate-1"
+          style={{
+            display: 'block',
+            fontSize: 15.5,
+            fontWeight: 600,
+            color: 'var(--text)',
+          }}
+        >
+          {fav.name}
+        </span>
+        <span style={{ display: 'block', marginTop: 1, fontSize: 12.5, color: 'var(--text-3)' }}>
+          {[cuisine ? frCuisine(cuisine) : null, visited ? 'Testé' : null]
+            .filter(Boolean)
+            .join(' · ') || 'À tester'}
+        </span>
+      </span>
+      <span
+        style={{
+          width: 44,
+          height: 44,
+          flexShrink: 0,
+          borderRadius: 11,
+          overflow: 'hidden',
+          background: photo ? 'var(--surface-2)' : placeGradient(fav.osm_id),
+        }}
+      >
+        {photo && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={photo}
+            alt=""
+            loading="lazy"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        )}
+      </span>
+    </button>
+  )
+}

@@ -35,12 +35,15 @@ import PullToRefresh from '@/components/ui/PullToRefresh'
 import { Plus, Vote, ChevronRight, Sparkles } from 'lucide-react'
 import { lightTap } from '@/lib/native/haptics'
 import AddImportSheet from '@/components/import/AddImportSheet'
+import { readPreviewMode, type PreviewMode } from '@/lib/preview-mode'
 import { setPendingSelect } from '@/lib/pendingSelect'
 import {
   NativeListRow,
   FavCardList,
   ListItemRowNative,
   FavCardGrid,
+  FavCardFeed,
+  FavCardScore,
   favPhoto,
   IcoStar,
   IcoListPlus,
@@ -1016,6 +1019,11 @@ function FavoritesPageInner() {
   // Volets « Restos | Listes » (segmenté natif) — fin des longs empilements.
   const [libTab, setLibTab] = useState<'places' | 'lists'>('places')
   const [addImportOpen, setAddImportOpen] = useState(false)
+  // Aperçu de traitement — temporaire, le temps de trancher la direction.
+  // Lu dans un effet et non à l'initialisation : localStorage n'existe pas au
+  // rendu serveur, et l'y lire donnerait un écart d'hydratation.
+  const [preview, setPreview] = useState<PreviewMode>('actuel')
+  useEffect(() => setPreview(readPreviewMode()), [])
 
   const {
     lists,
@@ -2710,29 +2718,61 @@ function FavoritesPageInner() {
                     )}
                   </div>
                 )}
-                {sorted.map((fav, i) => (
-                  <FavCardList
-                    key={fav.id}
-                    fav={fav}
-                    index={i}
-                    visited={visitedIds.has(fav.osm_id)}
-                    note={notes[fav.osm_id] ?? ''}
-                    onRemove={() => setToDelete(fav)}
-                    onOpenMap={() => {
-                      if (fav.snapshot) setPendingSelect(fav.snapshot)
-                      router.push(
-                        `/carte?select=${encodeURIComponent(fav.osm_id)}&lat=${fav.lat}&lon=${fav.lon}`
-                      )
-                    }}
-                    onShare={() => setShareTarget(fav)}
-                    onNote={() => setNoteTarget(fav)}
-                    onListsChanged={fetchLists}
-                    selectMode={selectMode}
-                    selected={selectedIds.has(fav.osm_id)}
-                    onToggleSelect={() => toggleSelect(fav.osm_id)}
-                    sourceLabel={importSourceByOsm.get(fav.osm_id) ?? null}
-                  />
-                ))}
+                {preview === 'feed' &&
+                  sorted.map((fav, i) => (
+                    <FavCardFeed
+                      key={fav.id}
+                      fav={fav}
+                      index={i}
+                      visited={visitedIds.has(fav.osm_id)}
+                      onOpenMap={() => {
+                        if (fav.snapshot) setPendingSelect(fav.snapshot)
+                        router.push(
+                          `/carte?select=${encodeURIComponent(fav.osm_id)}&lat=${fav.lat}&lon=${fav.lon}`
+                        )
+                      }}
+                    />
+                  ))}
+                {preview === 'notes' &&
+                  sorted.map((fav, i) => (
+                    <FavCardScore
+                      key={fav.id}
+                      fav={fav}
+                      index={i}
+                      rank={i + 1}
+                      visited={visitedIds.has(fav.osm_id)}
+                      onOpenMap={() => {
+                        if (fav.snapshot) setPendingSelect(fav.snapshot)
+                        router.push(
+                          `/carte?select=${encodeURIComponent(fav.osm_id)}&lat=${fav.lat}&lon=${fav.lon}`
+                        )
+                      }}
+                    />
+                  ))}
+                {preview === 'actuel' &&
+                  sorted.map((fav, i) => (
+                    <FavCardList
+                      key={fav.id}
+                      fav={fav}
+                      index={i}
+                      visited={visitedIds.has(fav.osm_id)}
+                      note={notes[fav.osm_id] ?? ''}
+                      onRemove={() => setToDelete(fav)}
+                      onOpenMap={() => {
+                        if (fav.snapshot) setPendingSelect(fav.snapshot)
+                        router.push(
+                          `/carte?select=${encodeURIComponent(fav.osm_id)}&lat=${fav.lat}&lon=${fav.lon}`
+                        )
+                      }}
+                      onShare={() => setShareTarget(fav)}
+                      onNote={() => setNoteTarget(fav)}
+                      onListsChanged={fetchLists}
+                      selectMode={selectMode}
+                      selected={selectedIds.has(fav.osm_id)}
+                      onToggleSelect={() => toggleSelect(fav.osm_id)}
+                      sourceLabel={importSourceByOsm.get(fav.osm_id) ?? null}
+                    />
+                  ))}
               </div>
             ) : (
               <div
