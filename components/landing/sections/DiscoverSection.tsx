@@ -55,13 +55,16 @@ export default function DiscoverSection() {
            sans elle, une carte sombre sur fond sombre disparaît. */}
         <Reveal y={30} delay={180} className="lp-pick">
           <div className="lp-glow">
+            {/* Capture @3x (1206×2622) prise au simulateur. Les coordonnées
+               restent exprimées dans le repère 804 de Shot.tsx : elles ne
+               servent que de ratios, la résolution du fichier n'y entre pas. */}
             <Shot
               src="/landing/app-decouvrir.png"
-              alt="L’adresse proposée par « Surprends-moi » : Bouillon Pigalle, français, noté 8,5, ouvert, à 38 min à pied"
-              x={33}
-              y={388}
-              w={739}
-              h={1074}
+              alt="L’adresse proposée par « Surprends-moi » : L’Alivi, noté 9,2, à 5 min à pied, ouvert ce midi"
+              x={39}
+              y={508}
+              w={728}
+              h={963}
               radius={20}
               sizes="(max-width: 980px) 82vw, 330px"
             />
