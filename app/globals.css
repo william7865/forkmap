@@ -1204,22 +1204,37 @@ a:focus:not(:focus-visible) {
 }
 
 /* ── L'import : la séquence ── */
-/* Le chapô se met à côté du titre plutôt qu'en dessous : sinon le titre coupé
-   à 630px et le paragraphe à 520px creusent un vide en L sur toute la droite. */
-.lp-import-head {
-  display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  align-items: end;
-  gap: clamp(24px, 4vw, 56px);
-}
 .lp-import-grid {
   display: grid;
-  grid-template-columns: auto 1fr;
-  /* Les étapes s'équilibrent avec l'appareil (717px) au lieu de s'arrêter
-     au tiers de sa hauteur. */
+  grid-template-columns: minmax(280px, 0.9fr) 1fr;
   align-items: center;
   gap: clamp(36px, 6vw, 76px);
   margin-top: clamp(44px, 5vw, 64px);
+}
+
+/* ── Artefacts recadrés (Shot) : de vrais bouts d'app, sans coque ── */
+.lp-artifact {
+  margin: 0;
+}
+.lp-artifact :first-child {
+  box-shadow: var(--s3);
+}
+.lp-artifact-tag {
+  display: block;
+  margin-top: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+/* La fiche trouvée se décale sous la vidéo : le décrochage dit « ce qui en
+   sort », au lieu de deux blocs alignés qui se liraient comme une liste. */
+.lp-transform {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.lp-artifact-card {
+  margin-left: clamp(16px, 5%, 44px);
 }
 .lp-steps {
   list-style: none;
@@ -1314,8 +1329,9 @@ a:focus:not(:focus-visible) {
   border-radius: 999px;
   background: rgba(244, 242, 238, 0.05);
 }
-.lp-discover-device {
+.lp-pick {
   margin-top: clamp(40px, 5vw, 60px);
+  width: min(330px, 82vw);
 }
 /* Une source de lumière derrière l'écran : sans elle, bezel sombre sur fond
    sombre, l'appareil disparaît dans la bande. */
@@ -1338,28 +1354,30 @@ a:focus:not(:focus-visible) {
 }
 
 /* ── Ton carnet : le rythme horizontal ── */
-.lp-carnet {
+.lp-carnet-top {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr minmax(320px, 560px);
   align-items: center;
-  gap: clamp(32px, 5vw, 72px);
+  gap: clamp(32px, 5vw, 64px);
 }
-.lp-carnet-device {
-  display: flex;
-  justify-content: flex-end;
+/* Largeur bornée : au-delà, on upscale une source de 804px (voir
+   NotebookSection). Le coin droit reste carré — le rail est coupé, pas fini. */
+.lp-rail :first-child {
+  box-shadow: var(--s3);
+  border-top-left-radius: 14px;
+  border-bottom-left-radius: 14px;
 }
 /* Trois usages PARALLÈLES (pas une séquence : ni numéros ni filet vertical,
    c'est L'import qui porte l'ordre). Des filets horizontaux les séparent. */
 .lp-uses {
-  margin-top: clamp(32px, 4vw, 44px);
-}
-.lp-use {
-  padding: 18px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: clamp(24px, 3vw, 40px);
+  margin-top: clamp(44px, 5vw, 60px);
+  padding-top: 30px;
   border-top: 1px solid var(--border);
 }
-.lp-uses > *:last-child .lp-use {
-  border-bottom: 1px solid var(--border);
-}
+
 .lp-use-title {
   font-family: var(--font-display);
   font-size: 20px;
@@ -1393,22 +1411,19 @@ a:focus:not(:focus-visible) {
 
 /* ── Responsive ── */
 @media (max-width: 980px) {
-  .lp-import-head {
-    grid-template-columns: 1fr;
-    align-items: start;
-  }
-  .lp-hero,
-  .lp-carnet {
+  .lp-hero {
     grid-template-columns: 1fr;
   }
-  .lp-hero-device,
-  .lp-carnet-device {
+  .lp-hero-device {
     order: -1;
     justify-content: center;
   }
-  .lp-import-grid {
+  .lp-import-grid,
+  .lp-carnet-top {
     grid-template-columns: 1fr;
-    justify-items: center;
+  }
+  .lp-transform {
+    max-width: 420px;
   }
   .lp-steps {
     max-width: 520px;

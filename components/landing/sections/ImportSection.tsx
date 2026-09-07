@@ -1,13 +1,13 @@
-import Image from 'next/image'
-import PhoneFrame from '../PhoneFrame'
+import Shot from '../Shot'
 import { Reveal } from '../useReveal'
 
-// L'import — la fonction phare, et la seule section qui est vraiment une
-// SÉQUENCE (partager → reconnaître → ranger). C'est ce qui justifie les
-// numéros ici et nulle part ailleurs sur la page : ils portent l'ordre, ils
-// ne décorent pas un titre. Le titre traverse toute la largeur au lieu d'être
-// coincé dans une demi-grille, et l'appareil est le plus grand de la page —
-// c'est la fonction qui n'existe nulle part ailleurs, elle mène le rythme.
+// L'import — la fonction phare, et la seule section qui est une SÉQUENCE
+// (partager → reconnaître → ranger). D'où les numéros ici et nulle part
+// ailleurs : ils portent l'ordre, ils ne décorent pas un titre.
+//
+// Visuel : pas de téléphone. On montre la TRANSFORMATION elle-même, recadrée
+// dans la capture réelle — la vidéo Instagram en haut, la fiche que Forkmap en
+// a tirée en dessous. C'est l'argument de la section, montré plutôt que décrit.
 
 const STEPS = [
   {
@@ -31,48 +31,58 @@ const SOURCES = ['TikTok', 'Instagram', 'Reels', 'YouTube']
 
 export default function ImportSection() {
   return (
-    <section
-      id="import"
-      style={{
-        background: 'var(--bg)',
-        borderTop: '1px solid var(--border)',
-      }}
-    >
+    <section id="import" style={{ background: 'var(--bg)', borderTop: '1px solid var(--border)' }}>
       <div
         className="lp-wrap"
         style={{ paddingTop: 'clamp(72px, 9vw, 120px)', paddingBottom: 'clamp(72px, 9vw, 120px)' }}
       >
-        {/* Chapô en deux colonnes : le titre tient la gauche, le paragraphe
-           s'aligne sur sa dernière ligne à droite. La tête occupe la largeur. */}
         <Reveal y={18}>
-          <div className="lp-import-head">
-            <h2 className="lp-h2">
-              Un resto vu en vidéo,
-              <br />
-              <span style={{ color: 'var(--text-3)' }}>sauvé en un geste.</span>
-            </h2>
-            <p className="lp-lead">
-              La fonctionnalité qui n’existe nulle part ailleurs. Tu ne notes plus le nom dans tes
-              messages à toi-même : tu partages, et c’est rangé.
-            </p>
-          </div>
+          <h2 className="lp-h2">
+            Un resto vu en vidéo,
+            <br />
+            <span style={{ color: 'var(--text-3)' }}>sauvé en un geste.</span>
+          </h2>
+          <p className="lp-lead" style={{ marginTop: 18, maxWidth: 460 }}>
+            Tu ne notes plus le nom dans tes messages à toi-même : tu partages, et c’est rangé.
+          </p>
         </Reveal>
 
         <div className="lp-import-grid">
-          <Reveal y={26} delay={60} className="lp-import-device">
-            <PhoneFrame width={330}>
-              <Image
-                src="/landing/app-import.png"
-                alt="Une vidéo Instagram reconnue par Forkmap : le restaurant Kodawari Ramen, noté 9,1"
-                fill
-                sizes="330px"
-                style={{ objectFit: 'cover' }}
-              />
-            </PhoneFrame>
-          </Reveal>
+          {/* La transformation : le post d'origine, puis ce que Forkmap en tire. */}
+          <div className="lp-transform">
+            <Reveal y={24}>
+              <figure className="lp-artifact lp-artifact-video">
+                <Shot
+                  src="/landing/app-import.png"
+                  alt="Une vidéo de ramen partagée depuis Instagram par @ramenlover"
+                  x={35}
+                  y={108}
+                  w={735}
+                  h={910}
+                  radius={16}
+                  sizes="(max-width: 980px) 84vw, 540px"
+                />
+                <figcaption className="lp-artifact-tag">La vidéo que tu partages</figcaption>
+              </figure>
+            </Reveal>
 
-          {/* La séquence. Le filet vertical relie les trois temps : l'œil suit
-             l'ordre au lieu de lire trois puces interchangeables. */}
+            <Reveal y={20} delay={200}>
+              <figure className="lp-artifact lp-artifact-card">
+                <Shot
+                  src="/landing/app-import.png"
+                  alt="La fiche trouvée par Forkmap : Kodawari Ramen, Ramen, ouvert, noté 9,1"
+                  x={55}
+                  y={1286}
+                  w={693}
+                  h={186}
+                  radius={12}
+                  sizes="(max-width: 980px) 84vw, 540px"
+                />
+                <figcaption className="lp-artifact-tag">Ce que Forkmap en retrouve</figcaption>
+              </figure>
+            </Reveal>
+          </div>
+
           <ol className="lp-steps">
             {STEPS.map((s, i) => (
               // Le <li> reste l'enfant direct du <ol> (un <div> intercalé serait
