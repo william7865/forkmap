@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Map, Bookmark, User } from 'lucide-react'
+import { SigSparkle } from '@/components/icons/signature'
 import { useEffect } from 'react'
 import { lightTap } from '@/lib/native/haptics'
 import { useUnreadMessages } from '@/lib/hooks/useUnreadMessages'
@@ -45,6 +46,22 @@ const TABS: Tab[] = [
     match: (p) => p.startsWith('/carte'),
   },
   {
+    // Le deck vit à `/carte?surprise=1` : MapHome charge les restaurants et
+    // SurpriseParamWatcher ouvre le concierge. Un écran /surprise autonome
+    // devrait refaire toute cette chaîne (géoloc → bbox → fetch) pour le même
+    // résultat. Il est plein écran une fois ouvert, donc il se lit bien comme
+    // une destination.
+    href: '/carte?surprise=1',
+    icon: () => <SigSparkle size={22} />,
+    label: 'Surprends-moi',
+    // Jamais « actif » : `?surprise=1` est nettoyé par SurpriseParamWatcher dès
+    // l'ouverture, et le deck (z-index 1000) recouvre la barre (950) tant qu'il
+    // est ouvert. Un état actif ici ne serait jamais visible — une première
+    // version le calculait via useSearchParams, ce qui imposait une frontière
+    // Suspense et faisait échouer l'export statique, pour rien.
+    match: () => false,
+  },
+  {
     href: '/account',
     icon: (active) => <User size={22} strokeWidth={active ? 2 : 1.75} />,
     label: 'Profil',
@@ -52,14 +69,6 @@ const TABS: Tab[] = [
     badge: 'messages',
   },
 ]
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 9.5,
-  fontWeight: 700,
-  fontFamily: 'var(--font-body)',
-  letterSpacing: '0.06em',
-  textTransform: 'uppercase',
-}
 
 function CountBadge({ count, label }: { count: number; label: string }) {
   if (count <= 0) return null
@@ -93,6 +102,9 @@ function TabLink({ tab, active, badge }: { tab: Tab; active: boolean; badge: num
     <Link
       href={tab.href}
       onClick={() => lightTap()}
+      // Sans texte, le nom de l'onglet n'existe plus que pour les lecteurs
+      // d'écran : aria-label n'est pas optionnel ici, c'est le seul libellé.
+      aria-label={tab.label}
       aria-current={active ? 'page' : undefined}
       style={{
         flex: 1,
@@ -109,8 +121,7 @@ function TabLink({ tab, active, badge }: { tab: Tab; active: boolean; badge: num
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 4,
-          padding: active ? '6px 12px' : '6px 8px',
+          padding: active ? '10px 16px' : '10px 14px',
           borderRadius: 14,
           background: active ? 'var(--surface-2)' : 'transparent',
           color: active ? 'var(--accent)' : 'var(--text-3)',
@@ -128,7 +139,6 @@ function TabLink({ tab, active, badge }: { tab: Tab; active: boolean; badge: num
             }
           />
         </span>
-        <span style={labelStyle}>{tab.label}</span>
       </span>
     </Link>
   )

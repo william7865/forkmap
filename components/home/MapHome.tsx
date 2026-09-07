@@ -1445,14 +1445,14 @@ export default function MapHome() {
           <PlaceList
             header={
               <>
-                {/* Le concierge ouvre la liste : c'est le premier geste proposé
-                    quand on ne sait pas quoi manger, donc il passe AVANT le bloc
-                    éditorial. Il était masqué en natif tant que la tab bar portait
-                    un bouton central Surprise ; ce bouton a été retiré (une barre
-                    d'onglets porte des destinations, pas des actions), et ce CTA
-                    est devenu le seul accès sur mobile — ne pas le re-masquer, et
-                    ne pas le renvoyer sous l'éditorial où il faut scroller. */}
-                {!savedOnly && (
+                {/* Web uniquement, et ce n'est pas un oubli : en natif le
+                    concierge a désormais son propre onglet dans la tab bar, donc
+                    ce bouton y ferait doublon. Sur le WEB en revanche, ni
+                    BottomNav ni NavRail n'offrent Surprends-moi — vérifié — donc
+                    le retirer ici couperait complètement l'accès à la fonction.
+                    Ne pas « harmoniser » les deux plateformes sans le rétablir
+                    ailleurs côté web. */}
+                {!savedOnly && !native && (
                   <button
                     onClick={() => setShowSurprise(true)}
                     className="btn-ember"

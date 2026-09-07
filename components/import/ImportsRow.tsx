@@ -257,18 +257,10 @@ function AddTile({ onAdd }: { onAdd: () => void }) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 7,
         cursor: 'pointer',
-        fontFamily: 'var(--font-body)',
-        fontSize: 12.5,
-        fontWeight: 600,
-        lineHeight: 1.25,
-        padding: '0 8px',
-        textAlign: 'center',
       }}
     >
-      <Plus size={20} strokeWidth={2} />
-      Ajouter une vidéo
+      <Plus size={26} strokeWidth={1.9} />
     </button>
   )
 }
