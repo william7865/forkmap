@@ -4,7 +4,7 @@
 // App-only, même chaîne de gardes que /friends.
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bell, ChevronRight, MessageCircle, UserPlus } from 'lucide-react'
+import { Bell, ChevronLeft, ChevronRight, MessageCircle, UserPlus } from 'lucide-react'
 import { lightTap } from '@/lib/native/haptics'
 import { useUnreadMessages } from '@/lib/hooks/useUnreadMessages'
 import { useUnreadNotifications } from '@/lib/hooks/useUnreadNotifications'
@@ -38,6 +38,31 @@ export default function DiscoverPage() {
         <div style={{ padding: 'calc(var(--safe-top) + var(--sp-4)) var(--gutter) 14px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
             <div style={{ minWidth: 0 }}>
+              {/* Découvrir n'est plus un onglet : on y entre depuis le Carnet,
+                 il lui faut donc un retour explicite. */}
+              <button
+                type="button"
+                onClick={() => router.push('/')}
+                aria-label="Retour au carnet"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  marginBottom: 6,
+                  marginLeft: -4,
+                  color: 'var(--text-3)',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                <ChevronLeft size={17} strokeWidth={2.2} />
+                Carnet
+              </button>
               <h1
                 className="anim-fade-up"
                 style={{

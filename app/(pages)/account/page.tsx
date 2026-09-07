@@ -1713,7 +1713,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
               Consignez une visite depuis la fiche d’un restaurant et cette page prend vie.
             </p>
             <Link
-              href="/"
+              href="/carte"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -1856,7 +1856,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                 </button>
               </div>
             ) : sortedVisits.length === 0 ? (
-              <EmptyState variant="no-visits" onExplore={() => router.push('/')} />
+              <EmptyState variant="no-visits" onExplore={() => router.push('/carte')} />
             ) : (
               <div style={{ marginTop: 4 }}>
                 {sortedVisits.map((visit) => {
@@ -2053,7 +2053,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                 <Link
                   key={fav.id}
                   className="acct-row"
-                  href={`/?select=${encodeURIComponent(fav.osm_id)}&lat=${fav.lat}&lon=${fav.lon}`}
+                  href={`/carte?select=${encodeURIComponent(fav.osm_id)}&lat=${fav.lat}&lon=${fav.lon}`}
                   style={{
                     display: 'flex',
                     alignItems: 'center',

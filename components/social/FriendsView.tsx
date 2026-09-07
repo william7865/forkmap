@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { Search, UserPlus, Check, X, Clock } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Search, UserPlus, Check, X, Clock, Newspaper, ChevronRight } from 'lucide-react'
 import UserRow from '@/components/social/UserRow'
 import PublicProfile from '@/components/social/PublicProfile'
 import { useFriends } from '@/lib/hooks/useFriends'
@@ -9,6 +10,7 @@ import { getAuthHeaders } from '@/lib/auth-headers'
 import type { UserSearchResult, FriendSuggestion } from '@/types'
 
 export default function FriendsView({ onClose }: { onClose?: () => void }) {
+  const router = useRouter()
   const { friends, requests, loading, search, sendRequest, accept, decline } = useFriends()
   const [viewing, setViewing] = useState<string | null>(null)
   const [q, setQ] = useState('')
@@ -109,6 +111,42 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
           Amis
         </h1>
       </div>
+      {/* Le fil d'activité (/discover) a perdu son onglet : il ne méritait pas
+         une destination permanente tant qu'il est vide pour qui n'a pas encore
+         d'amis, et l'ajouter aux écrans principaux les surchargeait. Il vit
+         donc ici, dans la feuille Amis — là où quelqu'un qui gère son cercle
+         ira naturellement chercher « et ils font quoi ? ». */}
+      <button
+        type="button"
+        className="tap-press"
+        onClick={() => {
+          onClose?.()
+          router.push('/discover')
+        }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          width: '100%',
+          minHeight: 48,
+          margin: '2px 0 14px',
+          padding: '0 14px',
+          borderRadius: 13,
+          border: '1px solid var(--border)',
+          background: 'var(--bg)',
+          cursor: 'pointer',
+          fontFamily: 'var(--font-body)',
+          fontSize: 14.5,
+          fontWeight: 600,
+          color: 'var(--text)',
+          textAlign: 'left',
+        }}
+      >
+        <Newspaper size={17} strokeWidth={1.9} style={{ color: 'var(--text-2)', flexShrink: 0 }} />
+        <span style={{ flex: 1 }}>Fil d’activité</span>
+        <ChevronRight size={16} strokeWidth={2} style={{ color: 'var(--text-4)' }} />
+      </button>
+
       <p style={{ margin: '0 0 18px 2px', fontSize: 13, color: 'var(--text-3)' }}>
         Cherche un @pseudo pour suivre tes amis.
       </p>

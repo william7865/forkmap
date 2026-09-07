@@ -1,6 +1,8 @@
-// /carte — the live map on the web. Native keeps the map at `/` (see app/page.tsx),
-// so this route exists only for the web build, reached from the landing's CTA and
-// from the deep-link guard that forwards shared `/?select=…` links here.
+// /carte — la carte, sur le web ET en natif. Elle vivait à `/` en natif
+// jusqu'à ce que le Carnet devienne l'accueil de l'app ; elle a maintenant la
+// même adresse partout, ce qui rend les liens partagés identiques sur les deux
+// plateformes. Les liens profonds écrits contre `/` sont redirigés ici (voir
+// components/app/NativeHome.tsx et components/landing/Landing.tsx).
 //
 // Deliberately OUTSIDE the app/(pages) group: like `/`, the map wants only the
 // root layout (full-height canvas), not any nested page chrome.

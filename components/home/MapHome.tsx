@@ -1445,6 +1445,25 @@ export default function MapHome() {
           <PlaceList
             header={
               <>
+                {/* Web uniquement, et ce n'est pas un oubli : en natif le
+                    concierge a désormais son propre onglet dans la tab bar, donc
+                    ce bouton y ferait doublon. Sur le WEB en revanche, ni
+                    BottomNav ni NavRail n'offrent Surprends-moi — vérifié — donc
+                    le retirer ici couperait complètement l'accès à la fonction.
+                    Ne pas « harmoniser » les deux plateformes sans le rétablir
+                    ailleurs côté web. */}
+                {!savedOnly && !native && (
+                  <button
+                    onClick={() => setShowSurprise(true)}
+                    className="btn-ember"
+                    // Aligné sur le retrait de la liste : sans marge latérale il
+                    // touchait les deux bords alors que tout le reste est en retrait.
+                    style={{ margin: '4px 16px 14px', width: 'calc(100% - 32px)' }}
+                  >
+                    <SigSparkle size={16} />
+                    Je ne sais pas quoi manger
+                  </button>
+                )}
                 {native && !savedOnly && visiblePlaces.length > 0 && (
                   <HomeEditorial
                     places={socialPlaces}
@@ -1455,18 +1474,6 @@ export default function MapHome() {
                     onToggleFavorite={handleToggleFavorite}
                     onNeedPhotos={requestPhotos}
                   />
-                )}
-                {/* En natif, le concierge vit dans le bouton central Surprise de la
-                    tab bar — pas de doublon dans la sheet. CTA conservé sur le web. */}
-                {!native && (
-                  <button
-                    onClick={() => setShowSurprise(true)}
-                    className="btn-ember"
-                    style={{ margin: '4px 0 12px' }}
-                  >
-                    <SigSparkle size={16} />
-                    Je ne sais pas quoi manger
-                  </button>
                 )}
                 {savedOnly && savedListTabs}
                 {native && !savedOnly && visiblePlaces.length > 0 && (

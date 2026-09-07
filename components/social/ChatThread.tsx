@@ -399,7 +399,7 @@ export default function ChatThread({
                         } as PlaceCard)
                         onClose()
                         router.push(
-                          `/?select=${encodeURIComponent(p.osm_id)}` +
+                          `/carte?select=${encodeURIComponent(p.osm_id)}` +
                             (p.lat != null && p.lon != null ? `&lat=${p.lat}&lon=${p.lon}` : '')
                         )
                       }}

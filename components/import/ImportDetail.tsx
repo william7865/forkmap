@@ -733,7 +733,7 @@ function ListBlock({
   const openOnMap = useCallback(
     (p: TPlace) => {
       setPendingSelect(p)
-      router.push(`/?select=${encodeURIComponent(p.osm_id)}`)
+      router.push(`/carte?select=${encodeURIComponent(p.osm_id)}`)
     },
     [router]
   )
@@ -935,7 +935,7 @@ function ResolvedBlock({
 
   const openOnMap = useCallback(() => {
     setPendingSelect(place)
-    router.push(`/?select=${encodeURIComponent(place.osm_id)}`)
+    router.push(`/carte?select=${encodeURIComponent(place.osm_id)}`)
   }, [place, router])
 
   const route = useCallback(() => {

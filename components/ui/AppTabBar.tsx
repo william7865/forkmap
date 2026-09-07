@@ -1,10 +1,10 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Map, Bookmark, User, Compass } from 'lucide-react'
+import { Map, Bookmark, User } from 'lucide-react'
+import { SigSparkle } from '@/components/icons/signature'
 import { useEffect } from 'react'
 import { lightTap } from '@/lib/native/haptics'
-import { SigSparkle } from '@/components/icons/signature'
 import { useUnreadMessages } from '@/lib/hooks/useUnreadMessages'
 import { useImportsStore } from '@/lib/hooks/useImportsContext'
 import { useAuth } from '@/lib/hooks/useAuth'
@@ -18,49 +18,57 @@ type Tab = {
   badge?: 'messages' | 'imports'
 }
 
-// IA sociale : Carte (explorer la ville) · Découvrir (le fil — les Messages
-// vivent derrière, d'où le badge non-lus ici) · Surprise (bouton central
-// signature, rendu à part) · Enregistrés · Profil.
-const LEFT_TABS: Tab[] = [
+// Une barre d'onglets porte des DESTINATIONS, pas des actions. Le bouton
+// central surélevé « Surprise » a été retiré pour cette raison : c'était une
+// action, et une action occasionnelle occupait la place la plus visible de
+// l'app. Le concierge se déclenche maintenant depuis la carte (MapHome), où
+// il est au bon endroit — on cherche où manger en regardant la carte.
+//
+// Carnet (l'accueil : ce que l'app promet) · Carte · Profil. Découvrir a été
+// absorbé par le Carnet, en onglet « Amis » — il ne méritait pas une
+// destination tant qu'il est vide pour qui n'a pas encore d'amis. Le badge
+// des messages non lus suit donc les Messages, qui vivent derrière le Profil
+// et l'onglet Amis.
+const TABS: Tab[] = [
   {
+    // En natif le Carnet EST `/` (app/page.tsx) ; sur le web il vit à
+    // `/favorites`, `/` étant la landing. Les deux chemins sont actifs.
     href: '/',
+    icon: (active) => <Bookmark size={22} strokeWidth={active ? 2 : 1.75} />,
+    label: 'Carnet',
+    match: (p) => p === '/' || p.startsWith('/favorites'),
+    badge: 'imports',
+  },
+  {
+    href: '/carte',
     icon: (active) => <Map size={22} strokeWidth={active ? 2 : 1.75} />,
     label: 'Carte',
-    match: (p) => p === '/',
+    match: (p) => p.startsWith('/carte'),
   },
   {
-    href: '/discover',
-    icon: (active) => <Compass size={22} strokeWidth={active ? 2 : 1.75} />,
-    label: 'Découvrir',
-    match: (p) =>
-      p.startsWith('/discover') || p.startsWith('/messages') || p.startsWith('/friends'),
-    badge: 'messages',
-  },
-]
-
-const RIGHT_TABS: Tab[] = [
-  {
-    href: '/favorites',
-    icon: (active) => <Bookmark size={22} strokeWidth={active ? 2 : 1.75} />,
-    label: 'Enregistrés',
-    match: (p) => p.startsWith('/favorites'),
-    badge: 'imports',
+    // Le deck vit à `/carte?surprise=1` : MapHome charge les restaurants et
+    // SurpriseParamWatcher ouvre le concierge. Un écran /surprise autonome
+    // devrait refaire toute cette chaîne (géoloc → bbox → fetch) pour le même
+    // résultat. Il est plein écran une fois ouvert, donc il se lit bien comme
+    // une destination.
+    href: '/carte?surprise=1',
+    icon: () => <SigSparkle size={22} />,
+    label: 'Surprends-moi',
+    // Jamais « actif » : `?surprise=1` est nettoyé par SurpriseParamWatcher dès
+    // l'ouverture, et le deck (z-index 1000) recouvre la barre (950) tant qu'il
+    // est ouvert. Un état actif ici ne serait jamais visible — une première
+    // version le calculait via useSearchParams, ce qui imposait une frontière
+    // Suspense et faisait échouer l'export statique, pour rien.
+    match: () => false,
   },
   {
     href: '/account',
     icon: (active) => <User size={22} strokeWidth={active ? 2 : 1.75} />,
     label: 'Profil',
     match: (p) => p.startsWith('/account'),
+    badge: 'messages',
   },
 ]
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 9.5,
-  fontWeight: 700,
-  fontFamily: 'var(--font-body)',
-  letterSpacing: '0.06em',
-  textTransform: 'uppercase',
-}
 
 function CountBadge({ count, label }: { count: number; label: string }) {
   if (count <= 0) return null
@@ -94,6 +102,9 @@ function TabLink({ tab, active, badge }: { tab: Tab; active: boolean; badge: num
     <Link
       href={tab.href}
       onClick={() => lightTap()}
+      // Sans texte, le nom de l'onglet n'existe plus que pour les lecteurs
+      // d'écran : aria-label n'est pas optionnel ici, c'est le seul libellé.
+      aria-label={tab.label}
       aria-current={active ? 'page' : undefined}
       style={{
         flex: 1,
@@ -110,8 +121,7 @@ function TabLink({ tab, active, badge }: { tab: Tab; active: boolean; badge: num
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 4,
-          padding: active ? '6px 12px' : '6px 8px',
+          padding: active ? '10px 16px' : '10px 14px',
           borderRadius: 14,
           background: active ? 'var(--surface-2)' : 'transparent',
           color: active ? 'var(--accent)' : 'var(--text-3)',
@@ -129,57 +139,6 @@ function TabLink({ tab, active, badge }: { tab: Tab; active: boolean; badge: num
             }
           />
         </span>
-        <span style={labelStyle}>{tab.label}</span>
-      </span>
-    </Link>
-  )
-}
-
-// Le geste signature de la marque, toujours à portée de pouce : cercle encre
-// surélevé, étincelle dorée. Ouvre le concierge (SurpriseSheet) via ?surprise=1.
-function SurpriseButton() {
-  return (
-    <Link
-      href="/?surprise=1"
-      onClick={() => lightTap()}
-      aria-label="Surprise — je ne sais pas quoi manger"
-      style={{
-        flex: 1,
-        display: 'flex',
-        justifyContent: 'center',
-        textDecoration: 'none',
-        minHeight: 56,
-        alignItems: 'center',
-      }}
-    >
-      <span
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 4,
-          padding: '6px 8px',
-        }}
-      >
-        <span
-          className="tap-press"
-          style={{
-            width: 50,
-            height: 50,
-            marginTop: -28,
-            borderRadius: 999,
-            background: 'var(--accent)',
-            color: 'var(--star)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: 'var(--s-accent)',
-            border: '3px solid var(--bg)',
-          }}
-        >
-          <SigSparkle size={23} />
-        </span>
-        <span style={{ ...labelStyle, color: 'var(--text-3)' }}>Surprise</span>
       </span>
     </Link>
   )
@@ -214,18 +173,14 @@ export default function AppTabBar() {
         borderTop: '1px solid var(--border)',
         display: 'flex',
         // Au-dessus de la BottomSheet carte (900) et de la fiche mobile (900,
-        // qui réserve déjà la hauteur de la barre) — le bouton central Surprise
-        // ne doit jamais être recouvert. Sous les overlays plein écran (≥1300).
+        // qui réserve déjà la hauteur de la barre). Sous les overlays plein
+        // écran (≥1300).
         zIndex: 950,
         paddingBottom: 'var(--safe-bottom)',
         boxShadow: 'var(--s2)',
       }}
     >
-      {LEFT_TABS.map((tab) => (
-        <TabLink key={tab.label} tab={tab} active={tab.match(pathname)} badge={badgeFor(tab)} />
-      ))}
-      <SurpriseButton />
-      {RIGHT_TABS.map((tab) => (
+      {TABS.map((tab) => (
         <TabLink key={tab.label} tab={tab} active={tab.match(pathname)} badge={badgeFor(tab)} />
       ))}
     </nav>

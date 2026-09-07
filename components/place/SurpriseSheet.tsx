@@ -22,6 +22,7 @@ import { getMoment, suggestedMood, momentHeadline } from '@/lib/context'
 import { emptyProfile, recordSave, recordPass, isMadeForYou, type TasteProfile } from '@/lib/taste'
 import {
   X,
+  Check,
   Heart,
   MapPin,
   Eye,
@@ -460,19 +461,23 @@ export default function SurpriseSheet({
             if (tasteResetTimerRef.current) clearTimeout(tasteResetTimerRef.current)
             tasteResetTimerRef.current = setTimeout(() => setTasteReset(false), 1500)
           }}
+          // Icône seule, comme « Affiner » et « Fermer » à côté : la phrase
+          // occupait toute la barre du haut pour une action rare. Le libellé
+          // survit dans aria-label — sans texte visible, c'est le seul nom que
+          // les lecteurs d'écran ont. La confirmation passe par la coche.
+          aria-label={tasteReset ? 'Goûts réinitialisés' : 'Réinitialiser mes goûts'}
+          title="Réinitialiser mes goûts"
           style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: 11,
-            color: tasteReset ? pal.ok : pal.faint,
-            fontFamily: 'var(--font-body)',
-            whiteSpace: 'nowrap',
-            padding: '4px 2px',
+            ...glassBtn(false),
+            color: tasteReset ? pal.ok : undefined,
             transition: 'color 200ms ease',
           }}
         >
-          {tasteReset ? 'Goûts réinitialisés ✓' : 'Réinitialiser mes goûts'}
+          {tasteReset ? (
+            <Check size={17} strokeWidth={2.4} />
+          ) : (
+            <RotateCcw size={16} strokeWidth={2} />
+          )}
         </button>
         <button
           onClick={() => setRefine((v) => !v)}
