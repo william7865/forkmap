@@ -2053,7 +2053,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
                 <Link
                   key={fav.id}
                   className="acct-row"
-                  href={`/?select=${encodeURIComponent(fav.osm_id)}&lat=${fav.lat}&lon=${fav.lon}`}
+                  href={`/carte?select=${encodeURIComponent(fav.osm_id)}&lat=${fav.lat}&lon=${fav.lon}`}
                   style={{
                     display: 'flex',
                     alignItems: 'center',

@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Map, Bookmark, User, Compass } from 'lucide-react'
+import { Map, Bookmark, User } from 'lucide-react'
 import { useEffect } from 'react'
 import { lightTap } from '@/lib/native/haptics'
 import { useUnreadMessages } from '@/lib/hooks/useUnreadMessages'
@@ -23,35 +23,33 @@ type Tab = {
 // l'app. Le concierge se déclenche maintenant depuis la carte (MapHome), où
 // il est au bon endroit — on cherche où manger en regardant la carte.
 //
-// Carte · Découvrir (les Messages vivent derrière, d'où le badge non-lus) ·
-// Carnet · Profil.
+// Carnet (l'accueil : ce que l'app promet) · Carte · Profil. Découvrir a été
+// absorbé par le Carnet, en onglet « Amis » — il ne méritait pas une
+// destination tant qu'il est vide pour qui n'a pas encore d'amis. Le badge
+// des messages non lus suit donc les Messages, qui vivent derrière le Profil
+// et l'onglet Amis.
 const TABS: Tab[] = [
   {
+    // En natif le Carnet EST `/` (app/page.tsx) ; sur le web il vit à
+    // `/favorites`, `/` étant la landing. Les deux chemins sont actifs.
     href: '/',
-    icon: (active) => <Map size={22} strokeWidth={active ? 2 : 1.75} />,
-    label: 'Carte',
-    match: (p) => p === '/',
-  },
-  {
-    href: '/discover',
-    icon: (active) => <Compass size={22} strokeWidth={active ? 2 : 1.75} />,
-    label: 'Découvrir',
-    match: (p) =>
-      p.startsWith('/discover') || p.startsWith('/messages') || p.startsWith('/friends'),
-    badge: 'messages',
-  },
-  {
-    href: '/favorites',
     icon: (active) => <Bookmark size={22} strokeWidth={active ? 2 : 1.75} />,
     label: 'Carnet',
-    match: (p) => p.startsWith('/favorites'),
+    match: (p) => p === '/' || p.startsWith('/favorites'),
     badge: 'imports',
+  },
+  {
+    href: '/carte',
+    icon: (active) => <Map size={22} strokeWidth={active ? 2 : 1.75} />,
+    label: 'Carte',
+    match: (p) => p.startsWith('/carte'),
   },
   {
     href: '/account',
     icon: (active) => <User size={22} strokeWidth={active ? 2 : 1.75} />,
     label: 'Profil',
     match: (p) => p.startsWith('/account'),
+    badge: 'messages',
   },
 ]
 

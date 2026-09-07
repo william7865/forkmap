@@ -729,7 +729,7 @@ export default function ProfileScreen() {
                     lightTap()
                     // Deep-link : ouvre CE lieu sur la carte, pas la page générique.
                     router.push(
-                      `/?select=${encodeURIComponent(f.osm_id)}&lat=${f.lat}&lon=${f.lon}`
+                      `/carte?select=${encodeURIComponent(f.osm_id)}&lat=${f.lat}&lon=${f.lon}`
                     )
                   }}
                 />
