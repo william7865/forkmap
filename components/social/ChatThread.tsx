@@ -376,7 +376,7 @@ export default function ChatThread({
                           fontWeight: 700,
                         }}
                       >
-                        Voter →
+                        Voter
                       </div>
                     </button>
                   ) : m.type === 'place' && m.payload ? (

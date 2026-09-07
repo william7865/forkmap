@@ -12,7 +12,8 @@ import React, { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth, getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { apiFetch } from '@/lib/api'
-import { ChevronRight, Check, Eye, EyeOff, LogOut, Trash2 } from 'lucide-react'
+import { ChevronRight, Check, LogOut, Trash2 } from 'lucide-react'
+import PwField from '@/components/settings/PwField'
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -311,6 +312,8 @@ export default function AccountSettingsNative({ isMobile: _isMobile }: { isMobil
                   show={showPw}
                   onToggle={() => setShowPw((v) => !v)}
                   placeholder="Min. 8 caractères"
+                  inputClassName="input-field"
+                  inputStyle={{ paddingRight: 42 }}
                 />
                 <PwField
                   label="Confirmer le mot de passe"
@@ -319,6 +322,8 @@ export default function AccountSettingsNative({ isMobile: _isMobile }: { isMobil
                   show={showPw}
                   onToggle={() => setShowPw((v) => !v)}
                   placeholder="Répétez le mot de passe"
+                  inputClassName="input-field"
+                  inputStyle={{ paddingRight: 42 }}
                 />
                 {pwError && (
                   <p style={{ margin: 0, fontSize: 12.5, color: 'var(--closed)', fontWeight: 600 }}>
@@ -534,58 +539,6 @@ export default function AccountSettingsNative({ isMobile: _isMobile }: { isMobil
 }
 
 // ── PwField ──
-function PwField({
-  label,
-  value,
-  onChange,
-  show,
-  onToggle,
-  placeholder,
-}: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-  show: boolean
-  onToggle: () => void
-  placeholder: string
-}) {
-  return (
-    <div>
-      <label style={fieldLabel}>{label}</label>
-      <div style={{ position: 'relative' }}>
-        <input
-          className="input-field"
-          type={show ? 'text' : 'password'}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          aria-label={label}
-          style={{ paddingRight: 42 }}
-        />
-        <button
-          onClick={onToggle}
-          type="button"
-          aria-label={show ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-          style={{
-            position: 'absolute',
-            right: 12,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--text-3)',
-            display: 'flex',
-            padding: 2,
-          }}
-        >
-          {show ? <EyeOff size={16} strokeWidth={2} /> : <Eye size={16} strokeWidth={2} />}
-        </button>
-      </div>
-    </div>
-  )
-}
-
 // ── Style consts ──
 const rowBase: React.CSSProperties = {
   display: 'flex',
@@ -613,13 +566,4 @@ const rowValue: React.CSSProperties = {
   fontSize: 13.5,
   color: 'var(--text-3)',
   flexShrink: 0,
-}
-const fieldLabel: React.CSSProperties = {
-  display: 'block',
-  fontSize: 10,
-  fontWeight: 700,
-  letterSpacing: '0.12em',
-  textTransform: 'uppercase',
-  color: 'var(--text-3)',
-  marginBottom: 8,
 }

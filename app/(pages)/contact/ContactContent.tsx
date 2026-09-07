@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { InfoPage } from '@/components/ui/PageLayout'
 import { apiFetch } from '@/lib/api'
+import { Spinner } from '@/components/states/Spinner'
 
 type Status = 'idle' | 'sending' | 'success' | 'error'
 
@@ -283,7 +284,7 @@ export default function ContactContent() {
         >
           {status === 'sending' ? (
             <>
-              <Spinner /> Envoi…
+              <Spinner light /> Envoi…
             </>
           ) : (
             'Envoyer le message →'
@@ -328,22 +329,6 @@ function Field({
       </label>
       {children}
     </div>
-  )
-}
-
-function Spinner() {
-  return (
-    <span
-      style={{
-        width: 14,
-        height: 14,
-        border: '2px solid rgba(255,255,255,0.3)',
-        borderTop: '2px solid var(--on-accent)',
-        borderRadius: '50%',
-        animation: 'spin 0.7s linear infinite',
-        display: 'inline-block',
-      }}
-    />
   )
 }
 

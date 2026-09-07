@@ -4,28 +4,11 @@
 // no friend has any activity here (so it never shows an empty shell).
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
-import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
+import { getAuthHeaders } from '@/lib/auth-headers'
 import { useIsNative } from '@/lib/native/platform'
 import { Avatar } from '@/components/social/Avatar'
 import { staggerDelay } from '@/lib/motion'
-
-interface FriendLite {
-  id: string
-  username: string
-  display_name: string
-  avatar_url: string | null
-}
-
-async function authHeaders(): Promise<Record<string, string>> {
-  try {
-    const {
-      data: { session },
-    } = await getSupabaseBrowserClient().auth.getSession()
-    return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
-  } catch {
-    return {}
-  }
-}
+import type { FriendLite } from '@/types'
 
 /** First name only, for a compact sentence. */
 function firstName(displayName: string): string {
@@ -51,7 +34,7 @@ export default function PlaceSocialProof({ osmId }: { osmId: string }) {
     let cancelled = false
     setSaved([])
     setVisited([])
-    authHeaders().then((h) => {
+    getAuthHeaders().then((h) => {
       if (cancelled || !h.Authorization) return
       apiFetch(`/api/places/social?osm_id=${encodeURIComponent(osmId)}`, { headers: h })
         .then((r) => (r.ok ? r.json() : null))

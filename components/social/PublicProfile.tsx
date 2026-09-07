@@ -24,6 +24,7 @@ import { apiFetch } from '@/lib/api'
 import { getAuthHeaders } from '@/lib/auth-headers'
 import { listGradient } from '@/lib/gradients'
 import type { PublicProfileBundle, PublicListCard } from '@/types'
+import { iconButtonStyle } from '@/lib/ui-styles'
 
 /**
  * Public profile of any user. Used two ways:
@@ -220,7 +221,7 @@ export default function PublicProfile({
             onClick={back}
             aria-label="Retour"
             style={{
-              ...iconBtnStyle,
+              ...iconButtonStyle(38),
               marginRight: 'auto',
             }}
           >
@@ -231,7 +232,7 @@ export default function PublicProfile({
               type="button"
               onClick={() => setSharing(true)}
               aria-label="Partager le profil"
-              style={iconBtnStyle}
+              style={iconButtonStyle(38)}
             >
               <Share2 size={18} strokeWidth={1.8} />
             </button>
@@ -239,7 +240,7 @@ export default function PublicProfile({
               type="button"
               onClick={() => setShowMenu(true)}
               aria-label="Options"
-              style={iconBtnStyle}
+              style={iconButtonStyle(38)}
             >
               <MoreHorizontal size={20} strokeWidth={1.8} />
             </button>
@@ -581,21 +582,6 @@ function ListRowItem({ list, onOpen }: { list: PublicListCard; onOpen: () => voi
 }
 
 // Bouton-icône rond (barre du haut) —
-const iconBtnStyle: React.CSSProperties = {
-  width: 38,
-  height: 38,
-  borderRadius: '50%',
-  flexShrink: 0,
-  background: 'var(--surface)',
-  border: '1px solid var(--border)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  color: 'var(--text-2)',
-  cursor: 'pointer',
-  padding: 0,
-}
-
 // Section calme séparée par un filet fin
 const sectionStyle: React.CSSProperties = {
   marginTop: 28,
@@ -614,14 +600,14 @@ function TopBar({ onBack, onMenu }: { onBack: () => void; onMenu?: () => void })
         alignItems: 'center',
       }}
     >
-      <button onClick={onBack} aria-label="Retour" style={iconBtnStyle}>
+      <button onClick={onBack} aria-label="Retour" style={iconButtonStyle(38)}>
         <ChevronLeft size={20} strokeWidth={1.8} />
       </button>
       {onMenu && (
         <button
           onClick={onMenu}
           aria-label="Options"
-          style={{ ...iconBtnStyle, marginLeft: 'auto' }}
+          style={{ ...iconButtonStyle(38), marginLeft: 'auto' }}
         >
           <MoreHorizontal size={20} strokeWidth={1.8} />
         </button>

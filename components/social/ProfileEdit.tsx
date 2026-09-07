@@ -1,14 +1,14 @@
 // ============================================================
 // components/social/ProfileEdit.tsx
 // Edit profile — APP format (full-screen native StepShell).
-// App-only surface (mounted from /friends, which is gated to native).
+// App-only surface (mounted from /messages, which is gated to native).
 // display name, avatar (saved live), @username (once/year).
 // ============================================================
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
 import StepShell from '@/components/auth/StepShell'
-import { Spinner } from '@/components/auth/steps/Spinner'
+import { Spinner } from '@/components/states/Spinner'
 import { useProfile } from '@/lib/hooks/useProfile'
 import { Avatar } from '@/components/social/Avatar'
 import { canChangeUsername, validateUsername } from '@/lib/username'

@@ -7,24 +7,10 @@ import { Star } from 'lucide-react'
 import type { UserReview } from '@/types'
 import type { UseReviews } from '@/lib/hooks/useReviews'
 import { useIsNative } from '@/lib/native/platform'
+import { relDate } from '@/lib/format'
 import { Avatar } from '@/components/social/Avatar'
 import VerifiedBadge from '@/components/social/VerifiedBadge'
 import ReviewComposer from '@/components/place/ReviewComposer'
-
-/** "aujourd'hui" · "il y a 3 j" · "il y a 2 sem" · "12 mars 2026" */
-function relDate(iso: string): string {
-  const then = new Date(iso).getTime()
-  const days = Math.floor((Date.now() - then) / 86_400_000)
-  if (days <= 0) return "aujourd'hui"
-  if (days === 1) return 'hier'
-  if (days < 7) return `il y a ${days} j`
-  if (days < 30) return `il y a ${Math.floor(days / 7)} sem`
-  return new Date(iso).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
-}
 
 const EYEBROW: CSSProperties = {
   fontSize: 9,

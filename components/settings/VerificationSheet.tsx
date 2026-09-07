@@ -2,6 +2,7 @@
 // VerificationSheet — request the tastemaker verification badge and track status.
 import { useEffect, useState } from 'react'
 import { X, BadgeCheck } from 'lucide-react'
+import { Dialog } from '@/components/ui/Sheet'
 import type { VerificationRequest } from '@/types'
 import { apiFetch } from '@/lib/api'
 import { getAuthHeaders } from '@/lib/auth-headers'
@@ -72,66 +73,52 @@ export default function VerificationSheet({ onClose }: { onClose: () => void }) 
   const canEdit = !status || status === 'rejected'
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 3000,
-        background: 'rgba(0,0,0,0.45)',
-        display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-      }}
-    >
+    <Dialog ariaLabel="Vérification" onClose={onClose} zIndex={3000}>
+      {/* Custom header row (kept over SheetHeader: leading BadgeCheck icon in the title). */}
       <div
-        onClick={(e) => e.stopPropagation()}
-        className="anim-slide-up"
         style={{
-          width: '100%',
-          maxWidth: 520,
-          background: 'var(--white)',
-          borderRadius: '20px 20px 0 0',
-          padding: '18px 18px calc(20px + var(--safe-bottom))',
-          maxHeight: '88vh',
-          overflowY: 'auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '18px 18px 0',
+          flexShrink: 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h3
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              fontFamily: 'var(--font-display)',
-              fontSize: 19,
-              fontWeight: 600,
-              color: 'var(--text)',
-              margin: 0,
-            }}
-          >
-            <BadgeCheck size={20} color="var(--accent)" /> Vérification
-          </h3>
-          <button
-            onClick={onClose}
-            aria-label="Fermer"
-            style={{
-              border: 'none',
-              background: 'var(--surface)',
-              borderRadius: '50%',
-              width: 32,
-              height: 32,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: 'var(--text-2)',
-            }}
-          >
-            <X size={17} />
-          </button>
-        </div>
+        <h3
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontFamily: 'var(--font-display)',
+            fontSize: 19,
+            fontWeight: 600,
+            color: 'var(--text)',
+            margin: 0,
+          }}
+        >
+          <BadgeCheck size={20} color="var(--accent)" /> Vérification
+        </h3>
+        <button
+          onClick={onClose}
+          aria-label="Fermer"
+          style={{
+            border: 'none',
+            background: 'var(--surface)',
+            borderRadius: '50%',
+            width: 32,
+            height: 32,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: 'var(--text-2)',
+          }}
+        >
+          <X size={17} />
+        </button>
+      </div>
 
+      <div style={{ overflowY: 'auto', padding: '0 18px 20px' }}>
         <p
           style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.45, margin: '10px 0 16px' }}
         >
@@ -235,6 +222,6 @@ export default function VerificationSheet({ onClose }: { onClose: () => void }) 
           </>
         )}
       </div>
-    </div>
+    </Dialog>
   )
 }

@@ -1,149 +1,211 @@
 'use client'
-// Envoyer une fiche resto à un ami en message (partage de lieu).
+// Envoyer une fiche resto OU un sondage à un ami — bottom sheet (pattern
+// partage Instagram) : grabber, recherche, lignes avatar + pilule
+// « Envoyer » → « Envoyé ✓ ». Sert aussi le partage de sondage (ex-
+// SharePollSheet, fusionné ici : même picker, autre payload de message).
 import { useState } from 'react'
-import { ChevronLeft, Check, Send } from 'lucide-react'
-import { Avatar } from '@/components/social/Avatar'
+import { Check, Search, Send } from 'lucide-react'
+import { Sheet, SheetHeader } from '@/components/ui/Sheet'
+import UserRow from '@/components/social/UserRow'
 import { useFriends } from '@/lib/hooks/useFriends'
 import { apiFetch } from '@/lib/api'
 import { getAuthHeaders } from '@/lib/auth-headers'
+import { successTap, errorTap } from '@/lib/native/haptics'
 import type { MessagePlacePayload } from '@/types'
 
-export default function SendToFriendSheet({
-  place,
-  onClose,
-}: {
-  place: MessagePlacePayload
+type Props = {
   onClose: () => void
-}) {
+  /** Fiche resto à partager (message de type `place`). */
+  place?: MessagePlacePayload
+  /** Sondage à partager (message de type `poll`). */
+  poll?: { id: string; title: string }
+  /** Au-dessus d'un flow qui a son propre overlay (ex. PollCreate). */
+  zIndex?: number
+}
+
+export default function SendToFriendSheet({ place, poll, onClose, zIndex }: Props) {
   const { friends, loading } = useFriends()
   const [sentTo, setSentTo] = useState<Set<string>>(new Set())
   const [busy, setBusy] = useState<string | null>(null)
+  const [q, setQ] = useState('')
+
+  const subtitle = place ? `📍 ${place.name}` : poll ? `🗳️ ${poll.title}` : ''
 
   const sendTo = async (userId: string) => {
     if (busy || sentTo.has(userId)) return
     setBusy(userId)
     try {
+      const body = place
+        ? { toUserId: userId, content: `📍 ${place.name}`, type: 'place', payload: place }
+        : poll
+          ? {
+              toUserId: userId,
+              content: `🗳️ ${poll.title}`,
+              type: 'poll',
+              payload: { poll_id: poll.id, title: poll.title },
+            }
+          : null
+      if (!body) return
       const res = await apiFetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
-        body: JSON.stringify({
-          toUserId: userId,
-          content: `📍 ${place.name}`,
-          type: 'place',
-          payload: place,
-        }),
+        body: JSON.stringify(body),
       })
-      if (res.ok) setSentTo((s) => new Set(s).add(userId))
+      if (res.ok) {
+        successTap()
+        setSentTo((s) => new Set(s).add(userId))
+      } else {
+        errorTap()
+      }
     } catch {
-      /* noop */
+      errorTap()
     } finally {
       setBusy(null)
     }
   }
 
+  const shown = q.trim()
+    ? friends.filter(
+        (f) =>
+          f.display_name.toLowerCase().includes(q.trim().toLowerCase()) ||
+          f.username.toLowerCase().includes(q.trim().toLowerCase())
+      )
+    : friends
+
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 1600,
-        background: 'var(--bg)',
-        overflowY: 'auto',
-        padding: 'calc(var(--safe-top) + 14px) 18px calc(var(--safe-bottom) + 40px)',
-        animation: 'slideUp 240ms cubic-bezier(0.16,1,0.3,1) backwards',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-        <button
-          onClick={onClose}
-          aria-label="Retour"
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--ink)',
-            padding: 0,
-          }}
-        >
-          <ChevronLeft size={26} />
-        </button>
-        <h1
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-display)',
-            fontWeight: 700,
-            fontSize: 24,
-            letterSpacing: '-0.02em',
-            color: 'var(--ink)',
-          }}
-        >
-          Envoyer à…
-        </h1>
-      </div>
-      <p style={{ margin: '0 0 18px 2px', fontSize: 13.5, color: 'var(--text-2)' }}>
-        Partage <strong style={{ color: 'var(--text)' }}>{place.name}</strong> avec un ami.
-      </p>
+    <Sheet ariaLabel="Envoyer à un ami" onClose={onClose} zIndex={zIndex}>
+      <SheetHeader title="Envoyer à un ami" subtitle={subtitle} />
 
-      {loading && <p style={{ color: 'var(--text-3)', fontSize: 13.5 }}>Chargement…</p>}
-      {!loading && friends.length === 0 && (
-        <p style={{ color: 'var(--text-3)', fontSize: 13.5 }}>
-          Ajoute des amis pour leur partager des adresses.
-        </p>
-      )}
-
-      {friends.map((f) => {
-        const sent = sentTo.has(f.id)
-        return (
+      {/* Recherche */}
+      {friends.length > 5 && (
+        <div style={{ padding: '0 20px 10px', flexShrink: 0 }}>
           <div
-            key={f.id}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 14,
-              padding: '12px 14px',
-              marginBottom: 10,
-              background: 'var(--white)',
-              border: '1px solid var(--b2)',
-              borderRadius: 'var(--r-lg)',
-              boxShadow: 'var(--s1)',
+              gap: 9,
+              height: 42,
+              padding: '0 14px',
+              borderRadius: 12,
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
             }}
           >
-            <Avatar name={f.display_name} src={f.avatar_url} id={f.id} size={48} />
-            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-              <strong style={{ fontSize: 15, color: 'var(--ink)' }}>{f.display_name}</strong>
-              <span style={{ fontSize: 12.5, color: 'var(--text-3)' }}>@{f.username}</span>
-            </span>
-            <button
-              onClick={() => sendTo(f.id)}
-              disabled={sent || busy === f.id}
+            <Search size={16} strokeWidth={1.8} style={{ color: 'var(--text-4)', flexShrink: 0 }} />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Rechercher"
+              aria-label="Rechercher un ami"
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '9px 16px',
-                borderRadius: 'var(--r-pill)',
+                flex: 1,
+                minWidth: 0,
                 border: 'none',
-                cursor: sent ? 'default' : 'pointer',
-                background: sent ? 'var(--surface-2)' : 'var(--accent)',
-                color: sent ? 'var(--text-2)' : '#fff',
-                fontSize: 13,
-                fontWeight: 700,
+                outline: 'none',
+                background: 'transparent',
                 fontFamily: 'var(--font-body)',
+                fontSize: 16,
+                color: 'var(--text)',
               }}
-            >
-              {sent ? (
-                <>
-                  <Check size={15} /> Envoyé
-                </>
-              ) : (
-                <>
-                  <Send size={15} /> Envoyer
-                </>
-              )}
-            </button>
+            />
           </div>
-        )
-      })}
-    </div>
+        </div>
+      )}
+
+      {/* Liste d'amis */}
+      <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        {loading && (
+          <p
+            style={{
+              margin: 0,
+              padding: '18px 20px',
+              color: 'var(--text-3)',
+              fontSize: 13.5,
+              textAlign: 'center',
+            }}
+          >
+            Chargement…
+          </p>
+        )}
+        {!loading && friends.length === 0 && (
+          <p
+            style={{
+              margin: 0,
+              padding: '18px 20px 24px',
+              color: 'var(--text-3)',
+              fontSize: 13.5,
+              textAlign: 'center',
+            }}
+          >
+            {poll
+              ? 'Ajoute des amis pour leur partager ton sondage.'
+              : 'Ajoute des amis pour leur partager des adresses.'}
+          </p>
+        )}
+        {!loading && friends.length > 0 && shown.length === 0 && (
+          <p
+            style={{
+              margin: 0,
+              padding: '18px 20px 24px',
+              color: 'var(--text-3)',
+              fontSize: 13.5,
+              textAlign: 'center',
+            }}
+          >
+            Aucun ami ne correspond.
+          </p>
+        )}
+        {shown.map((f) => {
+          const sent = sentTo.has(f.id)
+          const sending = busy === f.id
+          return (
+            <div key={f.id} style={{ padding: '0 20px', borderTop: '1px solid var(--border)' }}>
+              <UserRow
+                name={f.display_name}
+                username={f.username}
+                src={f.avatar_url}
+                id={f.id}
+                size={46}
+              >
+                <button
+                  onClick={() => sendTo(f.id)}
+                  disabled={sent || sending}
+                  className={sent ? undefined : 'tap-press'}
+                  aria-label={sent ? `Envoyé à ${f.display_name}` : `Envoyer à ${f.display_name}`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    height: 36,
+                    padding: '0 16px',
+                    borderRadius: 999,
+                    border: 'none',
+                    cursor: sent ? 'default' : 'pointer',
+                    background: sent ? 'var(--surface-2)' : 'var(--accent)',
+                    color: sent ? 'var(--text-2)' : 'var(--on-accent)',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    fontFamily: 'var(--font-body)',
+                    opacity: sending ? 0.6 : 1,
+                    transition: 'background 140ms, color 140ms',
+                    flexShrink: 0,
+                  }}
+                >
+                  {sent ? (
+                    <>
+                      <Check size={14} /> Envoyé
+                    </>
+                  ) : (
+                    <>
+                      <Send size={14} /> Envoyer
+                    </>
+                  )}
+                </button>
+              </UserRow>
+            </div>
+          )
+        })}
+      </div>
+    </Sheet>
   )
 }

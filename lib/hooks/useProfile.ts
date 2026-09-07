@@ -3,6 +3,7 @@ import { useCallback, useEffect, useSyncExternalStore } from 'react'
 import type { Profile } from '@/types'
 import { apiFetch } from '@/lib/api'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
+import { getAuthHeaders } from '@/lib/auth-headers'
 import { resizeImage } from '@/lib/images'
 import { pickAvatarPhoto } from '@/lib/native/camera'
 
@@ -30,20 +31,12 @@ function getSnapshot() {
 }
 const SERVER_SNAPSHOT: State = { profile: null, ready: false }
 
-async function authHeaders(): Promise<Record<string, string>> {
-  const sb = getSupabaseBrowserClient()
-  const {
-    data: { session },
-  } = await sb.auth.getSession()
-  return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
-}
-
 let loading = false
 async function loadProfile() {
   if (loading) return
   loading = true
   try {
-    const res = await apiFetch('/api/profile', { headers: await authHeaders() })
+    const res = await apiFetch('/api/profile', { headers: await getAuthHeaders() })
     setState({ profile: res.ok ? (await res.json()).data : null, ready: true })
   } catch {
     setState({ profile: null, ready: true })
@@ -73,7 +66,7 @@ export function useProfile() {
 
   const checkUsername = useCallback(async (u: string) => {
     const res = await apiFetch(`/api/profile/check-username?u=${encodeURIComponent(u)}`, {
-      headers: await authHeaders(),
+      headers: await getAuthHeaders(),
     })
     // A non-OK response (401 when unauthenticated, 429, 500) carries no
     // `available` field — throw so callers show a neutral error instead of
@@ -86,7 +79,7 @@ export function useProfile() {
     async (input: { username: string; display_name: string; avatar_url: string | null }) => {
       const res = await apiFetch('/api/profile', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify(input),
       })
       const json = await res.json().catch(() => ({}))
@@ -109,7 +102,7 @@ export function useProfile() {
     }) => {
       const res = await apiFetch('/api/profile', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify(patch),
       })
       const json = await res.json().catch(() => ({}))

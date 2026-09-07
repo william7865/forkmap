@@ -356,7 +356,6 @@ export default function SuggestionsPanel({
           )
         })}
       </div>
-      <style>{`@keyframes slideUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
     </div>
   )
 }

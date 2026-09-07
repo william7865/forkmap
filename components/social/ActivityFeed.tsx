@@ -1,28 +1,18 @@
 'use client'
 // ActivityFeed — le « Fil » : ce que les amis ont enregistré / visité / listé.
-// Les données existent déjà (activity_events / getFriendActivity / /api/activity) ;
-// c'est l'écran dédié qui manquait. Overlay plein écran (pattern FriendsView).
+// Les données existent déjà (activity_events / getFriendActivity / /api/activity).
+// Deux modes (pattern MessagesInbox) : overlay plein écran (historique) et
+// `asPage` — rendu inline dans l'écran Découvrir, qui possède alors le header.
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, Bookmark, MapPin, Star, ListPlus, Users } from 'lucide-react'
+import { ChevronLeft, Bookmark, MapPin, Star, ListPlus, Users, UserPlus } from 'lucide-react'
 import { Avatar } from '@/components/social/Avatar'
 import VerifiedBadge from '@/components/social/VerifiedBadge'
 import { apiFetch } from '@/lib/api'
 import { getAuthHeaders } from '@/lib/auth-headers'
 import { frCuisine } from '@/lib/cuisine'
+import { timeAgo } from '@/lib/format'
 import type { ActivityItem, TastemakerFeedItem } from '@/types'
-
-function timeAgo(iso: string): string {
-  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
-  if (s < 60) return "à l'instant"
-  const m = Math.floor(s / 60)
-  if (m < 60) return `il y a ${m} min`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `il y a ${h} h`
-  const d = Math.floor(h / 24)
-  if (d < 7) return `il y a ${d} j`
-  return `il y a ${Math.floor(d / 7)} sem`
-}
 
 function Verb({ item }: { item: ActivityItem }) {
   const target =
@@ -60,14 +50,44 @@ function TypeIcon({ type }: { type: ActivityItem['type'] }) {
   )
 }
 
+// CTA des états vides — la seule action utile quand le fil est désert.
+function AddFriendsCta({ onClick }: { onClick?: () => void }) {
+  if (!onClick) return null
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 7,
+        height: 40,
+        padding: '0 20px',
+        borderRadius: 999,
+        border: 'none',
+        background: 'var(--accent)',
+        color: 'var(--on-accent)',
+        fontFamily: 'var(--font-body)',
+        fontSize: 13.5,
+        fontWeight: 600,
+        cursor: 'pointer',
+        marginTop: 2,
+      }}
+    >
+      <UserPlus size={16} strokeWidth={2.1} /> Trouver des amis
+    </button>
+  )
+}
+
 function TastemakerFeed({
   feed,
   loading,
   onOpenProfile,
+  onAddFriends,
 }: {
   feed: TastemakerFeedItem[] | null
   loading: boolean
   onOpenProfile: (username: string) => void
+  onAddFriends?: () => void
 }) {
   if (loading || feed === null) {
     return (
@@ -117,6 +137,7 @@ function TastemakerFeed({
             Suis des gens dont tu aimes le goût — leurs avis apparaîtront ici.
           </p>
         </div>
+        <AddFriendsCta onClick={onAddFriends} />
       </div>
     )
   }
@@ -214,7 +235,15 @@ function TastemakerFeed({
   )
 }
 
-export default function ActivityFeed({ onClose }: { onClose: () => void }) {
+export default function ActivityFeed({
+  onClose,
+  asPage,
+  onAddFriends,
+}: {
+  onClose?: () => void
+  asPage?: boolean
+  onAddFriends?: () => void
+}) {
   const router = useRouter()
   const [tab, setTab] = useState<'friends' | 'tastemakers'>('friends')
   const [items, setItems] = useState<ActivityItem[]>([])
@@ -263,88 +292,104 @@ export default function ActivityFeed({ onClose }: { onClose: () => void }) {
     }
   }, [tab, feed])
 
+  const tabs = (
+    <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+      {(['friends', 'tastemakers'] as const).map((t) => {
+        const active = tab === t
+        return (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            aria-pressed={active}
+            style={{
+              height: 36,
+              padding: '0 18px',
+              borderRadius: 999,
+              border: active ? '1px solid var(--accent)' : '1px solid var(--border)',
+              cursor: 'pointer',
+              fontSize: 13.5,
+              fontWeight: 600,
+              fontFamily: 'inherit',
+              background: active ? 'var(--accent)' : 'var(--bg)',
+              color: active ? 'var(--on-accent)' : 'var(--text-2)',
+              transition: 'background 140ms',
+            }}
+          >
+            {t === 'friends' ? 'Amis' : 'Tastemakers'}
+          </button>
+        )
+      })}
+    </div>
+  )
+
   return (
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 1000,
-        background: 'var(--bg)',
-        display: 'flex',
-        flexDirection: 'column',
-        animation: 'slideUp 240ms cubic-bezier(0.16,1,0.3,1) backwards',
-      }}
-    >
-      {/* Header — grand titre serif */}
-      <div style={{ padding: 'calc(var(--safe-top) + 14px) 20px 10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-          <button
-            onClick={onClose}
-            aria-label="Retour"
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
+      style={
+        asPage
+          ? undefined
+          : {
+              position: 'fixed',
+              inset: 0,
+              zIndex: 1000,
+              background: 'var(--bg)',
               display: 'flex',
-              padding: 0,
-              marginLeft: -4,
-              color: 'var(--text)',
-            }}
-          >
-            <ChevronLeft size={26} />
-          </button>
-          <h1
-            style={{
-              margin: 0,
-              fontFamily: 'var(--font-display)',
-              fontWeight: 600,
-              fontSize: 32,
-              letterSpacing: '-0.02em',
-              color: 'var(--text)',
-            }}
-          >
-            Fil d&apos;activité
-          </h1>
+              flexDirection: 'column',
+              animation: 'slideUp 240ms cubic-bezier(0.16,1,0.3,1) backwards',
+            }
+      }
+    >
+      {asPage ? (
+        // Mode page : l'écran hôte (Découvrir) possède le titre — ici seulement
+        // les pastilles de filtre.
+        <div style={{ padding: '0 20px 12px' }}>{tabs}</div>
+      ) : (
+        <div style={{ padding: 'calc(var(--safe-top) + 14px) 20px 10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <button
+              onClick={onClose}
+              aria-label="Retour"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                padding: 0,
+                marginLeft: -4,
+                color: 'var(--text)',
+              }}
+            >
+              <ChevronLeft size={26} />
+            </button>
+            <h1
+              style={{
+                margin: 0,
+                fontFamily: 'var(--font-display)',
+                fontWeight: 600,
+                fontSize: 32,
+                letterSpacing: '-0.02em',
+                color: 'var(--text)',
+              }}
+            >
+              Fil d&apos;activité
+            </h1>
+          </div>
+          {tabs}
         </div>
-
-        {/* Tabs — pastilles */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-          {(['friends', 'tastemakers'] as const).map((t) => {
-            const active = tab === t
-            return (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                aria-pressed={active}
-                style={{
-                  height: 36,
-                  padding: '0 18px',
-                  borderRadius: 999,
-                  border: active ? '1px solid var(--accent)' : '1px solid var(--border)',
-                  cursor: 'pointer',
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  fontFamily: 'inherit',
-                  background: active ? 'var(--accent)' : 'var(--bg)',
-                  color: active ? 'var(--on-accent)' : 'var(--text-2)',
-                  transition: 'background 140ms',
-                }}
-              >
-                {t === 'friends' ? 'Amis' : 'Tastemakers'}
-              </button>
-            )
-          })}
-        </div>
-      </div>
+      )}
       <div style={{ borderBottom: '1px solid var(--border)' }} />
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      <div
+        style={
+          asPage ? undefined : { flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }
+        }
+      >
         {tab === 'tastemakers' ? (
           <TastemakerFeed
             feed={feed}
             loading={feedLoading}
             onOpenProfile={(username) => router.push(`/u/${username}`)}
+            onAddFriends={onAddFriends}
           />
         ) : loading ? (
           <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-3)', fontSize: 13 }}>
@@ -398,6 +443,7 @@ export default function ActivityFeed({ onClose }: { onClose: () => void }) {
                 testent.
               </p>
             </div>
+            <AddFriendsCta onClick={onAddFriends} />
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>

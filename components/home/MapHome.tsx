@@ -1456,58 +1456,9 @@ export default function MapHome() {
                     onNeedPhotos={requestPhotos}
                   />
                 )}
-                {native ? (
-                  <button
-                    onClick={() => setShowSurprise(true)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 13,
-                      padding: '14px 16px',
-                      margin: savedOnly ? '2px 16px 14px' : '4px 16px 24px',
-                      borderRadius: 18,
-                      border: 'none',
-                      cursor: 'pointer',
-                      background: 'var(--accent)',
-                      color: 'var(--on-accent)',
-                      boxShadow: 'var(--s2)',
-                      fontFamily: 'var(--font-body)',
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 38,
-                        height: 38,
-                        flexShrink: 0,
-                        borderRadius: 12,
-                        background: 'rgba(255,255,255,0.12)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'var(--star)',
-                      }}
-                    >
-                      <SigSparkle size={17} />
-                    </span>
-                    <span style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
-                      <span
-                        style={{
-                          display: 'block',
-                          fontFamily: 'var(--font-display)',
-                          fontSize: 15.5,
-                          fontWeight: 600,
-                          lineHeight: 1.2,
-                        }}
-                      >
-                        Je ne sais pas quoi manger
-                      </span>
-                      <span style={{ display: 'block', fontSize: 12, opacity: 0.62, marginTop: 1 }}>
-                        Laisse le concierge choisir
-                      </span>
-                    </span>
-                    <ChevronRight size={20} style={{ opacity: 0.6, flexShrink: 0 }} />
-                  </button>
-                ) : (
+                {/* En natif, le concierge vit dans le bouton central Surprise de la
+                    tab bar — pas de doublon dans la sheet. CTA conservé sur le web. */}
+                {!native && (
                   <button
                     onClick={() => setShowSurprise(true)}
                     className="btn-ember"
@@ -1592,7 +1543,7 @@ export default function MapHome() {
             right: 0,
             bottom: 'calc(56px + var(--safe-bottom))',
             zIndex: 900,
-            animation: 'slideUp 260ms cubic-bezier(0.16,1,0.3,1) backwards',
+            animation: 'slideUp 260ms var(--ease-out) backwards',
           }}
         >
           <PlaceDetail
@@ -1659,7 +1610,6 @@ export default function MapHome() {
         @keyframes enrichSweep { 0%{left:-50%} 100%{left:100%} }
         @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
         @keyframes slideInRight { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
-        @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
       `}</style>
     </div>
   )

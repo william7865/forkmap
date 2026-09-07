@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { ChevronLeft, Bookmark, Check } from 'lucide-react'
+import { Bookmark, Check } from 'lucide-react'
+import { SheetHeader } from '@/components/ui/Sheet'
 import { apiFetch } from '@/lib/api'
 import { getAuthHeaders } from '@/lib/auth-headers'
 import { frCuisine } from '@/lib/cuisine'
@@ -76,45 +77,13 @@ export default function PublicListSheet({
         zIndex: 1400,
         overflowY: 'auto',
         background: 'var(--bg)',
+        paddingTop: 'var(--safe-top)',
         paddingBottom: 'calc(var(--safe-bottom) + 40px)',
       }}
     >
-      {/* Top bar */}
-      <div
-        style={{
-          padding: 'calc(var(--safe-top) + 10px) 16px 8px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-        }}
-      >
-        <button
-          onClick={onClose}
-          aria-label="Retour"
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--ink)',
-            padding: 0,
-          }}
-        >
-          <ChevronLeft size={24} />
-        </button>
-        <h1
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-display)',
-            fontWeight: 700,
-            fontSize: 20,
-            color: 'var(--ink)',
-          }}
-        >
-          {listName}
-        </h1>
-      </div>
+      <SheetHeader title={listName} onBack={onClose} align="left" />
 
-      <div style={{ padding: '8px 16px 0' }}>
+      <div style={{ padding: '4px 16px 0' }}>
         {state === 'loading' && <Muted>Chargement…</Muted>}
         {state === 'error' && <Muted>Impossible de charger la liste.</Muted>}
         {state === 'ready' && items.length === 0 && <Muted>Cette liste est vide.</Muted>}

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import StepShell from '@/components/auth/StepShell'
 import { ErrorText } from '@/components/auth/steps/WelcomeStep'
 import type { useAuthFlow } from '@/lib/hooks/useAuthFlow'
-import { Spinner } from '@/components/auth/steps/Spinner'
+import { Spinner } from '@/components/states/Spinner'
 
 export default function EmailStep({ flow }: { flow: ReturnType<typeof useAuthFlow> }) {
   const [showPw, setShowPw] = useState(false)

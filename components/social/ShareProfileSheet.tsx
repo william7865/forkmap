@@ -62,6 +62,7 @@ export default function ShareProfileSheet({
         flexDirection: 'column',
         alignItems: 'center',
         paddingTop: 'calc(var(--safe-top) + 12px)',
+        animation: 'slideUp 280ms cubic-bezier(0.16,1,0.3,1) backwards',
       }}
     >
       <div style={{ width: '100%', maxWidth: 420, padding: '0 24px' }}>

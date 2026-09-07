@@ -1,9 +1,10 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Map, Heart, Users, User, Compass } from 'lucide-react'
+import { Map, Bookmark, User, Compass } from 'lucide-react'
 import { useEffect } from 'react'
 import { lightTap } from '@/lib/native/haptics'
+import { SigSparkle } from '@/components/icons/signature'
 import { useUnreadMessages } from '@/lib/hooks/useUnreadMessages'
 import { useImportsStore } from '@/lib/hooks/useImportsContext'
 import { useAuth } from '@/lib/hooks/useAuth'
@@ -14,9 +15,13 @@ type Tab = {
   icon: (active: boolean) => React.ReactNode
   label: string
   match: (p: string) => boolean
+  badge?: 'messages' | 'imports'
 }
 
-const TABS: Tab[] = [
+// IA sociale : Carte (explorer la ville) · Découvrir (le fil — les Messages
+// vivent derrière, d'où le badge non-lus ici) · Surprise (bouton central
+// signature, rendu à part) · Enregistrés · Profil.
+const LEFT_TABS: Tab[] = [
   {
     href: '/',
     icon: (active) => <Map size={22} strokeWidth={active ? 2 : 1.75} />,
@@ -24,22 +29,22 @@ const TABS: Tab[] = [
     match: (p) => p === '/',
   },
   {
-    href: '/?surprise=1',
+    href: '/discover',
     icon: (active) => <Compass size={22} strokeWidth={active ? 2 : 1.75} />,
-    label: 'Explorer',
-    match: () => false,
+    label: 'Découvrir',
+    match: (p) =>
+      p.startsWith('/discover') || p.startsWith('/messages') || p.startsWith('/friends'),
+    badge: 'messages',
   },
+]
+
+const RIGHT_TABS: Tab[] = [
   {
     href: '/favorites',
-    icon: (active) => <Heart size={22} strokeWidth={active ? 2 : 1.75} />,
-    label: 'Favoris',
+    icon: (active) => <Bookmark size={22} strokeWidth={active ? 2 : 1.75} />,
+    label: 'Enregistrés',
     match: (p) => p.startsWith('/favorites'),
-  },
-  {
-    href: '/friends',
-    icon: (active) => <Users size={22} strokeWidth={active ? 2 : 1.75} />,
-    label: 'Social',
-    match: (p) => p.startsWith('/friends'),
+    badge: 'imports',
   },
   {
     href: '/account',
@@ -48,6 +53,137 @@ const TABS: Tab[] = [
     match: (p) => p.startsWith('/account'),
   },
 ]
+
+const labelStyle: React.CSSProperties = {
+  fontSize: 9.5,
+  fontWeight: 700,
+  fontFamily: 'var(--font-body)',
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+}
+
+function CountBadge({ count, label }: { count: number; label: string }) {
+  if (count <= 0) return null
+  return (
+    <span
+      aria-label={label}
+      style={{
+        position: 'absolute',
+        top: -5,
+        right: -8,
+        minWidth: 16,
+        height: 16,
+        padding: '0 4px',
+        borderRadius: 999,
+        background: '#e5484d',
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: 700,
+        lineHeight: '16px',
+        textAlign: 'center',
+        border: '2px solid var(--bg)',
+      }}
+    >
+      {count > 9 ? '9+' : count}
+    </span>
+  )
+}
+
+function TabLink({ tab, active, badge }: { tab: Tab; active: boolean; badge: number }) {
+  return (
+    <Link
+      href={tab.href}
+      onClick={() => lightTap()}
+      aria-current={active ? 'page' : undefined}
+      style={{
+        flex: 1,
+        display: 'flex',
+        justifyContent: 'center',
+        textDecoration: 'none',
+        minHeight: 56,
+        alignItems: 'center',
+      }}
+    >
+      <span
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 4,
+          padding: active ? '6px 12px' : '6px 8px',
+          borderRadius: 14,
+          background: active ? 'var(--surface-2)' : 'transparent',
+          color: active ? 'var(--accent)' : 'var(--text-3)',
+          transition: 'background 160ms ease, color 160ms ease',
+        }}
+      >
+        <span style={{ position: 'relative', display: 'inline-flex' }}>
+          {tab.icon(active)}
+          <CountBadge
+            count={badge}
+            label={
+              tab.badge === 'messages'
+                ? `${badge} messages non lus`
+                : `${badge} imports à confirmer`
+            }
+          />
+        </span>
+        <span style={labelStyle}>{tab.label}</span>
+      </span>
+    </Link>
+  )
+}
+
+// Le geste signature de la marque, toujours à portée de pouce : cercle encre
+// surélevé, étincelle dorée. Ouvre le concierge (SurpriseSheet) via ?surprise=1.
+function SurpriseButton() {
+  return (
+    <Link
+      href="/?surprise=1"
+      onClick={() => lightTap()}
+      aria-label="Surprise — je ne sais pas quoi manger"
+      style={{
+        flex: 1,
+        display: 'flex',
+        justifyContent: 'center',
+        textDecoration: 'none',
+        minHeight: 56,
+        alignItems: 'center',
+      }}
+    >
+      <span
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 4,
+          padding: '6px 8px',
+        }}
+      >
+        <span
+          className="tap-press"
+          style={{
+            width: 50,
+            height: 50,
+            marginTop: -28,
+            borderRadius: 999,
+            background: 'var(--accent)',
+            color: 'var(--star)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: 'var(--s-accent)',
+            border: '3px solid var(--bg)',
+          }}
+        >
+          <SigSparkle size={23} />
+        </span>
+        <span style={{ ...labelStyle, color: 'var(--text-3)' }}>Surprise</span>
+      </span>
+    </Link>
+  )
+}
 
 export default function AppTabBar() {
   const pathname = usePathname()
@@ -63,6 +199,9 @@ export default function AppTabBar() {
     else stopPresence()
   }, [auth.user?.id])
 
+  const badgeFor = (tab: Tab) =>
+    tab.badge === 'messages' ? unread : tab.badge === 'imports' ? needsAttentionCount : 0
+
   return (
     <nav
       aria-label="Navigation principale"
@@ -74,106 +213,21 @@ export default function AppTabBar() {
         background: 'var(--bg)',
         borderTop: '1px solid var(--border)',
         display: 'flex',
-        zIndex: 200,
+        // Au-dessus de la BottomSheet carte (900) et de la fiche mobile (900,
+        // qui réserve déjà la hauteur de la barre) — le bouton central Surprise
+        // ne doit jamais être recouvert. Sous les overlays plein écran (≥1300).
+        zIndex: 950,
         paddingBottom: 'var(--safe-bottom)',
         boxShadow: 'var(--s2)',
       }}
     >
-      {TABS.map((tab) => {
-        const active = tab.match(pathname)
-        return (
-          <Link
-            key={tab.label}
-            href={tab.href}
-            onClick={() => lightTap()}
-            aria-current={active ? 'page' : undefined}
-            style={{
-              flex: 1,
-              display: 'flex',
-              justifyContent: 'center',
-              textDecoration: 'none',
-              minHeight: 56,
-              alignItems: 'center',
-            }}
-          >
-            <span
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 4,
-                padding: active ? '6px 16px' : '6px 10px',
-                borderRadius: 14,
-                background: active ? 'var(--surface-2)' : 'transparent',
-                color: active ? 'var(--accent)' : 'var(--text-3)',
-                transition: 'background 160ms ease, color 160ms ease',
-              }}
-            >
-              <span style={{ position: 'relative', display: 'inline-flex' }}>
-                {tab.icon(active)}
-                {tab.href === '/friends' && unread > 0 && (
-                  <span
-                    aria-label={`${unread} messages non lus`}
-                    style={{
-                      position: 'absolute',
-                      top: -5,
-                      right: -8,
-                      minWidth: 16,
-                      height: 16,
-                      padding: '0 4px',
-                      borderRadius: 999,
-                      background: '#e5484d',
-                      color: '#fff',
-                      fontSize: 10,
-                      fontWeight: 700,
-                      lineHeight: '16px',
-                      textAlign: 'center',
-                      border: '2px solid var(--bg)',
-                    }}
-                  >
-                    {unread > 9 ? '9+' : unread}
-                  </span>
-                )}
-                {tab.href === '/favorites' && needsAttentionCount > 0 && (
-                  <span
-                    aria-label={`${needsAttentionCount} imports à confirmer`}
-                    style={{
-                      position: 'absolute',
-                      top: -5,
-                      right: -8,
-                      minWidth: 16,
-                      height: 16,
-                      padding: '0 4px',
-                      borderRadius: 999,
-                      background: '#e5484d',
-                      color: '#fff',
-                      fontSize: 10,
-                      fontWeight: 700,
-                      lineHeight: '16px',
-                      textAlign: 'center',
-                      border: '2px solid var(--bg)',
-                    }}
-                  >
-                    {needsAttentionCount > 9 ? '9+' : needsAttentionCount}
-                  </span>
-                )}
-              </span>
-              <span
-                style={{
-                  fontSize: 9.5,
-                  fontWeight: 700,
-                  fontFamily: 'var(--font-body)',
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                {tab.label}
-              </span>
-            </span>
-          </Link>
-        )
-      })}
+      {LEFT_TABS.map((tab) => (
+        <TabLink key={tab.label} tab={tab} active={tab.match(pathname)} badge={badgeFor(tab)} />
+      ))}
+      <SurpriseButton />
+      {RIGHT_TABS.map((tab) => (
+        <TabLink key={tab.label} tab={tab} active={tab.match(pathname)} badge={badgeFor(tab)} />
+      ))}
     </nav>
   )
 }

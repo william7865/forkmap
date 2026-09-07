@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { Sheet } from '@/components/ui/Sheet'
 import type { ListRow } from '@/lib/hooks/useLists'
 import type { ListVisibility } from '@/types'
 
@@ -43,57 +44,26 @@ export function CreateListModal({ initial, onSave, onClose }: Props) {
   }
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 100001,
-        display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-      }}
-      onClick={onClose}
+    <Sheet
+      ariaLabel={initial ? 'Modifier la liste' : 'Nouvelle liste'}
+      onClose={onClose}
+      zIndex={100001}
+      maxHeight="90dvh"
+      style={{ background: 'var(--white)', maxWidth: 520, margin: '0 auto' }}
     >
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'rgba(14,14,13,0.5)',
-          backdropFilter: 'blur(4px)',
-        }}
-      />
       <form
         onSubmit={handleSubmit}
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
         aria-labelledby="create-list-title"
         style={{
-          position: 'relative',
-          background: 'var(--white)',
-          borderRadius: '20px 20px 0 0',
-          padding: '20px 20px calc(28px + var(--safe-bottom))',
-          width: '100%',
-          maxWidth: 520,
-          maxHeight: '90dvh',
+          padding: '20px 20px 20px',
+          minHeight: 0,
           overflowY: 'auto',
-          boxShadow: '0 -8px 40px rgba(14,14,13,0.2)',
-          animation: 'slideUp 240ms cubic-bezier(0.16,1,0.3,1) backwards',
           fontFamily: 'var(--font-body)',
           display: 'flex',
           flexDirection: 'column',
           gap: 16,
         }}
       >
-        <div
-          style={{
-            width: 36,
-            height: 4,
-            borderRadius: 2,
-            background: 'var(--bone)',
-            margin: '0 auto 4px',
-          }}
-        />
         <h3
           id="create-list-title"
           style={{
@@ -278,7 +248,6 @@ export function CreateListModal({ initial, onSave, onClose }: Props) {
           </button>
         </div>
       </form>
-      <style>{`@keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}`}</style>
-    </div>
+    </Sheet>
   )
 }

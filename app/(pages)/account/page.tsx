@@ -9,7 +9,6 @@ import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
-import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import type { FavoriteRow, PlaceCard } from '@/types'
 import { PageHeader, GlobalFooter } from '@/components/ui/PageLayout'
 import VisitModal from '@/components/place/VisitModal'
@@ -29,6 +28,8 @@ import type { LucideProps } from 'lucide-react'
 import { Settings as SettingsIcon } from 'lucide-react'
 import ProfileScreen from '@/components/account/ProfileScreen'
 import EmptyState from '@/components/states/EmptyState'
+import { getAuthHeaders } from '@/lib/auth-headers'
+import { PageSpinner } from '@/components/states/Spinner'
 
 const MOOD_ICONS: Record<string, (p: LucideProps) => React.ReactElement> = {
   solo: IcoMoodSolo,
@@ -36,19 +37,6 @@ const MOOD_ICONS: Record<string, (p: LucideProps) => React.ReactElement> = {
   friends: IcoMoodFriends,
   family: IcoMoodFamily,
   work: IcoMoodWork,
-}
-
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  try {
-    const sb = getSupabaseBrowserClient()
-    const {
-      data: { session },
-    } = await sb.auth.getSession()
-    if (!session?.access_token) return {}
-    return { Authorization: `Bearer ${session.access_token}` }
-  } catch {
-    return {}
-  }
 }
 
 const IcoLogOut = () => (
@@ -706,31 +694,6 @@ function MoodStrip({ data }: { data: { mood: string; count: number }[] }) {
   )
 }
 
-function Spinner() {
-  return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'var(--surface)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <div
-        style={{
-          width: 32,
-          height: 32,
-          border: '2px solid var(--border)',
-          borderTop: '2px solid var(--accent)',
-          borderRadius: '50%',
-          animation: 'spin 0.7s linear infinite',
-        }}
-      />
-    </div>
-  )
-}
-
 // ── Briques éditoriales partagées ──
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
@@ -1061,7 +1024,7 @@ function SpendingExplorer({ visits }: { visits: VisitRow[] }) {
 
 function AccountDashboard() {
   const { isReady, auth } = useAuthGuard()
-  if (!isReady) return <Spinner />
+  if (!isReady) return <PageSpinner background="var(--surface)" />
   return <AccountPageInner auth={auth} />
 }
 
@@ -1148,7 +1111,7 @@ function AccountPageInner({ auth }: { auth: ReturnType<typeof useAuthGuard>['aut
     fetchVisits()
   }, [])
 
-  if (auth.loading) return <Spinner />
+  if (auth.loading) return <PageSpinner background="var(--surface)" />
   const user = auth.user
   if (!user) return null
 

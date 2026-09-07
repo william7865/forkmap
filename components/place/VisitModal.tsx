@@ -4,7 +4,7 @@
 // ============================================================
 'use client'
 import React, { useState, useEffect, useRef } from 'react'
-import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
+import { Sheet, SheetHeader } from '@/components/ui/Sheet'
 import type { PlaceCard } from '@/types'
 import { friendlyError } from '@/lib/api-errors'
 import { apiFetch } from '@/lib/api'
@@ -17,19 +17,7 @@ import {
   IcoMoodWork,
 } from '@/components/icons'
 import type { LucideProps } from 'lucide-react'
-
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  try {
-    const sb = getSupabaseBrowserClient()
-    const {
-      data: { session },
-    } = await sb.auth.getSession()
-    if (!session?.access_token) return {}
-    return { Authorization: `Bearer ${session.access_token}` }
-  } catch {
-    return {}
-  }
-}
+import { getAuthHeaders } from '@/lib/auth-headers'
 
 interface VisitRow {
   id: string
@@ -56,19 +44,6 @@ const MOODS: { id: string; label: string; Icon: (p: LucideProps) => React.ReactE
   { id: 'work', label: 'Travail', Icon: IcoMoodWork },
 ]
 
-const IcoX = () => (
-  <svg
-    width="13"
-    height="13"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.7"
-    strokeLinecap="round"
-  >
-    <path d="M18 6 6 18M6 6l12 12" />
-  </svg>
-)
 const IcoStar = ({ filled }: { filled: boolean }) => (
   <svg
     width="20"
@@ -131,7 +106,6 @@ function useSwipeDismiss(onClose: () => void) {
 export default function VisitModal({ place, existingVisit, onClose, onSaved }: Props) {
   const isEdit = !!existingVisit
   const swipeProps = useSwipeDismiss(onClose)
-  const firstFocusRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
 
   // Escape key handler
@@ -143,9 +117,9 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])
 
-  // Focus first focusable element on open
+  // Focus first focusable element on open (the header close button)
   useEffect(() => {
-    firstFocusRef.current?.focus()
+    panelRef.current?.querySelector<HTMLElement>('button')?.focus()
   }, [])
 
   // Focus trap
@@ -261,117 +235,59 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
     }
   }
 
+  const title = isEdit ? 'Modifier la visite' : 'Logger une visite'
+
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9200,
-        display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-      }}
-      onClick={onClose}
+    <Sheet
+      ariaLabel={title}
+      onClose={onClose}
+      zIndex={9200}
+      maxHeight="92vh"
+      grabber={false}
+      style={{ background: 'var(--white)', maxWidth: 520, margin: '0 auto' }}
     >
       <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'rgba(14,14,13,0.5)',
-          backdropFilter: 'blur(8px)',
-        }}
-      />
-
-      <div
         ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="visit-modal-title"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          position: 'relative',
-          background: 'var(--white)',
-          borderRadius: '24px 24px 0 0',
-          width: '100%',
-          maxWidth: 520,
-          padding: '8px 20px 40px',
-          maxHeight: '92vh',
-          overflowY: 'auto',
-          boxShadow: '0 -20px 60px rgba(14,14,13,0.2)',
-          animation: 'slideUp 250ms var(--ease-out) backwards',
-          fontFamily: 'var(--font-body)',
-        }}
+        style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
       >
-        {/* Handle */}
+        {/* Handle — custom (not Sheet's) to keep the swipe-down dismiss */}
         <div
           {...swipeProps}
+          aria-hidden
           style={{
             width: 36,
             height: 4,
-            borderRadius: 2,
-            background: 'var(--bone)',
-            margin: '8px auto 16px',
+            borderRadius: 999,
+            background: 'var(--border-strong)',
+            margin: '10px auto 0',
+            flexShrink: 0,
           }}
         />
 
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p
-              id="visit-modal-title"
-              style={{
-                margin: '0 0 2px',
-                fontFamily: 'var(--font-display)',
-                fontSize: 16,
-                fontWeight: 400,
-                letterSpacing: '-0.02em',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {isEdit ? 'Modifier la visite' : 'Logger une visite'}
-            </p>
-            <p
-              style={{
-                margin: 0,
-                fontSize: 11,
-                color: 'var(--ink-40)',
-                fontWeight: 600,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
+        <SheetHeader
+          title={title}
+          align="left"
+          onClose={onClose}
+          subtitle={
+            <>
               {place.name}
               {place.cuisine && (
                 <span style={{ marginLeft: 6, color: 'var(--forest-mid)' }}>{place.cuisine}</span>
               )}
-            </p>
-          </div>
-          <button
-            ref={firstFocusRef}
-            onClick={onClose}
-            aria-label="Fermer"
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: '50%',
-              border: '1px solid var(--ink-10)',
-              background: 'var(--off-white)',
-              color: 'var(--ink-60)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <IcoX />
-          </button>
-        </div>
+            </>
+          }
+        />
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 18,
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            padding: '4px 20px 24px',
+          }}
+        >
           {/* Date */}
           <div>
             <label htmlFor="visit-date" style={labelStyle}>
@@ -641,11 +557,7 @@ export default function VisitModal({ place, existingVisit, onClose, onSaved }: P
           </div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-      `}</style>
-    </div>
+    </Sheet>
   )
 }
 

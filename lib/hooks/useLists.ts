@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { apiFetch } from '@/lib/api'
 import type { ListVisibility } from '@/types'
+import { getAuthHeaders } from '@/lib/auth-headers'
 
 export interface CollaboratorLite {
   id: string
@@ -28,19 +28,6 @@ export interface ListRow {
   shared_by?: string | null
   /** Collaborators of an owned list (avatar stack). */
   collaborators?: CollaboratorLite[]
-}
-
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  try {
-    const sb = getSupabaseBrowserClient()
-    const {
-      data: { session },
-    } = await sb.auth.getSession()
-    if (!session?.access_token) return {}
-    return { Authorization: `Bearer ${session.access_token}` }
-  } catch {
-    return {}
-  }
 }
 
 export function useLists() {

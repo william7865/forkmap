@@ -16,11 +16,11 @@ import type { PlaceCard, FilterState, PlaceBase, FavoriteRow } from '@/types'
 import { annotateDistances, annotateScores, applyFilters, haversineDistance } from '@/lib/scoring'
 import { nameSimilarity } from '@/lib/foursquare'
 import { enrichOsmClient } from '@/lib/osm-enrichment'
-import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { apiFetch } from '@/lib/api'
 import { canScrapeOnDevice, enrichPlacesViaScrape, searchGoogleViewport } from '@/lib/google-client'
 import { heavyTap } from '@/lib/native/haptics'
 import { pullCloudNotes } from '@/components/place/NoteModal'
+import { getAuthHeaders } from '@/lib/auth-headers'
 
 interface BBox {
   minLon: number
@@ -29,23 +29,6 @@ interface BBox {
   maxLat: number
   centerLat: number
   centerLon: number
-}
-
-/**
- * Get the Authorization header for the current session.
- * Returns { Authorization: "Bearer <token>" } or {} if not logged in.
- */
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  try {
-    const sb = getSupabaseBrowserClient()
-    const {
-      data: { session },
-    } = await sb.auth.getSession()
-    if (!session?.access_token) return {}
-    return { Authorization: `Bearer ${session.access_token}` }
-  } catch {
-    return {}
-  }
 }
 
 const REFETCH_THRESHOLD = 0.004

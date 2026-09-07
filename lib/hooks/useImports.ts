@@ -17,19 +17,7 @@ import { apiFetch } from '@/lib/api'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { isNativeRuntime } from '@/lib/native/platform'
 import { resolveImport } from '@/lib/import/resolve'
-
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  try {
-    const sb = getSupabaseBrowserClient()
-    const {
-      data: { session },
-    } = await sb.auth.getSession()
-    if (!session?.access_token) return {}
-    return { Authorization: `Bearer ${session.access_token}` }
-  } catch {
-    return {}
-  }
-}
+import { getAuthHeaders } from '@/lib/auth-headers'
 
 export function useImports(center: [number, number] | null) {
   const [imports, setImports] = useState<ImportRow[]>([])

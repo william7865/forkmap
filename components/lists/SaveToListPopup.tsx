@@ -2,12 +2,14 @@
 
 import React, { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { Sheet, SheetHeader } from '@/components/ui/Sheet'
 import { useLists } from '@/lib/hooks/useLists'
 import type { ListVisibility } from '@/types'
 import { CreateListModal } from './CreateListModal'
 import { successTap, lightTap, errorTap } from '@/lib/native/haptics'
 import { friendlyError } from '@/lib/api-errors'
 import { clampPopupRight } from '@/lib/popup-position'
+import { useIsNative } from '@/lib/native/platform'
 
 /** Kept in sync with the popup's own maxWidth — the clamp below reasons about it. */
 const POPUP_MAX_WIDTH = 280
@@ -35,6 +37,7 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
   const [position, setPosition] = useState({ top: 0, right: 0 })
   const [error, setError] = useState<string | null>(null)
   const popupRef = useRef<HTMLDivElement>(null)
+  const native = useIsNative()
 
   useEffect(() => {
     if (!anchorRef.current) return
@@ -330,15 +333,171 @@ export function SaveToListPopup({ osmId, placeSnapshot, anchorRef, onClose }: Pr
     </div>
   )
 
+  // App native : bottom sheet (le popover ancré est un pattern web).
+  const sheet = (
+    <Sheet ariaLabel="Enregistrer dans une liste" onClose={onClose} zIndex={2000}>
+      <SheetHeader title="Enregistrer dans…" />
+      {error && (
+        <div
+          role="alert"
+          style={{
+            padding: '10px 20px',
+            background: 'var(--closed-bg)',
+            fontSize: 13,
+            lineHeight: 1.4,
+            color: 'var(--closed)',
+            fontWeight: 600,
+            flexShrink: 0,
+          }}
+        >
+          {error}
+        </div>
+      )}
+      <div style={{ maxHeight: '46vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        {loading && (
+          <div style={{ padding: 18, textAlign: 'center' }}>
+            <div
+              style={{
+                width: 18,
+                height: 18,
+                border: '2px solid var(--surface-2)',
+                borderTop: '2px solid var(--accent)',
+                borderRadius: '50%',
+                animation: 'spin 0.7s linear infinite',
+                display: 'inline-block',
+              }}
+            />
+          </div>
+        )}
+        {!loading &&
+          lists.map((list) => {
+            const checked = checkedIds.has(list.id)
+            const pending = pendingIds.has(list.id)
+            return (
+              <button
+                key={list.id}
+                type="button"
+                onClick={() => toggle(list.id)}
+                disabled={pending}
+                className="tap-press"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  width: '100%',
+                  minHeight: 52,
+                  padding: '0 20px',
+                  border: 'none',
+                  borderTop: '1px solid var(--border)',
+                  background: 'transparent',
+                  cursor: pending ? 'wait' : 'pointer',
+                  textAlign: 'left',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <span
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    fontSize: 15.5,
+                    fontWeight: checked ? 700 : 500,
+                    color: 'var(--text)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {list.name}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--text-3)', flexShrink: 0 }}>
+                  {list.item_count}
+                </span>
+                {/* Coche iOS à droite : présente = enregistré */}
+                <span
+                  aria-hidden
+                  style={{
+                    width: 22,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    color: 'var(--accent)',
+                  }}
+                >
+                  {checked && (
+                    <svg
+                      width="17"
+                      height="17"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </span>
+              </button>
+            )
+          })}
+        {!loading && lists.length === 0 && (
+          <p
+            style={{
+              margin: 0,
+              padding: '16px 20px',
+              fontSize: 13.5,
+              color: 'var(--text-3)',
+              textAlign: 'center',
+              borderTop: '1px solid var(--border)',
+            }}
+          >
+            Aucune liste encore
+          </p>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={() => setShowCreate(true)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          width: '100%',
+          minHeight: 52,
+          padding: '0 20px',
+          border: 'none',
+          borderTop: '1px solid var(--border)',
+          background: 'transparent',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          color: 'var(--accent-text)',
+          fontSize: 15.5,
+          fontWeight: 700,
+          flexShrink: 0,
+        }}
+      >
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+        >
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        Nouvelle liste
+      </button>
+    </Sheet>
+  )
+
   return (
     <>
-      {typeof document !== 'undefined' && createPortal(popup, document.body)}
-      {showCreate &&
-        typeof document !== 'undefined' &&
-        createPortal(
-          <CreateListModal onSave={handleCreate} onClose={() => setShowCreate(false)} />,
-          document.body
-        )}
+      {native ? sheet : typeof document !== 'undefined' && createPortal(popup, document.body)}
+      {showCreate && <CreateListModal onSave={handleCreate} onClose={() => setShowCreate(false)} />}
     </>
   )
 }

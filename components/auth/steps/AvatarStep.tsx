@@ -1,7 +1,7 @@
 'use client'
 import StepShell from '@/components/auth/StepShell'
 import { ErrorText } from '@/components/auth/steps/WelcomeStep'
-import { Spinner } from '@/components/auth/steps/Spinner'
+import { Spinner } from '@/components/states/Spinner'
 import { Avatar } from '@/components/social/Avatar'
 import type { useAuthFlow } from '@/lib/hooks/useAuthFlow'
 
