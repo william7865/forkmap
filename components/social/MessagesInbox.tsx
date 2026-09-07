@@ -2,8 +2,8 @@
 import { useEffect, useState } from 'react'
 import {
   ChevronLeft,
+  ChevronRight as ChevronRightIcon,
   UserPlus,
-  Bell,
   BellOff,
   MessageCircle,
   Search,
@@ -18,14 +18,18 @@ import { getAuthHeaders } from '@/lib/auth-headers'
 import { useOnlineUsers } from '@/lib/presence'
 import { staggerDelay } from '@/lib/motion'
 import type { ConversationSummary, Profile, FriendSuggestion, FriendRequests } from '@/types'
+import { iconButtonStyle } from '@/lib/ui-styles'
 
 export default function MessagesInbox({
   onClose,
+  onBack,
   onAddFriends,
   onOpenFeed,
   asPage,
 }: {
   onClose?: () => void
+  /** Mode page : chevron de retour vers l'écran parent (Découvrir). */
+  onBack?: () => void
   onAddFriends?: () => void
   onOpenFeed?: () => void
   asPage?: boolean
@@ -34,7 +38,6 @@ export default function MessagesInbox({
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState<ConversationSummary['user'] | null>(null)
   const [showNotifs, setShowNotifs] = useState(false)
-  const [unreadNotifs, setUnreadNotifs] = useState(0)
   const [friends, setFriends] = useState<Profile[]>([])
   const [suggestions, setSuggestions] = useState<FriendSuggestion[]>([])
   const [requestsCount, setRequestsCount] = useState(0)
@@ -108,16 +111,11 @@ export default function MessagesInbox({
       ;(async () => {
         try {
           const headers = await getAuthHeaders()
-          const [notif, fr, sugg, req] = await Promise.all([
-            apiFetch('/api/notifications', { headers }),
+          const [fr, sugg, req] = await Promise.all([
             apiFetch('/api/friends', { headers }),
             apiFetch('/api/friends/suggestions', { headers }),
             apiFetch('/api/friends/requests', { headers }),
           ])
-          if (notif.ok) {
-            const list = ((await notif.json()).data ?? []) as { read_at: string | null }[]
-            setUnreadNotifs(list.filter((n) => !n.read_at).length)
-          }
           if (fr.ok) setFriends(((await fr.json()).data ?? []) as Profile[])
           if (sugg.ok) setSuggestions(((await sugg.json()).data ?? []) as FriendSuggestion[])
           if (req.ok) {
@@ -154,7 +152,7 @@ export default function MessagesInbox({
       }
     >
       {/* ── Masthead : actions en haut, puis grand titre serif ── */}
-      <div style={{ padding: 'calc(var(--safe-top) + 16px) 20px 4px' }}>
+      <div style={{ padding: 'calc(var(--safe-top) + var(--sp-4)) var(--gutter) 4px' }}>
         <div
           style={{
             display: 'flex',
@@ -164,9 +162,9 @@ export default function MessagesInbox({
             marginBottom: 12,
           }}
         >
-          {onClose && !asPage ? (
+          {(asPage ? onBack : onClose) ? (
             <button
-              onClick={onClose}
+              onClick={asPage ? onBack : onClose}
               aria-label="Retour"
               style={{
                 background: 'none',
@@ -184,65 +182,19 @@ export default function MessagesInbox({
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {onOpenFeed && (
-              <button onClick={onOpenFeed} aria-label="Fil d'activité" style={iconBtnStyle}>
+              <button onClick={onOpenFeed} aria-label="Fil d'activité" style={iconButtonStyle()}>
                 <Newspaper size={18} strokeWidth={1.8} />
               </button>
             )}
-            {asPage && (
-              <button
-                onClick={() => {
-                  setShowNotifs(true)
-                  setUnreadNotifs(0)
-                }}
-                aria-label="Notifications"
-                style={{ ...iconBtnStyle, position: 'relative' }}
-              >
-                <Bell size={18} strokeWidth={1.8} />
-                {unreadNotifs > 0 && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: 4,
-                      right: 4,
-                      minWidth: 15,
-                      height: 15,
-                      padding: '0 4px',
-                      borderRadius: 999,
-                      background: '#e5484d',
-                      color: '#fff',
-                      fontSize: 9.5,
-                      fontWeight: 700,
-                      lineHeight: '15px',
-                      textAlign: 'center',
-                      border: '2px solid var(--bg)',
-                    }}
-                  >
-                    {unreadNotifs > 9 ? '9+' : unreadNotifs}
-                  </span>
-                )}
-              </button>
-            )}
+            {/* Icône seule, comme dans Découvrir : l'unique CTA accent « Ajouter
+              des amis » est celui de l'état vide, sinon les deux se doublonnent. */}
             {onAddFriends && (
               <button
                 onClick={onAddFriends}
                 aria-label="Ajouter des amis"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  height: 38,
-                  padding: '0 16px',
-                  borderRadius: 999,
-                  border: 'none',
-                  background: 'var(--accent)',
-                  color: 'var(--on-accent)',
-                  fontFamily: 'var(--font-body)',
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
+                style={iconButtonStyle()}
               >
-                <UserPlus size={16} strokeWidth={2.1} /> Ajouter
+                <UserPlus size={19} strokeWidth={1.8} />
               </button>
             )}
           </div>
@@ -253,7 +205,7 @@ export default function MessagesInbox({
             margin: 0,
             fontFamily: 'var(--font-display)',
             fontWeight: 600,
-            fontSize: 33,
+            fontSize: 34,
             letterSpacing: '-0.02em',
             lineHeight: 1,
             color: 'var(--text)',
@@ -262,7 +214,7 @@ export default function MessagesInbox({
           Messages
         </h1>
         {asPage && convCount > 0 && (
-          <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text-3)' }}>
+          <p style={{ margin: 'var(--sp-2) 0 0', fontSize: 13, color: 'var(--text-3)' }}>
             {convCount} conversation{convCount > 1 ? 's' : ''}
           </p>
         )}
@@ -330,7 +282,7 @@ export default function MessagesInbox({
       {/* Amis actifs — tap pour discuter (façon « active now ») */}
       {asPage && sortedFriends.length > 0 && (
         <section style={{ marginTop: 22 }}>
-          <SecHead title="Amis" action="Gérer ›" onAction={onAddFriends} />
+          <SecHead title="Amis" action="Gérer" onAction={onAddFriends} />
           <div
             style={{
               display: 'flex',
@@ -643,20 +595,6 @@ export default function MessagesInbox({
 }
 
 // Bouton-icône rond de la barre du haut
-const iconBtnStyle: React.CSSProperties = {
-  width: 38,
-  height: 38,
-  borderRadius: '50%',
-  flexShrink: 0,
-  background: 'var(--surface)',
-  border: '1px solid var(--border)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  color: 'var(--text-2)',
-  cursor: 'pointer',
-}
-
 // En-tête de section serif (avec action discrète optionnelle)
 function SecHead({
   title,
@@ -696,10 +634,14 @@ function SecHead({
         <button
           type="button"
           onClick={onAction}
+          className="tap-press"
           style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 2,
             border: 'none',
             background: 'none',
-            padding: 0,
+            padding: '6px 0 6px 12px',
             cursor: 'pointer',
             fontFamily: 'var(--font-body)',
             fontSize: 13,
@@ -708,6 +650,7 @@ function SecHead({
           }}
         >
           {action}
+          <ChevronRightIcon size={14} strokeWidth={2.2} style={{ marginTop: 1 }} />
         </button>
       )}
     </div>

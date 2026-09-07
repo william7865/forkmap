@@ -17,9 +17,16 @@ interface Props {
   actions: SwipeAction[]
   children: React.ReactNode
   actionWidth?: number
+  /** Fond du contenu qui glisse — doit épouser le fond de la page hôte. */
+  contentBg?: string
 }
 
-export default function SwipeRow({ actions, children, actionWidth = 88 }: Props) {
+export default function SwipeRow({
+  actions,
+  children,
+  actionWidth = 88,
+  contentBg = 'var(--bg)',
+}: Props) {
   const maxReveal = actions.length * actionWidth
   const [dx, setDx] = useState(0)
   const [dragging, setDragging] = useState(false)
@@ -101,7 +108,7 @@ export default function SwipeRow({ actions, children, actionWidth = 88 }: Props)
         style={{
           transform: `translateX(${dx}px)`,
           transition: dragging ? 'none' : 'transform 220ms cubic-bezier(0.16,1,0.3,1)',
-          background: 'var(--bg)',
+          background: contentBg,
           touchAction: 'pan-y',
           position: 'relative',
         }}

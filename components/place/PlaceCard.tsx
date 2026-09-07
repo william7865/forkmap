@@ -4,6 +4,7 @@ import { getNote } from '@/components/place/NoteModal'
 import type { PlaceCard as T } from '@/types'
 import { Bookmark, MapPin, Star } from 'lucide-react'
 import { frCuisine } from '@/lib/cuisine'
+import { priceLabel, formatWalkTime } from '@/lib/format'
 import { useIsNative } from '@/lib/native/platform'
 import PlaceThumb from '@/components/place/PlaceThumb'
 import PlaceRowThumb from '@/components/place/PlaceRowThumb'
@@ -18,18 +19,6 @@ interface Props {
   onClick: () => void
   onToggleFavorite: () => void
   onShare?: () => void
-}
-
-function formatWalkTime(metres?: number): string {
-  if (metres == null) return ''
-  const mins = Math.round(metres / 80)
-  if (mins < 1) return 'À côté'
-  return `${mins} min`
-}
-
-function priceLabel(price?: number): string {
-  if (price == null) return ''
-  return '€'.repeat(price)
 }
 
 export const ITEM_HEIGHT = 92

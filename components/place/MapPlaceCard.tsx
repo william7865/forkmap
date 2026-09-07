@@ -5,26 +5,16 @@ import { memo, useState } from 'react'
 import type { PlaceCard } from '@/types'
 import { Star, Bookmark, X, Send } from 'lucide-react'
 import { frCuisine } from '@/lib/cuisine'
+import { priceLabel } from '@/lib/format'
 import { useIsNative } from '@/lib/native/platform'
 import SendToFriendSheet from '@/components/social/SendToFriendSheet'
-import PlaceThumb from '@/components/place/PlaceThumb'
+import PlaceThumb, { placePhotoUrl } from '@/components/place/PlaceThumb'
 
 interface Props {
   place: PlaceCard
   onOpen: () => void
   onClose: () => void
   onToggleFavorite: () => void
-}
-
-// Best photo URL — used for the "send to friend" share payload.
-function photoUrl(place: PlaceCard, size: number): string | null {
-  const p = place.fsq?.photos?.[0]
-  if (p) return `${p.prefix}${size}x${size}${p.suffix}`
-  return place.wikidata?.image_url ?? null
-}
-
-function priceLabel(price?: number): string {
-  return price == null ? '' : '€'.repeat(price)
 }
 
 const MapPlaceCard = memo(function MapPlaceCard({
@@ -267,7 +257,7 @@ const MapPlaceCard = memo(function MapPlaceCard({
             cuisine: cuisine ?? null,
             lat: place.lat,
             lon: place.lon,
-            photo: photoUrl(place, 400),
+            photo: placePhotoUrl(place, 400),
           }}
           onClose={() => setSharing(false)}
         />

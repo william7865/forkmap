@@ -7,27 +7,15 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { X, Check } from 'lucide-react'
 import type { FavoriteRow, PlaceCard } from '@/types'
 import { apiFetch } from '@/lib/api'
-import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
+import { getAuthHeaders } from '@/lib/auth-headers'
 import { nativeShare } from '@/lib/native/share'
 import { frCuisine } from '@/lib/cuisine'
 import PlaceThumb from '@/components/place/PlaceThumb'
-import SharePollSheet from '@/components/poll/SharePollSheet'
+import SendToFriendSheet from '@/components/social/SendToFriendSheet'
 
 const POLL_BASE = 'https://forkmap.vercel.app'
 const MIN = 2
 const MAX = 6
-
-async function authHeaders(): Promise<Record<string, string>> {
-  try {
-    const sb = getSupabaseBrowserClient()
-    const {
-      data: { session },
-    } = await sb.auth.getSession()
-    return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
-  } catch {
-    return {}
-  }
-}
 
 export default function PollCreate({ onClose }: { onClose: () => void }) {
   const [favorites, setFavorites] = useState<PlaceCard[]>([])
@@ -53,7 +41,7 @@ export default function PollCreate({ onClose }: { onClose: () => void }) {
     let active = true
     ;(async () => {
       try {
-        const res = await apiFetch('/api/favorites', { headers: await authHeaders() })
+        const res = await apiFetch('/api/favorites', { headers: await getAuthHeaders() })
         const json = await res.json()
         const rows = (json.data ?? []) as FavoriteRow[]
         if (active) setFavorites(rows.map((r) => r.snapshot).filter(Boolean))
@@ -87,7 +75,7 @@ export default function PollCreate({ onClose }: { onClose: () => void }) {
       const places = [...selected].map((id) => byId.get(id)).filter(Boolean) as PlaceCard[]
       const res = await apiFetch('/api/polls', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({ title: title.trim(), places }),
       })
       if (!res.ok) {
@@ -336,7 +324,11 @@ export default function PollCreate({ onClose }: { onClose: () => void }) {
         )}
       </div>
       {sharingApp && pollId && (
-        <SharePollSheet pollId={pollId} title={title} onClose={() => setSharingApp(false)} />
+        <SendToFriendSheet
+          poll={{ id: pollId, title }}
+          zIndex={100002}
+          onClose={() => setSharingApp(false)}
+        />
       )}
     </div>
   )

@@ -2,9 +2,9 @@
 // ReviewComposer — bottom sheet to write/edit a community review:
 // star rating + optional text + up to 4 photos. Native-only UI.
 import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { Star, X, Camera, Trash2, Check } from 'lucide-react'
+import { Sheet, SheetHeader } from '@/components/ui/Sheet'
 import type { UserReview } from '@/types'
 import { pickPhoto } from '@/lib/native/camera'
 import { lightTap, successTap, errorTap } from '@/lib/native/haptics'
@@ -106,67 +106,25 @@ export default function ReviewComposer({ initial, placeName, onClose, onSubmit, 
     else setErr('La suppression a échoué.')
   }
 
-  const sheet = (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 3000,
-        background: 'rgba(0,0,0,0.45)',
-        display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-      }}
+  const title = initial ? 'Modifier mon avis' : 'Donner mon avis'
+
+  return (
+    <Sheet
+      ariaLabel={title}
+      onClose={onClose}
+      zIndex={3000}
+      maxHeight="88vh"
+      style={{ background: 'var(--white)', maxWidth: 520, margin: '0 auto' }}
     >
+      <SheetHeader title={title} subtitle={placeName} align="left" onClose={onClose} />
+
       <div
-        onClick={(e) => e.stopPropagation()}
-        className="anim-slide-up"
         style={{
-          width: '100%',
-          maxWidth: 520,
-          background: 'var(--white)',
-          borderRadius: '20px 20px 0 0',
-          padding: '18px 18px calc(18px + var(--safe-bottom))',
-          maxHeight: '88vh',
           overflowY: 'auto',
-          boxShadow: '0 -12px 40px rgba(0,0,0,0.2)',
+          WebkitOverflowScrolling: 'touch',
+          padding: '4px 18px 10px',
         }}
       >
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h3
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 19,
-              fontWeight: 600,
-              color: 'var(--text)',
-              margin: 0,
-            }}
-          >
-            {initial ? 'Modifier mon avis' : 'Donner mon avis'}
-          </h3>
-          <button
-            onClick={onClose}
-            aria-label="Fermer"
-            style={{
-              border: 'none',
-              background: 'var(--surface)',
-              borderRadius: '50%',
-              width: 32,
-              height: 32,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: 'var(--text-2)',
-            }}
-          >
-            <X size={17} />
-          </button>
-        </div>
-        <p style={{ fontSize: 12.5, color: 'var(--text-2)', margin: '4px 0 16px' }}>{placeName}</p>
-
         {/* Star picker */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
           {[1, 2, 3, 4, 5].map((n) => {
@@ -188,7 +146,7 @@ export default function ReviewComposer({ initial, placeName, onClose, onSubmit, 
                   cursor: 'pointer',
                   lineHeight: 0,
                   transform: rating === n ? 'scale(1.14)' : 'scale(1)',
-                  transition: 'transform 140ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  transition: 'transform 140ms var(--ease-out)',
                 }}
               >
                 <Star
@@ -361,14 +319,6 @@ export default function ReviewComposer({ initial, placeName, onClose, onSubmit, 
           </button>
         </div>
       </div>
-    </div>
+    </Sheet>
   )
-
-  // Portal to <body>: the composer renders inside ReviewsSection, which is a
-  // child of PlaceDetail's `.cascade` — and a `.cascade` child keeps a transform
-  // from its entry animation. A transformed ancestor becomes the containing block
-  // for `position: fixed`, so without this the sheet was trapped INSIDE the
-  // reviews block: no full-screen overlay, the "modal" sitting mid-page.
-  if (typeof document === 'undefined') return null
-  return createPortal(sheet, document.body)
 }

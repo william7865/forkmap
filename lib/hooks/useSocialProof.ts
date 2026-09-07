@@ -5,20 +5,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { PlaceCard, FriendLite } from '@/types'
 import { apiFetch } from '@/lib/api'
-import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
+import { getAuthHeaders } from '@/lib/auth-headers'
 
 const MAX_IDS = 80
-
-async function authHeaders(): Promise<Record<string, string>> {
-  try {
-    const {
-      data: { session },
-    } = await getSupabaseBrowserClient().auth.getSession()
-    return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
-  } catch {
-    return {}
-  }
-}
 
 export function useSocialProof(places: PlaceCard[]): PlaceCard[] {
   const [proof, setProof] = useState<Record<string, FriendLite[]>>({})
@@ -43,7 +32,7 @@ export function useSocialProof(places: PlaceCard[]): PlaceCard[] {
       return
     }
     let cancelled = false
-    authHeaders().then((headers) => {
+    getAuthHeaders().then((headers) => {
       if (cancelled || !headers.Authorization) return
       apiFetch('/api/places/social-batch', {
         method: 'POST',

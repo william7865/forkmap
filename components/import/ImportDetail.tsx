@@ -38,7 +38,7 @@ import ImportCaption from '@/components/import/ImportCaption'
 import { searchPlacesOnce, type PlaceSearchResult } from '@/lib/hooks/usePlaceSearch'
 import { placeGradient } from '@/lib/gradients'
 import { apiFetch } from '@/lib/api'
-import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
+import { getAuthHeaders } from '@/lib/auth-headers'
 import { setPendingSelect } from '@/lib/pendingSelect'
 import { useToast, type ToastType } from '@/lib/hooks/useToast'
 import ToastStack from '@/components/ui/ToastStack'
@@ -55,17 +55,6 @@ const PLATFORM_LABEL: Record<ImportPlatform, string | null> = {
   instagram: 'Instagram',
   youtube: 'YouTube',
   other: null,
-}
-
-async function authHeaders(): Promise<Record<string, string>> {
-  try {
-    const {
-      data: { session },
-    } = await getSupabaseBrowserClient().auth.getSession()
-    return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
-  } catch {
-    return {}
-  }
 }
 
 const EYEBROW = {
@@ -904,7 +893,7 @@ function ResolvedBlock({
   useEffect(() => {
     let cancelled = false
     void (async () => {
-      const headers = await authHeaders()
+      const headers = await getAuthHeaders()
       if (!headers.Authorization) return
       const res = await apiFetch('/api/favorites', { headers })
       if (!res.ok || cancelled) return
@@ -923,7 +912,7 @@ function ResolvedBlock({
     const next = !saved
     setSaved(next) // optimistic
     try {
-      const headers = await authHeaders()
+      const headers = await getAuthHeaders()
       const res = next
         ? await apiFetch('/api/favorites', {
             method: 'POST',

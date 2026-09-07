@@ -4,9 +4,10 @@
 // reinstall / new device. pullCloudNotes() merges the cloud copy on mount.
 'use client'
 import React, { useState } from 'react'
+import { Dialog } from '@/components/ui/Sheet'
 import type { PlaceCard } from '@/types'
 import { apiFetch } from '@/lib/api'
-import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
+import { getAuthHeaders } from '@/lib/auth-headers'
 
 const STORAGE_KEY = 'forkmap_notes_v1'
 
@@ -29,19 +30,8 @@ export function saveNote(osmId: string, note: string) {
   void syncNoteToCloud(osmId, note.trim()) // fire-and-forget
 }
 
-async function authHeaders(): Promise<Record<string, string>> {
-  try {
-    const {
-      data: { session },
-    } = await getSupabaseBrowserClient().auth.getSession()
-    return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
-  } catch {
-    return {}
-  }
-}
-
 async function syncNoteToCloud(osmId: string, text: string): Promise<void> {
-  const headers = await authHeaders()
+  const headers = await getAuthHeaders()
   if (!headers.Authorization) return // logged out → local-only, synced on next login
   try {
     await apiFetch('/api/notes', {
@@ -61,7 +51,7 @@ async function syncNoteToCloud(osmId: string, text: string): Promise<void> {
  */
 export async function pullCloudNotes(): Promise<void> {
   if (typeof window === 'undefined') return
-  const headers = await authHeaders()
+  const headers = await getAuthHeaders()
   if (!headers.Authorization) return
   try {
     const res = await apiFetch('/api/notes', { headers })
@@ -133,40 +123,14 @@ export default function NoteModal({ place, onClose, onSaved }: Props) {
   const cuisine = place.cuisine ?? place.fsq?.categories?.[0]?.name
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9100,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 20,
-      }}
-      onClick={onClose}
+    <Dialog
+      ariaLabel="Note personnelle"
+      onClose={onClose}
+      zIndex={9100}
+      maxWidth={400}
+      style={{ background: 'var(--white)' }}
     >
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'rgba(14,14,13,0.5)',
-          backdropFilter: 'blur(8px)',
-        }}
-      />
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          position: 'relative',
-          background: 'var(--white)',
-          borderRadius: 'var(--r-xl)',
-          width: '100%',
-          maxWidth: 400,
-          boxShadow: '0 32px 80px rgba(14,14,13,0.22), 0 0 0 1px rgba(14,14,13,0.07)',
-          overflow: 'hidden',
-          animation: 'scaleIn 220ms var(--ease-spring) backwards',
-          fontFamily: 'var(--font-body)',
-        }}
-      >
+      <div>
         {/* Header */}
         <div
           style={{
@@ -365,7 +329,6 @@ export default function NoteModal({ place, onClose, onSaved }: Props) {
           </div>
         </div>
       </div>
-      <style>{`@keyframes scaleIn{from{opacity:0;transform:scale(0.93) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}`}</style>
-    </div>
+    </Dialog>
   )
 }

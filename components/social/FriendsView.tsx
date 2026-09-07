@@ -1,12 +1,11 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { Search, UserPlus, Check, X, Clock, ChevronLeft } from 'lucide-react'
-import { Avatar } from '@/components/social/Avatar'
+import { Search, UserPlus, Check, X, Clock } from 'lucide-react'
+import UserRow from '@/components/social/UserRow'
 import PublicProfile from '@/components/social/PublicProfile'
 import { useFriends } from '@/lib/hooks/useFriends'
 import { apiFetch } from '@/lib/api'
 import { getAuthHeaders } from '@/lib/auth-headers'
-import { staggerDelay } from '@/lib/motion'
 import type { UserSearchResult, FriendSuggestion } from '@/types'
 
 export default function FriendsView({ onClose }: { onClose?: () => void }) {
@@ -93,7 +92,8 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
             marginLeft: -4,
           }}
         >
-          <ChevronLeft size={26} />
+          {/* Vue modale (slideUp) → fermeture X, pas un chevron de navigation */}
+          <X size={24} strokeWidth={1.9} />
         </button>
         <h1
           className="anim-fade-up"
@@ -149,7 +149,7 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
           {searching && <Muted>Recherche…</Muted>}
           {!searching && results.length === 0 && <Muted>Aucun utilisateur trouvé.</Muted>}
           {results.map((u) => (
-            <PersonRow
+            <UserRow
               key={u.id}
               name={u.display_name}
               username={u.username}
@@ -180,7 +180,7 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
                 />
               )}
               {u.status === 'friends' && <Tag icon={<Check size={13} />} label="Amis" />}
-            </PersonRow>
+            </UserRow>
           ))}
         </div>
       )}
@@ -189,7 +189,7 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
       {requests.received.length > 0 && (
         <Section title="Demandes reçues">
           {requests.received.map((p, i) => (
-            <PersonRow
+            <UserRow
               key={p.id}
               name={p.display_name}
               username={p.username}
@@ -207,7 +207,7 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
               <IconBtn onClick={() => decline(p.id)} aria-label="Refuser">
                 <X size={16} />
               </IconBtn>
-            </PersonRow>
+            </UserRow>
           ))}
         </Section>
       )}
@@ -216,7 +216,7 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
       {requests.sent.length > 0 && (
         <Section title="Demandes envoyées">
           {requests.sent.map((p, i) => (
-            <PersonRow
+            <UserRow
               key={p.id}
               name={p.display_name}
               username={p.username}
@@ -226,7 +226,7 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
               onOpen={() => setViewing(p.username)}
             >
               <Tag icon={<Clock size={13} />} label="En attente" />
-            </PersonRow>
+            </UserRow>
           ))}
         </Section>
       )}
@@ -238,7 +238,7 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
           <Muted>Aucun ami pour l&apos;instant. Cherche un @pseudo pour commencer.</Muted>
         )}
         {friends.map((p, i) => (
-          <PersonRow
+          <UserRow
             key={p.id}
             name={p.display_name}
             username={p.username}
@@ -248,7 +248,7 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
             onOpen={() => setViewing(p.username)}
           >
             <Tag icon={<Check size={13} />} label="Ami" />
-          </PersonRow>
+          </UserRow>
         ))}
       </Section>
 
@@ -256,7 +256,7 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
       {q.trim().length < 2 && suggestions.length > 0 && (
         <Section title="Personnes que tu connais peut-être">
           {suggestions.map((s, i) => (
-            <PersonRow
+            <UserRow
               key={s.id}
               name={s.display_name}
               username={s.username}
@@ -274,7 +274,7 @@ export default function FriendsView({ onClose }: { onClose?: () => void }) {
                 icon={<UserPlus size={15} />}
                 label="Ajouter"
               />
-            </PersonRow>
+            </UserRow>
           ))}
         </Section>
       )}
@@ -301,80 +301,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
         {title}
       </h2>
       {children}
-    </div>
-  )
-}
-
-function PersonRow({
-  name,
-  username,
-  src,
-  id,
-  onOpen,
-  children,
-  subtitle,
-  index,
-}: {
-  name: string
-  username: string
-  src: string | null
-  id: string
-  onOpen: () => void
-  children: React.ReactNode
-  subtitle?: string
-  /** When set, the row cascades in on mount (stable lists only, not live search). */
-  index?: number
-}) {
-  return (
-    <div
-      className={index !== undefined ? 'anim-fade-up' : undefined}
-      style={{
-        animationDelay: index !== undefined ? staggerDelay(index) : undefined,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 13,
-        padding: '11px 0',
-      }}
-    >
-      {/* Avatar + nom : zone cliquable vers le profil */}
-      <button
-        onClick={onOpen}
-        className="tap-press"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 13,
-          flex: 1,
-          minWidth: 0,
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          padding: 0,
-          textAlign: 'left',
-        }}
-      >
-        <Avatar name={name} src={src} id={id} size={54} />
-        <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-          <strong
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontWeight: 600,
-              fontSize: 16.5,
-              letterSpacing: '-0.01em',
-              color: 'var(--text)',
-            }}
-          >
-            {name}
-          </strong>
-          <span style={{ color: 'var(--text-3)', fontSize: 13, marginTop: 2 }}>
-            {subtitle ?? `@${username}`}
-          </span>
-        </span>
-      </button>
-      {/* Boutons d'action : hors de la zone de navigation */}
-      <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-        {children}
-      </span>
     </div>
   )
 }

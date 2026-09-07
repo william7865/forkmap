@@ -43,6 +43,7 @@ import { SigSparkle } from '@/components/icons/signature'
 import type { LucideProps } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { frCuisine } from '@/lib/cuisine'
+import { priceLabel } from '@/lib/format'
 
 // Humeurs food du deck → icônes lucide (remplace les emojis 🍝🥗🥂⚡🧭)
 const MOOD_ICONS: Record<string, ComponentType<LucideProps>> = {
@@ -908,7 +909,7 @@ function DeckCard({
     if (price != null)
       meta.push(
         <span key="price" style={{ color: 'var(--text-3)', fontWeight: 600 }}>
-          {'€'.repeat(price)}
+          {priceLabel(price)}
         </span>
       )
     if (p.open_now != null)
@@ -1546,7 +1547,7 @@ function DeckCard({
           )}
           {price != null && (
             <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.7)' }}>
-              {'€'.repeat(price)}
+              {priceLabel(price)}
             </span>
           )}
           {p.open_now != null && (

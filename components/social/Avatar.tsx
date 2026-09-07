@@ -1,11 +1,7 @@
 'use client'
 import Image from 'next/image'
 import { placeGradient } from '@/lib/gradients'
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).slice(0, 2)
-  return parts.map((p) => p[0]?.toUpperCase() ?? '').join('') || '?'
-}
+import { initials } from '@/lib/format'
 
 export function Avatar({
   name,

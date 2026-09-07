@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import StepShell from '@/components/auth/StepShell'
 import { ErrorText } from '@/components/auth/steps/WelcomeStep'
-import { Spinner } from '@/components/auth/steps/Spinner'
+import { Spinner } from '@/components/states/Spinner'
 import type { useAuthFlow } from '@/lib/hooks/useAuthFlow'
 
 type Status =

@@ -5,7 +5,8 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useAuth, getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { apiFetch } from '@/lib/api'
-import { Check, Eye, EyeOff, LogOut, Trash2 } from 'lucide-react'
+import { Check, LogOut, Trash2 } from 'lucide-react'
+import PwField, { fieldLabel } from '@/components/settings/PwField'
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -342,6 +343,10 @@ export default function AccountSettingsContent({ isMobile }: { isMobile: boolean
                 show={showPw}
                 onToggle={() => setShowPw((v) => !v)}
                 placeholder="Min. 8 caractères"
+                inputStyle={{ ...inputStyle, paddingRight: 40 }}
+                onFocus={(e) => Object.assign(e.currentTarget.style, focusStyle)}
+                onBlur={(e) => Object.assign(e.currentTarget.style, blurStyle)}
+                iconSize={15}
               />
               <PwField
                 label="Confirmer le mot de passe"
@@ -350,6 +355,10 @@ export default function AccountSettingsContent({ isMobile }: { isMobile: boolean
                 show={showPw}
                 onToggle={() => setShowPw((v) => !v)}
                 placeholder="Répétez le mot de passe"
+                inputStyle={{ ...inputStyle, paddingRight: 40 }}
+                onFocus={(e) => Object.assign(e.currentTarget.style, focusStyle)}
+                onBlur={(e) => Object.assign(e.currentTarget.style, blurStyle)}
+                iconSize={15}
               />
               {pwError && (
                 <p style={{ margin: 0, fontSize: 12, color: 'var(--coral)', fontWeight: 600 }}>
@@ -637,69 +646,6 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
       {children}
     </div>
   )
-}
-
-function PwField({
-  label,
-  value,
-  onChange,
-  show,
-  onToggle,
-  placeholder,
-}: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-  show: boolean
-  onToggle: () => void
-  placeholder: string
-}) {
-  return (
-    <div>
-      <label style={fieldLabel}>{label}</label>
-      <div style={{ position: 'relative' }}>
-        <input
-          type={show ? 'text' : 'password'}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          aria-label={label}
-          style={{ ...inputStyle, paddingRight: 40 }}
-          onFocus={(e) => Object.assign(e.currentTarget.style, focusStyle)}
-          onBlur={(e) => Object.assign(e.currentTarget.style, blurStyle)}
-        />
-        <button
-          onClick={onToggle}
-          type="button"
-          aria-label={show ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-          style={{
-            position: 'absolute',
-            right: 12,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--text-3)',
-            display: 'flex',
-            padding: 2,
-          }}
-        >
-          {show ? <EyeOff size={15} strokeWidth={2} /> : <Eye size={15} strokeWidth={2} />}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-const fieldLabel: React.CSSProperties = {
-  display: 'block',
-  fontSize: 10,
-  fontWeight: 700,
-  letterSpacing: '0.12em',
-  textTransform: 'uppercase',
-  color: 'var(--text-3)',
-  marginBottom: 8,
 }
 
 const inputStyle: React.CSSProperties = {

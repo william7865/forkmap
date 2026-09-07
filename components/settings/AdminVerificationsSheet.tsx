@@ -2,7 +2,8 @@
 // AdminVerificationsSheet — moderate pending verification requests (admin only).
 // The route is admin-gated; this UI simply renders what it returns.
 import { useEffect, useState } from 'react'
-import { X, ExternalLink } from 'lucide-react'
+import { ExternalLink } from 'lucide-react'
+import { Dialog, SheetHeader } from '@/components/ui/Sheet'
 import type { VerificationRequestWithProfile } from '@/types'
 import { apiFetch } from '@/lib/api'
 import { getAuthHeaders } from '@/lib/auth-headers'
@@ -39,70 +40,10 @@ export default function AdminVerificationsSheet({ onClose }: { onClose: () => vo
   }
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 3000,
-        background: 'rgba(0,0,0,0.45)',
-        display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="anim-slide-up"
-        style={{
-          width: '100%',
-          maxWidth: 520,
-          background: 'var(--white)',
-          borderRadius: '20px 20px 0 0',
-          padding: '18px 18px calc(20px + var(--safe-bottom))',
-          maxHeight: '88vh',
-          overflowY: 'auto',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 14,
-          }}
-        >
-          <h3
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 19,
-              fontWeight: 600,
-              color: 'var(--text)',
-              margin: 0,
-            }}
-          >
-            Demandes de vérification
-          </h3>
-          <button
-            onClick={onClose}
-            aria-label="Fermer"
-            style={{
-              border: 'none',
-              background: 'var(--surface)',
-              borderRadius: '50%',
-              width: 32,
-              height: 32,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: 'var(--text-2)',
-            }}
-          >
-            <X size={17} />
-          </button>
-        </div>
+    <Dialog ariaLabel="Demandes de vérification" onClose={onClose} zIndex={3000}>
+      <SheetHeader title="Demandes de vérification" onClose={onClose} align="left" />
 
+      <div style={{ overflowY: 'auto', padding: '2px 16px 18px' }}>
         {loading ? (
           <p style={{ fontSize: 13, color: 'var(--text-3)' }}>Chargement…</p>
         ) : items.length === 0 ? (
@@ -210,6 +151,6 @@ export default function AdminVerificationsSheet({ onClose }: { onClose: () => vo
           </div>
         )}
       </div>
-    </div>
+    </Dialog>
   )
 }

@@ -6,11 +6,9 @@
 
 import React, { Suspense, useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { createPortal } from 'react-dom'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { FavoriteRow, PlaceCard } from '@/types'
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
-import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { PageHeader, GlobalFooter } from '@/components/ui/PageLayout'
 import { getNotes, getNote, saveNote } from '@/components/place/NoteModal'
 import { apiFetch } from '@/lib/api'
@@ -25,79 +23,28 @@ import CollaboratorsSheet from '@/components/lists/CollaboratorsSheet'
 import { Avatar } from '@/components/social/Avatar'
 import { CreateListModal } from '@/components/lists/CreateListModal'
 import PollCreate from '@/components/poll/PollCreate'
-import { SaveToListPopup } from '@/components/lists/SaveToListPopup'
 import { placeGradient } from '@/lib/gradients'
-import { placeInitial, placePhotoUrl } from '@/components/place/PlaceThumb'
 import { frCuisine } from '@/lib/cuisine'
+import ActionSheet from '@/components/ui/ActionSheet'
+import { nativeShare } from '@/lib/native/share'
+import PullToRefresh from '@/components/ui/PullToRefresh'
+import { Plus, Vote, ChevronRight } from 'lucide-react'
 import { setPendingSelect } from '@/lib/pendingSelect'
-import { staggerDelay } from '@/lib/motion'
-
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  try {
-    const sb = getSupabaseBrowserClient()
-    const {
-      data: { session },
-    } = await sb.auth.getSession()
-    if (!session?.access_token) return {}
-    return { Authorization: `Bearer ${session.access_token}` }
-  } catch {
-    return {}
-  }
-}
+import {
+  NativeListRow,
+  FavCardList,
+  ListItemRowNative,
+  FavCardGrid,
+  favPhoto,
+  IcoStar,
+  IcoListPlus,
+  IcoTrash,
+  IcoPen,
+  type ListItemEntry,
+} from '@/components/favorites/FavCards'
+import { getAuthHeaders } from '@/lib/auth-headers'
 
 // ── Icons ─────────────────────────────────────────────────
-const IcoTrash = () => (
-  <svg
-    width="13"
-    height="13"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.7"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polyline points="3 6 5 6 21 6" />
-    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-    <path d="M10 11v6M14 11v6" />
-  </svg>
-)
-const IcoStar = () => (
-  <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-  </svg>
-)
-const IcoShare = () => (
-  <svg
-    width="13"
-    height="13"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.7"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-    <polyline points="16 6 12 2 8 6" />
-    <line x1="12" y1="2" x2="12" y2="15" />
-  </svg>
-)
-const IcoPen = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.7"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M12 20h9" />
-    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-  </svg>
-)
 const IcoCheck = () => (
   <svg
     width="13"
@@ -186,14 +133,6 @@ const IcoList = () => (
 type SortKey = 'date_desc' | 'date_asc' | 'name' | 'rating'
 type ViewMode = 'list' | 'grid'
 
-interface ListItemEntry {
-  id: string
-  list_id: string
-  osm_id: string
-  place_snapshot: Record<string, unknown>
-  added_at: string
-}
-
 // ── Delete modal ──────────────────────────────────────────
 function DeleteModal({
   name,
@@ -204,6 +143,7 @@ function DeleteModal({
   onConfirm: () => void
   onCancel: () => void
 }) {
+  const native = useIsNative()
   // Escape key handler
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -212,6 +152,17 @@ function DeleteModal({
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [onCancel])
+
+  // Natif : confirmation destructive = action sheet iOS, pas de modale centrée.
+  if (native) {
+    return (
+      <ActionSheet
+        title={name}
+        actions={[{ label: 'Supprimer', icon: <IcoTrash />, onClick: onConfirm, danger: true }]}
+        onClose={onCancel}
+      />
+    )
+  }
 
   return (
     <div
@@ -568,6 +519,15 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fav.name)}&query_place_id=${fav.lat},${fav.lon}`
   const text = `🍴 ${fav.name}${fav.snapshot?.cuisine ? ` · ${fav.snapshot.cuisine}` : ''}, repéré sur Forkmap`
   const full = `${text}\n${mapsUrl}`
+  const native = useIsNative()
+
+  // Natif : la share sheet iOS remplace le tiroir web (canaux window.open).
+  useEffect(() => {
+    if (!native) return
+    nativeShare({ title: fav.name, text, url: mapsUrl }).finally(onClose)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot on mount
+  }, [native])
+  if (native) return null
 
   const copy = async () => {
     await navigator.clipboard.writeText(full).catch(() => {})
@@ -798,48 +758,6 @@ function ShareDrawer({ fav, onClose }: { fav: FavoriteRow; onClose: () => void }
   )
 }
 
-// ── Fav card — liste ──────────────────────────────────────
-function favPhoto(fav: FavoriteRow, w = 240): string | null {
-  // Mêmes sources que PlaceThumb : Google/FSQ → Wikimedia → Wikidata (plus de
-  // Mapillary). Le snapshot EST un PlaceCard.
-  return fav.snapshot ? placePhotoUrl(fav.snapshot as unknown as PlaceCard, w) : null
-}
-
-/**
- * Snapshot photos are plain `<img>`, never `next/image`.
- *
- * A snapshot stores whatever URL the client held when the place was saved, and a
- * mobile build stamps an absolute `https://forkmap.vercel.app/api/places/google-photo?…`
- * prefix. `next/image` throws "Invalid src prop" on any host missing from
- * `images.remotePatterns`, which took the whole page down with it. The proxy already
- * serves a sized image, so there is nothing left to optimise. On error the tile falls
- * back to its gradient, exactly like PlaceThumb does everywhere else.
- */
-function FavPhoto({ src }: { src: string }) {
-  const [broken, setBroken] = useState(false)
-  if (broken) return null
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt=""
-      loading="lazy"
-      onError={() => setBroken(true)}
-      style={{
-        position: 'absolute',
-        inset: 0,
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover',
-      }}
-    />
-  )
-}
-
-const MetaDot = () => (
-  <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--text-4)' }} />
-)
-
 // Pilule de filtre — active = fond accent / blanc.
 function chipStyle(active: boolean): React.CSSProperties {
   return {
@@ -865,25 +783,9 @@ function chipStyle(active: boolean): React.CSSProperties {
 }
 
 // Pilule d'action à la Albo (« ＋ Ajouter », « Décider pour moi ») — contour discret.
-const favPillStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 8,
-  height: 46,
-  padding: '0 20px',
-  borderRadius: 999,
-  border: '1px solid var(--border-strong)',
-  background: 'transparent',
-  color: 'var(--text)',
-  fontFamily: 'var(--font-body)',
-  fontSize: 15,
-  fontWeight: 600,
-  cursor: 'pointer',
-}
-
 const icoBtnStyle: React.CSSProperties = {
-  width: 38,
-  height: 38,
+  width: 44,
+  height: 44,
   borderRadius: '50%',
   background: 'var(--surface)',
   border: '1px solid var(--border)',
@@ -926,14 +828,18 @@ function SecHead({
       >
         {title}
       </h2>
-      {action && (
+      {action && onAction && (
         <button
           type="button"
           onClick={onAction}
+          className="tap-press"
           style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 2,
             border: 'none',
             background: 'none',
-            padding: 0,
+            padding: '6px 0 6px 12px',
             cursor: 'pointer',
             fontFamily: 'var(--font-body)',
             fontSize: 13,
@@ -942,211 +848,20 @@ function SecHead({
           }}
         >
           {action}
+          <ChevronRight size={14} strokeWidth={2.2} style={{ marginTop: 1 }} />
         </button>
       )}
-    </div>
-  )
-}
-
-const IcoUtensils = () => (
-  <svg
-    width="22"
-    height="22"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.6"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M3 2v7c0 1.1.9 2 2 2h0a2 2 0 0 0 2-2V2M5 2v20M11 2v7M11 2a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3v9" />
-  </svg>
-)
-
-const IcoListPlus = () => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M3 6h11M3 12h8M3 18h8" />
-    <path d="M16 16h6M19 13v6" />
-  </svg>
-)
-
-const IcoDots = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-    <circle cx="5" cy="12" r="2" />
-    <circle cx="12" cy="12" r="2" />
-    <circle cx="19" cy="12" r="2" />
-  </svg>
-)
-
-// One "⋯" button → a portal menu of card actions (declutters the cards)
-function CardActionsMenu({
-  buttonRef,
-  items,
-}: {
-  buttonRef: React.RefObject<HTMLButtonElement>
-  items: { label: string; icon: React.ReactNode; onClick: () => void; danger?: boolean }[]
-}) {
-  const [open, setOpen] = useState(false)
-  const [pos, setPos] = useState({ top: 0, right: 0 })
-  const menuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const r = buttonRef.current?.getBoundingClientRect()
-    if (r) setPos({ top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) })
-    const onDown = (e: MouseEvent) => {
-      if (menuRef.current?.contains(e.target as Node)) return
-      if (buttonRef.current?.contains(e.target as Node)) return
-      setOpen(false)
-    }
-    const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
-    const t = setTimeout(() => document.addEventListener('mousedown', onDown), 0)
-    document.addEventListener('keydown', onEsc)
-    return () => {
-      clearTimeout(t)
-      document.removeEventListener('mousedown', onDown)
-      document.removeEventListener('keydown', onEsc)
-    }
-  }, [open, buttonRef])
-
-  return (
-    <>
-      <ActionBtn
-        btnRef={buttonRef}
-        icon={<IcoDots />}
-        label="Actions"
-        active={open}
-        onClick={() => setOpen((v) => !v)}
-        small
-      />
-      {open &&
-        typeof document !== 'undefined' &&
-        createPortal(
-          <div
-            ref={menuRef}
-            style={{
-              position: 'fixed',
-              top: pos.top,
-              right: pos.right,
-              zIndex: 99999,
-              background: 'var(--bg)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--r-lg)',
-              boxShadow: 'var(--s3)',
-              minWidth: 184,
-              overflow: 'hidden',
-              padding: '4px 0',
-              animation: 'scaleIn 140ms var(--ease-out) backwards',
-              transformOrigin: 'top right',
-              fontFamily: 'var(--font-body)',
-            }}
-          >
-            {items.map((it) => (
-              <button
-                key={it.label}
-                onClick={() => {
-                  setOpen(false)
-                  it.onClick()
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  width: '100%',
-                  padding: '10px 14px',
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: it.danger ? 'var(--coral)' : 'var(--text)',
-                  textAlign: 'left',
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = it.danger
-                    ? 'var(--coral-pale)'
-                    : 'var(--surface)')
-                }
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-              >
-                <span
-                  style={{ display: 'flex', color: it.danger ? 'var(--coral)' : 'var(--text-3)' }}
-                >
-                  {it.icon}
-                </span>
-                {it.label}
-              </button>
-            ))}
-          </div>,
-          document.body
-        )}
-    </>
-  )
-}
-
-// Menu ⋯ d'une ligne-collection (natif) — réutilise CardActionsMenu.
-function ListRowMenu({
-  onRename,
-  onCollab,
-  onDelete,
-}: {
-  onRename: () => void
-  onCollab: () => void
-  onDelete: () => void
-}) {
-  const ref = useRef<HTMLButtonElement>(null)
-  return (
-    <CardActionsMenu
-      buttonRef={ref}
-      items={[
-        { label: 'Renommer', icon: <IcoPen />, onClick: onRename },
-        { label: 'Collaborateurs', icon: <IcoListPlus />, onClick: onCollab },
-        { label: 'Supprimer', icon: <IcoTrash />, onClick: onDelete, danger: true },
-      ]}
-    />
-  )
-}
-
-function Checkbox({ checked, overlay }: { checked: boolean; overlay?: boolean }) {
-  return (
-    <div
-      style={{
-        width: 22,
-        height: 22,
-        borderRadius: '50%',
-        flexShrink: 0,
-        border: `2px solid ${checked ? 'var(--ember)' : overlay ? 'rgba(255,255,255,0.9)' : 'var(--border-strong)'}`,
-        background: checked ? 'var(--ember)' : overlay ? 'rgba(0,0,0,0.25)' : 'transparent',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        transition: 'all 120ms ease',
-        marginTop: overlay ? 0 : 15,
-        boxShadow: overlay ? '0 1px 4px rgba(0,0,0,0.25)' : 'none',
-      }}
-    >
-      {checked && (
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#fff"
-          strokeWidth="3.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+      {action && !onAction && (
+        <span
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: 13,
+            fontWeight: 600,
+            color: 'var(--text-3)',
+          }}
         >
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
+          {action}
+        </span>
       )}
     </div>
   )
@@ -1267,879 +982,6 @@ function BulkListModal({
   )
 }
 
-function FavCardList({
-  fav,
-  index,
-  note,
-  visited,
-  onRemove,
-  onOpenMap,
-  onShare,
-  onNote,
-  onListsChanged,
-  selectMode,
-  selected,
-  onToggleSelect,
-  sourceLabel,
-}: {
-  fav: FavoriteRow
-  index: number
-  note: string
-  visited?: boolean
-  onRemove: () => void
-  onOpenMap: () => void
-  onShare: () => void
-  onNote: () => void
-  onListsChanged?: () => void
-  selectMode?: boolean
-  selected?: boolean
-  onToggleSelect?: () => void
-  sourceLabel?: string | null
-}) {
-  const cuisine = fav.snapshot?.cuisine ?? fav.snapshot?.fsq?.categories?.[0]?.name
-  const rating = fav.snapshot?.fsq?.rating
-  const openNow = fav.snapshot?.open_now
-  const photo = favPhoto(fav)
-  const listBtnRef = useRef<HTMLButtonElement>(null)
-  const [showLists, setShowLists] = useState(false)
-  const primary = selectMode ? onToggleSelect! : onOpenMap
-  const nativeFav = useIsNative()
-
-  const actionItems = [
-    {
-      label: 'Ajouter à une liste',
-      icon: <IcoListPlus />,
-      onClick: () => setShowLists(true),
-    },
-    {
-      label: note ? 'Modifier la note' : 'Ajouter une note',
-      icon: <IcoPen />,
-      onClick: onNote,
-    },
-    { label: 'Partager', icon: <IcoShare />, onClick: onShare },
-    { label: 'Retirer', icon: <IcoTrash />, onClick: onRemove, danger: true },
-  ]
-
-  // ── App native : ligne « bibliothèque » (photo 66 + méta + ⋯) ──
-  if (nativeFav) {
-    return (
-      <div
-        className="anim-card-in"
-        onClick={selectMode ? onToggleSelect : undefined}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 13,
-          animationDelay: staggerDelay(index),
-          cursor: selectMode ? 'pointer' : 'default',
-        }}
-      >
-        {selectMode && <Checkbox checked={!!selected} />}
-
-        {/* Photo — repli dégradé + initiale serif */}
-        <button
-          type="button"
-          onClick={primary}
-          aria-label={selectMode ? `Sélectionner ${fav.name}` : `Voir ${fav.name} sur la carte`}
-          style={{
-            position: 'relative',
-            width: 72,
-            height: 72,
-            borderRadius: 16,
-            overflow: 'hidden',
-            flexShrink: 0,
-            background: placeGradient(fav.osm_id),
-            border: selected ? '2px solid var(--accent)' : 'none',
-            boxShadow: 'var(--s1)',
-            cursor: 'pointer',
-            padding: 0,
-          }}
-        >
-          {photo ? (
-            <FavPhoto src={photo} />
-          ) : (
-            <span
-              aria-hidden
-              style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontFamily: 'var(--font-display)',
-                fontSize: 28,
-                fontWeight: 600,
-                color: 'rgba(255,255,255,0.92)',
-              }}
-            >
-              {placeInitial(fav.snapshot?.name ?? fav.name)}
-            </span>
-          )}
-        </button>
-
-        {/* Corps — nom serif + méta */}
-        <button
-          type="button"
-          onClick={primary}
-          style={{
-            flex: 1,
-            minWidth: 0,
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            cursor: 'pointer',
-            textAlign: 'left',
-            fontFamily: 'inherit',
-          }}
-        >
-          <p
-            style={{
-              margin: 0,
-              // Albo grammar: venue names in bold sans (the serif is reserved for
-              // the big screen title), tighter and a touch larger.
-              fontFamily: 'var(--font-body)',
-              fontSize: 18,
-              fontWeight: 700,
-              color: 'var(--text)',
-              letterSpacing: '-0.01em',
-              lineHeight: 1.15,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {fav.name}
-          </p>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 9,
-              marginTop: 5,
-              flexWrap: 'wrap',
-            }}
-          >
-            {rating != null && (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 3,
-                  fontSize: 11.5,
-                  fontWeight: 700,
-                  color: 'var(--text)',
-                }}
-              >
-                <span style={{ color: 'var(--star)', display: 'flex' }}>
-                  <IcoStar />
-                </span>
-                {rating.toFixed(1)}
-              </span>
-            )}
-            {cuisine && (
-              <>
-                {rating != null && <MetaDot />}
-                <span style={{ fontSize: 12.5, color: 'var(--text-2)' }}>{frCuisine(cuisine)}</span>
-              </>
-            )}
-            {openNow != null && (
-              <>
-                {(rating != null || cuisine) && <MetaDot />}
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                    color: openNow ? 'var(--open)' : 'var(--closed)',
-                  }}
-                >
-                  <span
-                    style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }}
-                  />
-                  {openNow ? 'Ouvert' : 'Fermé'}
-                </span>
-              </>
-            )}
-            {sourceLabel && (
-              <span style={{ fontSize: 11, color: 'var(--text-3)' }}>· {sourceLabel}</span>
-            )}
-            {visited && (
-              <span
-                title="Déjà testé"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 3,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: 'var(--open)',
-                }}
-              >
-                <svg
-                  width="11"
-                  height="11"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                Testé
-              </span>
-            )}
-            {note && (
-              <span
-                title="Note personnelle"
-                style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }}
-              />
-            )}
-          </div>
-        </button>
-
-        {/* Actions */}
-        {!selectMode && (
-          <div style={{ flexShrink: 0 }}>
-            <CardActionsMenu buttonRef={listBtnRef} items={actionItems} />
-          </div>
-        )}
-
-        {showLists && (
-          <SaveToListPopup
-            osmId={fav.osm_id}
-            placeSnapshot={fav.snapshot as unknown as Record<string, unknown>}
-            anchorRef={listBtnRef}
-            onClose={() => {
-              setShowLists(false)
-              onListsChanged?.()
-            }}
-          />
-        )}
-      </div>
-    )
-  }
-
-  return (
-    <div
-      className="anim-card-in"
-      onClick={selectMode ? onToggleSelect : undefined}
-      style={{
-        background: selected ? 'var(--ember-light)' : 'var(--bg)',
-        borderRadius: 'var(--r-xl)',
-        padding: 12,
-        display: 'flex',
-        gap: 13,
-        alignItems: 'center',
-        border: `1px solid ${selected ? 'var(--ember)' : 'var(--border)'}`,
-        boxShadow: 'var(--s1)',
-        animationDelay: staggerDelay(index),
-        cursor: selectMode ? 'pointer' : 'default',
-        transition: 'box-shadow 160ms ease, transform 160ms ease, border-color 160ms ease',
-      }}
-      onMouseEnter={(e) => {
-        if (selectMode) return
-        e.currentTarget.style.boxShadow = 'var(--s3)'
-        e.currentTarget.style.transform = 'translateY(-2px)'
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = 'var(--s1)'
-        e.currentTarget.style.transform = 'translateY(0)'
-      }}
-    >
-      {selectMode && <Checkbox checked={!!selected} />}
-
-      {/* Thumbnail — photo or warm fallback */}
-      <button
-        type="button"
-        onClick={primary}
-        aria-label={selectMode ? `Sélectionner ${fav.name}` : `Voir ${fav.name} sur la carte`}
-        style={{
-          position: 'relative',
-          width: 68,
-          height: 68,
-          borderRadius: 'var(--r-lg)',
-          overflow: 'hidden',
-          background: placeGradient(fav.osm_id),
-          border: 'none',
-          flexShrink: 0,
-          cursor: 'pointer',
-          padding: 0,
-        }}
-      >
-        {photo ? (
-          <FavPhoto src={photo} />
-        ) : (
-          <span
-            style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'rgba(255,255,255,0.85)',
-            }}
-          >
-            <IcoUtensils />
-          </span>
-        )}
-      </button>
-
-      {/* Content */}
-      <button
-        type="button"
-        onClick={primary}
-        style={{
-          flex: 1,
-          minWidth: 0,
-          background: 'none',
-          border: 'none',
-          padding: 0,
-          cursor: 'pointer',
-          textAlign: 'left',
-          fontFamily: 'inherit',
-        }}
-      >
-        <p
-          style={{
-            margin: '0 0 5px',
-            fontFamily: 'var(--font-display)',
-            fontSize: 16,
-            fontWeight: 600,
-            color: 'var(--text)',
-            letterSpacing: '-0.01em',
-            lineHeight: 1.18,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {fav.name}
-        </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          {rating != null && (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 3,
-                fontSize: 11,
-                fontWeight: 700,
-                color: 'var(--ember-text)',
-                background: 'var(--ember-light)',
-                borderRadius: 'var(--r-pill)',
-                padding: '2px 8px',
-              }}
-            >
-              <IcoStar /> {rating.toFixed(1)}
-            </span>
-          )}
-          {cuisine && (
-            <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{frCuisine(cuisine)}</span>
-          )}
-          {openNow != null && (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                fontSize: 11,
-                fontWeight: 600,
-                color: openNow ? 'var(--open)' : 'var(--closed)',
-              }}
-            >
-              <span
-                style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }}
-              />
-              {openNow ? 'Ouvert' : 'Fermé'}
-            </span>
-          )}
-          {note && (
-            <span
-              title="Note personnelle"
-              style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }}
-            />
-          )}
-        </div>
-      </button>
-
-      {/* Actions — single overflow menu */}
-      {!selectMode && (
-        <div style={{ flexShrink: 0 }}>
-          <CardActionsMenu
-            buttonRef={listBtnRef}
-            items={[
-              {
-                label: 'Ajouter à une liste',
-                icon: <IcoListPlus />,
-                onClick: () => setShowLists(true),
-              },
-              {
-                label: note ? 'Modifier la note' : 'Ajouter une note',
-                icon: <IcoPen />,
-                onClick: onNote,
-              },
-              { label: 'Partager', icon: <IcoShare />, onClick: onShare },
-              { label: 'Retirer', icon: <IcoTrash />, onClick: onRemove, danger: true },
-            ]}
-          />
-        </div>
-      )}
-
-      {showLists && (
-        <SaveToListPopup
-          osmId={fav.osm_id}
-          placeSnapshot={fav.snapshot as unknown as Record<string, unknown>}
-          anchorRef={listBtnRef}
-          onClose={() => {
-            setShowLists(false)
-            onListsChanged?.()
-          }}
-        />
-      )}
-    </div>
-  )
-}
-
-// ── Ligne d'un lieu de liste (natif) ──────────────────────
-// Même langage « bibliothèque » que FavCardList (vignette 66 + nom serif + méta
-// à points), mais actions propres au détail d'une liste : ouvrir sur la carte,
-// retirer de la liste.
-function ListItemRowNative({
-  item,
-  index,
-  onOpenMap,
-  onRemove,
-}: {
-  item: ListItemEntry
-  index: number
-  onOpenMap: () => void
-  onRemove: () => void
-}) {
-  const snap = item.place_snapshot as unknown as PlaceCard
-  const name = snap?.name ?? item.osm_id
-  const cuisine = snap?.cuisine ?? snap?.fsq?.categories?.[0]?.name
-  const rating = snap?.fsq?.rating
-  const openNow = snap?.open_now
-  const ph = snap?.fsq?.photos?.[0]
-  const photo = ph
-    ? `${ph.prefix}240x${Math.round(240 * (ph.height / ph.width))}${ph.suffix}`
-    : (snap?.wikidata?.image_url ?? null)
-  const menuBtnRef = useRef<HTMLButtonElement>(null)
-
-  return (
-    <div
-      className="anim-card-in"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 13,
-        animationDelay: staggerDelay(index),
-      }}
-    >
-      {/* Vignette — repli dégradé + initiale serif */}
-      <button
-        type="button"
-        onClick={onOpenMap}
-        aria-label={`Voir ${name} sur la carte`}
-        style={{
-          position: 'relative',
-          width: 66,
-          height: 66,
-          borderRadius: 15,
-          overflow: 'hidden',
-          flexShrink: 0,
-          background: placeGradient(item.osm_id),
-          border: 'none',
-          boxShadow: 'var(--s1)',
-          cursor: 'pointer',
-          padding: 0,
-        }}
-      >
-        {photo ? (
-          <FavPhoto src={photo} />
-        ) : (
-          <span
-            aria-hidden
-            style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: 'var(--font-display)',
-              fontSize: 28,
-              fontWeight: 600,
-              color: 'rgba(255,255,255,0.92)',
-            }}
-          >
-            {placeInitial(name)}
-          </span>
-        )}
-      </button>
-
-      {/* Corps — nom serif + méta */}
-      <button
-        type="button"
-        onClick={onOpenMap}
-        style={{
-          flex: 1,
-          minWidth: 0,
-          background: 'none',
-          border: 'none',
-          padding: 0,
-          cursor: 'pointer',
-          textAlign: 'left',
-          fontFamily: 'inherit',
-        }}
-      >
-        <p
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-display)',
-            fontSize: 16.5,
-            fontWeight: 600,
-            color: 'var(--text)',
-            letterSpacing: '-0.01em',
-            lineHeight: 1.15,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {name}
-        </p>
-        <div
-          style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 5, flexWrap: 'wrap' }}
-        >
-          {rating != null && (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 3,
-                fontSize: 11.5,
-                fontWeight: 700,
-                color: 'var(--text)',
-              }}
-            >
-              <span style={{ color: 'var(--star)', display: 'flex' }}>
-                <IcoStar />
-              </span>
-              {rating.toFixed(1)}
-            </span>
-          )}
-          {cuisine && (
-            <>
-              {rating != null && <MetaDot />}
-              <span style={{ fontSize: 12.5, color: 'var(--text-2)' }}>{frCuisine(cuisine)}</span>
-            </>
-          )}
-          {openNow != null && (
-            <>
-              {(rating != null || cuisine) && <MetaDot />}
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  fontSize: 11.5,
-                  fontWeight: 600,
-                  color: openNow ? 'var(--open)' : 'var(--closed)',
-                }}
-              >
-                <span
-                  style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }}
-                />
-                {openNow ? 'Ouvert' : 'Fermé'}
-              </span>
-            </>
-          )}
-        </div>
-      </button>
-
-      {/* Actions */}
-      <div style={{ flexShrink: 0 }}>
-        <CardActionsMenu
-          buttonRef={menuBtnRef}
-          items={[
-            { label: 'Retirer de la liste', icon: <IcoTrash />, onClick: onRemove, danger: true },
-          ]}
-        />
-      </div>
-    </div>
-  )
-}
-
-// ── Fav card — grille ─────────────────────────────────────
-function FavCardGrid({
-  fav,
-  index,
-  onRemove,
-  onOpenMap,
-  onListsChanged,
-  selectMode,
-  selected,
-  onToggleSelect,
-}: {
-  fav: FavoriteRow
-  index: number
-  onRemove: () => void
-  onOpenMap: () => void
-  onListsChanged?: () => void
-  selectMode?: boolean
-  selected?: boolean
-  onToggleSelect?: () => void
-}) {
-  const rating = fav.snapshot?.fsq?.rating
-  const cuisine = fav.snapshot?.cuisine ?? fav.snapshot?.fsq?.categories?.[0]?.name
-  const photo = favPhoto(fav, 400)
-  const listBtnRef = useRef<HTMLButtonElement>(null)
-  const [showLists, setShowLists] = useState(false)
-  const primary = selectMode ? onToggleSelect! : onOpenMap
-
-  return (
-    <div
-      className="anim-card-in"
-      onClick={selectMode ? onToggleSelect : undefined}
-      style={{
-        background: selected ? 'var(--ember-light)' : 'var(--bg)',
-        borderRadius: 'var(--r-xl)',
-        overflow: 'hidden',
-        border: `1px solid ${selected ? 'var(--ember)' : 'var(--border)'}`,
-        boxShadow: 'var(--s1)',
-        animationDelay: staggerDelay(index),
-        display: 'flex',
-        flexDirection: 'column',
-        cursor: selectMode ? 'pointer' : 'default',
-        transition: 'box-shadow 160ms ease, transform 160ms ease, border-color 160ms ease',
-      }}
-      onMouseEnter={(e) => {
-        if (selectMode) return
-        e.currentTarget.style.boxShadow = 'var(--s3)'
-        e.currentTarget.style.transform = 'translateY(-2px)'
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = 'var(--s1)'
-        e.currentTarget.style.transform = 'translateY(0)'
-      }}
-    >
-      {/* Thumbnail — photo or warm fallback */}
-      <button
-        type="button"
-        onClick={primary}
-        aria-label={selectMode ? `Sélectionner ${fav.name}` : `Voir ${fav.name} sur la carte`}
-        style={{
-          height: 132,
-          background: placeGradient(fav.osm_id),
-          border: 'none',
-          cursor: 'pointer',
-          width: '100%',
-          position: 'relative',
-          padding: 0,
-          overflow: 'hidden',
-        }}
-      >
-        {photo ? (
-          <FavPhoto src={photo} />
-        ) : (
-          <span
-            style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'rgba(255,255,255,0.85)',
-            }}
-          >
-            <IcoUtensils />
-          </span>
-        )}
-        {/* legibility scrim for the badge */}
-        <span
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'linear-gradient(180deg, rgba(0,0,0,0.18), transparent 38%)',
-            pointerEvents: 'none',
-          }}
-        />
-        {selectMode && (
-          <span style={{ position: 'absolute', top: 10, left: 10 }}>
-            <Checkbox checked={!!selected} overlay />
-          </span>
-        )}
-        {rating != null && (
-          <span
-            style={{
-              position: 'absolute',
-              top: 10,
-              right: 10,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 3,
-              padding: '3px 9px',
-              borderRadius: 'var(--r-pill)',
-              fontSize: 11,
-              fontWeight: 700,
-              background: 'rgba(255,255,255,0.95)',
-              color: 'var(--ember-text)',
-            }}
-          >
-            <IcoStar /> {rating.toFixed(1)}
-          </span>
-        )}
-      </button>
-      {/* Body */}
-      <div style={{ padding: '11px 13px', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <button
-          type="button"
-          onClick={primary}
-          style={{
-            flex: 1,
-            minWidth: 0,
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            cursor: 'pointer',
-            textAlign: 'left',
-            fontFamily: 'inherit',
-          }}
-        >
-          <p
-            style={{
-              margin: '0 0 2px',
-              fontFamily: 'var(--font-display)',
-              fontSize: 15,
-              fontWeight: 600,
-              color: 'var(--text)',
-              letterSpacing: '-0.01em',
-              lineHeight: 1.15,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {fav.name}
-          </p>
-          {cuisine && (
-            <p
-              style={{
-                margin: 0,
-                fontSize: 11.5,
-                color: 'var(--text-2)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {frCuisine(cuisine)}
-            </p>
-          )}
-        </button>
-        {!selectMode && (
-          <CardActionsMenu
-            buttonRef={listBtnRef}
-            items={[
-              {
-                label: 'Ajouter à une liste',
-                icon: <IcoListPlus />,
-                onClick: () => setShowLists(true),
-              },
-              { label: 'Retirer', icon: <IcoTrash />, onClick: onRemove, danger: true },
-            ]}
-          />
-        )}
-      </div>
-
-      {showLists && (
-        <SaveToListPopup
-          osmId={fav.osm_id}
-          placeSnapshot={fav.snapshot as unknown as Record<string, unknown>}
-          anchorRef={listBtnRef}
-          onClose={() => {
-            setShowLists(false)
-            onListsChanged?.()
-          }}
-        />
-      )}
-    </div>
-  )
-}
-
-// ── Action button helper ──────────────────────────────────
-function ActionBtn({
-  icon,
-  label,
-  active,
-  activeColor,
-  activeBg,
-  hoverColor,
-  hoverBg,
-  onClick,
-  small,
-  btnRef,
-}: {
-  icon: React.ReactNode
-  label?: string
-  active?: boolean
-  activeColor?: string
-  activeBg?: string
-  hoverColor?: string
-  hoverBg?: string
-  onClick: () => void
-  small?: boolean
-  btnRef?: React.Ref<HTMLButtonElement>
-}) {
-  const sz = small ? 28 : 30
-  const bg = active ? (activeBg ?? 'var(--accent-light)') : 'var(--surface)'
-  const color = active ? (activeColor ?? 'var(--accent)') : 'var(--text-3)'
-  const border = active
-    ? `1px solid ${activeColor ? activeColor + '44' : 'var(--border-strong)'}`
-    : '1px solid var(--border)'
-  return (
-    <button
-      ref={btnRef}
-      onClick={(e) => {
-        e.stopPropagation()
-        onClick()
-      }}
-      title={label}
-      aria-label={label}
-      style={{
-        width: sz,
-        height: sz,
-        minWidth: 44,
-        minHeight: 44,
-        borderRadius: 'var(--r-sm)',
-        border,
-        background: bg,
-        color,
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-        transition: 'all 140ms ease',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = hoverBg ?? activeBg ?? 'var(--cream)'
-        e.currentTarget.style.color = hoverColor ?? activeColor ?? 'var(--text)'
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = bg
-        e.currentTarget.style.color = color
-      }}
-    >
-      {icon}
-    </button>
-  )
-}
-
 // ── Main page ─────────────────────────────────────────────
 function FavoritesPageInner() {
   const { isReady } = useAuthGuard()
@@ -2165,6 +1007,8 @@ function FavoritesPageInner() {
 
   const searchParams = useSearchParams()
   const activeListId = searchParams.get('list')
+  // Volets « Restos | Listes » (segmenté natif) — fin des longs empilements.
+  const [libTab, setLibTab] = useState<'places' | 'lists'>('places')
 
   const {
     lists,
@@ -2441,7 +1285,7 @@ function FavoritesPageInner() {
             maxWidth: 660,
             margin: '0 auto',
             padding: isNative
-              ? 'calc(var(--safe-top) + 16px) 16px calc(var(--safe-bottom) + 88px)'
+              ? 'calc(var(--safe-top) + var(--sp-4)) var(--gutter) calc(var(--safe-bottom) + 88px)'
               : isMobile
                 ? '24px 16px 80px'
                 : '36px 20px 80px',
@@ -2455,7 +1299,6 @@ function FavoritesPageInner() {
                   display: 'flex',
                   alignItems: 'flex-end',
                   justifyContent: 'space-between',
-                  marginBottom: 4,
                   animation: 'fadeUp 280ms var(--ease-out) backwards',
                 }}
               >
@@ -2473,31 +1316,42 @@ function FavoritesPageInner() {
                   >
                     Mes adresses
                   </h1>
-                  <p style={{ margin: '7px 0 0', fontSize: 13, color: 'var(--text-3)' }}>
+                  <p style={{ margin: 'var(--sp-2) 0 0', fontSize: 13, color: 'var(--text-3)' }}>
                     {loading
                       ? 'Chargement…'
-                      : `${favorites.length} lieu${favorites.length !== 1 ? 'x' : ''} · ${lists.length} liste${lists.length !== 1 ? 's' : ''}`}
+                      : favorites.length === 0
+                        ? `${lists.length} liste${lists.length !== 1 ? 's' : ''}`
+                        : (() => {
+                            // « X à tester » = la raison de revenir ; on la met en avant.
+                            const todo = favorites.filter((f) => !visitedIds.has(f.osm_id)).length
+                            const done = favorites.length - todo
+                            return `${todo} à tester · ${done} testé${done !== 1 ? 's' : ''} · ${lists.length} liste${lists.length !== 1 ? 's' : ''}`
+                          })()}
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
+                  {/* Actions compactes en en-tête (grammaire app) — les grosses
+                      pilules à texte prenaient une rangée entière. */}
                   <button
                     type="button"
-                    aria-label="Rechercher"
-                    onClick={() => searchInputRef.current?.focus()}
+                    aria-label="Créer une liste"
+                    className="tap-press"
+                    onClick={() => setShowCreateList(true)}
                     style={icoBtnStyle}
                   >
-                    <svg
-                      width="19"
-                      height="19"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                    >
-                      <circle cx="11" cy="11" r="7" />
-                      <path d="m20 20-3-3" />
-                    </svg>
+                    <Plus size={19} strokeWidth={2} />
                   </button>
+                  {favorites.length >= 2 && (
+                    <button
+                      type="button"
+                      aria-label="Lancer un sondage de groupe"
+                      className="tap-press"
+                      onClick={() => setPollOpen(true)}
+                      style={icoBtnStyle}
+                    >
+                      <Vote size={19} strokeWidth={1.8} />
+                    </button>
+                  )}
                   <button
                     type="button"
                     aria-label={viewMode === 'grid' ? 'Vue liste' : 'Vue grille'}
@@ -2552,35 +1406,6 @@ function FavoritesPageInner() {
             </div>
           )}
 
-          {/* ── Pilules d'action (natif, à la Albo) ── */}
-          {isNative && !activeListId && !loading && favorites.length > 0 && (
-            <div
-              style={{
-                display: 'flex',
-                gap: 12,
-                margin: '18px 0 2px',
-                animation: 'fadeUp 300ms var(--ease-out) 40ms backwards',
-              }}
-            >
-              <button
-                type="button"
-                className="tap-press"
-                onClick={() => setShowCreateList(true)}
-                style={favPillStyle}
-              >
-                <span style={{ fontSize: 18, lineHeight: 1 }}>＋</span> Ajouter
-              </button>
-              <button
-                type="button"
-                className="tap-press"
-                onClick={() => router.push('/?surprise=1')}
-                style={favPillStyle}
-              >
-                <span style={{ fontSize: 15 }}>🗂</span> Décider pour moi
-              </button>
-            </div>
-          )}
-
           {/* ── Barre de recherche (natif) ── */}
           {isNative && !activeListId && (
             <div
@@ -2589,7 +1414,7 @@ function FavoritesPageInner() {
                 alignItems: 'center',
                 gap: 10,
                 height: 46,
-                margin: '16px 0 4px',
+                margin: 'var(--sp-5) 0 0',
                 padding: '0 15px',
                 borderRadius: 15,
                 background: 'var(--surface)',
@@ -2654,118 +1479,58 @@ function FavoritesPageInner() {
             </div>
           )}
 
-          {/* ── Ruban de filtres (natif) : états + cuisines fusionnés ── */}
-          {isNative &&
-            !activeListId &&
-            !loading &&
-            favorites.length > 0 &&
-            (() => {
-              const stateChips: { key: 'all' | 'todo' | 'done'; label: string }[] = [
-                { key: 'all', label: 'Tout' },
-                { key: 'todo', label: 'À tester' },
-                { key: 'done', label: 'Testés' },
-              ]
-              const counts = new Map<string, number>()
-              favorites.forEach((f) => {
-                const c = f.snapshot?.cuisine ?? f.snapshot?.fsq?.categories?.[0]?.name
-                if (c) counts.set(c, (counts.get(c) ?? 0) + 1)
-              })
-              const topCuisines = [...counts.entries()]
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 6)
-                .map(([c]) => c)
-              return (
-                <>
-                  {/* Onglets soulignés (à la Albo) — remplacent les chips d'état */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: 26,
-                      margin: '18px 0 0',
-                      borderBottom: '1px solid var(--border)',
-                    }}
-                  >
-                    {stateChips.map((c) => (
-                      <button
-                        key={c.key}
-                        type="button"
-                        onClick={() => setFavTab(c.key)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          padding: '0 0 10px',
-                          cursor: 'pointer',
-                          fontFamily: 'var(--font-body)',
-                          fontSize: 16,
-                          fontWeight: favTab === c.key ? 700 : 500,
-                          color: favTab === c.key ? 'var(--text)' : 'var(--text-3)',
-                          borderBottom:
-                            favTab === c.key ? '2px solid var(--text)' : '2px solid transparent',
-                          marginBottom: -1,
-                        }}
-                      >
-                        {c.label}
-                      </button>
-                    ))}
-                  </div>
-                  {/* Chips cuisine (sous les onglets) */}
-                  {topCuisines.length > 0 && (
-                    <div
-                      className="no-scrollbar"
-                      style={{
-                        display: 'flex',
-                        gap: 8,
-                        overflowX: 'auto',
-                        margin: '12px 0 6px',
-                        paddingBottom: 2,
-                      }}
-                    >
-                      {topCuisines.map((c) => (
-                        <button
-                          key={c}
-                          onClick={() => setFavCuisine(favCuisine === c ? null : c)}
-                          style={chipStyle(favCuisine === c)}
-                        >
-                          {frCuisine(c)}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )
-            })()}
-
-          {/* Lancer un sondage de groupe (natif) */}
-          {isNative && !activeListId && !loading && favorites.length >= 2 && (
-            <button
-              onClick={() => setPollOpen(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                width: '100%',
-                padding: '12px',
-                margin: '10px 0 4px',
-                borderRadius: 14,
-                border: '1px solid var(--border)',
-                background: 'var(--bg)',
-                boxShadow: 'var(--s1)',
-                cursor: 'pointer',
-                fontFamily: 'var(--font-body)',
-                fontSize: 14.5,
-                fontWeight: 700,
-                color: 'var(--text)',
-              }}
-            >
-              🗳️ Lancer un sondage de groupe
-            </button>
-          )}
-
           {/* « Vus sur les réseaux » — full-bleed, garde son propre en-tête. */}
           {!activeListId && (
-            <div style={{ margin: isNative ? '18px -16px 0' : '0 -16px' }}>
+            <div
+              style={{
+                margin: isNative ? 'var(--sp-6) calc(-1 * var(--gutter)) 0' : '0 -16px',
+              }}
+            >
               <ImportsRow imports={imports} />
+            </div>
+          )}
+
+          {/* Segmenté Restos | Listes */}
+          {isNative && !activeListId && !loading && (
+            <div
+              style={{
+                display: 'flex',
+                gap: 4,
+                padding: 4,
+                margin: 'var(--sp-5) 0 var(--sp-4)',
+                borderRadius: 14,
+                background: 'var(--surface-2)',
+              }}
+            >
+              {(
+                [
+                  ['places', `Restos${favorites.length ? ` · ${favorites.length}` : ''}`],
+                  ['lists', `Listes${lists.length ? ` · ${lists.length}` : ''}`],
+                ] as const
+              ).map(([k, label]) => (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={libTab === k}
+                  onClick={() => setLibTab(k)}
+                  style={{
+                    flex: 1,
+                    minHeight: 40,
+                    borderRadius: 11,
+                    border: 'none',
+                    background: libTab === k ? 'var(--bg)' : 'transparent',
+                    boxShadow: libTab === k ? 'var(--s1)' : 'none',
+                    color: libTab === k ? 'var(--text)' : 'var(--text-3)',
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'background 140ms, color 140ms',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           )}
 
@@ -3019,39 +1784,6 @@ function FavoritesPageInner() {
           )}
 
           {/* Mes listes — grille (web) / lignes-collections (natif) */}
-          {!activeListId && lists.length > 0 && isNative && (
-            <div
-              style={{
-                margin: '26px 0 8px',
-                animation: 'fadeUp 280ms var(--ease-out) 20ms backwards',
-              }}
-            >
-              <SecHead title="Mes listes" />
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {lists.map((list, i) => (
-                  <React.Fragment key={list.id}>
-                    {i > 0 && (
-                      <div style={{ height: 1, background: 'var(--border)', margin: '6px 0' }} />
-                    )}
-                    <ListCard
-                      list={list}
-                      variant="row"
-                      onClick={() => router.push(`/favorites?list=${list.id}`)}
-                      menu={
-                        <ListRowMenu
-                          onRename={() => setEditingList(list)}
-                          onCollab={() => setCollabTarget(list)}
-                          onDelete={() => setDeleteListTarget(list)}
-                        />
-                      }
-                    />
-                  </React.Fragment>
-                ))}
-                <div style={{ height: 1, background: 'var(--border)', margin: '6px 0' }} />
-                <NewListCard variant="row" onClick={() => setShowCreateList(true)} />
-              </div>
-            </div>
-          )}
           {!activeListId && lists.length > 0 && !isNative && (
             <div
               style={{ marginBottom: 32, animation: 'fadeUp 280ms var(--ease-out) 20ms backwards' }}
@@ -3753,34 +2485,110 @@ function FavoritesPageInner() {
               </p>
               <Link
                 href="/"
-                className="btn-ember"
+                className="btn-ember tap-press"
                 style={{
                   display: 'inline-flex',
                   width: 'auto',
                   textDecoration: 'none',
+                  minHeight: 44,
                 }}
               >
-                Explorer la carte →
+                Explorer la carte
               </Link>
             </div>
           )}
 
-          {/* En-tête serif « Tous mes favoris » (natif) */}
-          {isNative && !activeListId && !loading && favorites.length > 0 && (
-            <div style={{ marginTop: 22 }}>
-              <div style={{ height: 1, background: 'var(--border)', margin: '0 0 18px' }} />
-              <SecHead title="Tous mes favoris" action={`${sorted.length} ›`} />
-            </div>
-          )}
+          {/* ── Ruban de filtres (natif) : états + cuisines fusionnés ── */}
+          {isNative &&
+            !activeListId &&
+            !loading &&
+            libTab === 'places' &&
+            favorites.length > 0 &&
+            (() => {
+              const stateChips: { key: 'all' | 'todo' | 'done'; label: string }[] = [
+                { key: 'all', label: 'Tout' },
+                { key: 'todo', label: 'À tester' },
+                { key: 'done', label: 'Testés' },
+              ]
+              const counts = new Map<string, number>()
+              favorites.forEach((f) => {
+                const c = f.snapshot?.cuisine ?? f.snapshot?.fsq?.categories?.[0]?.name
+                if (c) counts.set(c, (counts.get(c) ?? 0) + 1)
+              })
+              const topCuisines = [...counts.entries()]
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 6)
+                .map(([c]) => c)
+              return (
+                <>
+                  {/* Onglets soulignés (à la Albo) — remplacent les chips d'état */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: 26,
+                      margin: '0',
+                      borderBottom: '1px solid var(--border)',
+                    }}
+                  >
+                    {stateChips.map((c) => (
+                      <button
+                        key={c.key}
+                        type="button"
+                        onClick={() => setFavTab(c.key)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: '0 0 10px',
+                          cursor: 'pointer',
+                          fontFamily: 'var(--font-body)',
+                          fontSize: 16,
+                          fontWeight: favTab === c.key ? 700 : 500,
+                          color: favTab === c.key ? 'var(--text)' : 'var(--text-3)',
+                          borderBottom:
+                            favTab === c.key ? '2px solid var(--text)' : '2px solid transparent',
+                          marginBottom: -1,
+                        }}
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Chips cuisine (sous les onglets) */}
+                  {topCuisines.length > 0 && (
+                    <div
+                      className="no-scrollbar"
+                      style={{
+                        display: 'flex',
+                        gap: 8,
+                        overflowX: 'auto',
+                        margin: 'var(--sp-4) 0 0',
+                        paddingBottom: 2,
+                      }}
+                    >
+                      {topCuisines.map((c) => (
+                        <button
+                          key={c}
+                          onClick={() => setFavCuisine(favCuisine === c ? null : c)}
+                          style={chipStyle(favCuisine === c)}
+                        >
+                          {frCuisine(c)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )
+            })()}
 
           {/* Liste — masquée quand une liste est ouverte (sinon les enregistrés
               sans liste s'affichaient sous les items de la liste) */}
           {!activeListId &&
+            libTab === 'places' &&
             (viewMode === 'list' ? (
               <div
                 style={
                   isNative
-                    ? { display: 'flex', flexDirection: 'column', gap: 11 }
+                    ? { display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)' }
                     : { display: 'flex', flexDirection: 'column', gap: 10 }
                 }
               >
@@ -3854,6 +2662,34 @@ function FavoritesPageInner() {
                 ))}
               </div>
             ))}
+
+          {!activeListId && libTab === 'lists' && isNative && (
+            <div
+              style={{
+                margin: '26px 0 8px',
+                animation: 'fadeUp 280ms var(--ease-out) 20ms backwards',
+              }}
+            >
+              <SecHead title="Mes listes" />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {lists.map((list, i) => (
+                  <React.Fragment key={list.id}>
+                    {i > 0 && (
+                      <div style={{ height: 1, background: 'var(--border)', margin: '6px 0' }} />
+                    )}
+                    <NativeListRow
+                      list={list}
+                      onOpen={() => router.push(`/favorites?list=${list.id}`)}
+                      onRename={() => setEditingList(list)}
+                      onDelete={() => setDeleteListTarget(list)}
+                    />
+                  </React.Fragment>
+                ))}
+                <div style={{ height: 1, background: 'var(--border)', margin: '6px 0' }} />
+                <NewListCard variant="row" onClick={() => setShowCreateList(true)} />
+              </div>
+            </div>
+          )}
         </div>
       </main>
 
@@ -4024,22 +2860,30 @@ function FavoritesPageInner() {
         />
       )}
 
-      <style>{`
-        @keyframes fadeUp  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes scaleIn { from{opacity:0;transform:scale(0.94)} to{opacity:1;transform:scale(1)} }
-        @keyframes cardIn  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-      `}</style>
-
       {!isNative && <GlobalFooter />}
     </div>
   )
 }
 
 export default function FavoritesPage() {
-  return (
+  const native = useIsNative()
+  // Pull-to-refresh natif : un remontage propre re-déclenche tous les fetchs
+  // (favoris, listes, imports) — la page est en haut quand on tire, rien à perdre.
+  const [refreshKey, setRefreshKey] = useState(0)
+  const inner = (
     <Suspense>
-      <FavoritesPageInner />
+      <FavoritesPageInner key={refreshKey} />
     </Suspense>
+  )
+  if (!native) return inner
+  return (
+    <PullToRefresh
+      onRefresh={async () => {
+        setRefreshKey((k) => k + 1)
+        await new Promise((r) => setTimeout(r, 400))
+      }}
+    >
+      {inner}
+    </PullToRefresh>
   )
 }

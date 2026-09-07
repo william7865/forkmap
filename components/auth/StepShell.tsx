@@ -32,7 +32,8 @@ export default function StepShell({
         background: 'var(--bg)',
         display: 'flex',
         justifyContent: 'center',
-        animation: 'overlayIn 200ms ease backwards',
+        // Métaphore modale iOS : la vue monte du bas (pas un fondu web).
+        animation: 'slideUp 280ms cubic-bezier(0.16,1,0.3,1) backwards',
       }}
     >
       <div

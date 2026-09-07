@@ -11,39 +11,32 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Settings, Star, Bookmark, Share2 } from 'lucide-react'
+import { Settings, Star, Bookmark, Share2, ChevronRight, Plus } from 'lucide-react'
+import { lightTap } from '@/lib/native/haptics'
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
 import { placeGradient } from '@/lib/gradients'
 import { placeInitial, placePhotoUrl } from '@/components/place/PlaceThumb'
 import { frCuisine } from '@/lib/cuisine'
 import { useProfile } from '@/lib/hooks/useProfile'
 import { useLists, type ListRow } from '@/lib/hooks/useLists'
-import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { apiFetch } from '@/lib/api'
 import { Avatar } from '@/components/social/Avatar'
 import { ListCard } from '@/components/lists/ListCard'
 import ProfileEdit from '@/components/social/ProfileEdit'
 import ShareProfileSheet from '@/components/social/ShareProfileSheet'
+import FriendsView from '@/components/social/FriendsView'
+import TasteEditor from '@/components/settings/TasteEditor'
+import { TASTE_OPTIONS, type TasteOption } from '@/lib/taste-quiz'
+import { loadTasteProfile, TASTE_SEED_VALUE } from '@/lib/taste'
 import type { FavoriteRow, PlaceCard } from '@/types'
+import { getAuthHeaders } from '@/lib/auth-headers'
+import { PageSpinner } from '@/components/states/Spinner'
+import { iconButtonStyle } from '@/lib/ui-styles'
 
 // ── Local types ───────────────────────────────────────────────
 interface VisitStats {
   total_visits: number
   total_spent: number
-}
-
-// ── Auth helpers ──────────────────────────────────────────────
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  try {
-    const sb = getSupabaseBrowserClient()
-    const {
-      data: { session },
-    } = await sb.auth.getSession()
-    if (!session?.access_token) return {}
-    return { Authorization: `Bearer ${session.access_token}` }
-  } catch {
-    return {}
-  }
 }
 
 // ── Snapshot photo (plain <img>, jamais next/image) ───────────
@@ -70,31 +63,6 @@ function FavThumbImg({ src }: { src: string }) {
 }
 
 // ── Spinner ───────────────────────────────────────────────────
-function Spinner() {
-  return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'var(--bg)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <div
-        style={{
-          width: 32,
-          height: 32,
-          border: '2px solid var(--b2)',
-          borderTop: '2px solid var(--accent)',
-          borderRadius: '50%',
-          animation: 'spin 0.7s linear infinite',
-        }}
-      />
-    </div>
-  )
-}
-
 // ── Petites briques éditoriales (façon Favoris) ────────
 const MetaDot = () => (
   <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--text-4)' }} />
@@ -134,11 +102,18 @@ function SecHead({
       {action && (
         <button
           type="button"
-          onClick={onAction}
+          onClick={() => {
+            lightTap()
+            onAction?.()
+          }}
+          className="tap-press"
           style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 2,
             border: 'none',
             background: 'none',
-            padding: 0,
+            padding: '6px 0 6px 12px',
             cursor: 'pointer',
             fontFamily: 'var(--font-body)',
             fontSize: 13,
@@ -147,6 +122,7 @@ function SecHead({
           }}
         >
           {action}
+          <ChevronRight size={14} strokeWidth={2.2} style={{ marginTop: 1 }} />
         </button>
       )}
     </div>
@@ -290,25 +266,14 @@ function FavRow({ fav, onOpen }: { fav: FavoriteRow; onOpen: () => void }) {
           )}
         </span>
       </span>
+
+      {/* Affordance de navigation iOS */}
+      <ChevronRight size={17} strokeWidth={2} style={{ color: 'var(--text-4)', flexShrink: 0 }} />
     </button>
   )
 }
 
-// Bouton-icône rond (barre du haut : partager, réglages) —
-const iconBtnStyle: React.CSSProperties = {
-  width: 38,
-  height: 38,
-  borderRadius: '50%',
-  flexShrink: 0,
-  background: 'var(--surface)',
-  border: '1px solid var(--border)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  color: 'var(--text-2)',
-  cursor: 'pointer',
-}
-
+// Bouton-icône rond (barre du haut : partager, réglages) — 44pt de zone de tap
 // ── Main component ────────────────────────────────────────────
 export default function ProfileScreen() {
   const { isReady } = useAuthGuard()
@@ -318,8 +283,12 @@ export default function ProfileScreen() {
 
   const [favorites, setFavorites] = useState<FavoriteRow[]>([])
   const [stats, setStats] = useState<VisitStats | null>(null)
+  const [friendsCount, setFriendsCount] = useState(0)
   const [editing, setEditing] = useState(false)
   const [sharing, setSharing] = useState(false)
+  const [friendsOpen, setFriendsOpen] = useState(false)
+  const [tasteOpen, setTasteOpen] = useState(false)
+  const [tastes, setTastes] = useState<TasteOption[]>([])
 
   useEffect(() => {
     async function loadData() {
@@ -342,23 +311,44 @@ export default function ProfileScreen() {
       } catch {
         // fail silently — stats stay null
       }
+      try {
+        const r = await apiFetch('/api/friends', { headers: h })
+        if (r.ok) {
+          const d = await r.json()
+          setFriendsCount((d.data ?? []).length)
+        }
+      } catch {
+        // fail silently — count stays 0
+      }
     }
     loadData()
     fetchLists()
   }, [fetchLists])
 
-  if (!isReady) return <Spinner />
+  // Goûts déclarés (localStorage) — rechargés à la fermeture de l'éditeur.
+  useEffect(() => {
+    if (tasteOpen) return
+    const p = loadTasteProfile()
+    setTastes(TASTE_OPTIONS.filter((o) => (p.cuisines[o.key] ?? 0) >= TASTE_SEED_VALUE))
+  }, [tasteOpen])
+
+  if (!isReady) return <PageSpinner />
 
   const displayName = profile?.display_name ?? 'Mon profil'
-  const cuisines = [...new Set(favorites.map((f) => f.snapshot?.cuisine).filter(Boolean))]
   const previewFavs = favorites.slice(0, 4)
   const previewLists = lists.slice(0, 4)
 
-  const figures: { value: string; label: string }[] = [
+  // « Amis » ouvre la gestion du cercle, « Favoris » file vers Enregistrés —
+  // le profil est aussi ton identité sociale, pas une vitrine morte.
+  const figures: { value: string; label: string; onTap?: () => void }[] = [
     { value: String(stats?.total_visits ?? 0), label: 'Visites' },
-    { value: String(favorites.length), label: 'Favoris' },
+    {
+      value: String(favorites.length),
+      label: 'Favoris',
+      onTap: () => router.push('/favorites'),
+    },
+    { value: String(friendsCount), label: 'Amis', onTap: () => setFriendsOpen(true) },
     { value: `${stats?.total_spent ? Math.round(stats.total_spent) : 0} €`, label: 'Dépensé' },
-    { value: String(cuisines.length), label: 'Cuisines' },
   ]
 
   return (
@@ -374,7 +364,8 @@ export default function ProfileScreen() {
         style={{
           maxWidth: 660,
           margin: '0 auto',
-          padding: 'calc(var(--safe-top) + 16px) 20px calc(var(--safe-bottom) + 88px)',
+          padding:
+            'calc(var(--safe-top) + var(--sp-4)) var(--gutter) calc(var(--safe-bottom) + 88px)',
         }}
       >
         {/* ── Barre d'icônes en haut à droite (partager + réglages), ── */}
@@ -382,64 +373,106 @@ export default function ProfileScreen() {
           {profile?.username && (
             <button
               type="button"
-              onClick={() => setSharing(true)}
+              onClick={() => {
+                lightTap()
+                setSharing(true)
+              }}
               aria-label="Partager mon profil"
-              style={iconBtnStyle}
+              className="tap-press"
+              style={iconButtonStyle()}
             >
               <Share2 size={19} strokeWidth={1.8} />
             </button>
           )}
           <button
             type="button"
-            onClick={() => router.push('/settings')}
+            onClick={() => {
+              lightTap()
+              router.push('/settings')
+            }}
             aria-label="Paramètres"
-            style={iconBtnStyle}
+            className="tap-press"
+            style={iconButtonStyle()}
           >
             <Settings size={19} strokeWidth={1.8} />
           </button>
         </div>
 
-        {/* ── Masthead : avatar puis grand titre serif (pile, éditorial) ── */}
+        {/* ── Masthead : identité à gauche, avatar en vis-à-vis à droite —
+            la colonne unique laissait toute la droite vide. ── */}
         <header style={{ animation: 'fadeUp 280ms var(--ease-out) backwards' }}>
-          <Avatar name={displayName} src={profile?.avatar_url} id={profile?.id ?? 'me'} size={72} />
-          <h1
+          <div
             style={{
-              margin: '16px 0 0',
-              fontFamily: 'var(--font-display)',
-              fontWeight: 600,
-              fontSize: 30,
-              letterSpacing: '-0.02em',
-              lineHeight: 1.05,
-              color: 'var(--text)',
-              overflowWrap: 'anywhere',
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              gap: 16,
             }}
           >
-            {displayName}
-          </h1>
-          {profile?.username && (
-            <p style={{ margin: '6px 0 0', fontSize: 14, color: 'var(--text-3)' }}>
-              @{profile.username}
-            </p>
-          )}
+            <div style={{ minWidth: 0, flex: 1, paddingTop: 6 }}>
+              <h1
+                style={{
+                  margin: 0,
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 600,
+                  fontSize: 34,
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1.05,
+                  color: 'var(--text)',
+                  overflowWrap: 'anywhere',
+                }}
+              >
+                {displayName}
+              </h1>
+              {profile?.username && (
+                <p style={{ margin: 'var(--sp-2) 0 0', fontSize: 13, color: 'var(--text-3)' }}>
+                  @{profile.username}
+                </p>
+              )}
+            </div>
+            <Avatar
+              name={displayName}
+              src={profile?.avatar_url}
+              id={profile?.id ?? 'me'}
+              size={84}
+            />
+          </div>
           {profile?.bio && (
             <p
               style={{
-                margin: '10px 0 0',
+                margin: '12px 0 0',
                 fontSize: 14,
                 lineHeight: 1.45,
                 color: 'var(--text-2)',
-                maxWidth: 420,
               }}
             >
               {profile.bio}
             </p>
           )}
-          {/* Action prominente : éditer le profil */}
+          {/* Action prominente : éditer le profil — pleine largeur (Instagram) */}
           <div style={{ marginTop: 16 }}>
             <button
-              className="btn-secondary"
-              style={{ width: 'auto' }}
-              onClick={() => setEditing(true)}
+              className="tap-press"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%',
+                minHeight: 44,
+                padding: '0 22px',
+                borderRadius: 999,
+                border: 'none',
+                background: 'var(--surface-2)',
+                color: 'var(--text)',
+                fontFamily: 'var(--font-body)',
+                fontSize: 14.5,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+              onClick={() => {
+                lightTap()
+                setEditing(true)
+              }}
             >
               Modifier le profil
             </button>
@@ -452,39 +485,132 @@ export default function ProfileScreen() {
             ...sectionStyle,
             display: 'flex',
             flexWrap: 'wrap',
-            gap: '18px 26px',
+            justifyContent: 'space-between',
+            gap: '18px 16px',
             animation: 'fadeUp 320ms var(--ease-out) 60ms backwards',
           }}
         >
-          {figures.map((f) => (
-            <div key={f.label}>
-              <div
+          {figures.map((f) => {
+            const inner = (
+              <>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: 30,
+                    fontWeight: 600,
+                    letterSpacing: '-0.03em',
+                    lineHeight: 1,
+                    color: 'var(--text)',
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {f.value}
+                </div>
+                <div
+                  style={{
+                    marginTop: 7,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    color: 'var(--text-3)',
+                  }}
+                >
+                  {f.label}
+                </div>
+              </>
+            )
+            return f.onTap ? (
+              <button
+                key={f.label}
+                type="button"
+                onClick={() => {
+                  lightTap()
+                  f.onTap?.()
+                }}
+                className="tap-press"
+                aria-label={`${f.label} — ouvrir`}
                 style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 30,
-                  fontWeight: 600,
-                  letterSpacing: '-0.03em',
-                  lineHeight: 1,
-                  color: 'var(--text)',
-                  fontVariantNumeric: 'tabular-nums',
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  fontFamily: 'inherit',
                 }}
               >
-                {f.value}
-              </div>
-              <div
-                style={{
-                  marginTop: 7,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  color: 'var(--text-3)',
-                }}
-              >
-                {f.label}
-              </div>
+                {inner}
+              </button>
+            ) : (
+              <div key={f.label}>{inner}</div>
+            )
+          })}
+        </section>
+
+        {/* ── Tes goûts — l'app te connaît ; chips déclaratives, éditables ── */}
+        <section
+          style={{ ...sectionStyle, animation: 'fadeUp 320ms var(--ease-out) 90ms backwards' }}
+        >
+          <SecHead title="Tes goûts" action="Modifier" onAction={() => setTasteOpen(true)} />
+          {tastes.length === 0 ? (
+            <button
+              type="button"
+              className="tap-press"
+              onClick={() => {
+                lightTap()
+                setTasteOpen(true)
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 7,
+                minHeight: 44,
+                padding: '0 18px',
+                borderRadius: 999,
+                border: '1px dashed var(--border-strong)',
+                background: 'var(--surface)',
+                color: 'var(--text-2)',
+                fontFamily: 'var(--font-body)',
+                fontSize: 13.5,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <Plus size={15} strokeWidth={2.2} /> Dis-nous ce que tu aimes
+            </button>
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {tastes.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  aria-label={`Modifier tes goûts — ${t.label}`}
+                  className="tap-press"
+                  onClick={() => {
+                    lightTap()
+                    setTasteOpen(true)
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    height: 36,
+                    padding: '0 14px',
+                    borderRadius: 999,
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface)',
+                    color: 'var(--text)',
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span aria-hidden>{t.emoji}</span> {t.label}
+                </button>
+              ))}
             </div>
-          ))}
+          )}
         </section>
 
         {/* ── Mes listes — lignes-collections ── */}
@@ -492,18 +618,24 @@ export default function ProfileScreen() {
           <section
             style={{ ...sectionStyle, animation: 'fadeUp 320ms var(--ease-out) 120ms backwards' }}
           >
-            <SecHead
-              title="Mes listes"
-              action="Gérer ›"
-              onAction={() => router.push('/favorites')}
-            />
+            <SecHead title="Mes listes" action="Gérer" onAction={() => router.push('/favorites')} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {previewLists.map((l: ListRow) => (
                 <ListCard
                   key={l.id}
                   list={l}
                   variant="row"
-                  onClick={() => router.push('/favorites')}
+                  onClick={() => {
+                    lightTap()
+                    router.push(`/favorites?list=${l.id}`)
+                  }}
+                  menu={
+                    <ChevronRight
+                      size={17}
+                      strokeWidth={2}
+                      style={{ color: 'var(--text-4)', flexShrink: 0 }}
+                    />
+                  }
                 />
               ))}
             </div>
@@ -516,7 +648,7 @@ export default function ProfileScreen() {
         >
           <SecHead
             title="Mes favoris"
-            action={favorites.length > 0 ? `${favorites.length} ›` : undefined}
+            action={favorites.length > 0 ? 'Tout voir' : undefined}
             onAction={() => router.push('/favorites')}
           />
           {favorites.length === 0 ? (
@@ -567,13 +699,18 @@ export default function ProfileScreen() {
                 </p>
               </div>
               <button
-                onClick={() => router.push('/')}
+                className="tap-press"
+                onClick={() => {
+                  lightTap()
+                  router.push('/')
+                }}
                 style={{
                   background: 'var(--accent)',
                   color: 'var(--on-accent)',
                   border: 'none',
                   borderRadius: 999,
-                  padding: '11px 20px',
+                  minHeight: 44,
+                  padding: '0 22px',
                   fontSize: 13.5,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -585,7 +722,17 @@ export default function ProfileScreen() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {previewFavs.map((f) => (
-                <FavRow key={f.id} fav={f} onOpen={() => router.push('/favorites')} />
+                <FavRow
+                  key={f.id}
+                  fav={f}
+                  onOpen={() => {
+                    lightTap()
+                    // Deep-link : ouvre CE lieu sur la carte, pas la page générique.
+                    router.push(
+                      `/?select=${encodeURIComponent(f.osm_id)}&lat=${f.lat}&lon=${f.lon}`
+                    )
+                  }}
+                />
               ))}
             </div>
           )}
@@ -599,6 +746,12 @@ export default function ProfileScreen() {
       {sharing && profile?.username && (
         <ShareProfileSheet username={profile.username} onClose={() => setSharing(false)} />
       )}
+
+      {/* Cercle d'amis (depuis la figure « Amis ») */}
+      {friendsOpen && <FriendsView onClose={() => setFriendsOpen(false)} />}
+
+      {/* Éditeur de goûts (chips « Tes goûts ») */}
+      {tasteOpen && <TasteEditor onClose={() => setTasteOpen(false)} />}
     </div>
   )
 }

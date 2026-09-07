@@ -204,6 +204,20 @@ html.native-app {
   --r-xl: 20px;
   --r-2xl: 24px;
 
+  /* Échelle d'espacement — rythme 4px, pour aérer les écrans natifs de
+     façon cohérente (jamais de valeur en dur). --gutter = marge latérale
+     de page ; --sp-section = respiration entre blocs majeurs. */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 44px;
+  --gutter: 20px; /* marge latérale de page (était 16px en dur) */
+  --sp-section: 28px; /* air entre deux sections d'un écran */
+
   /* Alias codés en dur à réaligner (les alias en var() suivent déjà l'accent) */
   --ink-80: #2a2a2e;
   --bone: #e4e4e7;
@@ -1011,30 +1025,409 @@ a:focus:not(:focus-visible) {
 
 /* ── Marketing site (landing + public content pages) ──
    Shared by SiteHeader, GlobalFooter and Landing so the whole public web reads
-   as one site. Landing-only motion (hero float / reveal) stays local to Landing. */
+   as one site.
+
+   Le vocabulaire est celui de l'app (monochrome, Playfair + Inter, l'or
+   --star réservé à la note) ; ce qui change d'une section à l'autre, c'est la
+   COMPOSITION, pas la palette. */
+
 .lp-wrap {
   max-width: 1120px;
   margin: 0 auto;
   padding-left: 24px;
   padding-right: 24px;
 }
+
+/* ── Typographie marketing ── */
+.lp-h1 {
+  font-family: var(--font-display);
+  font-size: clamp(38px, 5.6vw, 72px);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  margin: 0;
+  text-wrap: balance;
+}
+.lp-h2 {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 3.9vw, 46px);
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  text-wrap: balance;
+}
+.lp-h2-dark {
+  color: #f4f2ee;
+}
+.lp-lead {
+  font-size: clamp(15.5px, 1.5vw, 17.5px);
+  line-height: 1.62;
+  color: var(--text-2);
+  margin: 0;
+  text-wrap: pretty;
+}
+.lp-lead-dark {
+  /* Le texte clair sur fond sombre lit plus léger : on lui donne de l'air. */
+  color: rgba(244, 242, 238, 0.74);
+  line-height: 1.68;
+}
+.lp-note {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-3);
+  margin: 22px 0 0;
+  max-width: 400px;
+}
+
+/* ── Bandes sombres ── */
+.lp-dark {
+  background: #111112;
+}
+
+/* ── Actions ── */
 .lp-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  text-decoration: none;
+  cursor: pointer;
   transition:
     transform 160ms var(--ease-out),
     background 160ms ease,
+    border-color 160ms ease,
     box-shadow 160ms ease;
 }
 .lp-cta:hover {
   transform: translateY(-1px);
 }
+.lp-cta-primary {
+  padding: 15px 26px;
+  font-size: 15.5px;
+  font-weight: 600;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--s-accent);
+}
+.lp-cta-primary:hover {
+  background: var(--accent-hover);
+}
+.lp-cta-onDark {
+  padding: 15px 26px;
+  font-size: 15.5px;
+  font-weight: 600;
+  background: #f4f2ee;
+  color: #111112;
+}
+.lp-cta-onDark:hover {
+  background: #fff;
+}
+/* Secondaire : contour, pas remplissage. Trois pilules noires côte à côte,
+   c'était trois fois la même hiérarchie. */
+.lp-store {
+  padding: 8px 15px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text);
+}
+.lp-store:hover {
+  border-color: var(--text-3);
+  background: var(--surface);
+}
+.lp-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 32px 0 0;
+}
+.lp-stores {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Hero ── */
+.lp-hero-sec {
+  padding-top: clamp(40px, 5vw, 72px);
+  padding-bottom: clamp(48px, 6vw, 88px);
+}
+.lp-hero {
+  display: grid;
+  /* L'appareil ne fait que 306px : lui donner près de la moitié de la ligne
+     comprimait le titre à 72px sur quatre lignes pour rien. */
+  grid-template-columns: 1.35fr 0.65fr;
+  align-items: center;
+  gap: clamp(32px, 5vw, 64px);
+}
+.lp-hero-device {
+  display: flex;
+  justify-content: center;
+}
+
+/* Le moment orchestré : le titre se lève ligne par ligne derrière un masque,
+   puis le reste suit en cascade. Une seule fois, au chargement. */
+.lp-line {
+  display: block;
+  overflow: hidden;
+  /* Playfair descend bas (le « j » de « déjà ») : on rend au masque la place
+     des jambages, sinon overflow:hidden les décapite. */
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+}
+.lp-line-in {
+  display: block;
+  animation: lpLineUp 900ms var(--ease-out) calc(var(--i) * 110ms) backwards;
+}
+@keyframes lpLineUp {
+  from {
+    transform: translateY(105%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.lp-hero-in {
+  animation: lpRise 760ms var(--ease-out) calc(220ms + var(--i) * 90ms) backwards;
+}
+@keyframes lpRise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── L'import : la séquence ── */
+/* Le chapô se met à côté du titre plutôt qu'en dessous : sinon le titre coupé
+   à 630px et le paragraphe à 520px creusent un vide en L sur toute la droite. */
+.lp-import-head {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  align-items: end;
+  gap: clamp(24px, 4vw, 56px);
+}
+.lp-import-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  /* Les étapes s'équilibrent avec l'appareil (717px) au lieu de s'arrêter
+     au tiers de sa hauteur. */
+  align-items: center;
+  gap: clamp(36px, 6vw, 76px);
+  margin-top: clamp(44px, 5vw, 64px);
+}
+.lp-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+}
+.lp-step {
+  position: relative;
+}
+.lp-step-in {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 20px;
+  align-items: start;
+}
+/* Le filet relie les trois temps : l'œil suit l'ordre. */
+.lp-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 38px;
+  bottom: -34px;
+  width: 1px;
+  background: var(--border);
+}
+.lp-step-n {
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+  width: 31px;
+  height: 31px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  position: relative;
+  z-index: 1;
+}
+.lp-step-title {
+  font-family: var(--font-display);
+  font-size: clamp(19px, 2vw, 23px);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  color: var(--text);
+  margin: 4px 0 0;
+}
+.lp-step-body {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-2);
+  margin: 8px 0 0;
+  max-width: 430px;
+}
+.lp-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 14px;
+}
+.lp-source {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+/* ── Découvrir : le plein écran ── */
+.lp-moods {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 28px;
+}
+.lp-mood {
+  display: inline-block;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: rgba(244, 242, 238, 0.86);
+  padding: 8px 16px;
+  border: 1px solid rgba(244, 242, 238, 0.18);
+  border-radius: 999px;
+  background: rgba(244, 242, 238, 0.05);
+}
+.lp-discover-device {
+  margin-top: clamp(40px, 5vw, 60px);
+}
+/* Une source de lumière derrière l'écran : sans elle, bezel sombre sur fond
+   sombre, l'appareil disparaît dans la bande. */
+.lp-glow {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+.lp-glow::before {
+  content: '';
+  position: absolute;
+  inset: -14% -22% -6%;
+  background: radial-gradient(
+    ellipse at 50% 42%,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.05) 42%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* ── Ton carnet : le rythme horizontal ── */
+.lp-carnet {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: clamp(32px, 5vw, 72px);
+}
+.lp-carnet-device {
+  display: flex;
+  justify-content: flex-end;
+}
+/* Trois usages PARALLÈLES (pas une séquence : ni numéros ni filet vertical,
+   c'est L'import qui porte l'ordre). Des filets horizontaux les séparent. */
+.lp-uses {
+  margin-top: clamp(32px, 4vw, 44px);
+}
+.lp-use {
+  padding: 18px 0;
+  border-top: 1px solid var(--border);
+}
+.lp-uses > *:last-child .lp-use {
+  border-bottom: 1px solid var(--border);
+}
+.lp-use-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+.lp-use-body {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--text-2);
+  margin: 8px 0 0;
+  max-width: 300px;
+}
+
+/* ── Clôture ── */
+.lp-close {
+  padding-top: clamp(76px, 9vw, 118px);
+  padding-bottom: clamp(76px, 9vw, 118px);
+}
+
+/* ── Chrome partagé ── */
 .lp-navlink {
   transition: color 140ms ease;
 }
 .lp-navlink:hover {
   color: var(--accent);
 }
+
+/* ── Responsive ── */
+@media (max-width: 980px) {
+  .lp-import-head {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+  .lp-hero,
+  .lp-carnet {
+    grid-template-columns: 1fr;
+  }
+  .lp-hero-device,
+  .lp-carnet-device {
+    order: -1;
+    justify-content: center;
+  }
+  .lp-import-grid {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+  .lp-steps {
+    max-width: 520px;
+  }
+}
 @media (max-width: 720px) {
   .lp-nav-links {
     display: none !important;
   }
+  .lp-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .lp-cta-primary,
+  .lp-cta-onDark {
+    justify-content: center;
+  }
 }
+
+/* Le bloc prefers-reduced-motion global neutralise déjà durées ET délais :
+   les animations `backwards` terminent immédiatement à leur état final, donc
+   rien ne reste invisible. Reveal, lui, ne s'arme même pas (voir useReveal). */

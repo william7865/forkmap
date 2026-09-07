@@ -12,6 +12,7 @@ import { getMoment, momentEyebrow } from '@/lib/context'
 import { loadTasteProfile, tasteBoost, emptyProfile } from '@/lib/taste'
 import { buildCollections } from '@/lib/collections'
 import { staggerDelay } from '@/lib/motion'
+import { priceLabel } from '@/lib/format'
 import PlaceRowThumb from '@/components/place/PlaceRowThumb'
 
 interface Props {
@@ -30,11 +31,6 @@ function walkTime(m?: number): string | null {
   if (m == null) return null
   const mins = Math.round(m / 80)
   return mins < 1 ? 'À côté' : `${mins} min`
-}
-
-function priceLabel(price?: number): string {
-  if (price == null) return ''
-  return '€'.repeat(price)
 }
 
 const MetaSep = () => (

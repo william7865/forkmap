@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import StepShell from '@/components/auth/StepShell'
 import { ErrorText, linkBtn } from '@/components/auth/steps/WelcomeStep'
-import { Spinner } from '@/components/auth/steps/Spinner'
+import { Spinner } from '@/components/states/Spinner'
 import type { useAuthFlow } from '@/lib/hooks/useAuthFlow'
 
 export default function SignInStep({ flow }: { flow: ReturnType<typeof useAuthFlow> }) {
