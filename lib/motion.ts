@@ -29,3 +29,24 @@ export function staggerDelay(
   const clamped = Math.min(Math.max(Math.trunc(index), 0), cap)
   return `${clamped * step}ms`
 }
+
+/** Pas entre deux marqueurs de carte qui apparaissent. */
+export const MARKER_POP_STEP_MS = 12
+
+/** Plafond de la cascade des marqueurs, en ms. */
+export const MARKER_POP_MAX_MS = 260
+
+/**
+ * Délai d'apparition du Nᵉ marqueur de carte, en millisecondes.
+ *
+ * Plafonné : la carte affiche couramment 200+ restaurants, et sans plafond
+ * (12ms × 239) elle mettrait près de 3 secondes à finir de se remplir. Au-delà
+ * du plafond tous les marqueurs partagent le même délai.
+ */
+export function markerPopDelay(index: number): number {
+  // Même bornage que staggerDelay, et pour une raison concrète : un
+  // animation-delay NÉGATIF en CSS ne retarde pas, il démarre l'animation en
+  // plein milieu — le marqueur apparaîtrait déjà à moitié gonflé.
+  const clamped = Math.max(Math.trunc(index), 0)
+  return Math.min(clamped * MARKER_POP_STEP_MS, MARKER_POP_MAX_MS)
+}
