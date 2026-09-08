@@ -138,7 +138,10 @@ export function ImportTile({ imp }: { imp: ImportRow }) {
         style={{
           position: 'relative',
           width: 104,
-          height: 148,
+          // 9:16 — la forme même des vidéos verticales d'où viennent ces
+          // adresses. Aucune app de resto n'utilise ce format ; c'est ce qui
+          // fait que le rail ressemble à sa source plutôt qu'à une galerie.
+          height: 185,
           borderRadius: 14,
           overflow: 'hidden',
           background: placeGradient(imp.id),
@@ -248,7 +251,7 @@ function AddTile({ onAdd }: { onAdd: () => void }) {
       style={{
         flexShrink: 0,
         width: 104,
-        aspectRatio: '104 / 148',
+        aspectRatio: '9 / 16',
         borderRadius: 14,
         border: '1.5px dashed var(--border-strong)',
         background: 'var(--bg)',

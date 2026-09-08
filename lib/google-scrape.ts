@@ -104,6 +104,45 @@ export interface ScrapeSearchResult {
   fsq: FoursquareData
 }
 
+/**
+ * Lit l'état d'ouverture dans le nœud horaires de Google (`p[203]`).
+ *
+ * Trois emplacements, stables sur les réponses observées :
+ *   node[1][8][0] — l'état nu : « Ouvert » / « Fermé »
+ *   node[1][4][0] — la phrase : « Ouvert · Ferme à 19:00 », « Ferme bientôt · … »
+ *   node[1][0][3] — les plages du jour : [["12:00–14:30", …], ["19:00–22:00", …]]
+ *
+ * ⚠️ L'état DOIT se lire sur [8]. La version précédente cherchait le premier
+ * mot ressemblant à « Ouvert|Ferme » dans TOUT le nœud sérialisé ; sur un lieu
+ * dont la phrase commence par « Ferme bientôt · 14:30 · Rouvre à 19:00 », elle
+ * concluait « fermé » alors que [8] disait « Ouvert ». L'app annonçait donc
+ * fermés des restaurants ouverts, au moment précis où ça compte le plus.
+ */
+export function parseScrapeStatus(
+  hoursNode: Node
+): { open_now?: boolean; today?: string } | undefined {
+  const status: Node = hoursNode?.[1]
+  if (!Array.isArray(status)) return undefined
+
+  const word = typeof status[8]?.[0] === 'string' ? (status[8][0] as string) : undefined
+  const open_now = word
+    ? /^(ouvert|open)/i.test(word)
+      ? true
+      : /^(ferm|closed)/i.test(word)
+        ? false
+        : undefined
+    : undefined
+
+  const ranges: Node[] = Array.isArray(status[0]?.[3]) ? status[0][3] : []
+  const today = ranges
+    .map((r: Node) => (typeof r?.[0] === 'string' ? (r[0] as string) : null))
+    .filter(Boolean)
+    .join(', ')
+
+  if (open_now === undefined && !today) return undefined
+  return { open_now, today: today || undefined }
+}
+
 /** Map one Google result entry (entry[14] is the place node) to normalized data. */
 function mapScrapeEntry(entry: Node): ScrapePlace | null {
   const p: Node = entry?.[14]
@@ -125,17 +164,16 @@ function mapScrapeEntry(entry: Node): ScrapePlace | null {
     )
     .filter((line) => !line.endsWith(': '))
     .join(' · ')
-  const openState = JSON.stringify(hoursNode ?? '').match(
-    /"(Ouvert|Fermé|Ferme|Open|Closed)[^"]{0,60}"/
-  )?.[0]
-  const openNow = openState ? /"(Ouvert|Open)/i.test(openState) : undefined
-  const hasHours = !!(display || openState)
+  const status = parseScrapeStatus(hoursNode)
+  const hasHours = !!(display || status)
 
   const fsq: FoursquareData = {
     fsq_id: typeof p[10] === 'string' ? p[10] : '',
     rating: googleRatingTo10(typeof rawRating === 'number' ? rawRating : undefined),
     photos: photoMatch ? [scrapePhoto(photoMatch[0])] : undefined,
-    hours: hasHours ? { open_now: openNow, display: display || undefined } : undefined,
+    hours: hasHours
+      ? { open_now: status?.open_now, display: display || undefined, today: status?.today }
+      : undefined,
   }
   // p[39] = adresse formatée sans le nom (« 36 Rue de Belleville, 75020 Paris »).
   const address = typeof p[39] === 'string' ? p[39] : undefined

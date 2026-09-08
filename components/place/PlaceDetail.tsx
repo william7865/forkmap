@@ -55,12 +55,11 @@ import PlaceThumb, { placeInitial } from '@/components/place/PlaceThumb'
 import { placeRank, rankLabel } from '@/lib/ranking'
 import PlaceSocialProof from '@/components/place/PlaceSocialProof'
 import PhotoGallery, { buildPhotoUrl } from '@/components/place/PhotoGallery'
-import ReviewsSection from '@/components/place/ReviewsSection'
-import { useAuth } from '@/lib/hooks/useAuth'
-import { useReviews } from '@/lib/hooks/useReviews'
+import { placeDistrict } from '@/lib/districts'
+import { closingTime, formatWalkTime } from '@/lib/format'
 
 // Leaflet touche `window` à l'import — jamais côté serveur.
-const MiniMap = dynamic(() => import('@/components/import/ImportMiniMap'), { ssr: false })
+const MiniMap = dynamic(() => import('@/components/place/PlaceMiniMap'), { ssr: false })
 
 // dirflg Apple Maps : w=marche, d=voiture (vélo retombe sur voiture)
 const APPLE_FLAG: Record<string, string> = { walking: 'w', bicycling: 'd', driving: 'd' }
@@ -81,19 +80,21 @@ function SectionTitle({
         alignItems: 'baseline',
         justifyContent: 'space-between',
         gap: 12,
-        // A 20px serif heading needs room under it — at 12px the title read as
-        // glued to its own content rather than introducing it.
-        margin: '0 0 16px',
+        margin: '0 0 10px',
       }}
     >
+      {/* Libellé discret, pas un gros titre. Empilés, les titres de 20 px
+          transformaient la fiche en série de tiroirs étiquetés : on lisait six
+          étiquettes avant d'atteindre une information. */}
       <h3
         style={{
           margin: 0,
-          fontFamily: 'var(--font-display)',
-          fontSize: 20,
-          fontWeight: 600,
-          letterSpacing: '-0.01em',
-          color: 'var(--text)',
+          fontFamily: 'var(--font-body)',
+          fontSize: 10.5,
+          fontWeight: 700,
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+          color: 'var(--text-3)',
         }}
       >
         {children}
@@ -319,7 +320,9 @@ export default function PlaceDetail({
 
   // Fetch-on-open: upgrades the card with Google data (photos/rating/hours) for
   // the one place on screen. `place` is the enriched copy from here on.
-  const place = useDetailEnrichment(placeProp)
+  // Le hook accepte désormais un lieu absent (la fiche d'import peut n'en avoir
+  // aucun) ; ici `placeProp` est toujours présent, d'où le repli.
+  const place = useDetailEnrichment(placeProp) ?? placeProp
 
   const [showShare, setShowShare] = useState(false)
   const [showNote, setShowNote] = useState(false)
@@ -382,12 +385,10 @@ export default function PlaceDetail({
   // section below — they never touch the banner (the place's own photo stays the
   // hero). Memoized so the gallery keeps a stable `urls` reference across
   // re-renders (otherwise its reset effect would snap the swipe back to photo 1).
-  const { user } = useAuth()
-  const reviewsApi = useReviews(place, user?.id ?? null)
   // Gallery = les vraies photos qu'on a, dédupliquées, meilleure source d'abord :
   // Google/FSQ, puis les images de lieu OSM/Commons & Wikidata. Plus de Mapillary
   // (façades de rue trop souvent du mauvais bâtiment) : sans photo, la fiche
-  // bascule sur son bandeau « score héros » plutôt que d'afficher une fausse
+  // bascule sur la carte du lieu plutôt que d'afficher une fausse
   // devanture.
   const gallery = useMemo(() => {
     const urls: string[] = []
@@ -442,12 +443,52 @@ export default function PlaceDetail({
   // ═══════════════════════════════════════════════════════════════════
   if (isNativeRuntime()) {
     const heroPhoto = galleryUrls[0] ?? place.wikidata?.image_url ?? null
-    const rating = place.fsq?.rating
-    // Sans photo, le bandeau devient « score héros » : on calcule le rang honnête
-    // (parmi les mêmes cuisines chargées autour, cf. lib/ranking) uniquement là.
-    const bannerRank = heroPhoto ? null : placeRank(place, nearbyPlaces)
-    const price = place.fsq?.price
-    const reviewsCount = place.fsq?.total_ratings
+    // Le quartier : arrondissement parisien déduit du code postal, sinon le
+    // district OSM, sinon la ville (cf. lib/districts).
+    const district = placeDistrict(place)
+
+    // Le dossier. L'ordre suit ce qui décide : la note, puis maintenant, puis
+    // l'horaire du jour, puis où et à quelle distance. Une ligne n'apparaît
+    // que si sa valeur existe.
+    const record: { k: string; v: React.ReactNode; tone?: string }[] = []
+    {
+      const note = place.fsq?.rating ?? place.fsq_rating
+      if (note != null)
+        record.push({
+          k: 'Note',
+          v: (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <GoldStar /> {note.toFixed(1)}
+              {place.fsq?.total_ratings != null && (
+                <span style={{ fontWeight: 500, color: 'var(--text-3)' }}>
+                  ({place.fsq.total_ratings.toLocaleString('fr-FR')})
+                </span>
+              )}
+            </span>
+          ),
+        })
+      if (place.open_now != null) {
+        const closes = closingTime(place.fsq?.hours?.today)
+        record.push({
+          k: 'Maintenant',
+          v: place.open_now ? (closes ? `Ouvert · ferme à ${closes}` : 'Ouvert') : 'Fermé',
+          tone: place.open_now ? 'var(--open)' : 'var(--closed)',
+        })
+      }
+      const today =
+        place.osm_enriched?.today_hours ?? place.fsq?.hours?.today ?? place.fsq?.hours?.display
+      if (today) record.push({ k: "Aujourd'hui", v: today })
+      if (place.fsq?.price != null) record.push({ k: 'Prix', v: '€'.repeat(place.fsq.price) })
+      if (place.address) record.push({ k: 'Adresse', v: place.address })
+      else if (district) record.push({ k: 'Quartier', v: district })
+      if (place.distance != null) record.push({ k: 'À pied', v: formatWalkTime(place.distance) })
+    }
+    // Le rang honnête parmi les mêmes cuisines chargées autour (cf. lib/ranking).
+    // Il n'était calculé QUE faute de photo, parce qu'il servait à remplir le
+    // héros vide. C'est pourtant une chose que Forkmap sait dire et que Google
+    // ne dit pas : il vit maintenant avec les distinctions, quelle que soit la
+    // photo.
+    const rank = placeRank(place, nearbyPlaces)
     const michelin = place.wikidata?.michelin_stars ?? place.osm_enriched?.michelin ?? 0
     const distinctions = place.wikidata?.distinctions?.filter((d) => !d.includes('Michelin')) ?? []
     const saved = !!place.is_favorite
@@ -455,7 +496,6 @@ export default function PlaceDetail({
     const featureChips = e ? osmFeatureChips(e) : []
     const description =
       place.wikidata?.description ?? place.osm_enriched?.description ?? place.fsq?.description
-    const hours = place.osm_enriched?.today_hours ?? place.fsq?.hours?.display ?? null
     const tel = place.fsq?.tel ?? place.phone
     const website = place.fsq?.website ?? place.website
     const menuUrl = place.osm_enriched?.menu_url
@@ -497,13 +537,18 @@ export default function PlaceDetail({
             WebkitOverflowScrolling: 'touch',
           }}
         >
-          {/* ── Héros plein cadre : photo, ou « score héros » sans photo ── */}
+          {/* ── HÉROS : LES PHOTOS DU RESTAURANT ──
+              On ouvre une fiche pour voir le lieu. La carte reste le repli
+              quand il n'y a aucune image — c'est encore le cas le plus
+              fréquent — parce qu'elle dit quelque chose, contrairement à
+              l'ancien repli qui affichait la note en 64 px au milieu d'un
+              cadre vide. */}
           <div
             style={{
               position: 'relative',
-              height: bannerRank !== null || !heroPhoto ? 300 : 332,
-              background: heroPhoto ? undefined : 'var(--surface)',
-              borderBottom: heroPhoto ? undefined : '1px solid var(--border)',
+              height: heroPhoto || galleryUrls.length > 1 ? 300 : 210,
+              background: 'var(--surface)',
+              borderBottom: '1px solid var(--border)',
               overflow: 'hidden',
             }}
           >
@@ -522,122 +567,7 @@ export default function PlaceDetail({
                 priority
               />
             ) : (
-              // Pas de vraie photo → le classement devient le héros. La note en
-              // grand (l'or ressort sur le fond neutre), le rang honnête, le statut.
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 12,
-                  padding: '0 24px',
-                  textAlign: 'center',
-                }}
-              >
-                {rating != null ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Star size={40} strokeWidth={0} fill="var(--star)" />
-                    <span
-                      style={{
-                        fontFamily: 'var(--font-display)',
-                        fontSize: 64,
-                        fontWeight: 700,
-                        lineHeight: 1,
-                        letterSpacing: '-0.03em',
-                        color: 'var(--text)',
-                      }}
-                    >
-                      {rating.toFixed(1)}
-                    </span>
-                  </div>
-                ) : (
-                  <span
-                    style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: 26,
-                      fontWeight: 600,
-                      color: 'var(--text-3)',
-                    }}
-                  >
-                    Pas encore noté
-                  </span>
-                )}
-
-                {bannerRank && (
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      padding: '6px 14px',
-                      borderRadius: 999,
-                      background: 'var(--accent)',
-                      color: 'var(--on-accent)',
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      letterSpacing: '-0.01em',
-                    }}
-                  >
-                    {rankLabel(bannerRank)}
-                  </span>
-                )}
-
-                {place.open_now !== undefined && (
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      fontSize: 13,
-                      fontWeight: 700,
-                      color: place.open_now ? 'var(--open)' : 'var(--closed)',
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 7,
-                        height: 7,
-                        borderRadius: '50%',
-                        background: 'currentColor',
-                      }}
-                    />
-                    {place.open_now ? 'Ouvert' : 'Fermé'}
-                  </span>
-                )}
-              </div>
-            )}
-
-            {/* Voiles de lisibilité : seulement sur photo (inutiles sur le fond
-                clair du bandeau score, ils y feraient une ombre parasite). */}
-            {heroPhoto && (
-              <>
-                <span
-                  aria-hidden
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: 96,
-                    background: 'linear-gradient(rgba(0,0,0,0.28), transparent)',
-                    pointerEvents: 'none',
-                  }}
-                />
-                <span
-                  aria-hidden
-                  style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: 88,
-                    background: 'linear-gradient(transparent, rgba(0,0,0,0.22))',
-                    pointerEvents: 'none',
-                  }}
-                />
-              </>
+              <MiniMap lat={place.lat} lon={place.lon} height={210} flush />
             )}
 
             <button
@@ -671,7 +601,7 @@ export default function PlaceDetail({
             style={{
               maxWidth: 560,
               margin: '0 auto',
-              padding: '20px 20px 40px',
+              padding: '20px 20px 24px',
             }}
           >
             {/* ── Nom serif + méta ── */}
@@ -680,88 +610,79 @@ export default function PlaceDetail({
               style={{
                 margin: 0,
                 fontFamily: 'var(--font-display)',
-                fontSize: 30,
-                fontWeight: 600,
-                letterSpacing: '-0.02em',
-                lineHeight: 1.12,
+                fontSize: 26,
+                fontWeight: 700,
+                letterSpacing: '-0.03em',
+                lineHeight: 1.05,
                 color: 'var(--text)',
               }}
             >
               {place.name}
             </h2>
 
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 7,
-                marginTop: 10,
-                fontSize: 13.5,
-                color: 'var(--text-2)',
-              }}
-            >
-              {rating != null && (
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    fontWeight: 700,
-                    color: 'var(--text)',
-                  }}
-                >
-                  <GoldStar /> {rating.toFixed(1)}
-                  {/* The review count used to justify a whole "Note" section that
-                      restated this very rating, bigger. It's a footnote to the
-                      number, so it lives next to the number. */}
-                  {reviewsCount ? (
-                    <span style={{ fontWeight: 500, color: 'var(--text-3)' }}>
-                      ({reviewsCount.toLocaleString('fr-FR')})
-                    </span>
-                  ) : null}
-                </span>
-              )}
-              {cuisine && (
-                <>
-                  {rating != null && <MetaDot />}
-                  <span>{frCuisine(cuisine)}</span>
-                </>
-              )}
-              {price != null && (
-                <>
-                  <MetaDot />
-                  <span>{'€'.repeat(price)}</span>
-                </>
-              )}
-              {place.open_now !== undefined && (
-                <>
-                  {(rating != null || cuisine || price != null) && <MetaDot />}
-                  <span
+            {/* Sous le titre : ce qui IDENTIFIE le lieu. La note, le prix et
+                l'état d'ouverture vivaient ici ET dans la rangée juste en
+                dessous — on lisait « 9.8 » deux fois à trois centimètres
+                d'écart. Ils appartiennent aux chiffres, pas à l'identité. */}
+            {(cuisine || district) && (
+              <p
+                style={{
+                  margin: '7px 0 0',
+                  fontSize: 13,
+                  color: 'var(--text-2)',
+                }}
+              >
+                {[cuisine ? frCuisine(cuisine) : null, district].filter(Boolean).join(' · ')}
+              </p>
+            )}
+
+            {/* ── LE DOSSIER ──
+                Plus de rangée à trois cases, et surtout plus de sections
+                titrées : un dossier continu, libellé à gauche, valeur à
+                droite, séparés par des filets. Il absorbe ce qui était
+                « Horaires » et « Où », deux titres de section pour une ligne
+                de texte chacun. Chaque ligne n'existe que si on connaît sa
+                valeur : rien à combler, donc rien qui sonne creux. */}
+            {record.length > 0 && (
+              <dl style={{ margin: '16px 0 0' }}>
+                {record.map((row) => (
+                  <div
+                    key={row.k}
                     style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 5,
-                      fontWeight: 600,
-                      color: place.open_now ? 'var(--open)' : 'var(--closed)',
+                      display: 'flex',
+                      alignItems: 'baseline',
+                      justifyContent: 'space-between',
+                      gap: 14,
+                      padding: '10px 0',
+                      borderBottom: '1px solid var(--border)',
                     }}
                   >
-                    <span
+                    <dt
+                      style={{ margin: 0, fontSize: 12.5, color: 'var(--text-3)', flexShrink: 0 }}
+                    >
+                      {row.k}
+                    </dt>
+                    <dd
                       style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        background: 'currentColor',
+                        margin: 0,
+                        minWidth: 0,
+                        textAlign: 'right',
+                        fontFamily: 'var(--font-display)',
+                        fontWeight: 600,
+                        fontSize: 13.5,
+                        letterSpacing: '-0.01em',
+                        color: row.tone ?? 'var(--text)',
                       }}
-                    />
-                    {place.open_now ? 'Ouvert' : 'Fermé'}
-                  </span>
-                </>
-              )}
-            </div>
+                    >
+                      {row.v}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            )}
 
             {/* Distinctions Michelin / autres */}
-            {(michelin > 0 || distinctions.length > 0) && (
+            {(michelin > 0 || distinctions.length > 0 || rank) && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 12 }}>
                 {michelin > 0 && (
                   <span
@@ -786,6 +707,23 @@ export default function PlaceDetail({
                     Michelin
                   </span>
                 )}
+                {rank && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '5px 12px',
+                      borderRadius: 999,
+                      border: '1px solid var(--border)',
+                      background: 'var(--surface)',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: 'var(--text-2)',
+                    }}
+                  >
+                    {rankLabel(rank)}
+                  </span>
+                )}
                 {distinctions.map((d) => (
                   <span
                     key={d}
@@ -807,139 +745,52 @@ export default function PlaceDetail({
               </div>
             )}
 
-            {/* ── Actions : enregistrer · itinéraire · partager ── */}
-            <div style={{ marginTop: 20 }}>
-              {/* Enregistrer — div-bouton pour héberger le HeartButton (popup listes)
-                  sans imbriquer deux <button>. Un tap sur le cœur déclenche son
-                  propre onClick (stopPropagation) ; ailleurs, le div bascule. */}
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => onToggleFavorite(place)}
-                onKeyDown={(ev) => {
-                  if (ev.key === 'Enter' || ev.key === ' ') {
-                    ev.preventDefault()
-                    onToggleFavorite(place)
-                  }
-                }}
-                aria-label={saved ? 'Retirer des enregistrements' : 'Enregistrer'}
-                className="tap-press"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  height: 50,
-                  // Albo grammar: actions en pilules (rayon plein), pas en rectangles.
-                  borderRadius: 999,
-                  border: saved ? '1px solid var(--border-strong)' : 'none',
-                  background: saved ? 'transparent' : 'var(--accent)',
-                  color: saved ? 'var(--text)' : 'var(--on-accent)',
-                  cursor: 'pointer',
-                  fontSize: 15,
-                  fontWeight: 700,
-                  boxShadow: saved ? 'none' : 'var(--s2)',
-                  WebkitTapHighlightColor: 'transparent',
-                }}
-              >
-                <span style={{ display: 'inline-flex' }}>
-                  <HeartButton
-                    isFavorite={saved}
-                    size={17}
-                    onClick={() => onToggleFavorite(place)}
-                    osmId={place.osm_id}
-                    placeSnapshot={place as unknown as Record<string, unknown>}
-                    colorOverride={saved ? 'var(--accent)' : 'var(--on-accent)'}
-                  />
-                </span>
-                {saved ? 'Enregistré' : 'Enregistrer'}
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-                <button
-                  type="button"
-                  onClick={() => openDirections(place.lat, place.lon, currentMode.gmaps)}
-                  className="tap-press"
-                  style={{
-                    flex: 1,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 7,
-                    height: 50,
-                    borderRadius: 999,
-                    border: '1px solid var(--border-strong)',
-                    background: 'transparent',
-                    color: 'var(--text)',
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-body)',
-                    fontSize: 14.5,
-                    fontWeight: 600,
-                  }}
-                >
-                  <Navigation size={15} /> Itinéraire
-                </button>
-                <button
-                  type="button"
-                  onClick={handleShare}
-                  aria-label="Partager ce restaurant"
-                  className="tap-press"
-                  style={{
-                    flex: 1,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 7,
-                    height: 50,
-                    borderRadius: 999,
-                    border: '1px solid var(--border-strong)',
-                    background: 'transparent',
-                    color: 'var(--text)',
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-body)',
-                    fontSize: 14.5,
-                    fontWeight: 600,
-                  }}
-                >
+            <div style={{ marginTop: 18 }}>
+              {/* Liens secondaires (Appeler / Site / Menu / Réserver / Instagram) */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                <button type="button" onClick={handleShare} style={linkChip}>
                   <IcoShare /> Partager
                 </button>
+                {(tel || website || menuUrl || bookingUrl || instagram) && (
+                  <>
+                    {tel && (
+                      <a href={`tel:${tel}`} style={linkChip}>
+                        <IcoPhone /> Appeler
+                      </a>
+                    )}
+                    {website && (
+                      <a href={website} target="_blank" rel="noopener noreferrer" style={linkChip}>
+                        <IcoGlobe /> Site
+                      </a>
+                    )}
+                    {menuUrl && (
+                      <a href={menuUrl} target="_blank" rel="noopener noreferrer" style={linkChip}>
+                        <UtensilsCrossed size={14} strokeWidth={1.75} /> Menu
+                      </a>
+                    )}
+                    {bookingUrl && (
+                      <a
+                        href={bookingUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={linkChip}
+                      >
+                        <CalendarCheck size={14} strokeWidth={1.75} /> Réserver
+                      </a>
+                    )}
+                    {instagram && (
+                      <a
+                        href={`https://instagram.com/${instagram.replace('@', '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={linkChip}
+                      >
+                        <ExternalLink size={14} strokeWidth={1.75} /> Instagram
+                      </a>
+                    )}
+                  </>
+                )}
               </div>
-
-              {/* Liens secondaires (Appeler / Site / Menu / Réserver / Instagram) */}
-              {(tel || website || menuUrl || bookingUrl || instagram) && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-                  {tel && (
-                    <a href={`tel:${tel}`} style={linkChip}>
-                      <IcoPhone /> Appeler
-                    </a>
-                  )}
-                  {website && (
-                    <a href={website} target="_blank" rel="noopener noreferrer" style={linkChip}>
-                      <IcoGlobe /> Site
-                    </a>
-                  )}
-                  {menuUrl && (
-                    <a href={menuUrl} target="_blank" rel="noopener noreferrer" style={linkChip}>
-                      <UtensilsCrossed size={14} strokeWidth={1.75} /> Menu
-                    </a>
-                  )}
-                  {bookingUrl && (
-                    <a href={bookingUrl} target="_blank" rel="noopener noreferrer" style={linkChip}>
-                      <CalendarCheck size={14} strokeWidth={1.75} /> Réserver
-                    </a>
-                  )}
-                  {instagram && (
-                    <a
-                      href={`https://instagram.com/${instagram.replace('@', '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={linkChip}
-                    >
-                      <ExternalLink size={14} strokeWidth={1.75} /> Instagram
-                    </a>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* ── Note + note perso + visite (actions secondaires) ── */}
@@ -992,23 +843,6 @@ export default function PlaceDetail({
                 lue à côté du nom — et sur un barème (/10) qui entrait en collision
                 avec le /5 des avis communautaires plus bas. Le nombre d'avis a
                 rejoint la ligne méta. */}
-
-            {/* ── Horaires ── */}
-            {hours && (
-              <>
-                <ThinDivider />
-                <SectionTitle>Horaires</SectionTitle>
-                <p style={{ margin: 0, fontSize: 14, color: 'var(--text-2)', lineHeight: 1.6 }}>
-                  {place.osm_enriched?.today_hours ? (
-                    <>
-                      Aujourd&apos;hui : <strong style={{ color: 'var(--text)' }}>{hours}</strong>
-                    </>
-                  ) : (
-                    hours
-                  )}
-                </p>
-              </>
-            )}
 
             {/* ── Équipements ── */}
             {featureChips.length > 0 && (
@@ -1104,56 +938,9 @@ export default function PlaceDetail({
                 l'adresse et la mini-carte. Trois fois la même intention. */}
 
             {/* ── Avis communautaires (app-only) ── */}
-            <ReviewsSection api={reviewsApi} isSignedIn={!!user} placeName={place.name} />
 
             {/* ── Amis qui ont enregistré / visité ── */}
             <PlaceSocialProof osmId={place.osm_id} />
-
-            {/* ── Où (adresse + mini-carte) ── */}
-            <ThinDivider />
-            <SectionTitle>Où</SectionTitle>
-            {place.address && (
-              <div
-                style={{
-                  display: 'flex',
-                  gap: 10,
-                  alignItems: 'flex-start',
-                  marginBottom: 12,
-                }}
-              >
-                <span style={{ flexShrink: 0, marginTop: 1, color: 'var(--text-3)' }}>
-                  <IcoMap />
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.55 }}>
-                    {place.address}
-                  </span>
-                  {place.osm_enriched?.district && (
-                    <span
-                      style={{
-                        display: 'block',
-                        fontSize: 12,
-                        color: 'var(--text-3)',
-                        fontWeight: 600,
-                        marginTop: 2,
-                      }}
-                    >
-                      {place.osm_enriched.district}
-                    </span>
-                  )}
-                </div>
-                <CopyAddressButton
-                  text={[place.address, place.osm_enriched?.district ?? place.osm_enriched?.city]
-                    .filter(Boolean)
-                    .join(', ')}
-                />
-              </div>
-            )}
-            <div
-              style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)' }}
-            >
-              <MiniMap lat={place.lat} lon={place.lon} height={170} />
-            </div>
 
             {/* ── Moi ici ──
                 « Ma note » et « Mes visites » étaient deux sections séparées, en
@@ -1450,7 +1237,98 @@ export default function PlaceDetail({
               </>
             )}
           </div>
+          {/* ── LA BARRE D'ACTIONS ──
+              Elles vivaient dans le défilement, donc elles disparaissaient dès
+              qu'on lisait les horaires. Deux actions seulement : enregistrer et
+              y aller. Le reste (partager, appeler, site) est descendu d'un rang,
+              dans les liens.
+
+              Elle est `sticky`, pas `fixed` : elle se colle au bas de la zone
+              qui défile, laquelle s'arrête déjà pile au-dessus des onglets. La
+              version `fixed` calculait son décalage sur une hauteur d'onglets
+              supposée (42 px) alors que le conteneur en réserve 56 : les
+              boutons passaient sous la barre d'onglets. Aucune constante à
+              tenir synchronisée ici. */}
+          <div
+            style={{
+              position: 'sticky',
+              bottom: 0,
+              zIndex: 5,
+              display: 'flex',
+              gap: 9,
+              padding: '10px var(--gutter)',
+              background: 'var(--bg)',
+              borderTop: '1px solid var(--border)',
+            }}
+          >
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => onToggleFavorite(place)}
+              onKeyDown={(ev) => {
+                if (ev.key === 'Enter' || ev.key === ' ') {
+                  ev.preventDefault()
+                  onToggleFavorite(place)
+                }
+              }}
+              aria-label={saved ? 'Retirer des enregistrements' : 'Enregistrer'}
+              className="tap-press"
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                height: 46,
+                borderRadius: 999,
+                border: saved ? '1px solid var(--border-strong)' : 'none',
+                background: saved ? 'transparent' : 'var(--accent)',
+                color: saved ? 'var(--text)' : 'var(--on-accent)',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-display)',
+                fontSize: 14.5,
+                fontWeight: 700,
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              <span style={{ display: 'inline-flex' }}>
+                <HeartButton
+                  isFavorite={saved}
+                  size={17}
+                  onClick={() => onToggleFavorite(place)}
+                  osmId={place.osm_id}
+                  placeSnapshot={place as unknown as Record<string, unknown>}
+                  colorOverride={saved ? 'var(--accent)' : 'var(--on-accent)'}
+                />
+              </span>
+              {saved ? 'Enregistré' : 'Enregistrer'}
+            </div>
+            <button
+              type="button"
+              onClick={() => openDirections(place.lat, place.lon, currentMode.gmaps)}
+              className="tap-press"
+              style={{
+                flex: 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 7,
+                height: 46,
+                borderRadius: 999,
+                border: '1px solid var(--border-strong)',
+                background: 'transparent',
+                color: 'var(--text)',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-display)',
+                fontSize: 14.5,
+                fontWeight: 700,
+              }}
+            >
+              <Navigation size={15} /> Y aller
+            </button>
+          </div>
         </div>
+
         {modals}
         <style>{`@keyframes shimmer { 0%{background-position:100% 0} 100%{background-position:-100% 0} }`}</style>
       </>
@@ -1817,7 +1695,6 @@ export default function PlaceDetail({
         <PlaceSocialProof osmId={place.osm_id} />
 
         {/* Community reviews (rating + text + photos) */}
-        <ReviewsSection api={reviewsApi} isSignedIn={!!user} placeName={place.name} />
 
         {/* Secondary actions: Note + Visite + cuisine filter */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>

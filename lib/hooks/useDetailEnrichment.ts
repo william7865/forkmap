@@ -29,15 +29,25 @@ import { canScrapeOnDevice, enrichPlacesViaScrape } from '@/lib/google-client'
 /** Merge fetched fields onto a place without ever overwriting a value with empty. */
 function mergeFsq(base: PlaceCard, fetched: PlaceCard | undefined): PlaceCard {
   if (!fetched?.fsq) return base
-  return { ...base, fsq: fetched.fsq, fsq_rating: fetched.fsq.rating ?? base.fsq_rating }
+  return {
+    ...base,
+    fsq: fetched.fsq,
+    fsq_rating: fetched.fsq.rating ?? base.fsq_rating,
+    // « Ouvert / Fermé » se lit sur `open_now`, au premier niveau. Les deux
+    // chemins d'enrichissement le rangent ailleurs : la route web le pose au
+    // premier niveau, le scrape natif le laisse UNIQUEMENT dans `fsq.hours`.
+    // Ne recopier que `fsq` faisait disparaître l'horaire de toutes les fiches
+    // détail, alors que la donnée était bien revenue.
+    open_now: fetched.open_now ?? fetched.fsq.hours?.open_now ?? base.open_now,
+  }
 }
 
 /**
  * Returns the place enriched on open. Starts as the passed-in place and upgrades
  * in place once Google data arrives (native, or web when unblocked).
  */
-export function useDetailEnrichment(place: PlaceCard): PlaceCard {
-  const [enriched, setEnriched] = useState<PlaceCard>(place)
+export function useDetailEnrichment(place: PlaceCard | null): PlaceCard | null {
+  const [enriched, setEnriched] = useState<PlaceCard | null>(place)
 
   // Keep the local copy in step with the prop without discarding what we fetched.
   // A different place → replace outright (never flash the previous one's photos).
@@ -45,15 +55,25 @@ export function useDetailEnrichment(place: PlaceCard): PlaceCard {
   // prop's fields in, but keep our fetched fsq if the new prop lacks it.
   useEffect(() => {
     setEnriched((prev) =>
-      prev.osm_id === place.osm_id
-        ? { ...place, fsq: place.fsq ?? prev.fsq, fsq_rating: place.fsq_rating ?? prev.fsq_rating }
+      prev && place && prev.osm_id === place.osm_id
+        ? {
+            ...place,
+            fsq: place.fsq ?? prev.fsq,
+            fsq_rating: place.fsq_rating ?? prev.fsq_rating,
+            open_now: place.open_now ?? prev.open_now,
+          }
         : place
     )
   }, [place])
 
   useEffect(() => {
-    // Already has photos → nothing to fetch.
-    if (place.fsq?.photos?.length) return
+    // Pas de lieu résolu → rien à chercher. Sinon on ne saute la requête que si
+    // la fiche a DÉJÀ tout ce que cet appel rapporte : la photo ET l'horaire.
+    // Ne tester que la photo suffisait tant qu'on ne lisait que les photos ;
+    // depuis que « Ouvert / Fermé » vient d'ici, un lieu photographié mais sans
+    // horaire restait muet pour toujours.
+    if (!place) return
+    if (place.fsq?.photos?.length && place.fsq?.hours) return
 
     const controller = new AbortController()
     let cancelled = false
@@ -62,7 +82,7 @@ export function useDetailEnrichment(place: PlaceCard): PlaceCard {
       try {
         if (canScrapeOnDevice()) {
           const [done] = await enrichPlacesViaScrape([place])
-          if (!cancelled) setEnriched((prev) => mergeFsq(prev, done))
+          if (!cancelled) setEnriched((prev) => (prev ? mergeFsq(prev, done) : prev))
           return
         }
         const res = await apiFetch('/api/places/enrich-google', {
@@ -73,7 +93,7 @@ export function useDetailEnrichment(place: PlaceCard): PlaceCard {
         })
         if (!res.ok) return
         const { data } = (await res.json()) as { data?: PlaceCard[] }
-        if (!cancelled) setEnriched((prev) => mergeFsq(prev, data?.[0]))
+        if (!cancelled) setEnriched((prev) => (prev ? mergeFsq(prev, data?.[0]) : prev))
       } catch {
         // Network error or aborted: keep whatever the card already had.
       }
@@ -86,7 +106,7 @@ export function useDetailEnrichment(place: PlaceCard): PlaceCard {
     // osm_id, not the object identity: a re-render with a new object for the same
     // place must not re-trigger the scrape.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [place.osm_id])
+  }, [place?.osm_id])
 
   return enriched
 }

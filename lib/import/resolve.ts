@@ -85,10 +85,19 @@ function nowIso(): string {
   return new Date().toISOString()
 }
 
+/**
+ * Coupe à `max` SANS casser un caractère en deux.
+ *
+ * `slice` compte en unités UTF-16 : un emoji en occupe deux, et couper entre
+ * les deux laisse une moitié orpheline que le moteur de rendu dessine en carré.
+ * Une légende enregistrée finissait littéralement par « … riz à volonté. \ud83d ».
+ * Découper la chaîne en points de code règle le cas une fois pour toutes.
+ */
 function truncate(value: string | null | undefined, max: number): string | null {
   const s = (value ?? '').trim()
   if (!s) return null
-  return s.length > max ? s.slice(0, max) : s
+  if (s.length <= max) return s
+  return [...s].slice(0, max).join('')
 }
 
 /** The route validates `post_thumb` as a URL, so anything else must not be sent. */
@@ -130,8 +139,8 @@ function toCandidatePlace(r: PlaceSearchResult): ImportCandidatePlace | null {
   const osm_id = r.osm_id && r.osm_id.length <= LIMIT.osmId ? r.osm_id : undefined
   return {
     ...(osm_id ? { osm_id } : {}),
-    name: r.name.trim().slice(0, LIMIT.name),
-    context: (r.context ?? '').slice(0, LIMIT.context),
+    name: truncate(r.name, LIMIT.name) ?? '',
+    context: truncate(r.context, LIMIT.context) ?? '',
     lat: r.lat,
     lon: r.lon,
     ...(typeof r.rating === 'number' && Number.isFinite(r.rating) ? { rating: r.rating } : {}),

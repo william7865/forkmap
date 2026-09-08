@@ -1,43 +1,22 @@
 'use client'
-// ImportMiniMap — a small, frozen map with a single pin: "where it is".
+// PlaceMiniMap — petite carte figée, une seule épingle : « c'est où ».
 //
-// Leaflet touches `window` at import time, so this file must only ever be pulled
-// in via `dynamic(..., { ssr: false })` (the import detail does exactly that).
-// It is deliberately NOT MapView: MapView is the app's live map (clusters, move
-// handlers, search-here pill, zoom control). Here everything is off — no drag,
-// no zoom, no keyboard — the map is an illustration, not a control.
+// Elle ouvre la fiche d'un lieu, qu'il vienne d'une vidéo ou de la carte : les
+// deux écrans montrent le même objet, ils ouvrent donc de la même façon.
+// (Elle s'appelait ImportMiniMap tant qu'un seul écran s'en servait.)
+//
+// Leaflet lit `window` à l'import : ce fichier ne doit JAMAIS être tiré
+// autrement que par `dynamic(..., { ssr: false })`. Ce n'est délibérément pas
+// MapView, la carte vivante de l'app (clusters, gestes, zoom) : ici tout est
+// coupé, la carte est une illustration, pas un contrôle.
 import { useEffect, useRef } from 'react'
-
-// Leaflet is loaded from the CDN at runtime and has no types here.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type L = any
-
-/** Load a CDN asset once, and resolve when it has actually settled. Mirrors
- *  MapView's loader and reuses its element ids, so the map page that already
- *  paid for Leaflet doesn't download it twice. */
-function loadAsset(tag: 'script' | 'link', id: string, attrs: Record<string, string>) {
-  return new Promise<void>((res) => {
-    const existing = document.getElementById(id) as HTMLElement | null
-    if (existing) {
-      if (existing.dataset.settled === '1') res()
-      else {
-        existing.addEventListener('load', () => res(), { once: true })
-        existing.addEventListener('error', () => res(), { once: true })
-      }
-      return
-    }
-    const el = document.createElement(tag)
-    el.id = id
-    Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v))
-    const settle = () => {
-      el.dataset.settled = '1'
-      res()
-    }
-    el.onload = settle
-    el.onerror = settle
-    document.head.appendChild(el)
-  })
-}
+import {
+  loadLeaflet,
+  tileUrl,
+  isDarkTheme,
+  TILE_ATTRIBUTION,
+  type LeafletNS,
+} from '@/lib/leaflet-cdn'
 
 /** The same monochrome pin the native map uses — one visual language for a place. */
 const PIN_HTML =
@@ -52,26 +31,19 @@ interface Props {
   lat: number
   lon: number
   height?: number
+  /** En héros pleine largeur : ni coins arrondis ni bordure. */
+  flush?: boolean
 }
 
-export default function ImportMiniMap({ lat, lon, height = 160 }: Props) {
+export default function PlaceMiniMap({ lat, lon, height = 160, flush = false }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<L>(null)
+  const mapRef = useRef<LeafletNS>(null)
 
   useEffect(() => {
     let cancelled = false
     void (async () => {
-      await loadAsset('link', 'lf-css', {
-        rel: 'stylesheet',
-        href: 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-      })
-      await loadAsset('script', 'lf-js', {
-        src: 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
-        crossorigin: '',
-      })
+      const leaflet = await loadLeaflet()
       const el = containerRef.current
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const leaflet: L = (window as any).L
       if (cancelled || !leaflet || !el) return
       // A hot reload can leave Leaflet's marker on the node; clear it or init throws.
       const tagged = el as unknown as { _leaflet_id?: number }
@@ -91,7 +63,8 @@ export default function ImportMiniMap({ lat, lon, height = 160 }: Props) {
         tap: false,
       })
       leaflet
-        .tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        .tileLayer(tileUrl(isDarkTheme()), {
+          attribution: TILE_ATTRIBUTION,
           subdomains: 'abcd',
           maxZoom: 20,
         })
@@ -125,9 +98,9 @@ export default function ImportMiniMap({ lat, lon, height = 160 }: Props) {
       style={{
         height,
         width: '100%',
-        borderRadius: 16,
+        borderRadius: flush ? 0 : 16,
         overflow: 'hidden',
-        border: '1px solid var(--border)',
+        border: flush ? 'none' : '1px solid var(--border)',
         background: 'var(--surface-2)',
         // Leaflet's internal stacking starts at 400; contain it.
         zIndex: 0,

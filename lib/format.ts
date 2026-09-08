@@ -52,3 +52,23 @@ export function formatWalkTime(metres?: number): string {
   if (mins < 1) return 'À côté'
   return `${mins} min`
 }
+
+/**
+ * Heure de fermeture du jour, lue sur les plages telles que Google les rend
+ * (« 12:00–14:30, 19:00–22:00 » → « 22:00 »).
+ *
+ * On prend la FIN de la DERNIÈRE plage : un restaurant qui coupe l'après-midi
+ * ferme le soir, pas à 14:30. Renvoie null si la chaîne n'est pas une plage
+ * (« Ouvert 24h/24 », « Fermé ») — mieux vaut ne rien annoncer qu'une heure
+ * inventée.
+ */
+export function closingTime(today?: string): string | null {
+  if (!today) return null
+  const last = today.split(',').pop()?.trim()
+  if (!last) return null
+  // Google sépare par un tiret demi-cadratin (–), pas un trait d'union.
+  const parts = last.split(/[–—-]/)
+  if (parts.length < 2) return null
+  const close = parts[parts.length - 1].trim()
+  return /^\d{1,2}[:h]\d{0,2}$/.test(close) ? close : null
+}

@@ -17,8 +17,6 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import {
   ChevronLeft,
-  Play,
-  Music2,
   ArrowUpRight,
   Loader2,
   Search,
@@ -30,10 +28,10 @@ import type { ImportCandidatePlace, ImportPlatform, ImportRow, PlaceCard as TPla
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard'
 import { useImportsStore } from '@/lib/hooks/useImportsContext'
 import { useLists } from '@/lib/hooks/useLists'
+import { useDetailEnrichment } from '@/lib/hooks/useDetailEnrichment'
 import { useLanguage } from '@/lib/i18n/useLanguage'
 import { useIsNative } from '@/lib/native/platform'
 import { candidateToPlaceCard, toPlaceCard } from '@/lib/import/resolve'
-import { cleanTitleText } from '@/lib/import/caption'
 import ImportCaption from '@/components/import/ImportCaption'
 import { searchPlacesOnce, type PlaceSearchResult } from '@/lib/hooks/usePlaceSearch'
 import { placeGradient } from '@/lib/gradients'
@@ -42,12 +40,30 @@ import { getAuthHeaders } from '@/lib/auth-headers'
 import { setPendingSelect } from '@/lib/pendingSelect'
 import { useToast, type ToastType } from '@/lib/hooks/useToast'
 import ToastStack from '@/components/ui/ToastStack'
-import PlaceCard from '@/components/place/PlaceCard'
 import PlaceSocialProof from '@/components/place/PlaceSocialProof'
 import { ImportTile } from '@/components/import/ImportsRow'
+import { frCuisine } from '@/lib/cuisine'
+import { buildPlaceFacts } from '@/lib/place-facts'
 
 // Leaflet reads `window` at import time — never let it near the server bundle.
-const ImportMiniMap = dynamic(() => import('@/components/import/ImportMiniMap'), { ssr: false })
+
+// Libellé de section discret : plus de petites capitales très espacées, qui
+// donnaient l'impression d'un écran découpé en tiroirs étiquetés.
+const LBL: React.CSSProperties = {
+  margin: '0 0 7px',
+  // `font-family` explicite : globals.css met TOUS les h1-h3 en police display.
+  // Sans ça, un libellé écrit en <h2> sortait en serif Playfair pendant que le
+  // même libellé écrit en <p> sortait en sans — deux styles d'étiquette sur le
+  // même écran, à quelques centimètres l'un de l'autre.
+  fontFamily: 'var(--font-body)',
+  fontSize: 10.5,
+  fontWeight: 700,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  color: 'var(--text-3)',
+}
+
+const PlaceMiniMap = dynamic(() => import('@/components/place/PlaceMiniMap'), { ssr: false })
 
 /** Platform names are proper nouns, not UI copy — they are not translated. */
 const PLATFORM_LABEL: Record<ImportPlatform, string | null> = {
@@ -55,15 +71,6 @@ const PLATFORM_LABEL: Record<ImportPlatform, string | null> = {
   instagram: 'Instagram',
   youtube: 'YouTube',
   other: null,
-}
-
-const EYEBROW = {
-  fontSize: 9.5,
-  fontWeight: 700,
-  letterSpacing: '0.1em',
-  textTransform: 'uppercase' as const,
-  color: 'var(--text-3)',
-  margin: '0 0 10px',
 }
 
 export default function ImportDetail() {
@@ -307,13 +314,27 @@ interface LoadedProps {
 function Loaded({ imp, imports, native, patch, remove, retry, onToast }: LoadedProps) {
   const { tr } = useLanguage()
   const router = useRouter()
-  const [thumbBroken, setThumbBroken] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   // A : l'utilisateur veut corriger un match résolu jugé faux → on rouvre la
   // recherche manuelle (le même bloc que pour un échec).
   const [correcting, setCorrecting] = useState(false)
 
-  const place = imp.place_snapshot
+  // Le snapshot est figé au moment de la résolution : la recherche de lieu ne
+  // renvoie qu'un nom, des coordonnées et parfois une note. Ni nombre d'avis,
+  // ni horaires — d'où une rangée de faits réduite à la seule note. On enrichit
+  // donc à l'ouverture, comme le fait la fiche de la carte, avec le même hook.
+  const place = useDetailEnrichment(imp.place_snapshot)
+
+  // La rangée de faits ne montre QUE ce qu'on sait. Une case « — » n'informe
+  // pas : elle signale un trou. Sur l'écran précédent, deux des trois cases
+  // étaient vides et la rangée entière perdait son sens. On prend les trois
+  // premiers faits disponibles, dans l'ordre d'utilité.
+  const meta = place
+    ? [place.cuisine ? frCuisine(place.cuisine) : null, place.address].filter(Boolean).join(' · ')
+    : 'Analyse de la légende et du lieu'
+  // La MÊME fonction que la fiche restaurant : deux écrans du même objet ne
+  // peuvent pas afficher deux rangées de faits différentes.
+  const facts = buildPlaceFacts(place)
   const openPost = useCallback(() => {
     window.open(imp.url, '_blank', 'noopener,noreferrer')
   }, [imp.url])
@@ -331,10 +352,7 @@ function Loaded({ imp, imports, native, patch, remove, retry, onToast }: LoadedP
   // A resolved place wins; otherwise tidy the post title (strip leading emoji,
   // hashtags, boilerplate — cleanTitleText also decodes stored HTML entities like
   // Instagram's `&#x1f602;`). Emoji-only titles clean to '' → the pending label.
-  const cleanedTitle = cleanTitleText(imp.post_title)
-  const title = place?.name ?? (cleanedTitle || tr('importPending'))
   const platform = PLATFORM_LABEL[imp.platform] ?? tr('importOpenSource')
-  const cover = imp.post_thumb && !thumbBroken ? imp.post_thumb : null
 
   // Other posts that landed on the same restaurant.
   const alsoSeenIn = imports.filter(
@@ -412,150 +430,192 @@ function Loaded({ imp, imports, native, patch, remove, retry, onToast }: LoadedP
       )}
 
       <div style={{ maxWidth: 560, margin: '0 auto', padding: '0 16px' }}>
-        {/* 1 — Hero: the Reel's cover. Tapping it opens the post where it lives. */}
-        <button
-          type="button"
-          onClick={openPost}
-          aria-label={tr('importPlay')}
-          style={{
-            position: 'relative',
-            display: 'block',
-            width: '100%',
-            aspectRatio: '4 / 5',
-            padding: 0,
-            border: '1px solid var(--border)',
-            borderRadius: 20,
-            overflow: 'hidden',
-            cursor: 'pointer',
-            background: placeGradient(imp.id),
-            boxShadow: 'var(--s3)',
-            animation: 'fadeUp 280ms var(--ease-out) backwards',
-          }}
-        >
-          {cover && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={cover}
-              alt=""
-              onError={() => setThumbBroken(true)}
-              style={{
-                position: 'absolute',
-                inset: 0,
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-              }}
-            />
-          )}
-          <span
-            aria-hidden
+        {/* ── 1 · LA CARTE EN HÉROS ──
+            La première question qu'on se pose sur une adresse repérée est
+            « c'est où ? ». La carte y répond avant qu'on la pose — et,
+            contrairement à une photo de plat, elle est TOUJOURS disponible :
+            l'écran est plein même quand le lieu n'a aucune image.
+
+            Elle remplace l'ancien grand cadre vidéo, qui occupait 40 % de
+            l'écran pour porter un bouton de lecture dont on n'a pas besoin. */}
+        {place && (
+          <div
             style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(transparent 45%, rgba(0,0,0,0.68))',
-            }}
-          />
-          {/* Play affordance */}
-          <span
-            aria-hidden
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 62,
-              height: 62,
-              borderRadius: '50%',
-              background: 'rgba(255,255,255,0.94)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 6px 22px rgba(0,0,0,0.28)',
+              position: 'relative',
+              margin: '0 calc(-1 * var(--gutter))',
+              animation: 'fadeUp 280ms var(--ease-out) backwards',
             }}
           >
-            <Play size={24} fill="var(--accent)" color="var(--accent)" style={{ marginLeft: 3 }} />
-          </span>
-          {/* The creator, credited in their own currency: the handle. */}
-          {imp.post_author && (
-            <span
+            <button
+              type="button"
+              onClick={() => router.push(`/carte?select=${encodeURIComponent(place.osm_id)}`)}
+              aria-label={`${place.name} — voir sur la carte`}
               style={{
-                position: 'absolute',
-                left: 12,
-                bottom: 12,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-                maxWidth: 'calc(100% - 24px)',
-                padding: '5px 11px 5px 8px',
-                borderRadius: 999,
-                background: 'rgba(0,0,0,0.55)',
-                backdropFilter: 'blur(8px)',
-                color: '#fff',
-                fontSize: 12,
-                fontWeight: 600,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
+                display: 'block',
+                width: '100%',
+                padding: 0,
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
               }}
             >
-              <Music2 size={12} />
-              {imp.post_author}
-            </span>
-          )}
-        </button>
+              <PlaceMiniMap lat={place.lat} lon={place.lon} height={210} flush />
+            </button>
+          </div>
+        )}
 
-        {/* 2 — Title */}
+        {/* ── 2 · LE NOM, OU L'ÉTAT DE LA RECHERCHE ──
+            Le repli n'est plus la légende du post : afficher « Nouvelle adresse
+            fraîchement ouverte dans le Marais… » en titre laissait croire que
+            le restaurant s'appelait comme ça, et répétait mot pour mot la
+            citation juste en dessous. */}
         <h1
           style={{
-            margin: '18px 0 0',
+            margin: place ? '18px 0 0' : '4px 0 0',
             fontFamily: 'var(--font-display)',
             fontSize: 26,
-            fontWeight: 600,
-            letterSpacing: '-0.02em',
-            lineHeight: 1.15,
-            color: 'var(--text)',
+            fontWeight: 700,
+            letterSpacing: '-0.03em',
+            lineHeight: 1.05,
+            color: place ? 'var(--text)' : 'var(--text-3)',
             animation: 'fadeUp 300ms var(--ease-out) 60ms backwards',
           }}
         >
-          {title}
+          {place?.name ?? 'On cherche le restaurant…'}
         </h1>
+        {meta && (
+          <p style={{ margin: '5px 0 0', fontSize: 12.5, color: 'var(--text-2)' }}>{meta}</p>
+        )}
 
-        {/* 3 — Source chip */}
-        <button
-          type="button"
-          onClick={openPost}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 4,
-            marginTop: 10,
-            padding: '5px 11px',
-            borderRadius: 999,
-            border: '1px solid var(--border)',
-            background: 'var(--bg)',
-            color: 'var(--text-2)',
-            cursor: 'pointer',
-            fontFamily: 'var(--font-body)',
-            fontSize: 12,
-            fontWeight: 600,
-          }}
-        >
-          {platform}
-          <ArrowUpRight size={13} />
-        </button>
+        {/* ── 3 · LES FAITS, EN UNE RANGÉE ──
+            Note, avis, horaire : les trois chiffres qu'on cherche, lisibles
+            d'un coup d'œil. C'est ce qui manquait le plus — tout était en
+            prose. Les filets séparent sans encadrer. */}
+        {place && facts.length > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              marginTop: 14,
+              borderTop: '1px solid var(--border)',
+              borderBottom: '1px solid var(--border)',
+            }}
+          >
+            {facts.map((f, i) => (
+              <div
+                key={f.label}
+                style={{
+                  // `flex: 1` : les cases se partagent la largeur au lieu de
+                  // s'entasser contre le bord gauche en laissant la moitié de
+                  // la rangée vide. Le texte reste calé à gauche DANS sa case,
+                  // donc une case unique ne flotte pas au milieu non plus.
+                  flex: 1,
+                  minWidth: 0,
+                  padding: i === 0 ? '10px 14px 10px 0' : '10px 14px',
+                  borderRight: i < facts.length - 1 ? '1px solid var(--border)' : 'none',
+                }}
+              >
+                <span
+                  style={{
+                    display: 'block',
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 700,
+                    fontSize: 16,
+                    letterSpacing: '-0.02em',
+                    color: 'var(--text)',
+                  }}
+                >
+                  {f.value}
+                </span>
+                <span
+                  style={{
+                    display: 'block',
+                    marginTop: 2,
+                    fontSize: 9.5,
+                    letterSpacing: '0.04em',
+                    color: 'var(--text-3)',
+                  }}
+                >
+                  {f.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
-        {/* 4 — The creator's caption. Quoted verbatim (never paraphrased: their
-            words are why this was saved), but split into readable prose + hashtag
-            chips with its line breaks kept — see ImportCaption. */}
-        <ImportCaption raw={imp.post_caption} />
+        {/* ── 4 · D'OÙ ÇA VIENT ──
+            L'auteur passe devant : c'est lui qui t'a fait découvrir l'adresse,
+            et c'est une donnée que personne d'autre n'a. Sa légende est citée
+            UNE seule fois, ici, à sa place. */}
+        <div style={{ marginTop: 18 }}>
+          <h2 style={LBL}>D’OÙ ÇA VIENT</h2>
+          <button
+            type="button"
+            onClick={openPost}
+            className="tap-press"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              width: '100%',
+              padding: '9px 11px',
+              borderRadius: 12,
+              border: '1px solid var(--border)',
+              background: 'var(--bg)',
+              cursor: 'pointer',
+              textAlign: 'left',
+            }}
+          >
+            <span
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: '50%',
+                background: 'var(--accent)',
+                color: 'var(--on-accent)',
+                display: 'grid',
+                placeItems: 'center',
+                flexShrink: 0,
+                fontSize: 12,
+                fontWeight: 700,
+                fontFamily: 'var(--font-display)',
+              }}
+            >
+              {(imp.post_author ?? platform).replace('@', '').charAt(0).toUpperCase()}
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span
+                className="truncate-1"
+                style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text)' }}
+              >
+                {imp.post_author ?? `Voir sur ${platform}`}
+              </span>
+              {/* Le sous-titre ne répète la plateforme QUE s'il y a un auteur
+                  au-dessus. Sans cette garde on lisait « Instagram » puis
+                  « Instagram · voir la vidéo » — le même mot deux fois. */}
+              {imp.post_author && (
+                <span style={{ display: 'block', fontSize: 11, color: 'var(--text-3)' }}>
+                  {platform} · voir la vidéo
+                </span>
+              )}
+            </span>
+            <ArrowUpRight size={15} style={{ color: 'var(--text-4)', flexShrink: 0 }} />
+          </button>
+          <ImportCaption raw={imp.post_caption} />
+        </div>
 
         {/* 5 — What we found */}
         <section
           style={{ marginTop: 28, animation: 'fadeUp 300ms var(--ease-out) 120ms backwards' }}
         >
-          <h2 style={EYEBROW}>
-            {tr(imp.status === 'list' ? 'importListSection' : 'importFoundTitle')}
-          </h2>
+          {/* Le titre « Ce qu'on a trouvé » n'a de sens que tant que la
+              trouvaille n'est pas déjà à l'écran. Une fois le lieu résolu,
+              l'en-tête EST la trouvaille : garder le libellé annonçait une
+              section qui ne présentait plus rien. */}
+          {(imp.status !== 'resolved' || correcting) && (
+            <h2 style={LBL}>
+              {tr(imp.status === 'list' ? 'importListSection' : 'importFoundTitle')}
+            </h2>
+          )}
 
           {imp.status === 'list' && <ListBlock imp={imp} onToast={onToast} />}
 
@@ -613,21 +673,14 @@ function Loaded({ imp, imports, native, patch, remove, retry, onToast }: LoadedP
           )}
         </section>
 
-        {/* 6 — Where it is */}
-        {place && (
-          <section
-            style={{ marginTop: 26, animation: 'fadeUp 300ms var(--ease-out) 180ms backwards' }}
-          >
-            <h2 style={EYEBROW}>{tr('importWhereTitle')}</h2>
-            <ImportMiniMap lat={place.lat} lon={place.lon} />
-          </section>
-        )}
+        {/* « Où c'est » a disparu d'ici : la carte est devenue le héros en
+            haut d'écran, la répéter en bas ferait doublon. */}
 
         {/* 7 — My note */}
         <section
           style={{ marginTop: 26, animation: 'fadeUp 300ms var(--ease-out) 240ms backwards' }}
         >
-          <h2 style={EYEBROW}>{tr('importNoteTitle')}</h2>
+          <h2 style={LBL}>{tr('importNoteTitle')}</h2>
           <NoteField
             initial={imp.note ?? ''}
             onSave={async (note) => {
@@ -645,7 +698,7 @@ function Loaded({ imp, imports, native, patch, remove, retry, onToast }: LoadedP
           <section
             style={{ marginTop: 26, animation: 'fadeUp 300ms var(--ease-out) 300ms backwards' }}
           >
-            <h2 style={EYEBROW}>{tr('importAlsoSeenIn')}</h2>
+            <h2 style={LBL}>{tr('importAlsoSeenIn')}</h2>
             <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
               {alsoSeenIn.map((other) => (
                 <ImportTile key={other.id} imp={other} />
@@ -884,7 +937,6 @@ function ResolvedBlock({
   onToast: (msg: string, kind?: ToastType) => void
 }) {
   const { tr } = useLanguage()
-  const router = useRouter()
   const [saved, setSaved] = useState<boolean>(!!place.is_favorite)
   const [busy, setBusy] = useState(false)
 
@@ -933,11 +985,6 @@ function ResolvedBlock({
     }
   }, [busy, saved, place, onToast, tr])
 
-  const openOnMap = useCallback(() => {
-    setPendingSelect(place)
-    router.push(`/carte?select=${encodeURIComponent(place.osm_id)}`)
-  }, [place, router])
-
   const route = useCallback(() => {
     window.open(
       `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}`,
@@ -952,23 +999,11 @@ function ResolvedBlock({
 
   return (
     <div>
-      {/* The real Forkmap place card — same component as the map list, so an
-          imported restaurant is presented exactly like any other. */}
-      <PlaceCard
-        place={{ ...place, is_favorite: saved }}
-        isSelected={false}
-        isHovered={false}
-        index={0}
-        onHover={() => {}}
-        onLeave={() => {}}
-        onClick={openOnMap}
-        onToggleFavorite={() => void toggleSave()}
-      />
-
-      {/* Only the facts the card does NOT already carry. The card prints the name,
-          the star, the cuisine, the price and the open state — repeating them here
-          would read as a bug. What it never shows: how many people voted for that
-          star, and the Michelin distinction (a badge it reserves for the app). */}
+      {/* La carte-lieu a été retirée d'ici. Elle réaffichait le nom du
+          restaurant — tronqué, « DOMA Restaurant Pa… » — et la note, à dix
+          centimètres du titre et de la note de l'en-tête. Depuis que le haut
+          d'écran EST le restaurant, ce bloc n'a plus à le présenter : il n'a
+          qu'à porter ce que l'en-tête ne dit pas, puis les actions. */}
       {(reviews != null || michelin > 0) && (
         <div
           style={{
