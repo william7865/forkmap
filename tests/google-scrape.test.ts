@@ -4,6 +4,7 @@ import {
   scrapeIsBlocked,
   matchScrapeBody,
   parseScrapeResults,
+  parseScrapeStatus,
 } from '@/lib/google-scrape'
 
 // Build a minimal Google-map place node (entry[14]): p[11]=name, p[4][7]=rating,
@@ -121,5 +122,74 @@ describe('parseScrapeResults', () => {
 
   it('returns [] when blocked', () => {
     expect(parseScrapeResults('<!doctype html>')).toEqual([])
+  })
+})
+
+// Nœuds relevés tels quels sur de vraies réponses Google (hl=fr), le 8/9/2026.
+// Le premier est le cas qui faisait échouer l'ancien parseur.
+const DOMA_FERME_BIENTOT = [
+  [['mardi', 2, [2026, 9, 8], [['12:00–14:30'], ['19:00–22:00']], 0, 1]],
+  [
+    ['mardi', 2, [2026, 9, 8], [['12:00–14:30'], ['19:00–22:00']], 0, 1],
+    0,
+    2,
+    null,
+    ['Ferme bientôt · 14:30 · Rouvre à 19:00'],
+    ['Ferme bientôt · 14:30 · Rouvre à 19:00'],
+    null,
+    [14, 30],
+    ['Ouvert'],
+  ],
+]
+
+const JUGETSUDO_OUVERT = [
+  [['mardi', 2, [2026, 9, 8], [['11:00–19:00']], 0, 1]],
+  [
+    ['mardi', 2, [2026, 9, 8], [['11:00–19:00']], 0, 1],
+    0,
+    1,
+    null,
+    ['Ouvert · Ferme à 19:00'],
+    ['Ouvert · Ferme à 19:00'],
+    null,
+    [18],
+    ['Ouvert'],
+  ],
+]
+
+describe('parseScrapeStatus', () => {
+  // LE test de non-régression : la phrase commence par « Ferme bientôt », mais
+  // l'état nu dit « Ouvert ». L'ancienne regex lisait la phrase et annonçait
+  // fermé un restaurant ouvert — au moment où l'info compte le plus.
+  it('ne confond pas « Ferme bientôt » avec « fermé »', () => {
+    expect(parseScrapeStatus(DOMA_FERME_BIENTOT)?.open_now).toBe(true)
+  })
+
+  it('lit un état ouvert simple', () => {
+    expect(parseScrapeStatus(JUGETSUDO_OUVERT)?.open_now).toBe(true)
+  })
+
+  it('lit un état fermé', () => {
+    const node = JSON.parse(JSON.stringify(JUGETSUDO_OUVERT))
+    node[1][8] = ['Fermé']
+    expect(parseScrapeStatus(node)?.open_now).toBe(false)
+  })
+
+  it('rend les plages du jour, y compris une coupure', () => {
+    expect(parseScrapeStatus(DOMA_FERME_BIENTOT)?.today).toBe('12:00–14:30, 19:00–22:00')
+    expect(parseScrapeStatus(JUGETSUDO_OUVERT)?.today).toBe('11:00–19:00')
+  })
+
+  // Un état inconnu ne doit pas devenir « fermé » : mieux vaut ne rien afficher
+  // que d'afficher une fermeture fausse.
+  it('laisse l’état indéfini plutôt que de deviner', () => {
+    const node = JSON.parse(JSON.stringify(JUGETSUDO_OUVERT))
+    node[1][8] = ['Horaires susceptibles de changer']
+    expect(parseScrapeStatus(node)?.open_now).toBeUndefined()
+  })
+
+  it('renvoie undefined quand il n’y a pas de nœud horaires', () => {
+    expect(parseScrapeStatus(undefined)).toBeUndefined()
+    expect(parseScrapeStatus([[]])).toBeUndefined()
   })
 })

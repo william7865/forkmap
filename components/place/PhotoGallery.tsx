@@ -108,12 +108,39 @@ export default function PhotoGallery({
           </div>
         ))}
       </div>
+      {/* Compteur « 3 / 6 ». Les points seuls ne disent pas COMBIEN il en
+          reste : au-delà de cinq ils s'arrêtent de compter, et on ne sait plus
+          si on est au début ou à la fin d'une longue série. */}
+      {urls.length > 1 && (
+        <div
+          style={{
+            position: 'absolute',
+            right: 12,
+            bottom: 12,
+            height: 22,
+            padding: '0 9px',
+            borderRadius: 999,
+            background: 'rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            color: '#fff',
+            fontSize: 11,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {activePhoto + 1} / {urls.length}
+        </div>
+      )}
+
       {/* Dot indicators */}
       {urls.length > 1 && (
         <div
           style={{
             position: 'absolute',
-            bottom: 6,
+            bottom: 15,
             left: 0,
             right: 0,
             display: 'flex',

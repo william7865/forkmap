@@ -6,6 +6,7 @@ import {
   initials,
   priceLabel,
   formatWalkTime,
+  closingTime,
 } from '@/lib/format'
 
 const NOW = new Date('2026-08-18T12:00:00Z')
@@ -69,5 +70,24 @@ describe('formatWalkTime', () => {
     expect(formatWalkTime(undefined)).toBe('')
     expect(formatWalkTime(30)).toBe('À côté')
     expect(formatWalkTime(800)).toBe('10 min')
+  })
+})
+
+describe('closingTime', () => {
+  it('lit l’heure de fermeture d’une plage simple', () => {
+    expect(closingTime('11:00–19:00')).toBe('19:00')
+  })
+
+  // Un service coupé ferme le SOIR. Prendre la première plage annoncerait
+  // « jusqu'à 14:30 » à quelqu'un qui cherche où dîner.
+  it('prend la dernière plage quand le service est coupé', () => {
+    expect(closingTime('12:00–14:30, 19:00–22:00')).toBe('22:00')
+  })
+
+  it('n’invente rien quand ce n’est pas une plage', () => {
+    expect(closingTime('Ouvert 24h/24')).toBeNull()
+    expect(closingTime('Fermé')).toBeNull()
+    expect(closingTime('')).toBeNull()
+    expect(closingTime(undefined)).toBeNull()
   })
 })

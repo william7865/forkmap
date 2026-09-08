@@ -789,11 +789,17 @@ export function FavCardList({
 export function ListItemRowNative({
   item,
   index,
+  n,
+  done,
   onOpenMap,
   onRemove,
 }: {
   item: ListItemEntry
   index: number
+  /** Le numéro de la pastille correspondante sur le plan, en haut d'écran. */
+  n: number
+  /** Déjà visité : la pastille devient creuse, comme sur le plan. */
+  done: boolean
   onOpenMap: () => void
   onRemove: () => void
 }) {
@@ -802,10 +808,6 @@ export function ListItemRowNative({
   const cuisine = snap?.cuisine ?? snap?.fsq?.categories?.[0]?.name
   const rating = snap?.fsq?.rating
   const openNow = snap?.open_now
-  const ph = snap?.fsq?.photos?.[0]
-  const photo = ph
-    ? `${ph.prefix}240x${Math.round(240 * (ph.height / ph.width))}${ph.suffix}`
-    : (snap?.wikidata?.image_url ?? null)
   // Swipe gauche = retirer (geste unique des lignes). Pas de bouton ⋯.
   const row = (
     <div
@@ -813,49 +815,36 @@ export function ListItemRowNative({
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 13,
+        gap: 11,
         animationDelay: staggerDelay(index),
       }}
     >
-      {/* Vignette — repli dégradé + initiale serif */}
+      {/* La pastille numérotée, pas une vignette : c'est le seul lien entre
+          cette ligne et le plan du haut. Pleine = à tester, creuse = testée. */}
       <button
         type="button"
         onClick={onOpenMap}
         aria-label={`Voir ${name} sur la carte`}
         style={{
-          position: 'relative',
-          width: 66,
-          height: 66,
-          borderRadius: 15,
-          overflow: 'hidden',
+          width: 24,
+          height: 24,
+          borderRadius: 999,
           flexShrink: 0,
-          background: placeGradient(item.osm_id),
-          border: 'none',
-          boxShadow: 'var(--s1)',
-          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           padding: 0,
+          cursor: 'pointer',
+          fontFamily: 'var(--font-display)',
+          fontWeight: 700,
+          fontSize: 11,
+          lineHeight: 1,
+          background: done ? 'transparent' : 'var(--accent)',
+          color: done ? 'var(--text-3)' : 'var(--on-accent)',
+          border: done ? '1.5px solid var(--text-4, var(--border))' : 'none',
         }}
       >
-        {photo ? (
-          <FavPhoto src={photo} />
-        ) : (
-          <span
-            aria-hidden
-            style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: 'var(--font-display)',
-              fontSize: 28,
-              fontWeight: 600,
-              color: 'rgba(255,255,255,0.92)',
-            }}
-          >
-            {placeInitial(name)}
-          </span>
-        )}
+        {n}
       </button>
 
       {/* Corps — nom serif + méta */}
@@ -1311,7 +1300,8 @@ export function FavCardFeed({
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.15) 42%, transparent 68%)',
+            background:
+              'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.15) 42%, transparent 68%)',
           }}
         />
         {rating != null && (
@@ -1480,6 +1470,86 @@ export function FavCardScore({
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
         )}
+      </span>
+    </button>
+  )
+}
+
+// ── Tuile du mur (traitement « P · trois sections ») ──
+// Carrée, la photo occupe tout, nom et note posés dessus. Le voile n'est pas
+// décoratif : sans lui, un nom blanc sur une assiette claire devient illisible.
+export function FavCardWall({
+  fav,
+  index,
+  onOpenMap,
+}: {
+  fav: FavoriteRow
+  index: number
+  onOpenMap: () => void
+}) {
+  const photo = favPhoto(fav, 320)
+  const rating = fav.snapshot?.fsq?.rating
+
+  return (
+    <button
+      type="button"
+      onClick={onOpenMap}
+      className="tap-press anim-fade-up"
+      style={{
+        animationDelay: staggerDelay(index),
+        position: 'relative',
+        aspectRatio: '1',
+        overflow: 'hidden',
+        border: 'none',
+        padding: 0,
+        cursor: 'pointer',
+        background: photo ? 'var(--surface-2)' : placeGradient(fav.osm_id),
+      }}
+    >
+      {/* FavPhoto et non un <img> brut : un lien photo stocké dans un snapshot
+         peut avoir expiré (proxy Google), et un <img> cassé affiche l'icône
+         « image manquante » d'iOS en plein milieu de la tuile. FavPhoto
+         retombe silencieusement sur le dégradé — constaté sur l'appareil. */}
+      {photo && <FavPhoto src={photo} />}
+      <span
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(to top, rgba(0,0,0,0.62) 0%, transparent 46%)',
+        }}
+      />
+      {rating != null && (
+        <span
+          style={{
+            position: 'absolute',
+            top: 5,
+            right: 6,
+            fontSize: 11,
+            fontWeight: 700,
+            color: '#fff',
+            textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {rating.toFixed(1)}
+        </span>
+      )}
+      <span
+        className="truncate-2"
+        style={{
+          position: 'absolute',
+          left: 6,
+          right: 6,
+          bottom: 5,
+          fontSize: 11,
+          fontWeight: 600,
+          lineHeight: 1.15,
+          color: '#fff',
+          textAlign: 'left',
+          textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+        }}
+      >
+        {fav.name}
       </span>
     </button>
   )

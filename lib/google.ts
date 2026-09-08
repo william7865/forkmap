@@ -23,6 +23,7 @@
 import type { PlaceBase, PlaceCard, FoursquareData, FoursquarePhoto } from '@/types'
 import { cacheGet, cacheSet, buildGoogleSearchKey } from './cache'
 import { nameSimilarity } from './foursquare'
+import { parseScrapeStatus } from './google-scrape'
 
 // Stored in cache to represent "searched, found no match"
 const NEGATIVE_SENTINEL = '__no_rich_match__'
@@ -357,17 +358,18 @@ export function mapScrapeEntry(entry: Node): ScrapePlace | null {
     )
     .filter((line) => !line.endsWith(': '))
     .join(' · ')
-  const openState = JSON.stringify(hoursNode ?? '').match(
-    /"(Ouvert|Fermé|Ferme|Open|Closed)[^"]{0,60}"/
-  )?.[0]
-  const openNow = openState ? /"(Ouvert|Open)/i.test(openState) : undefined
-  const hasHours = !!(display || openState)
+  // Même lecture que le scraper embarqué : une seule implémentation, sinon les
+  // deux divergent (elles portaient déjà le même bug de « Ferme bientôt »).
+  const status = parseScrapeStatus(hoursNode)
+  const hasHours = !!(display || status)
 
   const fsq: FoursquareData = {
     fsq_id: typeof p[10] === 'string' ? p[10] : '',
     rating: googleRatingTo10(typeof rawRating === 'number' ? rawRating : undefined),
     photos: photoMatch ? [serpPhoto(photoMatch[0])] : undefined,
-    hours: hasHours ? { open_now: openNow, display: display || undefined } : undefined,
+    hours: hasHours
+      ? { open_now: status?.open_now, display: display || undefined, today: status?.today }
+      : undefined,
   }
 
   return { name: p[11], lat: p[9]?.[2], lon: p[9]?.[3], fsq }

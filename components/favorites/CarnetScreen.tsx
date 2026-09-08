@@ -33,6 +33,8 @@ import ActionSheet from '@/components/ui/ActionSheet'
 import { nativeShare } from '@/lib/native/share'
 import PullToRefresh from '@/components/ui/PullToRefresh'
 import { Plus, Vote, ChevronRight, Sparkles } from 'lucide-react'
+import ListMiniMapDyn from '@/components/favorites/ListMiniMapDyn'
+import type { MapPoint } from '@/components/favorites/ListMiniMap'
 import { lightTap } from '@/lib/native/haptics'
 import AddImportSheet from '@/components/import/AddImportSheet'
 import { readPreviewMode, type PreviewMode } from '@/lib/preview-mode'
@@ -44,6 +46,7 @@ import {
   FavCardGrid,
   FavCardFeed,
   FavCardScore,
+  FavCardWall,
   favPhoto,
   IcoStar,
   IcoListPlus,
@@ -1022,8 +1025,8 @@ function FavoritesPageInner() {
   // Aperçu de traitement — temporaire, le temps de trancher la direction.
   // Lu dans un effet et non à l'initialisation : localStorage n'existe pas au
   // rendu serveur, et l'y lire donnerait un écart d'hydratation.
-  const [preview, setPreview] = useState<PreviewMode>('actuel')
-  useEffect(() => setPreview(readPreviewMode()), [])
+  const [preview, setPreview] = useState<PreviewMode>('sections')
+  useEffect(() => {}, [])
 
   const {
     lists,
@@ -1099,6 +1102,26 @@ function FavoritesPageInner() {
   const [showCreateList, setShowCreateList] = useState(false)
   const [editingList, setEditingList] = useState<HookListRow | null>(null)
   const [listItems, setListItems] = useState<ListItemEntry[]>([])
+  const [listActions, setListActions] = useState(false)
+
+  // Le plan et les lignes partagent la MÊME numérotation : dérivées ensemble,
+  // depuis le même tableau, pour qu'elles ne puissent pas diverger.
+  const listMapPoints = useMemo<MapPoint[]>(
+    () =>
+      listItems
+        .map((it, i) => {
+          const snap = it.place_snapshot as unknown as PlaceCard | null
+          if (snap?.lat == null || snap?.lon == null) return null
+          return { lat: snap.lat, lon: snap.lon, n: i + 1, done: visitedIds.has(it.osm_id) }
+        })
+        .filter((p): p is MapPoint => p !== null),
+    [listItems, visitedIds]
+  )
+
+  const listCounts = useMemo(() => {
+    const done = listItems.filter((it) => visitedIds.has(it.osm_id)).length
+    return { done, todo: listItems.length - done }
+  }, [listItems, visitedIds])
   const [listItemsLoading, setListItemsLoading] = useState(false)
   const [deleteListTarget, setDeleteListTarget] = useState<HookListRow | null>(null)
   const [collabTarget, setCollabTarget] = useState<HookListRow | null>(null)
@@ -1349,15 +1372,6 @@ function FavoritesPageInner() {
                 <div style={{ display: 'flex', gap: 8 }}>
                   {/* Actions compactes en en-tête (grammaire app) — les grosses
                       pilules à texte prenaient une rangée entière. */}
-                  <button
-                    type="button"
-                    aria-label="Créer une liste"
-                    className="tap-press"
-                    onClick={() => setShowCreateList(true)}
-                    style={icoBtnStyle}
-                  >
-                    <Plus size={19} strokeWidth={2} />
-                  </button>
                   {favorites.length >= 2 && (
                     <button
                       type="button"
@@ -1369,34 +1383,6 @@ function FavoritesPageInner() {
                       <Vote size={19} strokeWidth={1.8} />
                     </button>
                   )}
-                  <button
-                    type="button"
-                    aria-label={viewMode === 'grid' ? 'Vue liste' : 'Vue grille'}
-                    aria-pressed={viewMode === 'grid'}
-                    onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                    style={{
-                      ...icoBtnStyle,
-                      background: viewMode === 'grid' ? 'var(--accent)' : 'var(--surface)',
-                      // var(--on-accent) : #fff en dur devenait invisible sur
-                      // l'accent clair du thème sombre.
-                      color: viewMode === 'grid' ? 'var(--on-accent)' : 'var(--text-2)',
-                      borderColor: viewMode === 'grid' ? 'var(--accent)' : 'var(--border)',
-                    }}
-                  >
-                    <svg
-                      width="19"
-                      height="19"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                    >
-                      <rect x="3" y="3" width="7" height="7" rx="1.5" />
-                      <rect x="14" y="3" width="7" height="7" rx="1.5" />
-                      <rect x="3" y="14" width="7" height="7" rx="1.5" />
-                      <rect x="14" y="14" width="7" height="7" rx="1.5" />
-                    </svg>
-                  </button>
                 </div>
               </div>
             )
@@ -1598,8 +1584,155 @@ function FavoritesPageInner() {
             </div>
           )}
 
+          {/* ── P · TROIS SECTIONS ──
+             Vidéos, listes, puis le mur — et RIEN entre les trois. Le segment
+             Restos|Listes, les onglets Tout|À tester|Testés et les puces de
+             cuisine disparaissent : c'étaient quatre couches de chrome avant
+             d'atteindre un seul restaurant. Ce sont les FORMATS qui distinguent
+             les contenus (vertical pour les vidéos, carré pour les restos),
+             pas des étiquettes. */}
+          {isNative && !activeListId && !loading && preview === 'sections' && (
+            <>
+              <section style={{ marginTop: 'var(--sp-6)' }}>
+                <div style={sectionHeadStyle}>
+                  <span style={sectionTitleStyle}>Mes listes</span>
+                  {lists.length > 0 && <span style={sectionCountStyle}>{lists.length}</span>}
+                </div>
+                <div
+                  className="no-scrollbar"
+                  style={{
+                    display: 'flex',
+                    gap: 10,
+                    overflowX: 'auto',
+                    WebkitOverflowScrolling: 'touch',
+                    paddingBottom: 2,
+                  }}
+                >
+                  {lists.map((l) => (
+                    <button
+                      key={l.id}
+                      type="button"
+                      className="tap-press"
+                      onClick={() => {
+                        lightTap()
+                        router.push(`/favorites?list=${l.id}`)
+                      }}
+                      style={{
+                        flexShrink: 0,
+                        width: 132,
+                        padding: 0,
+                        border: 'none',
+                        background: 'none',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          aspectRatio: '4 / 3',
+                          borderRadius: 12,
+                          background: `hsl(${l.color_hue} 42% 46%)`,
+                        }}
+                      />
+                      <span
+                        className="truncate-1"
+                        style={{
+                          display: 'block',
+                          marginTop: 7,
+                          fontSize: 13.5,
+                          fontWeight: 600,
+                          color: 'var(--text)',
+                        }}
+                      >
+                        {l.name}
+                      </span>
+                      <span style={{ display: 'block', fontSize: 11.5, color: 'var(--text-3)' }}>
+                        {l.item_count} lieu{l.item_count !== 1 ? 'x' : ''}
+                      </span>
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    aria-label="Créer une liste"
+                    className="tap-press"
+                    onClick={() => {
+                      lightTap()
+                      setShowCreateList(true)
+                    }}
+                    style={{
+                      flexShrink: 0,
+                      width: 132,
+                      padding: 0,
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: 'grid',
+                        placeItems: 'center',
+                        width: '100%',
+                        aspectRatio: '4 / 3',
+                        borderRadius: 12,
+                        border: '1.5px dashed var(--border-2, var(--border))',
+                        color: 'var(--text-3)',
+                      }}
+                    >
+                      <Plus size={22} strokeWidth={2} />
+                    </span>
+                    <span
+                      style={{
+                        display: 'block',
+                        marginTop: 7,
+                        fontSize: 13.5,
+                        fontWeight: 600,
+                        color: 'var(--text-2)',
+                      }}
+                    >
+                      Nouvelle liste
+                    </span>
+                  </button>
+                </div>
+              </section>
+
+              <section style={{ marginTop: 'var(--sp-6)' }}>
+                <div style={sectionHeadStyle}>
+                  <span style={sectionTitleStyle}>Tous mes restos</span>
+                  <span style={sectionCountStyle}>{favorites.length}</span>
+                </div>
+                {/* Full-bleed : le mur touche les bords, comme une galerie. */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: 3,
+                    margin: '0 calc(-1 * var(--gutter))',
+                  }}
+                >
+                  {sorted.map((fav, i) => (
+                    <FavCardWall
+                      key={fav.id}
+                      fav={fav}
+                      index={i}
+                      onOpenMap={() => {
+                        if (fav.snapshot) setPendingSelect(fav.snapshot)
+                        router.push(
+                          `/carte?select=${encodeURIComponent(fav.osm_id)}&lat=${fav.lat}&lon=${fav.lon}`
+                        )
+                      }}
+                    />
+                  ))}
+                </div>
+              </section>
+            </>
+          )}
+
           {/* Segmenté Restos | Listes */}
-          {isNative && !activeListId && !loading && (
+          {isNative && !activeListId && !loading && preview !== 'sections' && (
             <div
               style={{
                 display: 'flex',
@@ -1935,13 +2068,18 @@ function FavoritesPageInner() {
             (isNative ? (
               /* ── App native : détail d'une liste ── */
               <div style={{ animation: 'fadeUp 280ms var(--ease-out) backwards' }}>
-                {/* Barre supérieure : retour + actions de liste */}
+                {/* ── LE PLAN ──
+                    Une liste de six adresses est d'abord une forme dans la
+                    ville. En l'ouvrant avant de sortir, la question n'est pas
+                    « laquelle est la mieux notée » mais « laquelle est sur mon
+                    chemin ». Les numéros des pastilles sont ceux des lignes en
+                    dessous : on lit la liste et la ville en même temps. */}
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    marginBottom: 18,
+                    marginBottom: 10,
                   }}
                 >
                   <button
@@ -1963,45 +2101,47 @@ function FavoritesPageInner() {
                       <path d="M15 18l-6-6 6-6" />
                     </svg>
                   </button>
+                  {/* Un seul « ··· » au lieu de trois ronds identiques. Avant,
+                      « supprimer la liste » était un rond gris collé à
+                      « renommer », à hauteur de pouce, sans rien qui dise ce
+                      qu'il visait. */}
                   {!activeList.is_collaborator && (
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button
-                        type="button"
-                        aria-label="Renommer la liste"
-                        onClick={() => setEditingList(activeList)}
-                        style={icoBtnStyle}
-                      >
-                        <IcoPen />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Collaborateurs"
-                        onClick={() => setCollabTarget(activeList)}
-                        style={icoBtnStyle}
-                      >
-                        <IcoListPlus />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Supprimer la liste"
-                        onClick={() => setDeleteListTarget(activeList)}
-                        style={icoBtnStyle}
-                      >
-                        <IcoTrash />
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      aria-label="Actions de la liste"
+                      onClick={() => setListActions(true)}
+                      style={icoBtnStyle}
+                    >
+                      <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="5" cy="12" r="1.7" />
+                        <circle cx="12" cy="12" r="1.7" />
+                        <circle cx="19" cy="12" r="1.7" />
+                      </svg>
+                    </button>
                   )}
                 </div>
 
-                {/* Masthead — nom de la liste en grand serif (entre en premier) */}
-                <div style={{ animation: 'fadeUp 280ms var(--ease-out) backwards' }}>
+                {listMapPoints.length > 0 && (
+                  <div
+                    style={{
+                      margin: '0 calc(-1 * var(--gutter))',
+                      borderTop: '1px solid var(--border)',
+                      borderBottom: '1px solid var(--border)',
+                      animation: 'fadeUp 280ms var(--ease-out) backwards',
+                    }}
+                  >
+                    <ListMiniMapDyn points={listMapPoints} height={210} />
+                  </div>
+                )}
+
+                <div style={{ animation: 'fadeUp 280ms var(--ease-out) 60ms backwards' }}>
                   <h1
                     style={{
-                      margin: 0,
+                      margin: '16px 0 0',
                       fontFamily: 'var(--font-display)',
-                      fontWeight: 600,
-                      fontSize: 30,
-                      letterSpacing: '-0.02em',
+                      fontWeight: 700,
+                      fontSize: 26,
+                      letterSpacing: '-0.03em',
                       lineHeight: 1.05,
                       color: 'var(--text)',
                       overflowWrap: 'anywhere',
@@ -2010,15 +2150,27 @@ function FavoritesPageInner() {
                   >
                     {activeList.name}
                   </h1>
-                  <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text-3)' }}>
-                    {activeList.item_count} lieu{activeList.item_count !== 1 ? 'x' : ''} ·{' '}
-                    {activeList.is_collaborator
-                      ? `Partagée par ${activeList.shared_by ?? 'un ami'}`
-                      : activeList.visibility === 'public'
-                        ? 'Publique'
-                        : activeList.visibility === 'friends'
-                          ? 'Amis'
-                          : 'Privée'}
+                  {/* « 4 à tester · 2 testées » plutôt que « 6 lieux » : le
+                      décompte brut ne dit rien qu'on ne voie en défilant. Ce
+                      qui reste à tester est la seule chose que Forkmap sait et
+                      que l'accueil annonce déjà (« 140 à tester ») sans jamais
+                      être repris ensuite. */}
+                  <p style={{ margin: '7px 0 0', fontSize: 12.5, color: 'var(--text-3)' }}>
+                    {[
+                      listCounts.todo > 0 ? `${listCounts.todo} à tester` : null,
+                      listCounts.done > 0
+                        ? `${listCounts.done} testé${listCounts.done > 1 ? 'es' : 'e'}`
+                        : null,
+                      activeList.is_collaborator
+                        ? `partagée par ${activeList.shared_by ?? 'un ami'}`
+                        : activeList.visibility === 'public'
+                          ? 'publique'
+                          : activeList.visibility === 'friends'
+                            ? 'amis'
+                            : 'privée',
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
                   </p>
                   {activeList.description && (
                     <p
@@ -2155,6 +2307,8 @@ function FavoritesPageInner() {
                           key={item.id}
                           item={item}
                           index={i}
+                          n={i + 1}
+                          done={visitedIds.has(item.osm_id)}
                           onOpenMap={() => {
                             if (snap?.lat != null && snap?.lon != null) {
                               setPendingSelect(snap)
@@ -2610,6 +2764,7 @@ function FavoritesPageInner() {
           {isNative &&
             !activeListId &&
             !loading &&
+            preview !== 'sections' &&
             libTab === 'places' &&
             favorites.length > 0 &&
             (() => {
@@ -2691,6 +2846,7 @@ function FavoritesPageInner() {
           {/* Liste — masquée quand une liste est ouverte (sinon les enregistrés
               sans liste s'affichaient sous les items de la liste) */}
           {!activeListId &&
+            preview !== 'sections' &&
             libTab === 'places' &&
             (viewMode === 'list' ? (
               <div
@@ -2803,7 +2959,7 @@ function FavoritesPageInner() {
               </div>
             ))}
 
-          {!activeListId && libTab === 'lists' && isNative && (
+          {!activeListId && preview !== 'sections' && libTab === 'lists' && isNative && (
             <div
               style={{
                 margin: '26px 0 8px',
@@ -2968,6 +3124,42 @@ function FavoritesPageInner() {
         />
       )}
 
+      {/* Les trois actions de liste, regroupées. Le destructif est en bas,
+          en rouge, séparé — pas un rond gris voisin de « renommer ». */}
+      {listActions && activeList && (
+        <ActionSheet
+          title={activeList.name}
+          actions={[
+            {
+              label: 'Renommer la liste',
+              icon: <IcoPen />,
+              onClick: () => {
+                setListActions(false)
+                setEditingList(activeList)
+              },
+            },
+            {
+              label: 'Collaborateurs',
+              icon: <IcoListPlus />,
+              onClick: () => {
+                setListActions(false)
+                setCollabTarget(activeList)
+              },
+            },
+            {
+              label: 'Supprimer la liste',
+              icon: <IcoTrash />,
+              danger: true,
+              onClick: () => {
+                setListActions(false)
+                setDeleteListTarget(activeList)
+              },
+            },
+          ]}
+          onClose={() => setListActions(false)}
+        />
+      )}
+
       {editingList && (
         <CreateListModal
           initial={editingList}
@@ -3005,6 +3197,25 @@ function FavoritesPageInner() {
       {!isNative && <GlobalFooter />}
     </div>
   )
+}
+
+// En-tête de section du traitement « trois sections » : discret, sans capitales
+// espacées — le titre nomme, le compte informe, rien de plus.
+const sectionHeadStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'baseline',
+  justifyContent: 'space-between',
+  marginBottom: 10,
+}
+const sectionTitleStyle: React.CSSProperties = {
+  fontSize: 14.5,
+  fontWeight: 700,
+  letterSpacing: '-0.01em',
+  color: 'var(--text)',
+}
+const sectionCountStyle: React.CSSProperties = {
+  fontSize: 12,
+  color: 'var(--text-3)',
 }
 
 export default function CarnetScreen() {

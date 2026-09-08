@@ -1,6 +1,11 @@
 /* App natif — "Monochrome Premium" (chargé aussi sur web, utilisé uniquement sous html.native-app) */
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&family=Geist:wght@300;400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+/* Archivo — la voix typographique de l'app native (validée le 2026-09-08 après
+   essai sur l'écran d'import). Contraste par la graisse : 700/800 pour les
+   titres. Le WEB reste sur Playfair : ce sont deux surfaces avec leur propre
+   direction, et rien n'oblige la landing à suivre l'app ici. */
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -156,10 +161,12 @@ html.native-app {
    La plupart des composants lisent des var() → re-thème automatique.
    ═══════════════════════════════════════════════════════════════ */
 html.native-app {
-  /* Polices — UI en Inter ; noms de resto & titres en serif éditorial
-     (Playfair Display) = la "voix" de l'app native, l'anti-générique. */
+  /* Polices — UI en Inter ; titres en Archivo. Le serif Playfair a tenu la
+     voix de l'app jusqu'ici ; à l'usage il donnait un ton « magazine » que
+     les titres courts d'une app portent mal. Archivo garde le caractère
+     éditorial en restant lisible à 13 px sur une tuile. */
   --font-body: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-display: 'Playfair Display', ui-serif, Georgia, 'Times New Roman', serif;
+  --font-display: 'Archivo', system-ui, -apple-system, sans-serif;
 
   /* Accent UNIQUE — Noir */
   --accent: #1a1a1a;
@@ -1483,3 +1490,81 @@ a:focus:not(:focus-visible) {
 /* Le bloc prefers-reduced-motion global neutralise déjà durées ET délais :
    les animations `backwards` terminent immédiatement à leur état final, donc
    rien ne reste invisible. Reveal, lui, ne s'arme même pas (voir useReveal). */
+
+/* ══════════════════════════════════════════════════════════════
+   ESSAI DE PALETTES — TEMPORAIRE (voir lib/palette.ts)
+   Sert à comparer des directions couleur sur l'appareil, avec les
+   vraies photos. À SUPPRIMER avec les perdantes une fois tranché.
+
+   Placés APRÈS html.native-app[data-theme='dark'] : même
+   spécificité (0,3,1), donc c'est l'ordre qui les fait gagner.
+   Chaque bloc « nuit » redéfinit ses surfaces LUI-MÊME plutôt que
+   de s'appuyer sur data-theme, pour rester sombre quel que soit le
+   réglage système de l'appareil.
+   ══════════════════════════════════════════════════════════════ */
+
+html.native-app[data-palette^='nuit'] {
+  --bg: #17171a;
+  --surface: #0f0f11;
+  --surface-2: #26262a;
+  --border: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.22);
+  --text: #f3f2f0;
+  --text-2: #b2b1b6;
+  --text-3: #8a8990;
+  --text-4: #5c5b62;
+  --accent-light: #26262a;
+  --open: #34c77b;
+  --open-bg: #16321f;
+  --closed: #ff6a5c;
+  --closed-bg: #3a1c19;
+  --s1: 0 1px 4px rgba(0, 0, 0, 0.4);
+  --s2: 0 3px 14px rgba(0, 0, 0, 0.5);
+  --s3: 0 8px 26px rgba(0, 0, 0, 0.55);
+  --s4: 0 16px 44px rgba(0, 0, 0, 0.6);
+  --s-focus: 0 0 0 3px rgba(255, 255, 255, 0.22);
+}
+
+html.native-app[data-palette='nuit-or'] {
+  --accent: #f5a623;
+  --accent-hover: #ffb946;
+  --on-accent: #17171a;
+  --s-accent: 0 6px 22px rgba(245, 166, 35, 0.3);
+}
+html.native-app[data-palette='nuit-vert'] {
+  --accent: #c8f751;
+  --accent-hover: #d6ff6e;
+  --on-accent: #14180a;
+  --s-accent: 0 6px 22px rgba(200, 247, 81, 0.26);
+}
+html.native-app[data-palette='nuit-violet'] {
+  --accent: #7c4dff;
+  --accent-hover: #9270ff;
+  --on-accent: #ffffff;
+  --s-accent: 0 6px 22px rgba(124, 77, 255, 0.38);
+}
+html.native-app[data-palette='nuit-corail'] {
+  --accent: #ff4f5e;
+  --accent-hover: #ff6b77;
+  --on-accent: #ffffff;
+  --s-accent: 0 6px 22px rgba(255, 79, 94, 0.32);
+}
+
+/* Fond clair, mais avec une vraie couleur — pour vérifier que le
+   sombre n'est pas seul responsable de l'impression. */
+html.native-app[data-palette='clair-corail'] {
+  --bg: #ffffff;
+  --surface: #fdf7f5;
+  --surface-2: #f4e9e6;
+  --border: rgba(25, 20, 20, 0.1);
+  --border-strong: rgba(25, 20, 20, 0.18);
+  --text: #191416;
+  --text-2: #4a4245;
+  --text-3: #736a6d;
+  --text-4: #8f8689;
+  --accent: #ff4f5e;
+  --accent-hover: #e83e4c;
+  --accent-light: #ffe9eb;
+  --on-accent: #ffffff;
+  --s-accent: 0 6px 22px rgba(255, 79, 94, 0.28);
+}

@@ -61,6 +61,8 @@ export interface FoursquarePhoto {
 export interface FoursquareHours {
   open_now?: boolean
   display?: string
+  /** Plages du jour telles que Google les affiche (« 12:00–14:30, 19:00–22:00 »). */
+  today?: string
   regular?: Array<{ day: number; open: string; close: string }>
 }
 

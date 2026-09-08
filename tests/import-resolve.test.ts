@@ -472,3 +472,35 @@ describe('resolveImport — nouveaux signaux (géotag + OCR)', () => {
     expect(patch.place_snapshot?.name).toBe('Septime')
   })
 })
+
+describe('resolveImport — troncature', () => {
+  // Une légende trop longue est coupée à 3000 caractères. `slice` compte en
+  // unités UTF-16 : quand la coupe tombe au milieu d'un emoji, elle laisse une
+  // moitié orpheline, que le rendu dessine en carré. C'est arrivé en vrai —
+  // une légende enregistrée finissait par « … riz à volonté. \ud83d ».
+  it('ne coupe jamais un emoji en deux', async () => {
+    // 2999 caractères, puis un emoji : la coupe tombe pile entre ses deux
+    // moitiés.
+    const caption = 'a'.repeat(2999) + '🔥' + 'suite'
+    meta.mockResolvedValue({
+      og: { title: 'Le Train Bleu', description: caption },
+      location: null,
+    })
+    search.mockResolvedValue([osmResult('Le Train Bleu')])
+
+    const patch = await resolveImport(row(), PARIS)
+    const stored = patch.post_caption ?? ''
+
+    expect(stored.length).toBeGreaterThan(0)
+    for (let i = 0; i < stored.length; i++) {
+      const u = stored.charCodeAt(i)
+      if (u >= 0xd800 && u <= 0xdbff) {
+        const next = stored.charCodeAt(i + 1)
+        expect(next >= 0xdc00 && next <= 0xdfff).toBe(true)
+        i++
+      } else {
+        expect(u >= 0xdc00 && u <= 0xdfff).toBe(false)
+      }
+    }
+  })
+})

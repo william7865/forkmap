@@ -10,9 +10,14 @@
 // il ne doit rien écrire côté serveur.
 // ════════════════════════════════════════════════════════════
 
-export type PreviewMode = 'actuel' | 'feed' | 'notes'
+export type PreviewMode = 'sections' | 'actuel' | 'feed' | 'notes'
 
 export const PREVIEW_MODES: { id: PreviewMode; label: string; hint: string }[] = [
+  {
+    id: 'sections',
+    label: 'Sections',
+    hint: 'Vidéos, listes, puis le mur — sans segment ni filtres',
+  },
   { id: 'actuel', label: 'Actuel', hint: 'La liste telle qu’elle est aujourd’hui' },
   { id: 'feed', label: 'Photos en grand', hint: 'Chaque adresse est une image' },
   { id: 'notes', label: 'Notes en héros', hint: 'Le classement devient le sujet' },
@@ -21,10 +26,11 @@ export const PREVIEW_MODES: { id: PreviewMode; label: string; hint: string }[] =
 const KEY = 'forkmap_preview_carnet'
 
 export function readPreviewMode(): PreviewMode {
-  if (typeof window === 'undefined') return 'actuel'
+  if (typeof window === 'undefined') return 'sections'
   try {
     const v = window.localStorage.getItem(KEY)
-    return v === 'feed' || v === 'notes' ? v : 'actuel'
+    // 'sections' est le traitement retenu : il est le défaut, pas une option.
+    return v === 'feed' || v === 'notes' || v === 'actuel' ? v : 'sections'
   } catch {
     // Navigation privée, stockage bloqué : on retombe sur l'écran actuel.
     return 'actuel'
