@@ -37,15 +37,12 @@ import ListMiniMapDyn from '@/components/favorites/ListMiniMapDyn'
 import type { MapPoint } from '@/components/favorites/ListMiniMap'
 import { lightTap } from '@/lib/native/haptics'
 import AddImportSheet from '@/components/import/AddImportSheet'
-import { readPreviewMode, type PreviewMode } from '@/lib/preview-mode'
 import { setPendingSelect } from '@/lib/pendingSelect'
 import {
   NativeListRow,
   FavCardList,
   ListItemRowNative,
   FavCardGrid,
-  FavCardFeed,
-  FavCardScore,
   FavCardWall,
   favPhoto,
   IcoStar,
@@ -1025,7 +1022,11 @@ function FavoritesPageInner() {
   // Aperçu de traitement — temporaire, le temps de trancher la direction.
   // Lu dans un effet et non à l'initialisation : localStorage n'existe pas au
   // rendu serveur, et l'y lire donnerait un écart d'hydratation.
-  const [preview, setPreview] = useState<PreviewMode>('sections')
+  // Ancien sélecteur d'aperçu, réduit à ce qu'il voulait dire : le natif rend
+  // la mise en page en sections, le web garde ses lignes. Ce n'était plus un
+  // choix depuis qu'on a tranché, et le réglage correspondant ne changeait
+  // plus rien.
+  const preview: 'sections' | 'actuel' = isNative ? 'sections' : 'actuel'
   useEffect(() => {}, [])
 
   const {
@@ -2874,37 +2875,6 @@ function FavoritesPageInner() {
                     )}
                   </div>
                 )}
-                {preview === 'feed' &&
-                  sorted.map((fav, i) => (
-                    <FavCardFeed
-                      key={fav.id}
-                      fav={fav}
-                      index={i}
-                      visited={visitedIds.has(fav.osm_id)}
-                      onOpenMap={() => {
-                        if (fav.snapshot) setPendingSelect(fav.snapshot)
-                        router.push(
-                          `/carte?select=${encodeURIComponent(fav.osm_id)}&lat=${fav.lat}&lon=${fav.lon}`
-                        )
-                      }}
-                    />
-                  ))}
-                {preview === 'notes' &&
-                  sorted.map((fav, i) => (
-                    <FavCardScore
-                      key={fav.id}
-                      fav={fav}
-                      index={i}
-                      rank={i + 1}
-                      visited={visitedIds.has(fav.osm_id)}
-                      onOpenMap={() => {
-                        if (fav.snapshot) setPendingSelect(fav.snapshot)
-                        router.push(
-                          `/carte?select=${encodeURIComponent(fav.osm_id)}&lat=${fav.lat}&lon=${fav.lon}`
-                        )
-                      }}
-                    />
-                  ))}
                 {preview === 'actuel' &&
                   sorted.map((fav, i) => (
                     <FavCardList

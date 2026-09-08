@@ -6,7 +6,6 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { readPalette, applyPalette } from '@/lib/palette'
 import { Capacitor } from '@capacitor/core'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { registerPushNotifications } from '@/lib/native/pushNotifications'
@@ -93,10 +92,6 @@ export default function CapacitorInit() {
 
     async function initNative() {
       document.documentElement.classList.add('native-app')
-      // Palette d'essai (TEMPORAIRE, voir lib/palette.ts). Posée ici, juste
-      // après `native-app`, parce que les blocs CSS sont scopés dessus : plus
-      // tôt, l'attribut ne correspondrait à aucune règle.
-      applyPalette(readPalette())
       // App native : bloque le zoom auto d'iOS au focus des champs (feel natif).
       // Scopé au natif — le viewport du site web reste inchangé.
       let vp = document.querySelector('meta[name="viewport"]')
