@@ -56,6 +56,7 @@ import { placeRank, rankLabel } from '@/lib/ranking'
 import PlaceSocialProof from '@/components/place/PlaceSocialProof'
 import PhotoGallery, { buildPhotoUrl } from '@/components/place/PhotoGallery'
 import { placeDistrict } from '@/lib/districts'
+import { scrapePlacePhotos } from '@/lib/place-photos-live'
 import { closingTime, formatWalkTime } from '@/lib/format'
 
 // Leaflet touche `window` à l'import — jamais côté serveur.
@@ -400,16 +401,46 @@ export default function PlaceDetail({
     void (async () => {
       try {
         const res = await apiFetch(`/api/places/photos?osm_id=${encodeURIComponent(place.osm_id)}`)
-        if (!res.ok) return
-        const { data } = (await res.json()) as { data?: string[] }
-        if (!cancelled && Array.isArray(data)) setScraped(data)
+        if (res.ok) {
+          const { data } = (await res.json()) as { data?: string[] }
+          if (cancelled) return
+          if (Array.isArray(data) && data.length > 0) {
+            setScraped(data)
+            return
+          }
+        }
       } catch {
-        // Pas de photos rangées pour ce lieu : la galerie garde ce qu'elle a.
+        // Rien de rangé : on tente la lecture directe ci-dessous.
+      }
+      // Lieu non enregistré, donc rien en stock : on lit la galerie sur
+      // l'appareil et on ne la garde pas. C'est ce qui évite de payer du
+      // stockage pour des lieux que personne ne garde. Le jour où
+      // l'utilisateur enregistre le lieu, le scraper de fond le rangera.
+      try {
+        const live = await scrapePlacePhotos(
+          place.name,
+          place.lat,
+          place.lon,
+          // L'identifiant de fiche Google, quand le lieu en a un : il ouvre
+          // LA bonne fiche au lieu de lancer une recherche par nom.
+          place.fsq?.fsq_id,
+          // Même clé que le préchargement lancé depuis la carte d'aperçu :
+          // si l'utilisateur a regardé l'aperçu, les photos sont déjà prêtes.
+          place.osm_id
+        )
+        if (!cancelled && live.length > 0) setScraped(live)
+      } catch {
+        // La galerie garde ce qu'elle a.
       }
     })()
     return () => {
       cancelled = true
     }
+    // `osm_id` SEUL : le nom et les coordonnées ne changent pas pour un même
+    // lieu, et les mettre en dépendance relancerait le scrape à chaque
+    // re-rendu qui recrée l'objet `place` — soit plusieurs chargements de page
+    // Google pour une seule ouverture de fiche.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [place.osm_id])
 
   const gallery = useMemo(() => {

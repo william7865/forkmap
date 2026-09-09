@@ -73,3 +73,107 @@ export function looksLikeThumbnailOnly(url: string): boolean {
   const sizes = [...suffix.matchAll(/[swh](\d+)/g)].map((m) => Number(m[1]))
   return sizes.length > 0 && Math.max(...sizes) <= 80
 }
+
+/**
+ * L'identifiant de fiche Google d'un lieu, s'il en a un.
+ *
+ * Les lieux trouvés via Google portent leur identifiant dans le slot `fsq`,
+ * sous la forme `0x47e671e4bea0305b:0x5dc2e16febad2dff`. C'est la clé qui ouvre
+ * LA bonne fiche, sans passer par une recherche.
+ */
+export function googleFeatureId(fsqId: string | null | undefined): string | null {
+  if (typeof fsqId !== 'string') return null
+  return /^0x[0-9a-f]+:0x[0-9a-f]+$/i.test(fsqId) ? fsqId : null
+}
+
+/**
+ * L'URL qui ouvre DIRECTEMENT la fiche d'un lieu, par son identifiant.
+ *
+ * À préférer toujours à une recherche : une recherche par nom rend une LISTE
+ * de résultats, dont on ne peut pas garantir que le premier soit le bon. C'est
+ * ce qui a fait afficher les photos d'un autre établissement.
+ */
+export function mapsPlaceUrl(featureId: string, lat: number, lon: number): string {
+  const data = `!4m5!3m4!1s${featureId}!8m2!3d${lat}!4d${lon}`
+  return `https://www.google.com/maps/place/data=${data}?hl=fr&gl=fr`
+}
+
+/**
+ * L'URL de recherche, avec la position dans le CHEMIN.
+ *
+ * ⚠️ Ne jamais mettre les coordonnées dans le texte cherché : Google les traite
+ * comme des mots. « La Perla 48.85576,2.35614 » lançait une recherche sur cette
+ * chaîne littérale et retombait sur une liste centrée ailleurs. La position se
+ * déclare après `@`.
+ */
+export function mapsSearchUrl(name: string, lat: number, lon: number): string {
+  return `https://www.google.com/maps/search/${encodeURIComponent(name)}/@${lat},${lon},17z?hl=fr&gl=fr`
+}
+
+/** Minuscules, sans accents ni ponctuation : pour comparer deux libellés. */
+function normalise(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+/**
+ * Le titre du panneau correspond-il au lieu attendu ?
+ *
+ * Dernier rempart quand on a dû passer par une recherche : mieux vaut ne rien
+ * afficher que les photos d'un autre restaurant. Google rallonge parfois le nom
+ * (« Gangnam » → « Gangnam Restaurant Coréen »), d'où la comparaison par
+ * inclusion et non par égalité.
+ */
+export function titleMatchesPlace(panelTitle: string | null | undefined, name: string): boolean {
+  if (!panelTitle || !name) return false
+  const a = normalise(panelTitle)
+  const b = normalise(name)
+  if (!a || !b) return false
+  // Sous 3 caractères, l'inclusion ne prouve rien.
+  if (a.length < 3 || b.length < 3) return a === b
+  return a.includes(b) || b.includes(a)
+}
+
+/** Ce qu'on range dans le cache partagé : des URL, et la date de récolte. */
+export interface CachedPhotos {
+  urls: string[]
+  at: string
+}
+
+/** Un mois : au-delà, une fiche a pu changer de photos ou les perdre. */
+export const PHOTO_CACHE_MAX_AGE_DAYS = 30
+
+/**
+ * Lit une entrée du cache partagé, ou null si elle est inutilisable.
+ *
+ * ⚠️ On ne stocke QUE des URL, jamais les images : Google les héberge déjà.
+ * L'écart est décisif — environ 500 octets par restaurant au lieu de 1,3 Mo,
+ * soit 7 Mo pour tout Paris au lieu de 20 Go, et donc pas de plan payant.
+ * En contrepartie une URL peut mourir, d'où la péremption.
+ */
+export function parseCachedPhotos(
+  raw: unknown,
+  now: Date = new Date(),
+  maxAgeDays: number = PHOTO_CACHE_MAX_AGE_DAYS
+): string[] | null {
+  if (!raw || typeof raw !== 'object') return null
+  const { urls, at } = raw as Partial<CachedPhotos>
+  if (!Array.isArray(urls) || urls.length === 0) return null
+  const kept = urls.filter((u): u is string => typeof u === 'string' && isGooglePhotoUrl(u))
+  if (kept.length === 0) return null
+  if (typeof at !== 'string') return null
+  const age = now.getTime() - new Date(at).getTime()
+  if (!Number.isFinite(age) || age < 0) return null
+  if (age > maxAgeDays * 24 * 60 * 60 * 1000) return null
+  return kept
+}
+
+/** N'accepte que des URL de photos Google, dédoublonnées et bornées. */
+export function sanitisePhotoUrls(urls: unknown, max = 8): string[] {
+  if (!Array.isArray(urls)) return []
+  return dedupeGooglePhotos(urls.filter((u): u is string => typeof u === 'string')).slice(0, max)
+}

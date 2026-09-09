@@ -274,13 +274,182 @@ public class OcrPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 }
 
-// Registers app-local plugins (RawHttp, AppGroup, Ocr). Capacitor does not
-// auto-discover plugins defined in the app target, so we register them on the
-// bridge here. Wired via Main.storyboard (the initial view controller's class).
+// ============================================================
+// PageScrape — charge une page dans une WKWebView hors écran, y exécute du
+// JavaScript, et rend le résultat.
+//
+// POURQUOI. La galerie photos d'une fiche Google (plats, salle, devanture)
+// n'existe qu'APRÈS exécution du JavaScript de la page. Vérifié sans succès en
+// requête simple : URL canonique /maps/place/…, preview/place, photometa/v1,
+// async/lcl_akp, recherche par ludocid — tous rendent UNE image. Il faut donc
+// un vrai navigateur, et l'app EN EST un : inutile de payer un serveur.
+//
+// Même raisonnement que RawHttp plus haut : la requête part de l'appareil,
+// donc d'une IP résidentielle, là où Google bloque l'IP unique de Vercel.
+// ============================================================
+import WebKit
+
+@objc(PageScrapePlugin)
+public class PageScrapePlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "PageScrapePlugin"
+    public let jsName = "PageScrape"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "evaluate", returnType: CAPPluginReturnPromise)
+    ]
+
+    /// Une seule page à la fois : chaque WKWebView coûte un processus de rendu.
+    private var scrapeView: WKWebView?
+    private var pending: CAPPluginCall?
+    private var script = "''"
+    private var settleMs = 3500
+    private var finished = false
+
+    @objc func evaluate(_ call: CAPPluginCall) {
+        guard let urlStr = call.getString("url"), let url = URL(string: urlStr) else {
+            call.reject("bad url")
+            return
+        }
+        guard pending == nil else {
+            call.reject("busy")
+            return
+        }
+        pending = call
+        script = call.getString("script") ?? "''"
+        settleMs = call.getInt("settleMs") ?? 3500
+        finished = false
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            let config = WKWebViewConfiguration()
+            // Éphémère : cette navigation ne doit rien mêler à la session de
+            // l'utilisateur, ni laisser de trace après l'appel.
+            config.websiteDataStore = .nonPersistent()
+            let wv = WKWebView(frame: CGRect(x: 0, y: 0, width: 1, height: 1), configuration: config)
+            wv.navigationDelegate = self
+            wv.customUserAgent =
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+                + "(KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+            // ⚠️ Hors hiérarchie de vues, iOS suspend le rendu et la page ne
+            // finit jamais de se construire. D'où l'ajout en taille quasi nulle.
+            if let win = UIApplication.shared.windows.first {
+                wv.alpha = 0.01
+                wv.isUserInteractionEnabled = false
+                win.addSubview(wv)
+                win.sendSubviewToBack(wv)
+            }
+            self.scrapeView = wv
+
+            // Sans ces cookies, le mur de consentement européen remplace la page.
+            let store = wv.configuration.websiteDataStore.httpCookieStore
+            let group = DispatchGroup()
+            for (name, value) in [
+                ("SOCS", "CAISHAgBEhJnd3NfMjAyMzA4MTAtMF9SQzIaAmVuIAEaBgiA_LymBg"),
+                ("CONSENT", "YES+cb.20210328-17-p0.en+FX+"),
+            ] {
+                if let cookie = HTTPCookie(properties: [
+                    .domain: ".google.com", .path: "/", .name: name, .value: value,
+                ]) {
+                    group.enter()
+                    store.setCookie(cookie) { group.leave() }
+                }
+            }
+            group.notify(queue: .main) {
+                var req = URLRequest(url: url)
+                req.timeoutInterval = 20
+                wv.load(req)
+            }
+
+            // Filet : une page qui ne finit jamais ne doit pas laisser l'appel
+            // en suspens indéfiniment.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 25) { [weak self] in
+                self?.finish(result: nil, error: "timeout")
+            }
+        }
+    }
+
+    private func finish(result: String?, error: String?) {
+        guard !finished, let call = pending else { return }
+        finished = true
+        pending = nil
+        scrapeView?.removeFromSuperview()
+        scrapeView?.navigationDelegate = nil
+        scrapeView = nil
+        if let error = error {
+            call.reject(error)
+        } else {
+            call.resolve(["result": result ?? ""])
+        }
+    }
+}
+
+extension PageScrapePlugin: WKNavigationDelegate {
+    public func webView(_ wv: WKWebView, didFinish navigation: WKNavigation!) {
+        // `didFinish` ne veut pas dire « page construite » : le contenu arrive
+        // ensuite, par XHR.
+        //
+        // On INTERROGE au lieu d'attendre un délai fixe. Une attente de 3,5 s
+        // faisait patienter 5 à 8 secondes sur une fiche déjà prête au bout
+        // d'une seconde — un temps mort visible à chaque ouverture. `settleMs`
+        // devient un PLAFOND, pas une durée.
+        poll(wv, elapsed: 0)
+    }
+
+    /// Rappelle `script` toutes les 300 ms jusqu'à ce qu'il rende autre chose
+    /// que la chaîne vide, ou jusqu'au plafond.
+    private func poll(_ wv: WKWebView, elapsed: Int) {
+        guard !finished else { return }
+        wv.evaluateJavaScript(script) { [weak self] value, err in
+            guard let self = self, !self.finished else { return }
+            if let err = err {
+                // Une page encore en construction fait échouer l'évaluation :
+                // ce n'est pas une erreur définitive tant qu'il reste du temps.
+                if elapsed >= self.settleMs {
+                    self.finish(result: nil, error: err.localizedDescription)
+                } else {
+                    self.retry(wv, elapsed: elapsed)
+                }
+                return
+            }
+            let text = value as? String
+            if let text = text, !text.isEmpty {
+                self.finish(result: text, error: nil)
+            } else if elapsed >= self.settleMs {
+                self.finish(result: text, error: nil)
+            } else {
+                self.retry(wv, elapsed: elapsed)
+            }
+        }
+    }
+
+    private func retry(_ wv: WKWebView, elapsed: Int) {
+        let step = 300
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(step)) { [weak self] in
+            self?.poll(wv, elapsed: elapsed + step)
+        }
+    }
+
+    public func webView(_ wv: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        finish(result: nil, error: error.localizedDescription)
+    }
+
+    public func webView(
+        _ wv: WKWebView,
+        didFailProvisionalNavigation navigation: WKNavigation!,
+        withError error: Error
+    ) {
+        finish(result: nil, error: error.localizedDescription)
+    }
+}
+
+// Registers app-local plugins (RawHttp, AppGroup, Ocr, PageScrape). Capacitor
+// does not auto-discover plugins defined in the app target, so we register them
+// on the bridge here. Wired via Main.storyboard (the initial view controller's
+// class).
 class MainViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(RawHttpPlugin())
         bridge?.registerPluginInstance(AppGroupPlugin())
         bridge?.registerPluginInstance(OcrPlugin())
+        bridge?.registerPluginInstance(PageScrapePlugin())
     }
 }

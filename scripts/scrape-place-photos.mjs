@@ -49,7 +49,13 @@ async function placesToDo() {
   const add = (osm_id, snap) => {
     if (!osm_id || seen.has(osm_id)) return
     if (!snap?.name || snap.lat == null || snap.lon == null) return
-    seen.set(osm_id, { osm_id, name: snap.name, lat: snap.lat, lon: snap.lon })
+    seen.set(osm_id, {
+      osm_id,
+      name: snap.name,
+      lat: snap.lat,
+      lon: snap.lon,
+      fsqId: snap.fsq?.fsq_id ?? null,
+    })
   }
   const { data: favs } = await db.from('favorites').select('osm_id,snapshot')
   for (const r of favs ?? []) add(r.osm_id, r.snapshot)
@@ -67,23 +73,96 @@ async function placesToDo() {
   return [...seen.values()]
 }
 
-/** Ouvre la fiche Google du lieu et lit les URL de sa galerie. */
+/** Minuscules, sans accents ni ponctuation : pour comparer deux libellés. */
+const normalise = (s) =>
+  s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+
+/** Le panneau ouvert est-il bien celui du lieu attendu ? */
+function titleMatches(title, name) {
+  if (!title || !name) return false
+  const a = normalise(title)
+  const b = normalise(name)
+  if (!a || !b) return false
+  if (a.length < 3 || b.length < 3) return a === b
+  return a.includes(b) || b.includes(a)
+}
+
+/**
+ * Ouvre la fiche Google du lieu et lit les URL de sa galerie.
+ *
+ * ⚠️ DEUX RÈGLES, apprises en rangeant les photos d'un autre restaurant :
+ *   1. Par IDENTIFIANT quand on l'a — une recherche par nom rend une LISTE,
+ *      dont rien ne garantit que le premier résultat soit le bon. Et les
+ *      coordonnées mises dans le TEXTE cherché ne biaisent rien : Google les
+ *      lit comme des mots (« La Perla 48.85576,2.35614 » cherchait cette
+ *      chaîne littérale et retombait sur une liste centrée ailleurs).
+ *   2. Faute d'identifiant, VÉRIFIER le titre du panneau avant de récolter.
+ *      Mieux vaut aucune photo que celles d'à côté.
+ */
 async function photosFor(page, place) {
-  const q = `${place.name} ${place.lat.toFixed(5)},${place.lon.toFixed(5)}`
-  const url = `https://www.google.com/maps/search/${encodeURIComponent(q)}?hl=fr&gl=fr`
+  const fid = /^0x[0-9a-f]+:0x[0-9a-f]+$/i.test(place.fsqId || '') ? place.fsqId : null
+  const url = fid
+    ? `https://www.google.com/maps/place/data=!4m5!3m4!1s${fid}!8m2!3d${place.lat}!4d${place.lon}?hl=fr&gl=fr`
+    : `https://www.google.com/maps/search/${encodeURIComponent(place.name)}/@${place.lat},${place.lon},17z?hl=fr&gl=fr`
+
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
-  // Le panneau de la fiche se remplit après le chargement du document ; sans
-  // cette attente on lit une page encore vide.
+  // Le panneau se remplit après le chargement du document ; sans cette attente
+  // on lit une page encore vide.
   await page.waitForTimeout(3500)
-  return page.evaluate(() => {
-    const out = []
-    for (const el of document.querySelectorAll('img')) if (el.src) out.push(el.src)
+
+  const found = await page.evaluate(() => {
+    const urls = []
+    for (const el of document.querySelectorAll('img')) if (el.src) urls.push(el.src)
     for (const el of document.querySelectorAll('[style*="googleusercontent"]')) {
       const m = el.getAttribute('style').match(/https:\/\/[^"')]+googleusercontent[^"')]+/)
-      if (m) out.push(m[0])
+      if (m) urls.push(m[0])
     }
-    return out
+    const h1 = document.querySelector('h1')
+    return {
+      title: h1 ? h1.textContent : null,
+      isList: !!document.querySelector('div[role="feed"]'),
+      urls,
+    }
   })
+
+  // Atterri sur une liste : on ouvre le PREMIER résultat, puis on revérifie.
+  // Sans ça, la moitié des lieux sans identifiant repartent bredouilles — mais
+  // on ne récolte toujours QUE si le panneau ouvert porte le bon nom.
+  if (found.isList) {
+    // On NAVIGUE vers le lien du premier résultat plutôt que de le cliquer :
+    // le clic laisse le panneau de résultats en place (le titre reste
+    // « Résultats »), alors que le lien porte déjà l'identifiant de la fiche.
+    const href = await page.evaluate(() => {
+      const a = document.querySelector('div[role="feed"] a[href*="/maps/place/"]')
+      return a ? a.href : null
+    })
+    if (!href) return { urls: [], reason: 'liste vide' }
+    await page.goto(href, { waitUntil: 'domcontentloaded', timeout: 30000 })
+    await page.waitForTimeout(3500)
+    const second = await page.evaluate(() => {
+      const urls = []
+      for (const el of document.querySelectorAll('img')) if (el.src) urls.push(el.src)
+      const h1 = document.querySelector('h1')
+      return {
+        title: h1 ? h1.textContent : null,
+        isList: !!document.querySelector('div[role="feed"]'),
+        urls,
+      }
+    })
+    if (second.isList || !titleMatches(second.title, place.name)) {
+      return { urls: [], reason: `autre fiche (« ${String(second.title).slice(0, 22)} »)` }
+    }
+    return { urls: second.urls, reason: null }
+  }
+  if (!fid && !titleMatches(found.title, place.name)) {
+    return { urls: [], reason: `autre fiche (« ${String(found.title).slice(0, 24)} »)` }
+  }
+  return { urls: found.urls, reason: null }
 }
 
 // Mêmes règles que lib/place-photos.ts, recopiées ici parce qu'un script .mjs
@@ -130,9 +209,10 @@ let ok = 0
 let ko = 0
 for (const place of todo) {
   try {
-    const found = pick(await photosFor(page, place))
+    const { urls, reason } = await photosFor(page, place)
+    const found = pick(urls)
     if (found.length === 0) {
-      console.log(`  ✗ ${place.name.slice(0, 34).padEnd(34)} aucune photo`)
+      console.log(`  ✗ ${place.name.slice(0, 34).padEnd(34)} ${reason ?? 'aucune photo'}`)
       ko++
       continue
     }

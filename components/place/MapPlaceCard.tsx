@@ -1,7 +1,7 @@
 'use client'
 // MapPlaceCard — carte resto flottante (app native) affichée à la sélection sur la carte.
 // Reproduit la maquette Stitch « Carte Interactive » : photo + note + badges + « Voir la fiche » + ❤️.
-import { memo, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import type { PlaceCard } from '@/types'
 import { Star, Bookmark, X, Send } from 'lucide-react'
 import { frCuisine } from '@/lib/cuisine'
@@ -9,6 +9,7 @@ import { priceLabel } from '@/lib/format'
 import { useIsNative } from '@/lib/native/platform'
 import SendToFriendSheet from '@/components/social/SendToFriendSheet'
 import PlaceThumb, { placePhotoUrl } from '@/components/place/PlaceThumb'
+import { prefetchPlacePhotos } from '@/lib/place-photos-live'
 
 interface Props {
   place: PlaceCard
@@ -25,6 +26,15 @@ const MapPlaceCard = memo(function MapPlaceCard({
 }: Props) {
   const native = useIsNative()
   const [sharing, setSharing] = useState(false)
+
+  // Précharge la galerie dès que l'aperçu s'affiche. L'utilisateur met
+  // plusieurs secondes à décider d'ouvrir la fiche, et ces secondes-là
+  // suffisent à charger les photos : c'est ce qui supprime l'attente, bien
+  // plus que d'accélérer le chargement lui-même.
+  useEffect(() => {
+    prefetchPlacePhotos(place.osm_id, place.name, place.lat, place.lon, place.fsq?.fsq_id)
+  }, [place.osm_id, place.name, place.lat, place.lon, place.fsq?.fsq_id])
+
   const cuisine = place.cuisine ?? place.fsq?.categories?.[0]?.name
   const zone = place.osm_enriched?.district ?? place.osm_enriched?.city
   const rating = place.fsq?.rating
