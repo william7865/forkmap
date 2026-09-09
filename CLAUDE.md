@@ -48,6 +48,7 @@ PLACES_PROVIDER=                                   # optionnel — force le prov
 PLACES_SCRAPE=                                     # optionnel — mettre "off" pour désactiver le scraper DIY
 SERPAPI_KEY=                                       # optionnel — provider serpapi (moteur google_maps, palier gratuit ~100/mois)
 GOOGLE_PLACES_API_KEY=AIzaxxxxx                    # optionnel — provider google (API Places New, nécessite facturation)
+NEXT_PUBLIC_CARTO_KEY=cb1_xxxxx                      # optionnel mais fortement conseillé — fond de carte Carto. SANS elle, toutes les cartes de l'app sont barrées en diagonale d'un « API KEY REQUIRED · carto.com/basemaps/apikey ». Gratuite sur https://carto.com/basemaps/apikey (5 M de tuiles/mois). ⚠️ Le paramètre est `key`, pas `api_key` : `api_key` est accepté sans erreur et renvoie quand même la tuile filigranée.
 MAPILLARY_TOKEN=MLY|xxxxx                            # optionnel — photos de rue Mapillary (façades) pour les restos sans autre photo ; dégradation gracieuse sans le jeton (jeton client gratuit sur mapillary.com)
 RESEND_API_KEY=re_xxxxx                            # optionnel — sans elle, le formulaire de contact n'envoie pas d'email
 CONTACT_EMAIL_TO=hello@forkmap.app                 # optionnel — destinataire du formulaire de contact (défaut : hello@forkmap.app)

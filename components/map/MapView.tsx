@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react'
+import { tileUrl } from '@/lib/leaflet-cdn'
 import { IcoSearch } from '@/components/icons'
 import type { PlaceCard } from '@/types'
 import { lightTap } from '@/lib/native/haptics'
@@ -470,8 +471,9 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(
       // en sombre. Avant, la carte restait BLANCHE en thème sombre — elle
       // occupe la moitié de l'écran, donc l'app passait d'une dalle blanche à
       // une interface noire, ce qui cassait toute l'ambiance.
-      const tileUrl = (dark: boolean) =>
-        `https://{s}.basemaps.cartocdn.com/${dark ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`
+      // `tileUrl` vient de lib/leaflet-cdn : c'est le seul endroit qui connaît
+      // le fond de carte ET la clé Carto. La carte principale en gardait une
+      // copie, donc la clé n'aurait agi que sur les mini-cartes.
       const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark'
 
       let tiles = L.tileLayer(tileUrl(isDark()), {
