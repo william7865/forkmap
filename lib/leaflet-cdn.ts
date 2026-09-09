@@ -66,11 +66,21 @@ export async function loadLeaflet(): Promise<LeafletNS | null> {
 /**
  * Le fond de carte de l'app, clair ou sombre.
  *
- * ⚠️ Ne PAS revenir à `rastertiles/voyager` : ce chemin exige désormais une clé
- * et rend des tuiles barrées d'un filigrane « API KEY REQUIRED ».
+ * ⚠️ Ne PAS revenir à `rastertiles/voyager` : ce chemin exige aussi une clé.
+ *
+ * Sans clé, Carto sert des tuiles barrées en diagonale d'un « API KEY
+ * REQUIRED · carto.com/basemaps/apikey » — lisible par-dessus les noms de rue.
+ * Le paramètre attendu est `key`, PAS `api_key` : `api_key` est accepté sans
+ * erreur et renvoie la tuile filigranée, donc l'échec est silencieux.
+ *
+ * La clé est forcément publique : les tuiles sont chargées par le navigateur.
+ * C'est le fonctionnement normal de ce type de clé, elle est restreinte par
+ * domaine côté Carto.
  */
 export function tileUrl(dark: boolean): string {
-  return `https://{s}.basemaps.cartocdn.com/${dark ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`
+  const base = `https://{s}.basemaps.cartocdn.com/${dark ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`
+  const key = process.env.NEXT_PUBLIC_CARTO_KEY
+  return key ? `${base}?key=${encodeURIComponent(key)}` : base
 }
 
 /** Attribution ODbL — obligation légale du fond de carte, pas une décoration. */

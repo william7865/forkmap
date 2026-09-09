@@ -69,6 +69,13 @@ docs/superpowers/
 # Claude SDK agent worktrees
 .claude/worktrees/
 
+# Skills installés par `npx skills add` — ils atterrissent DANS le dépôt et
+# ne sont pas du code de ce projet. Ignorés pour ne pas les committer par
+# mégarde avec un `git add .`.
+.agents/
+.claude/skills/
+skills-lock.json
+
 # Env copié dans la coque iOS au build
 ios/App/App/.env.local
 

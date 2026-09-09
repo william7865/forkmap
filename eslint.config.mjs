@@ -23,6 +23,13 @@ const config = [
       'no-console': ['warn', { allow: ['warn', 'error'] }],
     },
   },
+  // Les scripts en ligne de commande PARLENT : `console.log` y est la sortie
+  // attendue, pas une trace de débogage oubliée. La règle reste entière pour
+  // le code applicatif, où un log traîne jusqu'en production.
+  {
+    files: ['scripts/**/*.{mjs,js,ts}'],
+    rules: { 'no-console': 'off' },
+  },
 ]
 
 export default config
