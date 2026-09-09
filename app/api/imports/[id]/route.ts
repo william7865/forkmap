@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { updateImport, deleteImport } from '@/lib/db'
 import { requireUser } from '@/lib/api-auth'
+import { persistImportThumb } from '@/lib/import/thumb-store'
 import { rateLimit } from '@/lib/rate-limit'
 import { friendlyError } from '@/lib/api-errors'
 import type { ImportRow } from '@/types'
@@ -51,11 +52,21 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     if (!parsed.success) {
       return NextResponse.json({ error: 'Mise à jour invalide.' }, { status: 400 })
     }
+    // La vignette est copiée chez nous AVANT d'être écrite. Les CDN TikTok et
+    // Instagram signent leurs URL et les font expirer : garder l'adresse
+    // revenait à garder une image morte (mesuré : 39 vignettes en base, 39
+    // en 403). Si la copie échoue, on conserve l'URL d'origine — elle vaut
+    // mieux que rien tant qu'elle répond.
+    const fields = { ...parsed.data }
+    if (typeof fields.post_thumb === 'string') {
+      const stored = await persistImportThumb(auth.userId, id, fields.post_thumb)
+      if (stored) fields.post_thumb = stored
+    }
     // place_snapshot is validated as a loose record (Zod can't type-check the
     // full PlaceCard shape) — it flows through opaquely, same as favorites'
     // snapshot column, so a cast is needed here.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const row = await updateImport(auth.userId, id, parsed.data as any as Partial<ImportRow>)
+    const row = await updateImport(auth.userId, id, fields as any as Partial<ImportRow>)
     return NextResponse.json({ data: row })
   } catch (err) {
     console.error('[PATCH /api/imports/[id]]', err)
