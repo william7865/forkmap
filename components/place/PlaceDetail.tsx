@@ -56,6 +56,7 @@ import { placeRank, rankLabel } from '@/lib/ranking'
 import PlaceSocialProof from '@/components/place/PlaceSocialProof'
 import PhotoGallery, { buildPhotoUrl } from '@/components/place/PhotoGallery'
 import { placeDistrict } from '@/lib/districts'
+import { scrapePlacePhotos } from '@/lib/place-photos-live'
 import { closingTime, formatWalkTime } from '@/lib/format'
 
 // Leaflet touche `window` à l'import — jamais côté serveur.
@@ -390,9 +391,68 @@ export default function PlaceDetail({
   // (façades de rue trop souvent du mauvais bâtiment) : sans photo, la fiche
   // bascule sur la carte du lieu plutôt que d'afficher une fausse
   // devanture.
+  // Photos du scraper maison, servies depuis notre stockage. Chargées à
+  // l'ouverture : elles n'existent que pour les lieux déjà passés au scraper,
+  // et leur absence ne doit rien casser.
+  const [scraped, setScraped] = useState<string[]>([])
+  useEffect(() => {
+    let cancelled = false
+    setScraped([])
+    void (async () => {
+      try {
+        const res = await apiFetch(`/api/places/photos?osm_id=${encodeURIComponent(place.osm_id)}`)
+        if (res.ok) {
+          const { data } = (await res.json()) as { data?: string[] }
+          if (cancelled) return
+          if (Array.isArray(data) && data.length > 0) {
+            setScraped(data)
+            return
+          }
+        }
+      } catch {
+        // Rien de rangé : on tente la lecture directe ci-dessous.
+      }
+      // Lieu non enregistré, donc rien en stock : on lit la galerie sur
+      // l'appareil et on ne la garde pas. C'est ce qui évite de payer du
+      // stockage pour des lieux que personne ne garde. Le jour où
+      // l'utilisateur enregistre le lieu, le scraper de fond le rangera.
+      try {
+        const live = await scrapePlacePhotos(
+          place.name,
+          place.lat,
+          place.lon,
+          // L'identifiant de fiche Google, quand le lieu en a un : il ouvre
+          // LA bonne fiche au lieu de lancer une recherche par nom.
+          place.fsq?.fsq_id,
+          // Même clé que le préchargement lancé depuis la carte d'aperçu :
+          // si l'utilisateur a regardé l'aperçu, les photos sont déjà prêtes.
+          place.osm_id
+        )
+        if (!cancelled && live.length > 0) setScraped(live)
+      } catch {
+        // La galerie garde ce qu'elle a.
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+    // `osm_id` SEUL : le nom et les coordonnées ne changent pas pour un même
+    // lieu, et les mettre en dépendance relancerait le scrape à chaque
+    // re-rendu qui recrée l'objet `place` — soit plusieurs chargements de page
+    // Google pour une seule ouverture de fiche.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [place.osm_id])
+
   const gallery = useMemo(() => {
     const urls: string[] = []
     const credits = new Set<string>()
+    // Les photos récupérées par le scraper maison passent DEVANT : ce sont
+    // celles de la galerie Google (plats, salle, devanture), alors que `photos`
+    // ne porte que la vignette de fiche — presque toujours un logo.
+    for (const u of scraped) {
+      urls.push(u)
+      credits.add('Google')
+    }
     for (const p of photos) {
       urls.push(buildPhotoUrl(p, 600))
       credits.add('Google')
@@ -409,7 +469,7 @@ export default function PlaceDetail({
     const seen = new Set<string>()
     const deduped = urls.filter((u) => (seen.has(u) ? false : (seen.add(u), true)))
     return { urls: deduped, attribution: credits.size ? [...credits].join(' · ') : undefined }
-  }, [photos, place.osm_enriched, place.wikidata?.image_url])
+  }, [scraped, photos, place.osm_enriched, place.wikidata?.image_url])
   const galleryUrls = gallery.urls
 
   // Modales partagées entre les deux habillages (état commun).
