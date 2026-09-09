@@ -390,9 +390,38 @@ export default function PlaceDetail({
   // (façades de rue trop souvent du mauvais bâtiment) : sans photo, la fiche
   // bascule sur la carte du lieu plutôt que d'afficher une fausse
   // devanture.
+  // Photos du scraper maison, servies depuis notre stockage. Chargées à
+  // l'ouverture : elles n'existent que pour les lieux déjà passés au scraper,
+  // et leur absence ne doit rien casser.
+  const [scraped, setScraped] = useState<string[]>([])
+  useEffect(() => {
+    let cancelled = false
+    setScraped([])
+    void (async () => {
+      try {
+        const res = await apiFetch(`/api/places/photos?osm_id=${encodeURIComponent(place.osm_id)}`)
+        if (!res.ok) return
+        const { data } = (await res.json()) as { data?: string[] }
+        if (!cancelled && Array.isArray(data)) setScraped(data)
+      } catch {
+        // Pas de photos rangées pour ce lieu : la galerie garde ce qu'elle a.
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [place.osm_id])
+
   const gallery = useMemo(() => {
     const urls: string[] = []
     const credits = new Set<string>()
+    // Les photos récupérées par le scraper maison passent DEVANT : ce sont
+    // celles de la galerie Google (plats, salle, devanture), alors que `photos`
+    // ne porte que la vignette de fiche — presque toujours un logo.
+    for (const u of scraped) {
+      urls.push(u)
+      credits.add('Google')
+    }
     for (const p of photos) {
       urls.push(buildPhotoUrl(p, 600))
       credits.add('Google')
@@ -409,7 +438,7 @@ export default function PlaceDetail({
     const seen = new Set<string>()
     const deduped = urls.filter((u) => (seen.has(u) ? false : (seen.add(u), true)))
     return { urls: deduped, attribution: credits.size ? [...credits].join(' · ') : undefined }
-  }, [photos, place.osm_enriched, place.wikidata?.image_url])
+  }, [scraped, photos, place.osm_enriched, place.wikidata?.image_url])
   const galleryUrls = gallery.urls
 
   // Modales partagées entre les deux habillages (état commun).
