@@ -17,6 +17,7 @@ import {
   type Mood,
   type SurpriseOptions,
   type SurpriseResult,
+  hasActiveDeckFilters,
 } from '@/lib/surprise'
 import { getMoment, suggestedMood, momentHeadline } from '@/lib/context'
 import { emptyProfile, recordSave, recordPass, isMadeForYou, type TasteProfile } from '@/lib/taste'
@@ -242,6 +243,19 @@ export default function SurpriseSheet({
     if (deck.length === 0 && places.length > 0) buildDeck()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [places.length])
+
+  // Un critère actif change ce que veut dire un deck vide : « tout vu » ou
+  // « tes filtres excluent tout ». Voir lib/surprise.
+  const filtersActive = hasActiveDeckFilters({ mood, maxPrice, maxDistance, openNow })
+
+  const resetFilters = useCallback(() => {
+    setMood(null)
+    setMaxPrice(null)
+    setMaxDistance(null)
+    setOpenNow(false)
+    seenRef.current.clear()
+    // La reconstruction passe par l'effet qui écoute ces quatre critères.
+  }, [])
 
   const current = deck[index]
   const remaining = deck.length - index
@@ -708,6 +722,23 @@ export default function SurpriseSheet({
             title="On cherche les bonnes adresses…"
             body="Déplace ou dézoome la carte si rien n'apparaît."
             spinner
+          />
+        ) : filtersActive ? (
+          // ⚠️ Écran vide À CAUSE DES FILTRES. Il montrait « Rejouer », qui vide
+          // l'historique et reconstruit le MÊME deck vide puisque les critères
+          // excluent toujours tout : le bouton semblait ne rien faire. La seule
+          // action utile ici est de lever les filtres.
+          <DeckMessage
+            title="Rien ne passe tes filtres"
+            body="Prix, distance, humeur ou « ouvert maintenant » excluent tout ce qu'il y a autour."
+            action={{ label: 'Réinitialiser les filtres', onClick: resetFilters }}
+            action2={{
+              label: 'Rejouer',
+              onClick: () => {
+                seenRef.current.clear()
+                buildDeck()
+              },
+            }}
           />
         ) : (
           <DeckMessage

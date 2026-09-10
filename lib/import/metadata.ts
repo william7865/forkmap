@@ -4,11 +4,13 @@
 // Open Graph caption/title/thumbnail AND the venue the creator geotagged. Null on
 // web, where the native HTTP bridge is unavailable.
 import { nativeHttpGetText } from '@/lib/native/http'
+import { evaluateOnPage } from '@/lib/native/page-scrape'
 import {
   extractOgTags,
   platformFromUrl,
   instagramEmbedUrl,
   parseEmbedCaption,
+  stripEmbedChrome,
   type OgMeta,
 } from '@/lib/import/parse'
 import { extractLocationTag, type LocationTag } from '@/lib/import/location'
@@ -58,6 +60,28 @@ async function oembed(endpoint: string): Promise<OgMeta | null> {
  *
  * Native-only — returns null on web.
  */
+/**
+ * La légende lue dans la page d'embed RENDUE.
+ *
+ * Le sélecteur `.Caption` est resté le bon : seul le HTML statique l'a perdu.
+ * On retire le pseudo de l'auteur, qui préfixe la légende et fausserait la
+ * recherche du restaurant.
+ */
+async function captionFromRenderedEmbed(embedUrl: string): Promise<string | null> {
+  const script = `(() => {
+    const cap = document.querySelector('.Caption');
+    if (!cap) return '';
+    const clone = cap.cloneNode(true);
+    const who = clone.querySelector('.CaptionUsername');
+    if (who) who.remove();
+    return (clone.innerText || '').trim();
+  })()`
+  const text = await evaluateOnPage(embedUrl, script, 6000)
+  if (!text) return null
+  const clean = stripEmbedChrome(text)
+  return clean.length > 0 ? clean : null
+}
+
 export async function fetchPostMetadata(url: string): Promise<PostMetadata | null> {
   const platform = platformFromUrl(url)
   const enc = encodeURIComponent(url)
@@ -91,7 +115,15 @@ export async function fetchPostMetadata(url: string): Promise<PostMetadata | nul
     const embedUrl = instagramEmbedUrl(url)
     if (embedUrl) {
       const embed = await nativeHttpGetText(embedUrl, HEADERS)
-      const caption = embed?.status === 200 ? parseEmbedCaption(embed.data) : null
+      let caption = embed?.status === 200 ? parseEmbedCaption(embed.data) : null
+
+      // Repli : depuis 2026, la page d'embed est une COQUILLE JavaScript. Le
+      // HTML statique ne contient plus `class="Caption"` (vérifié : zéro
+      // occurrence, et plus aucune balise og non plus), la légende n'apparaît
+      // qu'après exécution. On la lit donc dans un vrai navigateur, hors
+      // écran — le même plugin que la galerie photos.
+      if (!caption) caption = await captionFromRenderedEmbed(embedUrl)
+
       if (caption) og = { ...og, title: caption, description: caption }
     }
   }
