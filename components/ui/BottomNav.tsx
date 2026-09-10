@@ -3,13 +3,19 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect, useMemo } from 'react'
 import { useAuth, getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
-import { Map, Bookmark, User, MoreHorizontal, LogOut } from 'lucide-react'
+import { Bookmark, Sparkles, User, MoreHorizontal, LogOut } from 'lucide-react'
+import MapGlyph from '@/components/icons/MapGlyph'
 
-// Mirrors NavRail so the same destinations are reachable on both breakpoints.
-// Web chrome only (native renders AppTabBar). The web map lives at /carte.
+// Chrome WEB uniquement (le natif rend AppTabBar), mais les MÊMES destinations
+// et les mêmes icônes que lui : le site présente l'app, il ne peut pas proposer
+// une navigation d'où « Surprends-moi » aurait disparu et où le Carnet
+// s'appellerait « Enregistrés ».
+//
+// Les libellés restent, eux : l'app est une application, le site est un site.
 const TABS = [
-  { href: '/carte', Icon: Map, label: 'Carte' },
-  { href: '/favorites', Icon: Bookmark, label: 'Enregistrés' },
+  { href: '/favorites', Icon: Bookmark, label: 'Carnet' },
+  { href: '/carte', Icon: null, label: 'Carte' },
+  { href: '/carte?surprise=1', Icon: Sparkles, label: 'Surprise', never: true },
   { href: '/account', Icon: User, label: 'Compte' },
 ]
 
@@ -52,8 +58,12 @@ export default function BottomNav() {
         }}
       >
         {TABS.map((tab) => {
+          // `never` : « Surprise » ouvre la carte avec un paramètre que
+          // SurpriseParamWatcher nettoie aussitôt — l'onglet ne peut donc
+          // jamais se reconnaître actif, exactement comme dans l'app.
+          const base = tab.href.split('?')[0]
           const active =
-            pathname === tab.href || (tab.href !== '/' && pathname.startsWith(tab.href + '/'))
+            !tab.never && (pathname === base || (base !== '/' && pathname.startsWith(base + '/')))
           return (
             <Link
               key={tab.href}
@@ -71,7 +81,15 @@ export default function BottomNav() {
                 color: active ? 'var(--accent)' : 'var(--text-3)',
               }}
             >
-              <tab.Icon size={20} strokeWidth={active ? 2 : 1.75} />
+              {tab.Icon ? (
+                <tab.Icon
+                  size={22}
+                  strokeWidth={active ? 1.4 : 1.8}
+                  fill={active ? 'currentColor' : 'none'}
+                />
+              ) : (
+                <MapGlyph active={active} size={22} />
+              )}
               <span
                 style={{
                   fontSize: 10,
@@ -118,7 +136,12 @@ export default function BottomNav() {
       </nav>
 
       {sheet && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 500 }} onClick={() => setSheet(false)}>
+        // ⚠️ 1200, pas 500 : la feuille des restaurants de la carte est à 900 et
+        // recouvrait ce menu — on ouvrait « Plus » et le panneau des lieux
+        // restait par-dessus, avec « Se connecter » collé au milieu. L'échelle
+        // du projet : carte 900, barre d'onglets 950, superpositions plein
+        // écran ≥ 1300.
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1200 }} onClick={() => setSheet(false)}>
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)' }} />
           <div
             onClick={(e) => e.stopPropagation()}

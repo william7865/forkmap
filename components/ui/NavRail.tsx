@@ -1,13 +1,17 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Map, Bookmark, User, Settings } from 'lucide-react'
+import { Bookmark, Sparkles, User, Settings } from 'lucide-react'
+import MapGlyph from '@/components/icons/MapGlyph'
 import { LogoMark } from '@/components/icons/Logo'
 
 // Web chrome only (native renders AppTabBar). The web map lives at /carte.
+// Mêmes destinations et mêmes icônes que l'app : le site la présente, il ne
+// peut pas proposer une navigation d'où « Surprends-moi » aurait disparu.
 const NAV = [
-  { href: '/carte', Icon: Map, label: 'Carte' },
-  { href: '/favorites', Icon: Bookmark, label: 'Lieux enregistrés' },
+  { href: '/favorites', Icon: Bookmark, label: 'Carnet' },
+  { href: '/carte', Icon: null, label: 'Carte' },
+  { href: '/carte?surprise=1', Icon: Sparkles, label: 'Surprends-moi', never: true },
   { href: '/account', Icon: User, label: 'Compte' },
 ]
 
@@ -49,8 +53,13 @@ export default function NavRail() {
       </Link>
 
       {/* Nav items */}
-      {NAV.map(({ href, Icon, label }) => {
-        const active = pathname === href || (href !== '/' && pathname.startsWith(href + '/'))
+      {NAV.map(({ href, Icon, label, never }) => {
+        // `never` : « Surprends-moi » ouvre la carte avec un paramètre aussitôt
+        // nettoyé — l'entrée ne peut jamais se reconnaître active, comme dans
+        // l'app.
+        const base = href.split('?')[0]
+        const active =
+          !never && (pathname === base || (base !== '/' && pathname.startsWith(base + '/')))
         return (
           <Link
             key={href}
@@ -78,7 +87,15 @@ export default function NavRail() {
                 if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'
               }}
             >
-              <Icon size={18} strokeWidth={active ? 2 : 1.75} />
+              {Icon ? (
+                <Icon
+                  size={18}
+                  strokeWidth={active ? 1.4 : 1.8}
+                  fill={active ? 'currentColor' : 'none'}
+                />
+              ) : (
+                <MapGlyph active={active} size={18} />
+              )}
             </div>
           </Link>
         )
