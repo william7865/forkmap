@@ -264,7 +264,10 @@ function clusterIconHTML(count: number): string {
   const fs = count < 100 ? 14 : 13
   const bg = 'rgba(255,255,255,0.97)'
   const ring = '#0a0a0a'
-  const numFont = "'Playfair Display',Georgia,serif"
+  // Le token, pas une police en dur : les bulles restaient en serif alors que
+  // l'app ET le web sont passés à Archivo — un chiffre au milieu de la carte,
+  // dans une police qu'on ne trouve nulle part ailleurs.
+  const numFont = 'var(--font-display)'
   const ink = '#111112'
   return `<div style="width:${s}px;height:${s}px;border-radius:50%;background:${bg};border:2px solid ${ring};box-shadow:0 3px 12px rgba(20,22,43,0.20);display:flex;align-items:center;justify-content:center;font-family:${numFont};font-weight:700;font-size:${fs}px;color:${ink}">${count}</div>`
 }

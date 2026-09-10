@@ -4,7 +4,7 @@
 //
 // Editorial saved-post layout (cover hero → creator → quoted caption → what we
 // found → map → note → related). The skin is Forkmap's own Monochrome Premium:
-// white page, near-black accent, gold star, Playfair display titles. Rather than
+// white page, near-black accent, gold star, Archivo display titles. Rather than
 // paraphrasing the caption with an LLM, we quote the creator verbatim and put
 // FACTS underneath — the real restaurant, its rating, its hours, its distance.
 //
