@@ -1,10 +1,9 @@
 /* App natif — "Monochrome Premium" (chargé aussi sur web, utilisé uniquement sous html.native-app) */
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&family=Geist:wght@300;400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-/* Archivo — la voix typographique de l'app native (validée le 2026-09-08 après
-   essai sur l'écran d'import). Contraste par la graisse : 700/800 pour les
-   titres. Le WEB reste sur Playfair : ce sont deux surfaces avec leur propre
-   direction, et rien n'oblige la landing à suivre l'app ici. */
+/* Archivo — la voix typographique de Forkmap, app ET web (validée le
+   2026-09-08 après essai sur l'écran d'import, étendue au web le 2026-09-10).
+   Contraste par la graisse : 700/800 pour les titres. */
 @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
@@ -13,15 +12,19 @@
 
 /* ═══════════════════════════════════════════════════════════════
    FORKMAP — Design System 7 "Monochrome Premium"
-   Playfair Display (display) · Inter (UI) · Blanc / gris neutres
+   Archivo (display) · Inter (UI) · Blanc / gris neutres
    Accent UNIQUE Encre (#1a1a1a) + étoile dorée (seule vraie couleur)
    Aligné sur la palette de l'app native (avec 3 divergences AA, voir plus bas)
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── Polices ── */
+  /* ── Polices ──
+     Archivo, comme l'app native. Le web gardait Playfair pendant que l'app
+     basculait : les deux surfaces ne se ressemblaient plus, alors que le site
+     sert à présenter l'app. Le serif donnait par ailleurs au web un ton
+     « magazine » que l'app avait justement abandonné. */
   --font-body: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-display: 'Playfair Display', ui-serif, Georgia, serif;
+  --font-display: 'Archivo', system-ui, -apple-system, sans-serif;
 
   /* ── Accent UNIQUE — Encre (actions, sélection, liens, focus) ── */
   --accent: #1a1a1a;
@@ -154,7 +157,7 @@ html.native-app {
 
 /* ═══════════════════════════════════════════════════════════════
    APP NATIF — Design System 7 "Monochrome Premium"
-   Playfair Display (noms de resto) · Geist (UI) · Blanc / gris neutre
+   Archivo (noms de resto) · Inter (UI) · Blanc / gris neutre
    Accent Noir #0A0A0A. Photos + étoile dorée = seules vraies couleurs.
    Scopé à html.native-app (ajouté par CapacitorInit) : le rendu
    du SITE WEB reste strictement inchangé (thème papier/terracotta).

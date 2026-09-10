@@ -19,7 +19,7 @@
 // sa bannière « collé depuis … » : acceptable ici, l'utilisateur vient de taper
 // « Ajouter », donc la lecture est attendue. Toute erreur retombe simplement
 // sur le champ manuel.
-import { useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sparkles, Share, ClipboardPaste } from 'lucide-react'
 import { Sheet } from '@/components/ui/Sheet'
@@ -51,22 +51,23 @@ export default function AddImportSheet({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Lecture opportuniste du presse-papier à l'ouverture. Silencieuse en cas
-  // d'échec (permission refusée, contenu non textuel, navigateur sans API) :
-  // le champ manuel reste le chemin de repli.
-  useEffect(() => {
-    let alive = true
-    ;(async () => {
-      try {
-        const text = await navigator.clipboard?.readText()
-        const hit = text ? recognised(text) : null
-        if (alive && hit) setFromClipboard(hit)
-      } catch {
-        /* noop — champ manuel */
-      }
-    })()
-    return () => {
-      alive = false
+  /**
+   * Lecture du presse-papier, sur DEMANDE.
+   *
+   * ⚠️ Jamais à l'ouverture. iOS impose une bannière « Coller » que
+   * l'utilisateur doit confirmer : la déclencher sans qu'il ait rien demandé
+   * donne l'impression que l'app fouille son presse-papier. Derrière un bouton
+   * qu'il vient de toucher, la même bannière devient attendue.
+   */
+  const readClipboard = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard?.readText()
+      if (!text) return
+      setPasted(text.trim())
+      setFromClipboard(recognised(text))
+    } catch {
+      // Permission refusée, presse-papier vide ou non textuel : le champ
+      // manuel reste le chemin de repli.
     }
   }, [])
 
@@ -171,18 +172,47 @@ export default function AddImportSheet({ onClose }: { onClose: () => void }) {
         >
           {fromClipboard ? 'Ou colle un autre lien' : 'Colle le lien'}
         </label>
-        <input
-          className="input-field"
-          type="url"
-          inputMode="url"
-          autoComplete="off"
-          autoCapitalize="none"
-          spellCheck={false}
-          placeholder="https://www.tiktok.com/@…"
-          value={pasted}
-          onChange={(e) => setPasted(e.target.value)}
-          aria-label="Lien de la vidéo"
-        />
+        {/* Le champ et le bouton « Coller » côte à côte : c'est CE bouton qui
+            déclenche la bannière d'iOS, au moment où on la comprend. */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+          <input
+            className="input-field"
+            type="url"
+            inputMode="url"
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            placeholder="https://www.tiktok.com/@…"
+            value={pasted}
+            onChange={(e) => setPasted(e.target.value)}
+            aria-label="Lien de la vidéo"
+            style={{ flex: 1, minWidth: 0 }}
+          />
+          <button
+            type="button"
+            onClick={() => void readClipboard()}
+            aria-label="Coller le lien copié"
+            style={{
+              flexShrink: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '0 14px',
+              borderRadius: 12,
+              border: '1px solid var(--border)',
+              background: 'var(--surface)',
+              color: 'var(--text)',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-body)',
+              fontSize: 13.5,
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <ClipboardPaste size={16} strokeWidth={1.9} />
+            Coller
+          </button>
+        </div>
         <button
           type="button"
           disabled={!typed || busy}
