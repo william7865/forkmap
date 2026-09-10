@@ -457,7 +457,10 @@ async function resolveList(
   const resolved: ImportCandidatePlace[] = []
   const seen = new Set<string>()
   for (const v of venues.slice(0, MAX_LIST_VENUES)) {
-    const results = await askOracle(v.name, at)
+    // L'adresse, quand la ligne en donne une : « COCOQ 75 Rue Taitbout » est
+    // autrement plus discriminant que « COCOQ » seul.
+    const query = v.address ? `${v.name} ${v.address}` : v.name
+    const results = await askOracle(query, at)
     let best: PlaceSearchResult | null = null
     let bestScore = 0
     for (const r of results) {

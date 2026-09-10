@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Map, Bookmark, User, Sparkles } from 'lucide-react'
+import { Bookmark, User, Sparkles } from 'lucide-react'
 import { useEffect } from 'react'
 import { lightTap } from '@/lib/native/haptics'
 import { useUnreadMessages } from '@/lib/hooks/useUnreadMessages'
@@ -28,19 +28,53 @@ type Tab = {
 // destination tant qu'il est vide pour qui n'a pas encore d'amis. Le badge
 // des messages non lus suit donc les Messages, qui vivent derrière le Profil
 // et l'onglet Amis.
+/**
+ * La carte, en version pleine lisible.
+ *
+ * ⚠️ Remplir l'icône `Map` de lucide la rend ILLISIBLE : son contour et ses
+ * deux traits de pliure sont peints de la même couleur, donc les pliures
+ * disparaissent dans le remplissage et il ne reste qu'un pentagone noir. On
+ * redessine les pliures dans la couleur du fond, où elles se lisent comme des
+ * découpes — le rendu d'une icône de carte pleine sur iOS.
+ */
+function MapGlyph({ active }: { active: boolean }) {
+  return (
+    <svg
+      width={25}
+      height={25}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={active ? 1.4 : 1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M1 6l7-3 8 3 7-3v15l-7 3-8-3-7 3z" fill={active ? 'currentColor' : 'none'} />
+      <path d="M8 3v15M16 6v15" stroke={active ? 'var(--bg)' : 'currentColor'} />
+    </svg>
+  )
+}
+
 const TABS: Tab[] = [
   {
     // En natif le Carnet EST `/` (app/page.tsx) ; sur le web il vit à
     // `/favorites`, `/` étant la landing. Les deux chemins sont actifs.
     href: '/',
-    icon: (active) => <Bookmark size={22} strokeWidth={active ? 2.4 : 1.7} />,
+    icon: (active) => (
+      <Bookmark
+        size={25}
+        strokeWidth={active ? 1.4 : 1.8}
+        fill={active ? 'currentColor' : 'none'}
+      />
+    ),
     label: 'Carnet',
     match: (p) => p === '/' || p.startsWith('/favorites'),
     badge: 'imports',
   },
   {
     href: '/carte',
-    icon: (active) => <Map size={22} strokeWidth={active ? 2.4 : 1.7} />,
+    icon: (active) => <MapGlyph active={active} />,
     label: 'Carte',
     match: (p) => p.startsWith('/carte'),
   },
@@ -56,7 +90,13 @@ const TABS: Tab[] = [
     // comme l'onglet sélectionné même inactive. Ici on prend la version en
     // trait pour que les quatre icônes parlent la même langue — SigSparkle
     // reste la signature de la marque partout ailleurs.
-    icon: (active) => <Sparkles size={22} strokeWidth={active ? 2.4 : 1.7} />,
+    icon: (active) => (
+      <Sparkles
+        size={25}
+        strokeWidth={active ? 1.4 : 1.8}
+        fill={active ? 'currentColor' : 'none'}
+      />
+    ),
     label: 'Surprends-moi',
     // Jamais « actif » : `?surprise=1` est nettoyé par SurpriseParamWatcher dès
     // l'ouverture, et le deck (z-index 1000) recouvre la barre (950) tant qu'il
@@ -67,7 +107,9 @@ const TABS: Tab[] = [
   },
   {
     href: '/account',
-    icon: (active) => <User size={22} strokeWidth={active ? 2.4 : 1.7} />,
+    icon: (active) => (
+      <User size={25} strokeWidth={active ? 1.4 : 1.8} fill={active ? 'currentColor' : 'none'} />
+    ),
     label: 'Profil',
     match: (p) => p.startsWith('/account'),
     badge: 'messages',
@@ -128,7 +170,9 @@ function TabLink({ tab, active, badge }: { tab: Tab; active: boolean; badge: num
           // Pas de pastille de fond sur l'onglet actif : elle se lisait comme
           // un survol ou un appui, pas comme une sélection — et en icônes
           // seules elle prenait toute la place. La sélection passe par la
-          // couleur et l'épaisseur du trait, comme dans les barres iOS.
+          // couleur et par le REMPLISSAGE de l'icône, comme chez Instagram et
+          // X : un trait simplement plus épais ne se voit pas à la vitesse
+          // d'un coup d'œil.
           //
           // Le padding est aussi devenu UNIFORME : il valait 16px sur l'actif
           // et 14px ailleurs, donc l'icône se décalait d'un onglet à l'autre.

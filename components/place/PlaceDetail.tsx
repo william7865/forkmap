@@ -43,6 +43,7 @@ import {
   ChevronLeft,
   UtensilsCrossed,
   Navigation,
+  Loader2,
 } from 'lucide-react'
 import type { TransportMode } from '@/lib/hooks/useRouteCache'
 import { apiFetch } from '@/lib/api'
@@ -395,6 +396,10 @@ export default function PlaceDetail({
   // l'ouverture : elles n'existent que pour les lieux déjà passés au scraper,
   // et leur absence ne doit rien casser.
   const [scraped, setScraped] = useState<string[]>([])
+  // Un état visible plutôt qu'un silence : sans ça, « je cherche les photos »
+  // et « je n'ai rien tenté » ont exactement la même apparence — c'est ce qui
+  // a rendu deux pannes indétectables à l'usage.
+  const [seekingPhotos, setSeekingPhotos] = useState(false)
   useEffect(() => {
     let cancelled = false
     setScraped([])
@@ -417,6 +422,7 @@ export default function PlaceDetail({
       // stockage pour des lieux que personne ne garde. Le jour où
       // l'utilisateur enregistre le lieu, le scraper de fond le rangera.
       try {
+        setSeekingPhotos(true)
         const live = await scrapePlacePhotos(
           place.name,
           place.lat,
@@ -431,6 +437,8 @@ export default function PlaceDetail({
         if (!cancelled && live.length > 0) setScraped(live)
       } catch {
         // La galerie garde ce qu'elle a.
+      } finally {
+        if (!cancelled) setSeekingPhotos(false)
       }
     })()
     return () => {
@@ -628,6 +636,32 @@ export default function PlaceDetail({
               />
             ) : (
               <MiniMap lat={place.lat} lon={place.lon} height={210} flush />
+            )}
+
+            {seekingPhotos && galleryUrls.length === 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  left: 12,
+                  bottom: 12,
+                  zIndex: 2,
+                  height: 26,
+                  padding: '0 11px',
+                  borderRadius: 999,
+                  background: 'rgba(0,0,0,0.55)',
+                  backdropFilter: 'blur(6px)',
+                  WebkitBackdropFilter: 'blur(6px)',
+                  color: '#fff',
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <Loader2 size={12} style={{ animation: 'spin 900ms linear infinite' }} />
+                Recherche des photos…
+              </span>
             )}
 
             <button

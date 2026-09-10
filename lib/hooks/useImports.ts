@@ -17,6 +17,34 @@ import { apiFetch } from '@/lib/api'
 import { getSupabaseBrowserClient } from '@/lib/hooks/useAuth'
 import { isNativeRuntime } from '@/lib/native/platform'
 import { resolveImport } from '@/lib/import/resolve'
+
+/**
+ * Rend la main au plus tard après `ms`, avec un verdict d'échec.
+ *
+ * On ne peut pas annuler la promesse sous-jacente — elle continuera sans
+ * conséquence — mais la ligne, elle, cesse d'être en attente.
+ */
+export function withTimeout(
+  work: Promise<Partial<ImportRow>>,
+  ms: number
+): Promise<Partial<ImportRow>> {
+  return Promise.race([
+    work,
+    new Promise<Partial<ImportRow>>((resolve) =>
+      setTimeout(
+        () =>
+          resolve({
+            status: 'failed',
+            osm_id: null,
+            place_snapshot: null,
+            candidates: null,
+            resolved_at: new Date().toISOString(),
+          }),
+        ms
+      )
+    ),
+  ])
+}
 import { getAuthHeaders } from '@/lib/auth-headers'
 import { useToastApi } from '@/lib/hooks/useToastContext'
 import { successTap } from '@/lib/native/haptics'
@@ -158,6 +186,10 @@ export function useImports(center: [number, number] | null) {
     }
   }, [reload])
 
+  // Plafond par import. Généreux : lire le post, chercher le lieu et parfois
+  // reconnaître le texte d'une vidéo prend du temps. Mais borné.
+  const RESOLVE_TIMEOUT_MS = 90_000
+
   // Resolve pending imports in the background, sequentially (the Google scrape
   // gets blocked if hammered).
   useEffect(() => {
@@ -179,7 +211,13 @@ export function useImports(center: [number, number] | null) {
           try {
             // resolveImport never rejects and never returns `pending`: whatever
             // happens, the row leaves the spinner.
-            const p = await resolveImport(row, centerRef.current)
+            //
+            // ⚠️ Sauf s'il ne REND JAMAIS la main. La boucle est séquentielle
+            // et verrouillée par `resolving` : une seule résolution suspendue
+            // fige tous les imports suivants, et la tuile tourne indéfiniment.
+            // Un import est resté « en analyse » deux jours pour cette raison.
+            // Le plafond garantit qu'une ligne quitte toujours le spinner.
+            const p = await withTimeout(resolveImport(row, centerRef.current), RESOLVE_TIMEOUT_MS)
             await patch(row.id, p)
             if (p.status === 'resolved' && p.place_snapshot?.name) {
               found.push(p.place_snapshot.name)

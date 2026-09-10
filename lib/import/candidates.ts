@@ -863,12 +863,26 @@ function chezMatches(text: string): PlaceGuess[] {
 export interface VenueEntry {
   name: string
   handle: string | null
+  /** L'adresse écrite sur la ligne, quand la légende en donne une. */
+  address?: string | null
 }
 
 /** A line that introduces one venue: an optional bullet, a name, then its @handle. */
 const VENUE_LINE = /^[\s–—\-•*·>#0-9.)]*\s*(.{1,60}?)\s+@([a-zA-Z0-9._]{2,40})\b/
 /** A real list bullet at the very start of the line. */
 const BULLET_START = /^\s*[–—\-•*·]/
+/**
+ * L'AUTRE forme de liste, la plus courante en français : « Nom 📍 adresse »,
+ * sans le moindre @pseudo.
+ *
+ *   Violetta & Alfredo📍 30 Rue de Trévise, Paris 9e
+ *   Bro's Pizza 📍 23 Rue d'Amsterdam, Paris 8e
+ *
+ * Sans elle, une légende listant cinq restaurants n'en rendait AUCUN — la
+ * détection exigeait un pseudo par ligne — et le post retombait sur une seule
+ * adresse.
+ */
+const VENUE_PIN_LINE = /^[\s–—\-•*·>#0-9.)]*\s*(.{2,60}?)\s*[\u{1F4CD}\u{1F4CC}]\s*(.{4,90}?)\s*$/u
 
 /**
  * Detect a list-style caption and return its venues in order, each a name paired
@@ -881,6 +895,25 @@ export function extractVenueList(caption: string): VenueEntry[] {
   const out: VenueEntry[] = []
   const seen = new Set<string>()
   for (const line of caption.split('\n')) {
+    // Forme « Nom 📍 adresse » d'abord : elle porte une adresse, donc un
+    // signal bien plus fort qu'un simple nom pour retrouver le lieu.
+    const pinned = VENUE_PIN_LINE.exec(line)
+    if (pinned) {
+      // Le côté gauche EST le nom, en entier : pas de `trailingName` ici, qui
+      // ne garde que la fin capitalisée et amputait « Violetta & Alfredo »
+      // en « Alfredo ».
+      const name = stripEmoji(pinned[1]).replace(/\s+/g, ' ').trim()
+      const address = stripEmoji(pinned[2]).trim()
+      if (name.length >= 2 && !isGeneric(name) && !isCurator(name) && address.length >= 4) {
+        const key = normalise(name)
+        if (!seen.has(key)) {
+          seen.add(key)
+          out.push({ name, handle: null, address })
+        }
+      }
+      continue
+    }
+
     const m = VENUE_LINE.exec(line)
     if (!m) continue
     const handle = m[2].replace(/[._]+$/, '')

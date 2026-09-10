@@ -115,6 +115,22 @@ export function instagramEmbedUrl(url: string): string | null {
  * into newlines, keep link TEXT (so "@venue" survives), strip tags and decode.
  * Null when there is no caption block.
  */
+/**
+ * Retire le texte d'interface qu'Instagram colle à la fin d'une légende lue
+ * dans la page rendue : « Voir tous les commentaires », « Voir les 28
+ * commentaires »… Sans ça il se retrouve dans la légende affichée, et surtout
+ * collé à la dernière adresse d'une liste
+ * (« 17 Rue Sedaine, 11eVoir tous les commentaires »).
+ */
+export function stripEmbedChrome(text: string): string {
+  return text
+    .replace(
+      /\s*(?:Voir (?:tous les|les \d[\d\s\u00a0]*)\s*commentaires?|View all \d[\d,\s]*comments?|Voir plus sur Instagram|View more on Instagram)\s*$/giu,
+      ''
+    )
+    .trim()
+}
+
 export function parseEmbedCaption(html: string): string | null {
   const m = /<div[^>]*class="Caption"[^>]*>([\s\S]*?)<\/div>/i.exec(html)
   if (!m) return null

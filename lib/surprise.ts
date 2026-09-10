@@ -306,3 +306,21 @@ export function rankDeck(
     .sort((a, b) => b.weight - a.weight)
     .map((s) => ({ place: s.place, reasons: buildReasons(s.place, opts) }))
 }
+
+/**
+ * Un critère est-il actif dans le deck ?
+ *
+ * Sert à distinguer deux écrans vides qui se ressemblent : « tu as tout vu »
+ * et « rien ne passe tes filtres ». Le second proposait « Rejouer », qui vide
+ * l'historique et reconstruit le MÊME deck vide — le bouton semblait cassé.
+ */
+export function hasActiveDeckFilters(opts: {
+  mood?: string | null
+  maxPrice?: number | null
+  maxDistance?: number | null
+  openNow?: boolean
+}): boolean {
+  return (
+    opts.mood != null || opts.maxPrice != null || opts.maxDistance != null || opts.openNow === true
+  )
+}
